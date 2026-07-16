@@ -1,0 +1,453 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum TwoFactorMethod {
+  TOTP // authenticator app (Google Authenticator, Authy, etc.)
+  EMAIL_OTP // one-time code emailed at login
+  SMS_OTP // one-time code texted at login
+}
+
+enum TenantType {
+  WHITE_LABEL // registers + buys a package from the Platform
+  LABEL // tier 1 portal — buys a package from a WHITE_LABEL
+  SUB_LABEL // tier 2 portal — buys a package from a LABEL (or a WHITE_LABEL directly)
+  ARTIST // tier 3 portal — bought under LABEL, SUB_LABEL, or WHITE_LABEL directly
+}
+
+// LABEL / SUB_LABEL / ARTIST are NOT three different products — they are
+// the SAME portal (same features, same UI, same permission model). The only
+// difference is how much of that shared feature set is unlocked, and that
+// shrinks as tier increases (1 = most capable, 3 = most limited). `tier` on
+// Tenant/Package makes that explicit instead of leaving it implied by name.
+
+enum MemberRole {
+  OWNER // the TenantUser who purchased/owns this node
+  ADMIN
+  MANAGER
+  STAFF
+  ARTIST_MEMBER
+}
+
+enum BillingCycle {
+  ONE_TIME
+  MONTHLY
+  YEARLY
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE // payment failed, grace period before losing access
+  CANCELLED // user cancelled, but may still have access until currentPeriodEnd
+  EXPIRED // period ended, no access
+}
+
+// ============================================================
+// SESSION
+// Database-backed auth sessions (as opposed to stateless JWTs) —
+// lets you revoke a session instantly (logout everywhere, force
+// logout on password change, ban a user) by just deleting rows.
+//
+// Same dual-owner pattern as Purchase: a session belongs to
+// EXACTLY ONE of PlatformUser or TenantUser, never both, because
+// they're two fully isolated login pools. Enforce that in app
+// logic when creating a session.
+//
+// Store `sessionToken` HASHED (e.g. sha256), same as a password —
+// never store the raw token the browser cookie holds, so a DB
+// leak alone doesn't hand out valid sessions.
+// ============================================================
+
+model Session {
+  id           String @id @default(cuid())
+  sessionToken String @unique // hashed value of the token in the user's cookie
+
+  platformUserId String?
+  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  tenantUserId String?
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  // Optional: which tenant node this session is "acting as" right now,
+  // useful since one TenantUser can have access to many Label/Sub-Label/
+  // Artist portals — lets you remember/switch context without re-login.
+  activeTenantId String?
+
+  ipAddress String?
+  userAgent String?
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platformUserId])
+  @@index([tenantUserId])
+  @@index([expiresAt]) // for a cron job that sweeps expired sessions
+}
+
+// ============================================================
+// TWO-FACTOR AUTH
+// One row per user (whichever pool), holding their 2FA config.
+// - TOTP: `secret` holds the encrypted shared secret, codes are
+//   generated client-side by an authenticator app — nothing to
+//   store per login attempt, you just verify on submit.
+// - EMAIL_OTP / SMS_OTP: `secret` stays null; each login instead
+//   creates a row in TwoFactorChallenge with a fresh, short-lived
+//   code that gets emailed/texted out.
+//
+// isVerified only flips true once the user proves they can
+// generate a valid code during setup — until then 2FA isn't
+// actually protecting the account yet, just configured.
+// ============================================================
+
+model TwoFactorAuth {
+  id String @id @default(cuid())
+
+  platformUserId String?       @unique
+  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  tenantUserId String?     @unique
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  method     TwoFactorMethod @default(TOTP)
+  secret     String? // encrypted TOTP shared secret — null for EMAIL_OTP/SMS_OTP
+  phone      String? // required if method = SMS_OTP
+  isEnabled  Boolean         @default(false)
+  isVerified Boolean         @default(false) // confirmed working during setup
+  verifiedAt DateTime?
+
+  backupCodes TwoFactorBackupCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One-time-use recovery codes issued when 2FA is enabled, in case
+// the user loses their authenticator device / phone number.
+model TwoFactorBackupCode {
+  id              String        @id @default(cuid())
+  twoFactorAuthId String
+  twoFactorAuth   TwoFactorAuth @relation(fields: [twoFactorAuthId], references: [id], onDelete: Cascade)
+
+  codeHash String // store hashed, never plaintext — same rule as passwords
+  usedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([twoFactorAuthId])
+}
+
+// A single pending verification attempt at login time. Only really
+// needed for EMAIL_OTP/SMS_OTP (TOTP is verified against `secret`
+// directly with no stored challenge) — but works for either since
+// it's keyed by which user + method, not which login flow.
+model TwoFactorChallenge {
+  id String @id @default(cuid())
+
+  platformUserId String?
+  tenantUserId   String?
+
+  method     TwoFactorMethod
+  codeHash   String // hashed OTP, compare against submitted code's hash
+  attempts   Int             @default(0) // lock out after N failed guesses
+  expiresAt  DateTime // short-lived, e.g. 5-10 minutes
+  consumedAt DateTime? // set once successfully used, prevents replay
+
+  createdAt DateTime @default(now())
+
+  @@index([platformUserId])
+  @@index([tenantUserId])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// PLATFORM USERS — fully isolated identity pool
+// These are the people who register on the MAIN site and buy
+// White Label packages. They never share a table, a login, or
+// an email-uniqueness scope with anyone inside a White Label.
+// ============================================================
+
+model PlatformUser {
+  id           String  @id @default(cuid())
+  email        String  @unique // global uniqueness — but ONLY within this isolated table
+  name         String?
+  passwordHash String
+
+  ownedWhiteLabels Tenant[]       @relation("WhiteLabelOwner") // the WHITE_LABEL tenants they purchased
+  purchases        Purchase[]
+  sessions         Session[]
+  twoFactorAuth    TwoFactorAuth?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// TENANT USERS — the identity pool for everything INSIDE a
+// White Label (Label / Sub-Label / Artist users).
+//
+// Uniqueness is (email, whiteLabelId) — NOT global:
+//   - one email can only ever have ONE account under a given
+//     White Label (whiteLabelId)
+//   - the exact same email CAN have a separate, unrelated
+//     TenantUser row under a DIFFERENT White Label
+//
+// One TenantUser account can be granted access (via TenantMember)
+// to many Labels / Sub-Labels / Artists under its own White Label,
+// and can OWN (purchase) at most one of each — enforced on Tenant
+// below, not here.
+// ============================================================
+
+model TenantUser {
+  id           String  @id @default(cuid())
+  email        String
+  name         String?
+  passwordHash String
+
+  whiteLabelId String // which White Label this identity belongs to
+  whiteLabel   Tenant @relation("WhiteLabelUsers", fields: [whiteLabelId], references: [id])
+
+  memberships   TenantMember[] // every Label/Sub-Label/Artist this user can access
+  ownedNodes    Tenant[]       @relation("TenantOwner") // nodes this user purchased/owns
+  purchases     Purchase[]
+  sessions      Session[]
+  twoFactorAuth TwoFactorAuth?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, whiteLabelId]) // <-- the core rule: unique PER white label, not global
+  @@index([whiteLabelId])
+}
+
+// ============================================================
+// TENANT
+// Every node in the hierarchy — white label, label, sub-label,
+// artist — is one row here. Self-referencing tree via parentId.
+//
+//   (Platform — implicit, not a row)
+//     └─ WHITE_LABEL          owner: PlatformUser
+//          ├─ LABEL           owner: TenantUser (scoped to this white label)
+//          │    ├─ SUB_LABEL  owner: TenantUser
+//          │    │    └─ ARTIST
+//          │    └─ ARTIST
+//          ├─ SUB_LABEL
+//          └─ ARTIST
+//
+// OWNERSHIP CAP — this is the important part:
+// @@unique([ownerId, type]) on this table means one TenantUser
+// can own AT MOST one LABEL, one SUB_LABEL, and one ARTIST —
+// never two of the same type — but owning one of each type at
+// the same time (1 Label + 1 Sub-Label + 1 Artist) is perfectly
+// fine, since that's three different (ownerId, type) pairs.
+// ============================================================
+
+model Tenant {
+  id   String     @id @default(cuid())
+  type TenantType
+  tier Int        @default(0) // 0 = WHITE_LABEL (n/a), 1 = LABEL, 2 = SUB_LABEL, 3 = ARTIST
+  name String
+  slug String     @unique
+
+  parentId String?
+  parent   Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
+  children Tenant[] @relation("TenantHierarchy")
+
+  // Owner is EITHER a PlatformUser (only when type = WHITE_LABEL)
+  // OR a TenantUser (when type = LABEL / SUB_LABEL / ARTIST).
+  // Exactly one of these two should be set — enforce in app logic
+  // (Postgres allows this since unused FK stays null).
+  platformOwnerId String?
+  platformOwner   PlatformUser? @relation("WhiteLabelOwner", fields: [platformOwnerId], references: [id])
+
+  ownerId String?
+  owner   TenantUser? @relation("TenantOwner", fields: [ownerId], references: [id])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenantUsers     TenantUser[]   @relation("WhiteLabelUsers") // only populated when type = WHITE_LABEL
+  members         TenantMember[] // everyone with access to this specific node
+  subscription    Subscription? // the current plan/state for this node (1 per tenant)
+  packagesOffered Package[]      @relation("PackageSeller")
+  purchasesMade   Purchase[]     @relation("PurchaseBuyer")
+  purchasesSold   Purchase[]     @relation("PurchaseSeller")
+
+  // *** THE PURCHASE CAP RULE ***
+  // NULL ownerId (i.e. WHITE_LABEL rows) never collides with itself
+  // in Postgres unique indexes, so this only bites LABEL/SUB_LABEL/ARTIST.
+  @@unique([ownerId, type])
+  @@index([parentId])
+  @@index([type])
+}
+
+// ============================================================
+// TENANT MEMBER
+// Grants a TenantUser access + a role to a specific node
+// (Label / Sub-Label / Artist) under their own White Label.
+// This is what lets ONE account touch MANY nodes, while
+// ownership (above) is what caps them to one purchase per type.
+// ============================================================
+
+model TenantMember {
+  id           String     @id @default(cuid())
+  tenantUserId String
+  tenantUser   TenantUser @relation(fields: [tenantUserId], references: [id])
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  role         MemberRole @default(STAFF)
+
+  invitedAt DateTime  @default(now())
+  joinedAt  DateTime?
+
+  @@unique([tenantUserId, tenantId]) // can't be added to the same node twice
+  @@index([tenantId])
+}
+
+// ============================================================
+// PACKAGE
+// Sellable plans. sellerType says who is allowed to sell it,
+// targetType/targetTier say what gets created on purchase.
+//
+// Since LABEL/SUB_LABEL/ARTIST share one feature set, `features`
+// should hold the SAME keys at every tier — e.g. { maxReleases,
+// maxSubAccounts, canInviteMembers, storageGb } — just with
+// smaller values/booleans as targetTier increases. This keeps
+// permission checks in the app generic ("does this tenant's
+// features.maxReleases allow one more") instead of branching on
+// type, and makes adding a 4th tier later a data change, not a
+// schema change.
+// ============================================================
+
+model Package {
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  price        Decimal      @db.Decimal(10, 2)
+  currency     String       @default("USD")
+  billingCycle BillingCycle @default(MONTHLY)
+
+  sellerType TenantType? // null = sold by the Platform itself
+  targetType TenantType // WHITE_LABEL | LABEL | SUB_LABEL | ARTIST
+  targetTier Int         @default(0) // mirrors Tenant.tier for the node this package creates
+
+  sellerTenantId String?
+  sellerTenant   Tenant? @relation("PackageSeller", fields: [sellerTenantId], references: [id])
+
+  features Json? // same key names across all tiers, values/limits shrink as tier goes up
+  isActive Boolean @default(true)
+
+  purchases     Purchase[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sellerType, targetType])
+}
+
+// ============================================================
+// SUBSCRIPTION
+// The ongoing STATE of a Tenant's plan — one per tenant node.
+// Purchase (below) is the payment history; this is "what's true
+// right now": which package, what period, will it renew, is it
+// currently accessible. A cron/webhook job flips status here as
+// billing events happen (renewed, failed, cancelled).
+//
+// This is also where you'd wire Stripe/Paddle/etc: store the
+// provider's subscription id and let their webhooks update
+// status + currentPeriodEnd directly.
+// ============================================================
+
+model Subscription {
+  id String @id @default(cuid())
+
+  tenantId String @unique // one active subscription per tenant node
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  packageId String
+  package   Package @relation(fields: [packageId], references: [id])
+
+  status       SubscriptionStatus @default(TRIALING)
+  billingCycle BillingCycle
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime? // null for ONE_TIME packages (never expires on its own)
+  autoRenew          Boolean   @default(true)
+  cancelAtPeriodEnd  Boolean   @default(false) // user cancelled, keeps access till period end
+  cancelledAt        DateTime?
+
+  externalProviderId String? // e.g. Stripe subscription id, for webhook reconciliation
+
+  payments Purchase[] // every charge (initial + renewals) tied to this subscription
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([currentPeriodEnd]) // for finding subscriptions due to renew/expire
+}
+
+// ============================================================
+// PURCHASE
+// A single payment/transaction record — the initial purchase or
+// any later renewal charge under a Subscription. This is billing
+// history; Subscription (above) is current state.
+// Buyer is EITHER a PlatformUser (buying a WHITE_LABEL) or a
+// TenantUser (buying a LABEL / SUB_LABEL / ARTIST) — exactly one
+// of the two buyer fields should be set.
+// ============================================================
+
+model Purchase {
+  id String @id @default(cuid())
+
+  packageId String
+  package   Package @relation(fields: [packageId], references: [id])
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  buyerPlatformUserId String?
+  buyerPlatformUser   PlatformUser? @relation(fields: [buyerPlatformUserId], references: [id])
+
+  buyerTenantUserId String?
+  buyerTenantUser   TenantUser? @relation(fields: [buyerTenantUserId], references: [id])
+
+  createdTenantId String // the Tenant this purchase created/renewed
+  createdTenant   Tenant @relation("PurchaseBuyer", fields: [createdTenantId], references: [id])
+
+  sellerId String? // the parent tenant selling it — null when sold directly by the Platform
+  seller   Tenant? @relation("PurchaseSeller", fields: [sellerId], references: [id])
+
+  amount   Decimal        @db.Decimal(10, 2)
+  currency String         @default("USD")
+  status   PurchaseStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdTenantId])
+  @@index([sellerId])
+  @@index([subscriptionId])
+}
