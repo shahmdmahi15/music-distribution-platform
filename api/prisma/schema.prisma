@@ -68,6 +68,47 @@ enum InvitationStatus {
   EXPIRED
 }
 
+enum PayoutMethodType {
+  BANK_TRANSFER
+  PAYPAL
+  STRIPE_CONNECT
+  OTHER
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
 // ============================================================
 // SESSION
 // ============================================================
@@ -252,6 +293,9 @@ model PlatformUser {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   auditLogs               AuditLog[]
+  payoutMethods           PayoutMethod[]
+  notifications           Notification[]
+  paymentMethods          PaymentMethod[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -287,6 +331,9 @@ model TenantUser {
   emailVerificationTokens EmailVerificationToken[]
   invitationsSent         Invitation[]             @relation("InvitationsSent") // invites this user has sent to others
   auditLogs               AuditLog[]
+  payoutMethods           PayoutMethod[]
+  notifications           Notification[]
+  paymentMethods          PaymentMethod[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -318,21 +365,25 @@ model Tenant {
   owner   TenantUser? @relation("TenantOwner", fields: [ownerId], references: [id])
 
   isActive Boolean @default(true)
+  branding Json? // logo, colors, custom email sender, etc. — in practice only set for WHITE_LABEL
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantUsers           TenantUser[]    @relation("WhiteLabelUsers")
+  tenantUsers           TenantUser[]      @relation("WhiteLabelUsers")
   members               TenantMember[]
   subscription          Subscription?
-  packagesOffered       Package[]       @relation("PackageSeller")
-  purchasesMade         Purchase[]      @relation("PurchaseBuyer")
-  purchasesSold         Purchase[]      @relation("PurchaseSeller")
+  packagesOffered       Package[]         @relation("PackageSeller")
+  purchasesMade         Purchase[]        @relation("PurchaseBuyer")
+  purchasesSold         Purchase[]        @relation("PurchaseSeller")
   partners              TenantPartner[] // full cap table — revenue-share stakeholders on this node
   apiKeys               ApiKey[] // programmatic access keys — in practice only issued for WHITE_LABEL
-  whiteLabelInvitations Invitation[]    @relation("WhiteLabelInvitations") // only populated when type = WHITE_LABEL
-  invitationsReceived   Invitation[]    @relation("InvitationTarget") // invites targeting THIS specific node
+  whiteLabelInvitations Invitation[]      @relation("WhiteLabelInvitations") // only populated when type = WHITE_LABEL
+  invitationsReceived   Invitation[]      @relation("InvitationTarget") // invites targeting THIS specific node
   auditLogs             AuditLog[]
+  usageRecords          UsageRecord[]
+  webhookEndpoints      WebhookEndpoint[]
+  invoices              Invoice[]
 
   @@unique([ownerId, type])
   @@index([parentId])
@@ -373,6 +424,35 @@ model TenantMember {
 // an account under this white label" without an extra join, and so
 // the invite is scoped correctly even before any TenantUser exists.
 // ============================================================
+
+// ============================================================
+// USAGE RECORD
+// Tracks actual consumption against the limits sitting in
+// Package.features (e.g. { maxReleases: 50 } vs a live count of
+// releases created). One row per (tenant, metric, period) — bump
+// `value` as usage happens, reset by creating a new row each time
+// Subscription.currentPeriodStart rolls over. Metric names should
+// match the keys used in Package.features so a limit check is a
+// simple lookup: usage.value < package.features[metric].
+// ============================================================
+
+model UsageRecord {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  metric String // e.g. "releases", "storageGb", "subAccounts" — mirrors a Package.features key
+  value  Decimal @db.Decimal(12, 2)
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, metric, periodStart])
+  @@index([tenantId])
+}
 
 model Invitation {
   id String @id @default(cuid())
@@ -449,11 +529,80 @@ model TenantPartner {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  payouts Payout[]
+
   @@unique([tenantId, platformUserId]) // can't hold two separate stakes in the same node
   @@unique([tenantId, tenantUserId])
   @@index([tenantId])
   @@index([platformUserId])
   @@index([tenantUserId])
+}
+
+// ============================================================
+// PAYOUT METHOD
+// Where a stakeholder's money actually goes. Deliberately stores
+// a reference to an external processor account (e.g. a Stripe
+// Connect account id, a PayPal merchant id) rather than raw bank
+// details — offload real account-number/routing-number storage
+// and verification to a payments provider, don't hold it yourself
+// unless you have a specific reason to.
+// ============================================================
+
+model PayoutMethod {
+  id String @id @default(cuid())
+
+  platformUserId String?
+  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  tenantUserId String?
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  type              PayoutMethodType
+  externalAccountId String? // e.g. Stripe Connect acct_id, PayPal merchant id
+  isDefault         Boolean          @default(false)
+  isVerified        Boolean          @default(false)
+
+  payouts Payout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platformUserId])
+  @@index([tenantUserId])
+}
+
+// ============================================================
+// PAYOUT
+// A single revenue-share payment made to a TenantPartner for a
+// given period, from a given tenant node's earnings. This is the
+// money-out counterpart to Purchase (money-in).
+// ============================================================
+
+model Payout {
+  id String @id @default(cuid())
+
+  tenantPartnerId String
+  tenantPartner   TenantPartner @relation(fields: [tenantPartnerId], references: [id])
+
+  payoutMethodId String?
+  payoutMethod   PayoutMethod? @relation(fields: [payoutMethodId], references: [id])
+
+  amount   Decimal      @db.Decimal(10, 2)
+  currency String       @default("USD")
+  status   PayoutStatus @default(PENDING)
+
+  periodStart DateTime
+  periodEnd   DateTime
+  paidAt      DateTime?
+
+  externalTransferId String? // reference id from the payments provider
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantPartnerId])
+  @@index([payoutMethodId])
+  @@index([status])
 }
 
 // ============================================================
@@ -469,6 +618,42 @@ model TenantPartner {
 // (e.g. "wl_live_8f2a") shown in the dashboard so they can tell
 // keys apart without needing the full secret.
 // ============================================================
+
+// ============================================================
+// NOTIFICATION
+// Covers both in-app notifications and the record of an
+// email/SMS send triggered by an event (invite received,
+// subscription expiring, payout paid, etc). `type` is a
+// free-form event key, same reasoning as AuditLog.action —
+// avoids a schema migration every time a new notification kind
+// is added.
+// ============================================================
+
+model Notification {
+  id String @id @default(cuid())
+
+  platformUserId String?
+  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  tenantUserId String?
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  type    String // e.g. "invitation.received", "subscription.expiring", "payout.paid"
+  channel NotificationChannel @default(IN_APP)
+  title   String
+  body    String?
+  data    Json?
+
+  status NotificationStatus @default(PENDING)
+  readAt DateTime?
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([platformUserId])
+  @@index([tenantUserId])
+  @@index([status])
+}
 
 model ApiKey {
   id       String @id @default(cuid())
@@ -489,6 +674,53 @@ model ApiKey {
   updatedAt DateTime @updatedAt
 
   @@index([tenantId])
+}
+
+// ============================================================
+// WEBHOOK ENDPOINT
+// Lets a White Label register a URL to be notified of events on
+// their own tenant tree (subscription renewed, member added,
+// payout paid, etc). `secret` signs outgoing payloads (HMAC) so
+// the receiver can verify authenticity — store it encrypted at
+// rest, not hashed, since you need the plaintext back to sign.
+// ============================================================
+
+model WebhookEndpoint {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  url        String
+  secret     String // encrypted at rest — used to HMAC-sign each delivery
+  eventTypes String[] // subscribed events, e.g. ["subscription.renewed", "member.added"]
+  isActive   Boolean  @default(true)
+
+  deliveries WebhookDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// Delivery attempt log — one row per attempt, not per event, so
+// retries are visible and you can tell a flaky endpoint from a
+// dead one.
+model WebhookDelivery {
+  id                String          @id @default(cuid())
+  webhookEndpointId String
+  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  eventType      String
+  payload        Json
+  responseStatus Int?
+  attempt        Int       @default(1)
+  succeededAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookEndpointId])
+  @@index([eventType])
 }
 
 // ============================================================
@@ -547,6 +779,42 @@ model EmailVerificationToken {
   @@index([expiresAt])
 }
 
+// ============================================================
+// PAYMENT METHOD
+// A saved payment reference (card, bank debit) at the payments
+// processor. Same as PayoutMethod's philosophy but for money
+// coming IN instead of going OUT — store only the processor's
+// reference id and display fields (brand/last4), never raw card
+// data. Linked to whichever user pool is actually paying for
+// their Subscription's Purchases.
+// ============================================================
+
+model PaymentMethod {
+  id String @id @default(cuid())
+
+  platformUserId String?
+  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  tenantUserId String?
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  provider                String // "stripe", "paddle", etc.
+  externalPaymentMethodId String // e.g. Stripe pm_xxx
+
+  brand       String? // "visa", "mastercard", etc. — display only
+  last4       String?
+  expiryMonth Int?
+  expiryYear  Int?
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, externalPaymentMethodId])
+  @@index([platformUserId])
+  @@index([tenantUserId])
+}
+
 model Package {
   id           String       @id @default(cuid())
   name         String
@@ -567,6 +835,7 @@ model Package {
 
   purchases     Purchase[]
   subscriptions Subscription[]
+  coupons       Coupon[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -577,6 +846,110 @@ model Package {
 // ============================================================
 // SUBSCRIPTION
 // ============================================================
+
+// ============================================================
+// COUPON
+// Discount codes, optionally restricted to a specific Package
+// (null applicablePackageId = usable on anything). `value` means
+// a percentage (0-100) when type = PERCENTAGE, or a flat amount
+// in `currency` when type = FIXED_AMOUNT.
+// ============================================================
+
+model Coupon {
+  id       String     @id @default(cuid())
+  code     String     @unique
+  type     CouponType
+  value    Decimal    @db.Decimal(10, 2)
+  currency String? // only meaningful when type = FIXED_AMOUNT
+
+  maxRedemptions Int?
+  timesRedeemed  Int  @default(0)
+
+  validFrom  DateTime  @default(now())
+  validUntil DateTime?
+  isActive   Boolean   @default(true)
+
+  applicablePackageId String?
+  applicablePackage   Package? @relation(fields: [applicablePackageId], references: [id])
+
+  redemptions CouponRedemption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicablePackageId])
+}
+
+// One row per successful redemption — 1:1 with the Purchase it
+// discounted, so a coupon can't be double-applied to one purchase.
+model CouponRedemption {
+  id String @id @default(cuid())
+
+  couponId String
+  coupon   Coupon @relation(fields: [couponId], references: [id])
+
+  purchaseId String   @unique
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+
+  discountAmount Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([couponId])
+}
+
+// ============================================================
+// INVOICE
+// A formal, immutable billing record — usually 1:1 with a
+// Purchase, but kept as its own model so line items, tax, and a
+// PDF reference have somewhere to live without bloating Purchase
+// itself. `invoiceNumber` is your own sequential/human-readable
+// numbering, separate from the internal cuid.
+// ============================================================
+
+model Invoice {
+  id            String @id @default(cuid())
+  invoiceNumber String @unique
+
+  purchaseId String?   @unique
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+
+  billedToTenantId String?
+  billedToTenant   Tenant? @relation(fields: [billedToTenantId], references: [id])
+
+  subtotal       Decimal @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
+  currency       String  @default("USD")
+
+  status   InvoiceStatus @default(ISSUED)
+  issuedAt DateTime      @default(now())
+  dueAt    DateTime?
+  paidAt   DateTime?
+  pdfUrl   String?
+
+  lineItems InvoiceLineItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([billedToTenantId])
+  @@index([status])
+}
+
+model InvoiceLineItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  amount      Decimal @db.Decimal(10, 2)
+
+  @@index([invoiceId])
+}
 
 model Subscription {
   id String @id @default(cuid())
@@ -635,6 +1008,9 @@ model Purchase {
   amount   Decimal        @db.Decimal(10, 2)
   currency String         @default("USD")
   status   PurchaseStatus @default(PENDING)
+
+  couponRedemption CouponRedemption?
+  invoice          Invoice?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
