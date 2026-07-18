@@ -8,1057 +8,193 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================================
-// ENUMS
-// ============================================================
-
-enum TwoFactorMethod {
-  TOTP // authenticator app (Google Authenticator, Authy, etc.)
-  EMAIL_OTP // one-time code emailed at login
-  SMS_OTP // one-time code texted at login
-}
-
-enum TenantType {
-  WHITE_LABEL // registers + buys a package from the Platform
-  LABEL // tier 1 portal — buys a package from a WHITE_LABEL
-  SUB_LABEL // tier 2 portal — buys a package from a LABEL (or a WHITE_LABEL directly)
-  ARTIST // tier 3 portal — bought under LABEL, SUB_LABEL, or WHITE_LABEL directly
-}
-
-// LABEL / SUB_LABEL / ARTIST are NOT three different products — they are
-// the SAME portal (same features, same UI, same permission model). The only
-// difference is how much of that shared feature set is unlocked, and that
-// shrinks as tier increases (1 = most capable, 3 = most limited). `tier` on
-// Tenant/Package makes that explicit instead of leaving it implied by name.
-
-enum MemberRole {
-  OWNER // the TenantUser who purchased/owns this node
+enum PlatformUserRole {
+  OWNER
   ADMIN
   MANAGER
   STAFF
-  ARTIST_MEMBER
+  CUSTOMER
 }
 
-enum BillingCycle {
-  ONE_TIME
-  MONTHLY
-  YEARLY
+enum WorkspaceUserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+  MEMBER
+  CUSTOMER
 }
 
-enum PurchaseStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
+enum OAuthAccountProvider {
+  GOOGLE
+  GITHUB
 }
-
-enum SubscriptionStatus {
-  TRIALING
-  ACTIVE
-  PAST_DUE // payment failed, grace period before losing access
-  CANCELLED // user cancelled, but may still have access until currentPeriodEnd
-  EXPIRED // period ended, no access
-}
-
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  REVOKED
-  EXPIRED
-}
-
-enum PayoutMethodType {
-  BANK_TRANSFER
-  PAYPAL
-  STRIPE_CONNECT
-  OTHER
-}
-
-enum PayoutStatus {
-  PENDING
-  PROCESSING
-  PAID
-  FAILED
-  CANCELLED
-}
-
-enum NotificationChannel {
-  IN_APP
-  EMAIL
-  SMS
-}
-
-enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
-  READ
-}
-
-enum CouponType {
-  PERCENTAGE
-  FIXED_AMOUNT
-}
-
-enum InvoiceStatus {
-  DRAFT
-  ISSUED
-  PAID
-  VOID
-  UNCOLLECTIBLE
-}
-
-// ============================================================
-// SESSION
-// ============================================================
-
-model Session {
-  id           String @id @default(cuid())
-  sessionToken String @unique // hashed value of the token in the user's cookie
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  activeTenantId String?
-
-  ipAddress String?
-  userAgent String?
-
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-  @@index([expiresAt])
-}
-
-// ============================================================
-// TWO-FACTOR AUTH
-// ============================================================
-
-model TwoFactorAuth {
-  id String @id @default(cuid())
-
-  platformUserId String?       @unique
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?     @unique
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  method     TwoFactorMethod @default(TOTP)
-  secret     String?
-  phone      String?
-  isEnabled  Boolean         @default(false)
-  isVerified Boolean         @default(false)
-  verifiedAt DateTime?
-
-  backupCodes TwoFactorBackupCode[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model TwoFactorBackupCode {
-  id              String        @id @default(cuid())
-  twoFactorAuthId String
-  twoFactorAuth   TwoFactorAuth @relation(fields: [twoFactorAuthId], references: [id], onDelete: Cascade)
-
-  codeHash String
-  usedAt   DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([twoFactorAuthId])
-}
-
-model TwoFactorChallenge {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  method     TwoFactorMethod
-  codeHash   String
-  attempts   Int             @default(0)
-  expiresAt  DateTime
-  consumedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-  @@index([expiresAt])
-}
-
-// ============================================================
-// OAUTH ACCOUNTS
-// Two models, not one — same reason PlatformUser/TenantUser are
-// split. Google/Apple/etc. is one identity provider, but which
-// LOCAL account it's allowed to attach to follows the same
-// isolation rule as email:
-//
-//   - PlatformOAuthAccount: a given (provider, providerAccountId)
-//     maps to AT MOST ONE PlatformUser, globally — matches
-//     PlatformUser.email being globally unique.
-//
-//   - TenantOAuthAccount: a given (provider, providerAccountId)
-//     maps to AT MOST ONE TenantUser PER White Label, but the
-//     SAME Google account can separately link to a different
-//     TenantUser under a DIFFERENT White Label — matches
-//     TenantUser's @@unique([email, whiteLabelId]) rule exactly.
-//     `whiteLabelId` is denormalized here (copied from
-//     tenantUser.whiteLabelId) because a unique index can only
-//     reference columns on its own table.
-// ============================================================
-
-model PlatformOAuthAccount {
-  id String @id @default(cuid())
-
-  platformUserId String
-  platformUser   PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  provider          String // "google" | "facebook" | "apple" | ...
-  providerAccountId String // stable id from the provider, not the email
-
-  accessToken  String? @db.Text
-  refreshToken String? @db.Text
-  expiresAt    Int? // unix seconds
-  tokenType    String?
-  scope        String?
-  idToken      String? @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([provider, providerAccountId]) // globally unique — one provider account, one PlatformUser
-  @@index([platformUserId])
-}
-
-model TenantOAuthAccount {
-  id String @id @default(cuid())
-
-  tenantUserId String
-  tenantUser   TenantUser @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  whiteLabelId String // denormalized from tenantUser.whiteLabelId — see comment above
-
-  provider          String
-  providerAccountId String
-
-  accessToken  String? @db.Text
-  refreshToken String? @db.Text
-  expiresAt    Int?
-  tokenType    String?
-  scope        String?
-  idToken      String? @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([provider, providerAccountId, whiteLabelId]) // unique per white label, not globally
-  @@index([tenantUserId])
-  @@index([whiteLabelId])
-}
-
-// ============================================================
-// PLATFORM USERS — fully isolated identity pool
-// ============================================================
 
 model PlatformUser {
-  id            String  @id @default(cuid())
-  email         String  @unique
-  emailVerified Boolean @default(false)
-  name          String?
-  passwordHash  String? // nullable — OAuth-only accounts have no local password
-
-  failedLoginAttempts Int       @default(0)
-  lockedUntil         DateTime? // set when failedLoginAttempts crosses your threshold; null = not locked
-  lastLoginAt         DateTime?
-
-  ownedWhiteLabels        Tenant[]                 @relation("WhiteLabelOwner")
-  purchases               Purchase[]
-  sessions                Session[]
-  twoFactorAuth           TwoFactorAuth?
-  twoFactorChallenges     TwoFactorChallenge[]
-  partnerStakes           TenantPartner[] // WHITE_LABELs where they hold a % stake (not necessarily the primary owner)
-  oauthAccounts           PlatformOAuthAccount[]
-  passwordResetTokens     PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  auditLogs               AuditLog[]
-  payoutMethods           PayoutMethod[]
-  notifications           Notification[]
-  paymentMethods          PaymentMethod[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// TENANT USERS
-// ============================================================
-
-model TenantUser {
-  id            String  @id @default(cuid())
-  email         String
-  emailVerified Boolean @default(false)
-  name          String?
-  passwordHash  String? // nullable — OAuth-only accounts have no local password
-
-  failedLoginAttempts Int       @default(0)
-  lockedUntil         DateTime?
-  lastLoginAt         DateTime?
-
-  whiteLabelId String
-  whiteLabel   Tenant @relation("WhiteLabelUsers", fields: [whiteLabelId], references: [id])
-
-  memberships             TenantMember[]
-  ownedNodes              Tenant[]                 @relation("TenantOwner")
-  purchases               Purchase[]
-  sessions                Session[]
-  twoFactorAuth           TwoFactorAuth?
-  twoFactorChallenges     TwoFactorChallenge[]
-  partnerStakes           TenantPartner[] // Label/Sub-Label/Artist nodes where they hold a % stake
-  oauthAccounts           TenantOAuthAccount[]
-  passwordResetTokens     PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  invitationsSent         Invitation[]             @relation("InvitationsSent") // invites this user has sent to others
-  auditLogs               AuditLog[]
-  payoutMethods           PayoutMethod[]
-  notifications           Notification[]
-  paymentMethods          PaymentMethod[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([email, whiteLabelId])
-  @@index([whiteLabelId])
-}
-
-// ============================================================
-// TENANT
-// ============================================================
-
-model Tenant {
-  id     String     @id @default(cuid())
-  type   TenantType
-  tier   Int        @default(0)
-  name   String
-  slug   String     @unique // platform subdomain, e.g. slug.yourplatform.com — every tier has one
-  domain String?    @unique // custom domain, e.g. mywhitelabel.com — in practice only set for WHITE_LABEL
-
-  parentId String?
-  parent   Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
-  children Tenant[] @relation("TenantHierarchy")
-
-  platformOwnerId String?
-  platformOwner   PlatformUser? @relation("WhiteLabelOwner", fields: [platformOwnerId], references: [id])
-
-  ownerId String?
-  owner   TenantUser? @relation("TenantOwner", fields: [ownerId], references: [id])
-
-  isActive Boolean @default(true)
-  branding Json? // logo, colors, custom email sender, etc. — in practice only set for WHITE_LABEL
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenantUsers           TenantUser[]      @relation("WhiteLabelUsers")
-  members               TenantMember[]
-  subscription          Subscription?
-  packagesOffered       Package[]         @relation("PackageSeller")
-  purchasesMade         Purchase[]        @relation("PurchaseBuyer")
-  purchasesSold         Purchase[]        @relation("PurchaseSeller")
-  partners              TenantPartner[] // full cap table — revenue-share stakeholders on this node
-  apiKeys               ApiKey[] // programmatic access keys — in practice only issued for WHITE_LABEL
-  whiteLabelInvitations Invitation[]      @relation("WhiteLabelInvitations") // only populated when type = WHITE_LABEL
-  invitationsReceived   Invitation[]      @relation("InvitationTarget") // invites targeting THIS specific node
-  auditLogs             AuditLog[]
-  usageRecords          UsageRecord[]
-  webhookEndpoints      WebhookEndpoint[]
-  invoices              Invoice[]
-
-  @@unique([ownerId, type])
-  @@index([parentId])
-  @@index([type])
-}
-
-// ============================================================
-// TENANT MEMBER
-// ============================================================
-
-model TenantMember {
-  id           String     @id @default(cuid())
-  tenantUserId String
-  tenantUser   TenantUser @relation(fields: [tenantUserId], references: [id])
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id])
-  role         MemberRole @default(STAFF)
-
-  invitedAt DateTime  @default(now())
-  joinedAt  DateTime?
-
-  @@unique([tenantUserId, tenantId])
-  @@index([tenantId])
-}
-
-// ============================================================
-// INVITATION
-// Lets someone be invited by email to a specific Label/Sub-Label/
-// Artist node BEFORE they have a TenantUser account — TenantMember
-// above requires an existing tenantUserId, this is the step before
-// that exists. On acceptance: if a TenantUser with this email
-// already exists under whiteLabelId, just create the TenantMember;
-// otherwise create the TenantUser first, then the TenantMember —
-// both app-layer logic, not enforced here.
-//
-// `whiteLabelId` is denormalized (same reasoning as on the OAuth
-// account models) so you can look up "does this email already have
-// an account under this white label" without an extra join, and so
-// the invite is scoped correctly even before any TenantUser exists.
-// ============================================================
-
-// ============================================================
-// USAGE RECORD
-// Tracks actual consumption against the limits sitting in
-// Package.features (e.g. { maxReleases: 50 } vs a live count of
-// releases created). One row per (tenant, metric, period) — bump
-// `value` as usage happens, reset by creating a new row each time
-// Subscription.currentPeriodStart rolls over. Metric names should
-// match the keys used in Package.features so a limit check is a
-// simple lookup: usage.value < package.features[metric].
-// ============================================================
-
-model UsageRecord {
-  id       String @id @default(cuid())
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  metric String // e.g. "releases", "storageGb", "subAccounts" — mirrors a Package.features key
-  value  Decimal @db.Decimal(12, 2)
-
-  periodStart DateTime
-  periodEnd   DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([tenantId, metric, periodStart])
-  @@index([tenantId])
-}
-
-model Invitation {
+  // Primary key
   id String @id @default(cuid())
 
-  email        String
-  whiteLabelId String
-  whiteLabel   Tenant @relation("WhiteLabelInvitations", fields: [whiteLabelId], references: [id])
+  // Data Fields
+  firstName                   String
+  lastName                    String
+  email                       String  @unique
+  passwordHash                String?
+  failedLoginAttempts         Int     @default(0)
+  failedVerificationAttempts  Int     @default(0)
+  failedPasswordResetAttempts Int     @default(0)
+  failedTwoFactorAttempts     Int     @default(0)
 
-  tenantId String // the specific Label/Sub-Label/Artist node being invited to
-  tenant   Tenant @relation("InvitationTarget", fields: [tenantId], references: [id])
+  // Flags
+  emailVerified    Boolean @default(false)
+  twoFactorEnabled Boolean @default(false)
 
-  role MemberRole @default(STAFF)
+  // Enums
+  role PlatformUserRole @default(CUSTOMER)
 
-  invitedByTenantUserId String?
-  invitedByTenantUser   TenantUser? @relation("InvitationsSent", fields: [invitedByTenantUserId], references: [id])
+  // Foreign Keys
 
-  tokenHash  String           @unique
-  status     InvitationStatus @default(PENDING)
+  // Parent Relations
+
+  // Child Relations
+  oAuthAccounts OAuthAccount[]
+  sessions      Session[]
+
+  // Timestamps
+  lastLoginAt DateTime?
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WorkspaceUser {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  firstName                   String
+  lastName                    String
+  email                       String  @unique
+  passwordHash                String?
+  failedLoginAttempts         Int     @default(0)
+  failedVerificationAttempts  Int     @default(0)
+  failedPasswordResetAttempts Int     @default(0)
+  failedTwoFactorAttempts     Int     @default(0)
+
+  // Flags
+  twoFactorEnabled Boolean @default(false)
+
+  // Enums
+  role WorkspaceUserRole @default(CUSTOMER)
+
+  // Foreign Keys
+
+  // Parent Relations
+
+  // Child Relations
+  oAuthAccounts OAuthAccount[]
+  sessions      Session[]
+
+  // Timestamps
+  lastLoginAt DateTime?
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model OAuthAccount {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  accountId    String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+  scope        String?
+  password     String?
+
+  // Flags
+
+  // Enums
+  provider OAuthAccountProvider
+
+  // Foreign Keys
+  platformUserId  String?
+  workspaceUserId String?
+
+  // Parent Relations
+  platformUser  PlatformUser?  @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  workspaceUser WorkspaceUser? @relation(fields: [workspaceUserId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model Session {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  token        String  @unique
+  ipAddress    String?
+  userAgent    String?
+  revokeReason String?
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  platformUserId  String?
+  workspaceUserId String?
+
+  // Parent Relations
+  platformUser  PlatformUser?  @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  workspaceUser WorkspaceUser? @relation(fields: [workspaceUserId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  accessedAt DateTime  @default(now())
   expiresAt  DateTime
-  acceptedAt DateTime?
   revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([whiteLabelId])
-  @@index([tenantId])
-  @@index([email])
-  @@index([status])
+  // Constraints && Indexes
 }
 
-// ============================================================
-// TENANT PARTNER
-// Revenue-share / ownership-percentage cap table for a single
-// Tenant node (WHITE_LABEL, LABEL, SUB_LABEL, or ARTIST). This is
-// SEPARATE from Tenant.ownerId / platformOwnerId above:
-//
-//   - owner / platformOwner = the ONE account that purchased the
-//     node and is billed for it — still capped to at most one
-//     Label / one Sub-Label / one Artist per TenantUser via the
-//     existing @@unique([ownerId, type]) on Tenant.
-//
-//   - TenantPartner = the (possibly many) people who hold a %
-//     stake in that node's revenue, regardless of who purchased
-//     it. The primary owner is typically ALSO a partner row
-//     (isPrimary = true), but doesn't have to hold 100%.
-//
-// Same dual-identity split as everywhere else: a partner is
-// EITHER a PlatformUser (only valid when the tenant is
-// WHITE_LABEL) OR a TenantUser (LABEL/SUB_LABEL/ARTIST) —
-// enforce "exactly one FK set, matching the tenant's type" in
-// app logic.
-//
-// Percentages summing to 100 per tenant is NOT something Prisma
-// can enforce declaratively (it's a SUM across sibling rows) —
-// validate it in application code on create/update, or add a
-// Postgres trigger if you want it enforced at the DB level too.
-// ============================================================
+// {
+//   // Primary key
+//   id String @id @default(cuid())
 
-model TenantPartner {
-  id       String @id @default(cuid())
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+//   // Data Fields
 
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id])
+//   // Flags
 
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id])
+//   // Enums
 
-  percentage Decimal @db.Decimal(5, 2) // e.g. 33.33 — validate sum per tenantId = 100 in app logic
-  isPrimary  Boolean @default(false) // marks the original purchaser/admin among the partners
+//   // Foreign Keys
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+//   // Parent Relations
 
-  payouts Payout[]
+//   // Child Relations
 
-  @@unique([tenantId, platformUserId]) // can't hold two separate stakes in the same node
-  @@unique([tenantId, tenantUserId])
-  @@index([tenantId])
-  @@index([platformUserId])
-  @@index([tenantUserId])
-}
+//   // Timestamps
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
 
-// ============================================================
-// PAYOUT METHOD
-// Where a stakeholder's money actually goes. Deliberately stores
-// a reference to an external processor account (e.g. a Stripe
-// Connect account id, a PayPal merchant id) rather than raw bank
-// details — offload real account-number/routing-number storage
-// and verification to a payments provider, don't hold it yourself
-// unless you have a specific reason to.
-// ============================================================
-
-model PayoutMethod {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  type              PayoutMethodType
-  externalAccountId String? // e.g. Stripe Connect acct_id, PayPal merchant id
-  isDefault         Boolean          @default(false)
-  isVerified        Boolean          @default(false)
-
-  payouts Payout[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-}
-
-// ============================================================
-// PAYOUT
-// A single revenue-share payment made to a TenantPartner for a
-// given period, from a given tenant node's earnings. This is the
-// money-out counterpart to Purchase (money-in).
-// ============================================================
-
-model Payout {
-  id String @id @default(cuid())
-
-  tenantPartnerId String
-  tenantPartner   TenantPartner @relation(fields: [tenantPartnerId], references: [id])
-
-  payoutMethodId String?
-  payoutMethod   PayoutMethod? @relation(fields: [payoutMethodId], references: [id])
-
-  amount   Decimal      @db.Decimal(10, 2)
-  currency String       @default("USD")
-  status   PayoutStatus @default(PENDING)
-
-  periodStart DateTime
-  periodEnd   DateTime
-  paidAt      DateTime?
-
-  externalTransferId String? // reference id from the payments provider
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantPartnerId])
-  @@index([payoutMethodId])
-  @@index([status])
-}
-
-// ============================================================
-// API KEY
-// Programmatic access keys, scoped to a single Tenant node — a
-// White Label can hold MANY keys (e.g. one for their production
-// app, one for a staging environment, one for a Zapier
-// integration), each independently revocable.
-//
-// Only the hash is stored (`keyHash`), same rule as passwords —
-// the raw key is shown to the user exactly once at creation time
-// and never persisted. `keyPrefix` is a short, non-secret slice
-// (e.g. "wl_live_8f2a") shown in the dashboard so they can tell
-// keys apart without needing the full secret.
-// ============================================================
-
-// ============================================================
-// NOTIFICATION
-// Covers both in-app notifications and the record of an
-// email/SMS send triggered by an event (invite received,
-// subscription expiring, payout paid, etc). `type` is a
-// free-form event key, same reasoning as AuditLog.action —
-// avoids a schema migration every time a new notification kind
-// is added.
-// ============================================================
-
-model Notification {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  type    String // e.g. "invitation.received", "subscription.expiring", "payout.paid"
-  channel NotificationChannel @default(IN_APP)
-  title   String
-  body    String?
-  data    Json?
-
-  status NotificationStatus @default(PENDING)
-  readAt DateTime?
-  sentAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-  @@index([status])
-}
-
-model ApiKey {
-  id       String @id @default(cuid())
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  name      String // human label, e.g. "Production", "Zapier integration"
-  keyPrefix String // shown in UI for identification — not secret
-  keyHash   String @unique // hashed full key — never store the raw value
-
-  scopes Json? // permission scopes, e.g. ["releases:read", "releases:write"]
-
-  lastUsedAt DateTime?
-  expiresAt  DateTime? // optional expiry
-  revokedAt  DateTime? // soft revoke — keeps the row for audit history instead of deleting
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-}
-
-// ============================================================
-// WEBHOOK ENDPOINT
-// Lets a White Label register a URL to be notified of events on
-// their own tenant tree (subscription renewed, member added,
-// payout paid, etc). `secret` signs outgoing payloads (HMAC) so
-// the receiver can verify authenticity — store it encrypted at
-// rest, not hashed, since you need the plaintext back to sign.
-// ============================================================
-
-model WebhookEndpoint {
-  id       String @id @default(cuid())
-  tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  url        String
-  secret     String // encrypted at rest — used to HMAC-sign each delivery
-  eventTypes String[] // subscribed events, e.g. ["subscription.renewed", "member.added"]
-  isActive   Boolean  @default(true)
-
-  deliveries WebhookDelivery[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-}
-
-// Delivery attempt log — one row per attempt, not per event, so
-// retries are visible and you can tell a flaky endpoint from a
-// dead one.
-model WebhookDelivery {
-  id                String          @id @default(cuid())
-  webhookEndpointId String
-  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
-
-  eventType      String
-  payload        Json
-  responseStatus Int?
-  attempt        Int       @default(1)
-  succeededAt    DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([webhookEndpointId])
-  @@index([eventType])
-}
-
-// ============================================================
-// PASSWORD RESET TOKEN
-// Short-lived token for "forgot password" flows. Same dual-owner
-// split as everything else. Delete/consume on use; a cron can
-// sweep expired, unused rows.
-// ============================================================
-
-model PasswordResetToken {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  tokenHash String    @unique // hashed — the raw token only ever lives in the emailed link
-  expiresAt DateTime
-  usedAt    DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-  @@index([expiresAt])
-}
-
-// ============================================================
-// EMAIL VERIFICATION TOKEN
-// Confirms a user actually owns the email they registered with.
-// Same shape as PasswordResetToken, kept separate since the two
-// flows have different security implications (a leaked reset
-// token can take over an account; a leaked verify token mostly
-// can't).
-// ============================================================
-
-model EmailVerificationToken {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([platformUserId])
-  @@index([tenantUserId])
-  @@index([expiresAt])
-}
-
-// ============================================================
-// PAYMENT METHOD
-// A saved payment reference (card, bank debit) at the payments
-// processor. Same as PayoutMethod's philosophy but for money
-// coming IN instead of going OUT — store only the processor's
-// reference id and display fields (brand/last4), never raw card
-// data. Linked to whichever user pool is actually paying for
-// their Subscription's Purchases.
-// ============================================================
-
-model PaymentMethod {
-  id String @id @default(cuid())
-
-  platformUserId String?
-  platformUser   PlatformUser? @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-
-  tenantUserId String?
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
-
-  provider                String // "stripe", "paddle", etc.
-  externalPaymentMethodId String // e.g. Stripe pm_xxx
-
-  brand       String? // "visa", "mastercard", etc. — display only
-  last4       String?
-  expiryMonth Int?
-  expiryYear  Int?
-  isDefault   Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([provider, externalPaymentMethodId])
-  @@index([platformUserId])
-  @@index([tenantUserId])
-}
-
-model Package {
-  id           String       @id @default(cuid())
-  name         String
-  description  String?
-  price        Decimal      @db.Decimal(10, 2)
-  currency     String       @default("USD")
-  billingCycle BillingCycle @default(MONTHLY)
-
-  sellerType TenantType?
-  targetType TenantType
-  targetTier Int         @default(0)
-
-  sellerTenantId String?
-  sellerTenant   Tenant? @relation("PackageSeller", fields: [sellerTenantId], references: [id])
-
-  features Json?
-  isActive Boolean @default(true)
-
-  purchases     Purchase[]
-  subscriptions Subscription[]
-  coupons       Coupon[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([sellerType, targetType])
-}
-
-// ============================================================
-// SUBSCRIPTION
-// ============================================================
-
-// ============================================================
-// COUPON
-// Discount codes, optionally restricted to a specific Package
-// (null applicablePackageId = usable on anything). `value` means
-// a percentage (0-100) when type = PERCENTAGE, or a flat amount
-// in `currency` when type = FIXED_AMOUNT.
-// ============================================================
-
-model Coupon {
-  id       String     @id @default(cuid())
-  code     String     @unique
-  type     CouponType
-  value    Decimal    @db.Decimal(10, 2)
-  currency String? // only meaningful when type = FIXED_AMOUNT
-
-  maxRedemptions Int?
-  timesRedeemed  Int  @default(0)
-
-  validFrom  DateTime  @default(now())
-  validUntil DateTime?
-  isActive   Boolean   @default(true)
-
-  applicablePackageId String?
-  applicablePackage   Package? @relation(fields: [applicablePackageId], references: [id])
-
-  redemptions CouponRedemption[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([applicablePackageId])
-}
-
-// One row per successful redemption — 1:1 with the Purchase it
-// discounted, so a coupon can't be double-applied to one purchase.
-model CouponRedemption {
-  id String @id @default(cuid())
-
-  couponId String
-  coupon   Coupon @relation(fields: [couponId], references: [id])
-
-  purchaseId String   @unique
-  purchase   Purchase @relation(fields: [purchaseId], references: [id])
-
-  discountAmount Decimal @db.Decimal(10, 2)
-
-  createdAt DateTime @default(now())
-
-  @@index([couponId])
-}
-
-// ============================================================
-// INVOICE
-// A formal, immutable billing record — usually 1:1 with a
-// Purchase, but kept as its own model so line items, tax, and a
-// PDF reference have somewhere to live without bloating Purchase
-// itself. `invoiceNumber` is your own sequential/human-readable
-// numbering, separate from the internal cuid.
-// ============================================================
-
-model Invoice {
-  id            String @id @default(cuid())
-  invoiceNumber String @unique
-
-  purchaseId String?   @unique
-  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
-
-  billedToTenantId String?
-  billedToTenant   Tenant? @relation(fields: [billedToTenantId], references: [id])
-
-  subtotal       Decimal @db.Decimal(10, 2)
-  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
-  discountAmount Decimal @default(0) @db.Decimal(10, 2)
-  total          Decimal @db.Decimal(10, 2)
-  currency       String  @default("USD")
-
-  status   InvoiceStatus @default(ISSUED)
-  issuedAt DateTime      @default(now())
-  dueAt    DateTime?
-  paidAt   DateTime?
-  pdfUrl   String?
-
-  lineItems InvoiceLineItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([billedToTenantId])
-  @@index([status])
-}
-
-model InvoiceLineItem {
-  id        String  @id @default(cuid())
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  description String
-  quantity    Int     @default(1)
-  unitPrice   Decimal @db.Decimal(10, 2)
-  amount      Decimal @db.Decimal(10, 2)
-
-  @@index([invoiceId])
-}
-
-model Subscription {
-  id String @id @default(cuid())
-
-  tenantId String @unique
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-
-  packageId String
-  package   Package @relation(fields: [packageId], references: [id])
-
-  status       SubscriptionStatus @default(TRIALING)
-  billingCycle BillingCycle
-
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime?
-  autoRenew          Boolean   @default(true)
-  cancelAtPeriodEnd  Boolean   @default(false)
-  cancelledAt        DateTime?
-
-  externalProviderId String?
-
-  payments Purchase[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
-  @@index([currentPeriodEnd])
-}
-
-// ============================================================
-// PURCHASE
-// ============================================================
-
-model Purchase {
-  id String @id @default(cuid())
-
-  packageId String
-  package   Package @relation(fields: [packageId], references: [id])
-
-  subscriptionId String?
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
-
-  buyerPlatformUserId String?
-  buyerPlatformUser   PlatformUser? @relation(fields: [buyerPlatformUserId], references: [id])
-
-  buyerTenantUserId String?
-  buyerTenantUser   TenantUser? @relation(fields: [buyerTenantUserId], references: [id])
-
-  createdTenantId String
-  createdTenant   Tenant @relation("PurchaseBuyer", fields: [createdTenantId], references: [id])
-
-  sellerId String?
-  seller   Tenant? @relation("PurchaseSeller", fields: [sellerId], references: [id])
-
-  amount   Decimal        @db.Decimal(10, 2)
-  currency String         @default("USD")
-  status   PurchaseStatus @default(PENDING)
-
-  couponRedemption CouponRedemption?
-  invoice          Invoice?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([createdTenantId])
-  @@index([sellerId])
-  @@index([subscriptionId])
-}
-
-// ============================================================
-// AUDIT LOG
-// A record of who did what, where. Actor is EITHER a PlatformUser
-// or a TenantUser (or neither, for system/cron-triggered events —
-// both stay null in that case). `tenantId` is the node the action
-// relates to (null for platform-wide actions like a White Label
-// purchase). Deliberately generic (`action` is a free-form string
-// like "member.removed", "package.created", "partner.updated")
-// rather than one column per event type, since this list will
-// grow constantly and shouldn't require schema migrations.
-//
-// No relation on delete: keep audit rows even if the actor's
-// account is later deleted — that's the whole point of an audit
-// trail. Restrict/SetNull, not Cascade.
-// ============================================================
-
-model AuditLog {
-  id String @id @default(cuid())
-
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id])
-
-  actorPlatformUserId String?
-  actorPlatformUser   PlatformUser? @relation(fields: [actorPlatformUserId], references: [id])
-
-  actorTenantUserId String?
-  actorTenantUser   TenantUser? @relation(fields: [actorTenantUserId], references: [id])
-
-  action     String // e.g. "member.removed", "subscription.cancelled", "apikey.created"
-  targetType String? // e.g. "TenantMember", "Package", "ApiKey"
-  targetId   String?
-  metadata   Json? // free-form details (old/new values, etc.)
-  ipAddress  String?
-
-  createdAt DateTime @default(now())
-
-  @@index([tenantId])
-  @@index([actorPlatformUserId])
-  @@index([actorTenantUserId])
-  @@index([action])
-  @@index([createdAt])
-}
+//   // Constraints && Indexes
+// }

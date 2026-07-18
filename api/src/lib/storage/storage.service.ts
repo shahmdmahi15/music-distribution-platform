@@ -5,7 +5,7 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentVariables } from '../../config/env.validation';
+import { EnvironmentVariables } from '../../config/env.config';
 
 @Injectable()
 export class StorageService implements OnModuleInit {

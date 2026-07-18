@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentVariables } from '../../config/env.validation';
+import { EnvironmentVariables } from '../../config/env.config';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -34,5 +34,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   getClient(): RedisClientType {
     return this.client;
+  }
+
+  async set(key: string, value: string, ttlInSeconds?: number): Promise<void> {
+    if (ttlInSeconds) {
+      await this.client.set(key, value, { EX: ttlInSeconds });
+    } else {
+      await this.client.set(key, value);
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    return await this.client.get(key);
+  }
+
+  async del(key: string): Promise<void> {
+    await this.client.del(key);
   }
 }
