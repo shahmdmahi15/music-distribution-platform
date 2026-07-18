@@ -9,6 +9,7 @@ export const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
   SENDER_EMAIL: z.email('SENDER_EMAIL must be a valid email address'),
   AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
+  PLATFORM_API_KEY: z.string().min(1, 'PLATFORM_API_KEY is required'),
 });
 
 export type EnvironmentVariables = z.infer<typeof envSchema>;

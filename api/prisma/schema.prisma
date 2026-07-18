@@ -16,7 +16,7 @@ enum PlatformUserRole {
   CUSTOMER
 }
 
-enum WorkspaceUserRole {
+enum WhitelabelUserRole {
   OWNER
   ADMIN
   MANAGER
@@ -68,7 +68,7 @@ model PlatformUser {
   // Constraints && Indexes
 }
 
-model WorkspaceUser {
+model WhitelabelUser {
   // Primary key
   id String @id @default(cuid())
 
@@ -86,7 +86,7 @@ model WorkspaceUser {
   twoFactorEnabled Boolean @default(false)
 
   // Enums
-  role WorkspaceUserRole @default(CUSTOMER)
+  role WhitelabelUserRole @default(CUSTOMER)
 
   // Foreign Keys
 
@@ -124,12 +124,12 @@ model OAuthAccount {
   provider OAuthAccountProvider
 
   // Foreign Keys
-  platformUserId  String?
-  workspaceUserId String?
+  platformUserId   String?
+  whitelabelUserId String?
 
   // Parent Relations
-  platformUser  PlatformUser?  @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-  workspaceUser WorkspaceUser? @relation(fields: [workspaceUserId], references: [id], onDelete: Cascade)
+  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  whitelabelUser WhitelabelUser? @relation(fields: [whitelabelUserId], references: [id], onDelete: Cascade)
 
   // Child Relations
 
@@ -157,12 +157,12 @@ model Session {
   // Enums
 
   // Foreign Keys
-  platformUserId  String?
-  workspaceUserId String?
+  platformUserId   String?
+  whitelabelUserId String?
 
   // Parent Relations
-  platformUser  PlatformUser?  @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-  workspaceUser WorkspaceUser? @relation(fields: [workspaceUserId], references: [id], onDelete: Cascade)
+  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  whitelabelUser WhitelabelUser? @relation(fields: [whitelabelUserId], references: [id], onDelete: Cascade)
 
   // Child Relations
 

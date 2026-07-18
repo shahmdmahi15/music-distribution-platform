@@ -17,9 +17,10 @@ import { RegisterDto } from './dto/register.dto';
 import { VerifyDto } from './dto/verify.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { LoginDto } from './dto/login.dto';
-import { Verify2faDto } from './dto/verify-2fa.dto';
+import { VerifyMfaDto } from './dto/verify-mfa.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
+import { LogoutDto } from './dto/logout.dto';
 
 @Injectable()
 export class AuthService {
@@ -295,12 +296,6 @@ export class AuthService {
         },
       });
 
-      await this.redisService.set(
-        REDIS_KEYS.platform.session.token.key(session.token),
-        JSON.stringify(session),
-        REDIS_KEYS.platform.session.token.ttl,
-      );
-
       await this.prismaService.platformUser.update({
         where: { id: user.id },
         data: {
@@ -308,6 +303,13 @@ export class AuthService {
           failedTwoFactorAttempts: 0,
           failedPasswordResetAttempts: 0,
           lockedUntil: null,
+        },
+        select: {
+          id: true,
+          failedLoginAttempts: true,
+          failedTwoFactorAttempts: true,
+          failedPasswordResetAttempts: true,
+          lockedUntil: true,
         },
       });
 
@@ -324,7 +326,7 @@ export class AuthService {
     }
   }
 
-  async verify2FA(dto: Verify2faDto) {
+  async verifyMfa(dto: VerifyMfaDto) {
     let user = await this.prismaService.platformUser.findUnique({
       where: { id: dto.userId },
     });
@@ -398,12 +400,6 @@ export class AuthService {
         },
       });
 
-      await this.redisService.set(
-        REDIS_KEYS.platform.session.token.key(session.token),
-        JSON.stringify(session),
-        REDIS_KEYS.platform.session.token.ttl,
-      );
-
       await this.prismaService.platformUser.update({
         where: { id: dto.userId },
         data: {
@@ -411,6 +407,13 @@ export class AuthService {
           failedTwoFactorAttempts: 0,
           failedPasswordResetAttempts: 0,
           lockedUntil: null,
+        },
+        select: {
+          id: true,
+          failedLoginAttempts: true,
+          failedTwoFactorAttempts: true,
+          failedPasswordResetAttempts: true,
+          lockedUntil: true,
         },
       });
 
@@ -569,19 +572,15 @@ export class AuthService {
     }
   }
 
-  async logout(sessionToken: string) {
-    if (!sessionToken) {
+  async logout(dto: LogoutDto) {
+    if (!dto.token) {
       throw new BadRequestException('No session token provided.');
     }
 
     try {
-      await this.redisService.del(
-        REDIS_KEYS.platform.session.token.key(sessionToken),
-      );
-
       await this.prismaService.session
         .delete({
-          where: { token: sessionToken },
+          where: { token: dto.token },
         })
         .catch(() => {});
 

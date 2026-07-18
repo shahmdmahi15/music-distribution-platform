@@ -8,6 +8,7 @@ import { RedisModule } from './lib/redis/redis.module';
 import { MailModule } from './lib/mail/mail.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { PlatformModule } from './platform/platform.module';
+import { WhitelabelModule } from './whitelabel/whitelabel.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PlatformModule } from './platform/platform.module';
     MailModule,
     StorageModule,
     PlatformModule,
+    WhitelabelModule,
   ],
   controllers: [AppController],
   providers: [AppService],

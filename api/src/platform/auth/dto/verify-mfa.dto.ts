@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, Length } from 'class-validator';
 
-export class Verify2faDto {
+export class VerifyMfaDto {
   @IsNotEmpty({ message: 'User id is required.' })
   @IsString({ message: 'User id must be a string.' })
   userId!: string;
