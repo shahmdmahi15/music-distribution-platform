@@ -16,8 +16,9 @@ enum PlatformUserRole {
   CUSTOMER
 }
 
-enum WhitelabelUserRole {
+enum WhiteLabelUserRole {
   OWNER
+  PARTNER
   ADMIN
   MANAGER
   STAFF
@@ -28,6 +29,77 @@ enum WhitelabelUserRole {
 enum OAuthAccountProvider {
   GOOGLE
   GITHUB
+}
+
+model OAuthAccount {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  accountId    String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+  scope        String?
+  password     String?
+
+  // Flags
+
+  // Enums
+  provider OAuthAccountProvider
+
+  // Foreign Keys
+  platformUserId   String?
+  whiteLabelUserId String?
+
+  // Parent Relations
+  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model Session {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  token        String  @unique
+  ipAddress    String?
+  userAgent    String?
+  revokeReason String?
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  platformUserId   String?
+  whiteLabelUserId String?
+
+  // Parent Relations
+  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  accessedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Constraints && Indexes
 }
 
 model PlatformUser {
@@ -58,6 +130,7 @@ model PlatformUser {
   // Child Relations
   oAuthAccounts OAuthAccount[]
   sessions      Session[]
+  whiteLabel    WhiteLabel?
 
   // Timestamps
   lastLoginAt DateTime?
@@ -68,7 +141,114 @@ model PlatformUser {
   // Constraints && Indexes
 }
 
-model WhitelabelUser {
+model WhiteLabel {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  name String
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  ownerId String @unique
+
+  // Parent Relations
+  owner PlatformUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+  whiteLabelConfig WhiteLabelConfig?
+  domain           WhiteLabelDomain?
+  partners         WhiteLabelPartner[]
+  users            WhiteLabelUser[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WhiteLabelConfig {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  whiteLabelId String @unique
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WhiteLabelDomain {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  whiteLabelId String @unique
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WhiteLabelPartner {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  whiteLabelId String
+  userId       String @unique
+
+  // Parent Relations
+  whiteLabel WhiteLabel     @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  user       WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WhiteLabelUser {
   // Primary key
   id String @id @default(cuid())
 
@@ -86,92 +266,24 @@ model WhitelabelUser {
   twoFactorEnabled Boolean @default(false)
 
   // Enums
-  role WhitelabelUserRole @default(CUSTOMER)
+  role WhiteLabelUserRole @default(CUSTOMER)
 
   // Foreign Keys
+  whiteLabelId String
 
   // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
 
   // Child Relations
   oAuthAccounts OAuthAccount[]
   sessions      Session[]
+  partner       WhiteLabelPartner?
 
   // Timestamps
   lastLoginAt DateTime?
   lockedUntil DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  // Constraints && Indexes
-}
-
-model OAuthAccount {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-  accountId    String
-  providerId   String
-  accessToken  String?
-  refreshToken String?
-  idToken      String?
-  scope        String?
-  password     String?
-
-  // Flags
-
-  // Enums
-  provider OAuthAccountProvider
-
-  // Foreign Keys
-  platformUserId   String?
-  whitelabelUserId String?
-
-  // Parent Relations
-  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-  whitelabelUser WhitelabelUser? @relation(fields: [whitelabelUserId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-
-  // Timestamps
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Constraints && Indexes
-}
-
-model Session {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-  token        String  @unique
-  ipAddress    String?
-  userAgent    String?
-  revokeReason String?
-
-  // Flags
-
-  // Enums
-
-  // Foreign Keys
-  platformUserId   String?
-  whitelabelUserId String?
-
-  // Parent Relations
-  platformUser   PlatformUser?   @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
-  whitelabelUser WhitelabelUser? @relation(fields: [whitelabelUserId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-
-  // Timestamps
-  accessedAt DateTime  @default(now())
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
 
   // Constraints && Indexes
 }
