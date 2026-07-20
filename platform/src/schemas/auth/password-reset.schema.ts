@@ -26,4 +26,7 @@ export const passwordResetSchema = z
     }
   });
 
-export type PasswordResetType = z.infer<typeof passwordResetSchema>;
+export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
+export type PasswordResetError = z.inferFlattenedErrors<
+  typeof passwordResetSchema
+>;

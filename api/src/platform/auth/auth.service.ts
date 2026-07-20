@@ -270,7 +270,7 @@ export class AuthService {
         });
 
         return {
-          require2FA: true,
+          requireMfa: true,
           userId: user.id,
           message:
             'Two-factor authentication code sent to your registered email address.',

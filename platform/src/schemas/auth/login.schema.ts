@@ -10,4 +10,5 @@ export const loginSchema = z.object({
     .max(64, "Password must be at most 64 characters long"),
 });
 
-export type LoginType = z.infer<typeof loginSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type LoginError = z.inferFlattenedErrors<typeof loginSchema>;

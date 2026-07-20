@@ -8,4 +8,5 @@ export const verifyMfaSchema = z.object({
     .length(6, "The 2FA code must be exactly 6 digits"),
 });
 
-export type VerifyMfaType = z.infer<typeof verifyMfaSchema>;
+export type VerifyMfaInput = z.infer<typeof verifyMfaSchema>;
+export type VerifyMfaError = z.inferFlattenedErrors<typeof verifyMfaSchema>;

@@ -38,4 +38,5 @@ export const registerSchema = z
     }
   });
 
-export type RegisterType = z.infer<typeof registerSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type RegisterError = z.inferFlattenedErrors<typeof registerSchema>;

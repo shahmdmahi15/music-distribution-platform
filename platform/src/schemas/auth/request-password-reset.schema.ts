@@ -4,6 +4,9 @@ export const requestPasswordResetSchema = z.object({
   email: z.email("Email must be valid"),
 });
 
-export type RequestPasswordResetType = z.infer<
+export type RequestPasswordResetInput = z.infer<
+  typeof requestPasswordResetSchema
+>;
+export type RequestPasswordResetError = z.inferFlattenedErrors<
   typeof requestPasswordResetSchema
 >;
