@@ -1,4 +1,4 @@
-import VerifyMfaForm from "@/components/auth/verify-mfa.form";
+import { VerifyMfaForm } from "@/components/auth/verify-mfa.form";
 
 export default async function VerifyMfaPage({
   searchParams,

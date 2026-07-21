@@ -13,7 +13,7 @@ enum PlatformUserRole {
   ADMIN
   MANAGER
   STAFF
-  CUSTOMER
+  CLIENT
 }
 
 enum WhiteLabelUserRole {
@@ -22,8 +22,16 @@ enum WhiteLabelUserRole {
   ADMIN
   MANAGER
   STAFF
-  MEMBER
-  CUSTOMER
+  CLIENT
+}
+
+enum WorkspaceAccessRole {
+  OWNER
+  PARTNER
+  ADMIN
+  MANAGER
+  STAFF
+  CLIENT
 }
 
 enum OAuthAccountProvider {
@@ -121,7 +129,7 @@ model PlatformUser {
   twoFactorEnabled Boolean @default(false)
 
   // Enums
-  role PlatformUserRole @default(CUSTOMER)
+  role PlatformUserRole @default(CLIENT)
 
   // Foreign Keys
 
@@ -163,6 +171,7 @@ model WhiteLabel {
   domain           WhiteLabelDomain?
   partners         WhiteLabelPartner[]
   users            WhiteLabelUser[]
+  workspaces       Workspace[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -221,6 +230,50 @@ model WhiteLabelDomain {
   // Constraints && Indexes
 }
 
+model WhiteLabelUser {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  firstName                   String
+  lastName                    String
+  email                       String
+  passwordHash                String?
+  failedLoginAttempts         Int     @default(0)
+  failedVerificationAttempts  Int     @default(0)
+  failedPasswordResetAttempts Int     @default(0)
+  failedTwoFactorAttempts     Int     @default(0)
+
+  // Flags
+  twoFactorEnabled Boolean @default(false)
+
+  // Enums
+  role WhiteLabelUserRole @default(CLIENT)
+
+  // Foreign Keys
+  whiteLabelId String
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+  oAuthAccounts     OAuthAccount[]
+  sessions          Session[]
+  whiteLabelPartner WhiteLabelPartner?
+  workspaces        Workspace[]
+  workspacePartner  WorkspacePartner?
+  workspacesAccess  WorkspaceAccess[]
+
+  // Timestamps
+  lastLoginAt DateTime?
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Constraints && Indexes
+  @@unique([email, whiteLabelId])
+}
+
 model WhiteLabelPartner {
   // Primary key
   id String @id @default(cuid())
@@ -248,65 +301,109 @@ model WhiteLabelPartner {
   // Constraints && Indexes
 }
 
-model WhiteLabelUser {
+model Workspace {
   // Primary key
   id String @id @default(cuid())
 
   // Data Fields
-  firstName                   String
-  lastName                    String
-  email                       String  @unique
-  passwordHash                String?
-  failedLoginAttempts         Int     @default(0)
-  failedVerificationAttempts  Int     @default(0)
-  failedPasswordResetAttempts Int     @default(0)
-  failedTwoFactorAttempts     Int     @default(0)
 
   // Flags
-  twoFactorEnabled Boolean @default(false)
 
   // Enums
-  role WhiteLabelUserRole @default(CUSTOMER)
 
   // Foreign Keys
   whiteLabelId String
+  ownerId      String
 
   // Parent Relations
-  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  whiteLabel WhiteLabel     @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  owner      WhiteLabelUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   // Child Relations
-  oAuthAccounts OAuthAccount[]
-  sessions      Session[]
-  partner       WhiteLabelPartner?
+  partners WorkspacePartner[]
+  access   WorkspaceAccess[]
 
   // Timestamps
-  lastLoginAt DateTime?
-  lockedUntil DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WorkspacePartner {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  workspaceId String
+  userId      String @unique
+
+  // Parent Relations
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+}
+
+model WorkspaceAccess {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+  role WorkspaceAccessRole @default(CLIENT)
+
+  // Foreign Keys
+  workspaceId String
+  userId      String
+
+  // Parent Relations
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Constraints && Indexes
 }
 
 // {
-//   // Primary key
-//   id String @id @default(cuid())
+// // Primary key
+// id String @id @default(cuid())
 
-//   // Data Fields
+// // Data Fields
 
-//   // Flags
+// // Flags
 
-//   // Enums
+// // Enums
 
-//   // Foreign Keys
+// // Foreign Keys
 
-//   // Parent Relations
+// // Parent Relations
 
-//   // Child Relations
+// // Child Relations
 
-//   // Timestamps
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
+// // Timestamps
+// createdAt DateTime @default(now())
+// updatedAt DateTime @updatedAt
 
-//   // Constraints && Indexes
+// // Constraints && Indexes
 // }

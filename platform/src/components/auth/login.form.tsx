@@ -24,7 +24,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function LoginForm() {
+export function LoginForm() {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
@@ -78,12 +78,12 @@ export default function LoginForm() {
   });
 
   return (
-    <Card className="border-border bg-card text-card-foreground shadow-xl">
+    <Card className="shadow-xl">
       <CardHeader className="space-y-1.5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight">
           Welcome back
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Enter your email and password to access your artist portal
         </CardDescription>
       </CardHeader>
@@ -110,7 +110,7 @@ export default function LoginForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Email Address
                           </FieldLabel>
@@ -144,7 +144,7 @@ export default function LoginForm() {
                           <div className="flex items-center justify-between">
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium text-foreground"
+                              className="font-medium"
                             >
                               Password
                             </FieldLabel>

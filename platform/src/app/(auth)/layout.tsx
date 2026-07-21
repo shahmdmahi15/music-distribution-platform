@@ -7,7 +7,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="dark bg-background text-foreground min-h-screen flex flex-col lg:grid lg:grid-cols-12 w-full antialiased font-sans">
+    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 w-full">
       {/* Left Column - Hero/Branding (visible on lg+) */}
       <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-10 overflow-hidden border-r border-border bg-card">
         {/* Glowing atmospheric circles using theme secondary/primary values */}
@@ -23,7 +23,7 @@ export default function AuthLayout({
             <Music className="h-5 w-5" />
           </div>
           <span className="font-heading font-bold text-xl tracking-tight bg-linear-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            RoyalMusic
+            RoyalMotionIT
           </span>
         </Link>
 
@@ -56,10 +56,10 @@ export default function AuthLayout({
               <div className="flex-1 min-w-0">
                 <div className="h-1.5 w-12 bg-primary/20 rounded-full mb-2 border border-primary/30" />
                 <h3 className="text-sm font-semibold text-foreground truncate">
-                  Neon Horizon
+                  Say Yes To Heaven
                 </h3>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  Starlight Syndicate
+                  Lana Del Rey
                 </p>
               </div>
             </div>
@@ -75,7 +75,7 @@ export default function AuthLayout({
                   className="flex-1 rounded-full bg-muted transition-all duration-300"
                   style={{
                     height: `${val * 100}%`,
-                    backgroundColor: i < 11 ? "var(--primary)" : "", // Semantic color matching standard theme
+                    backgroundColor: i < 11 ? "var(--primary)" : "",
                   }}
                 />
               ))}
@@ -108,7 +108,7 @@ export default function AuthLayout({
             <Music className="h-4 w-4" />
           </div>
           <span className="font-heading font-bold text-lg tracking-tight text-foreground">
-            RoyalMusic
+            RoyalMotionIT
           </span>
         </div>
 

@@ -24,7 +24,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function RegisterForm() {
+export function RegisterForm() {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
@@ -76,12 +76,12 @@ export default function RegisterForm() {
   });
 
   return (
-    <Card className="border-border bg-card text-card-foreground shadow-xl">
+    <Card className="shadow-xl">
       <CardHeader className="space-y-1.5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight">
           Create your account
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Join Octave and distribute your tracks to the world
         </CardDescription>
       </CardHeader>
@@ -111,7 +111,7 @@ export default function RegisterForm() {
                           <Field data-invalid={isInvalid}>
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium text-foreground"
+                              className="font-medium"
                             >
                               First Name
                             </FieldLabel>
@@ -147,7 +147,7 @@ export default function RegisterForm() {
                           <Field data-invalid={isInvalid}>
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium text-foreground"
+                              className="font-medium"
                             >
                               Last Name
                             </FieldLabel>
@@ -183,7 +183,7 @@ export default function RegisterForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Email Address
                           </FieldLabel>
@@ -216,7 +216,7 @@ export default function RegisterForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Password
                           </FieldLabel>
@@ -249,7 +249,7 @@ export default function RegisterForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Confirm Password
                           </FieldLabel>

@@ -28,7 +28,7 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function VerifyMfaForm({ userId }: { userId: string }) {
+export function VerifyMfaForm({ userId }: { userId: string }) {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
@@ -77,7 +77,7 @@ export default function VerifyMfaForm({ userId }: { userId: string }) {
   });
 
   return (
-    <Card className="border-border bg-card text-card-foreground shadow-xl">
+    <Card className="shadow-xl">
       <CardHeader className="space-y-1.5 pb-6 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
           <KeyRound className="h-6 w-6" />
@@ -85,7 +85,7 @@ export default function VerifyMfaForm({ userId }: { userId: string }) {
         <CardTitle className="text-2xl font-bold tracking-tight">
           MFA Verification
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Enter the verification code from your authenticator app to complete
           sign in
         </CardDescription>
@@ -143,7 +143,7 @@ export default function VerifyMfaForm({ userId }: { userId: string }) {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Verification Code
                           </FieldLabel>

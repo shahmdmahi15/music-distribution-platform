@@ -27,7 +27,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function ResendVerificationForm() {
+export function ResendVerificationForm() {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
@@ -75,12 +75,12 @@ export default function ResendVerificationForm() {
   });
 
   return (
-    <Card className="border-border bg-card text-card-foreground shadow-xl">
+    <Card className="shadow-xl">
       <CardHeader className="space-y-1.5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight">
           Resend Verification
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Enter your email address and we&apos;ll send you a new link to verify
           your account
         </CardDescription>
@@ -108,7 +108,7 @@ export default function ResendVerificationForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium text-foreground"
+                            className="font-medium"
                           >
                             Email Address
                           </FieldLabel>

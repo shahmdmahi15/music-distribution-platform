@@ -1,4 +1,4 @@
-import VerifyForm from "@/components/auth/verify.form";
+import { VerifyForm } from "@/components/auth/verify.form";
 
 export default async function VerifyPage({
   searchParams,

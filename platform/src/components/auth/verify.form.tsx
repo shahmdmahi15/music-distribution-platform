@@ -25,7 +25,7 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function VerifyForm({ token }: { token: string }) {
+export function VerifyForm({ token }: { token: string }) {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
@@ -73,7 +73,7 @@ export default function VerifyForm({ token }: { token: string }) {
   });
 
   return (
-    <Card className="border-border bg-card text-card-foreground shadow-xl">
+    <Card className="shadow-xl">
       <CardHeader className="space-y-1.5 pb-6 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
           <ShieldCheck className="h-6 w-6" />
@@ -81,7 +81,7 @@ export default function VerifyForm({ token }: { token: string }) {
         <CardTitle className="text-2xl font-bold tracking-tight">
           Verify Account
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Click the button below to confirm and verify your email address
         </CardDescription>
       </CardHeader>
