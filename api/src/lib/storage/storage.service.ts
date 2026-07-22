@@ -5,7 +5,7 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentVariables } from '../../config/env.config';
+import { EnvironmentVariables } from 'src/config/env.config';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -29,10 +29,7 @@ export class StorageService implements OnModuleInit {
 
     this.s3Client = new S3Client({
       region,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
+      credentials: { accessKeyId, secretAccessKey },
     });
   }
 

@@ -28,14 +28,9 @@ export const registerSchema = z
 
     confirmPassword: z.string("Confirm password must be a string").trim(),
   })
-  .superRefine((data, ctx) => {
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Passwords do not match",
-        path: ["confirmPassword"],
-      });
-    }
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

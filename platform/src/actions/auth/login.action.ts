@@ -52,10 +52,12 @@ export async function loginAction(input: LoginInput): Promise<{
 
     const cookieStore = await cookies();
 
-    cookieStore.set("SESSION_TOKEN", res.data.sessionToken, {
-      expires: new Date(Date.now() + 1000 * 60 * 60),
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+    cookieStore.set("__Host-SESSION_TOKEN", res.data.token, {
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      sameSite: "lax",
+      secure: true,
+      httpOnly: true,
+      path: "/",
     });
 
     return {

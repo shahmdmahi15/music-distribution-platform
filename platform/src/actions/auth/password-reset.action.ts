@@ -26,7 +26,7 @@ export async function passwordResetAction(input: PasswordResetInput): Promise<{
 
     const body = {
       token: validate.data.token,
-      password: validate.data.password,
+      newPassword: validate.data.password,
     };
 
     const res = await api.post("/platform/auth/password-reset", body);

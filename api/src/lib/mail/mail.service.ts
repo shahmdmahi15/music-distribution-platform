@@ -7,10 +7,11 @@ import * as nodemailer from 'nodemailer';
 import SESTransport from 'nodemailer/lib/ses-transport';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentVariables } from '../../config/env.config';
-import { compile } from 'handlebars'; // 👈 Named import has perfect type definitions
+import { EnvironmentVariables } from 'src/config/env.config';
+import { compile } from 'handlebars';
 import * as fs from 'fs/promises';
 import { join } from 'path';
+import { CONSTANTS } from 'src/config/constants.config';
 
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -78,7 +79,7 @@ export class MailService implements OnModuleInit {
     name: string,
     token: string,
   ): Promise<SESTransport.SentMessageInfo> {
-    const verificationUrl = `https://ptl.royalmotionit.com/auth/verify?token=${token}`;
+    const verificationUrl = `${CONSTANTS.platform.url}/auth/verify?token=${token}`;
 
     const htmlContent = await this.compileTemplate(
       'platform-email-verification',
@@ -122,15 +123,12 @@ export class MailService implements OnModuleInit {
     name: string,
     token: string,
   ): Promise<SESTransport.SentMessageInfo> {
-    const resetUrl = `https://ptl.royalmotionit.com/auth/reset-password?token=${token}`;
+    const resetUrl = `${CONSTANTS.platform.url}/auth/password-reset?token=${token}`;
 
-    const htmlContent = await this.compileTemplate(
-      'platform-password-reset.hbs',
-      {
-        name: name,
-        resetUrl: resetUrl,
-      },
-    );
+    const htmlContent = await this.compileTemplate('platform-password-reset', {
+      name: name,
+      resetUrl: resetUrl,
+    });
 
     return this.transporter.sendMail({
       from: this.senderEmail,

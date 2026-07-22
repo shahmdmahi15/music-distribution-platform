@@ -287,10 +287,14 @@ export class AuthService {
     }
 
     try {
-      const sessionToken = crypto.randomBytes(48).toString('hex');
-      const session = await this.prismaService.session.create({
+      const rawToken = crypto.randomBytes(48).toString('hex');
+      const tokenHash = crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex');
+      await this.prismaService.session.create({
         data: {
-          token: sessionToken,
+          token: tokenHash,
           platformUserId: user.id,
           expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
         },
@@ -316,7 +320,7 @@ export class AuthService {
       return {
         success: true,
         message: 'Logged in successfully.',
-        sessionToken: session.token,
+        token: rawToken,
       };
     } catch (error) {
       console.error('[AuthService] Login Session Creation Failure:', error);
@@ -391,10 +395,14 @@ export class AuthService {
     try {
       await this.redisService.del(REDIS_KEYS.platform.user.mfa.key(dto.userId));
 
-      const sessionToken = crypto.randomBytes(48).toString('hex');
-      const session = await this.prismaService.session.create({
+      const rawToken = crypto.randomBytes(48).toString('hex');
+      const tokenHash = crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex');
+      await this.prismaService.session.create({
         data: {
-          token: sessionToken,
+          token: tokenHash,
           platformUserId: dto.userId,
           expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
         },
@@ -420,7 +428,7 @@ export class AuthService {
       return {
         success: true,
         message: 'Logged in successfully via 2FA verification.',
-        sessionToken: session.token,
+        token: rawToken,
       };
     } catch (error) {
       console.error(

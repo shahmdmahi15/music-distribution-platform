@@ -10,10 +10,10 @@ export async function logoutAction(): Promise<{
   try {
     const cookieStore = await cookies();
 
-    const sessionToken = cookieStore.get("SESSION_TOKEN");
+    const token = cookieStore.get("__Host-SESSION_TOKEN");
 
     const body = {
-      token: sessionToken,
+      token: token,
     };
 
     const res = await api.post("/platform/auth/logout", body);
@@ -25,7 +25,7 @@ export async function logoutAction(): Promise<{
       };
     }
 
-    cookieStore.delete("SESSION_TOKEN");
+    cookieStore.delete("__Host-SESSION_TOKEN");
 
     return {
       success: res.data.success,
