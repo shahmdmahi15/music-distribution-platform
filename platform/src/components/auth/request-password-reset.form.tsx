@@ -68,7 +68,7 @@ export function RequestPasswordResetForm() {
         toast.success(result.message);
         router.replace("/auth/login");
       } catch (error) {
-        console.log("[Component.Auth.RequestPasswordReset] Error: ", { error });
+        console.log("[Component.Auth.RequestPasswordReset] Error: ", error);
         toast.error("Internal Form Error");
       }
     },

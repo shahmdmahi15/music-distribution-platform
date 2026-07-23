@@ -5,16 +5,20 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { RootSidebar } from "@/components/root/sidebar/root-sidebar";
+import { meAction } from "@/actions/auth/me";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const res = await meAction();
+  if (!res.success) return null;
+  if (!res.user) return null;
   return (
     <div className="flex min-h-screen w-full">
       <SidebarProvider>
-        <RootSidebar />
+        <RootSidebar user={res.user} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">

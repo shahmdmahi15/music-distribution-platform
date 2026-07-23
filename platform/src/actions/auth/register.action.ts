@@ -7,6 +7,7 @@ import {
   registerSchema,
 } from "@/schemas/auth/register.schema";
 import { api } from "@/lib/api";
+import axios from "axios";
 
 export async function registerAction(input: RegisterInput): Promise<{
   success: boolean;
@@ -45,7 +46,14 @@ export async function registerAction(input: RegisterInput): Promise<{
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.Register] Error: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Me]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.Register] Error: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",

@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class LogoutDto {
+export class CurrentUserDto {
   @IsNotEmpty({ message: 'Session token is required.' })
   @IsString({ message: 'Session token must be a string.' })
   @Transform(({ value }) =>

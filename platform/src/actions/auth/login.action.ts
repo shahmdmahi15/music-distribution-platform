@@ -8,6 +8,7 @@ import {
 } from "@/schemas/auth/login.schema";
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
+import axios from "axios";
 
 export async function loginAction(input: LoginInput): Promise<{
   success: boolean;
@@ -65,7 +66,14 @@ export async function loginAction(input: LoginInput): Promise<{
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.Login]: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Login]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.Login]: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",

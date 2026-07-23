@@ -20,7 +20,6 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyMfaDto } from './dto/verify-mfa.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
-import { LogoutDto } from './dto/logout.dto';
 
 @Injectable()
 export class AuthService {
@@ -580,15 +579,15 @@ export class AuthService {
     }
   }
 
-  async logout(dto: LogoutDto) {
-    if (!dto.token) {
-      throw new BadRequestException('No session token provided.');
-    }
-
+  async logout(sessionId: string) {
     try {
       await this.prismaService.session
-        .delete({
-          where: { token: dto.token },
+        .update({
+          where: { id: sessionId },
+          data: {
+            revokedAt: new Date(),
+            revokeReason: 'User Logged Out',
+          },
         })
         .catch(() => {});
 

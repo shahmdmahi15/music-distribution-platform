@@ -7,6 +7,7 @@ import {
   requestPasswordResetSchema,
 } from "@/schemas/auth/request-password-reset.schema";
 import { api } from "@/lib/api";
+import axios from "axios";
 
 export async function requestPasswordResetAction(
   input: RequestPasswordResetInput,
@@ -44,7 +45,14 @@ export async function requestPasswordResetAction(
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.RequestPasswordReset]: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Me]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.RequestPasswordReset]: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",

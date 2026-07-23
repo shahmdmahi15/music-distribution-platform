@@ -67,9 +67,9 @@ export function RegisterForm() {
         }
 
         toast.success(result.message);
-        router.replace("/login");
+        router.replace("/auth/login");
       } catch (error) {
-        console.log("[Component.Auth.Register] Error: ", { error });
+        console.log("[Component.Auth.Register] Error: ", error);
         toast.error("Internal Form Error");
       }
     },

@@ -7,6 +7,7 @@ import {
   resendVerificationSchema,
 } from "@/schemas/auth/resend-verification.schema";
 import { api } from "@/lib/api";
+import axios from "axios";
 
 export async function resendVerificationAction(
   input: ResendVerificationInput,
@@ -44,7 +45,14 @@ export async function resendVerificationAction(
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.ResendVerification]: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Me]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.ResendVerification]: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",

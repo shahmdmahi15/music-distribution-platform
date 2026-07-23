@@ -66,12 +66,13 @@ export function LoginForm() {
         if (result.requireMfa) {
           toast.info(result.message);
           router.replace(`/auth/verify-mfa?userId=${result.userId}`);
+          return;
         }
 
         toast.success(result.message);
         router.replace("/");
       } catch (error) {
-        console.log("[Component.Auth.Login] Error: ", { error });
+        console.log("[Component.Auth.Login] Error: ", error);
         toast.error("Internal Form Error");
       }
     },

@@ -3,25 +3,24 @@
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
 import axios from "axios";
+import { User } from "@/types/user";
 
-export async function logoutAction(): Promise<{
+export async function meAction(sessionToken?: string): Promise<{
   success: boolean;
   message: string;
+  user?: User;
 }> {
   try {
     const cookieStore = await cookies();
 
-    const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+    const token =
+      sessionToken ?? cookieStore.get("__Host-SESSION_TOKEN")?.value;
 
-    const res = await api.post(
-      "/platform/auth/logout",
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const res = await api.get("/platform/auth/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
 
     if (res.data.error) {
       return {
@@ -30,11 +29,10 @@ export async function logoutAction(): Promise<{
       };
     }
 
-    cookieStore.delete("__Host-SESSION_TOKEN");
-
     return {
       success: res.data.success,
       message: res.data.message,
+      user: res.data.user,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -43,7 +41,7 @@ export async function logoutAction(): Promise<{
         data: error.response?.data,
       });
     } else {
-      console.error("[Action.Auth.Logout]: ", { error });
+      console.error("[Action.Auth.Me]:", error);
     }
     return {
       success: false,

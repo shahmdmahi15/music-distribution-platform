@@ -68,7 +68,7 @@ export function ResendVerificationForm() {
         toast.success(result.message);
         router.replace("/auth/login");
       } catch (error) {
-        console.log("[Component.Auth.ResendVerification] Error: ", { error });
+        console.log("[Component.Auth.ResendVerification] Error: ", error);
         toast.error("Internal Form Error");
       }
     },

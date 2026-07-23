@@ -70,7 +70,7 @@ export function PasswordResetForm({ token }: { token: string }) {
         toast.success(result.message);
         router.replace("/auth/login");
       } catch (error) {
-        console.log("[Component.Auth.ResetPassword] Error: ", { error });
+        console.log("[Component.Auth.ResetPassword] Error: ", error);
         toast.error("Internal Form Error");
       }
     },

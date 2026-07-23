@@ -1,11 +1,13 @@
+import { operationalAction } from "@/actions/system/operational.action";
 import { Music, Sparkles } from "lucide-react";
 import Link from "next/link";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { operational } = await operationalAction();
   return (
     <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 w-full">
       {/* Left Column - Hero/Branding (visible on lg+) */}
@@ -90,10 +92,17 @@ export default function AuthLayout({
         {/* Footer info */}
         <div className="relative z-10 text-xs text-muted-foreground/75 flex items-center justify-between">
           <span>&copy; {new Date().getFullYear()} RoyalMotionIT</span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            All systems operational
-          </span>
+          {operational ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              All systems operational
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+              All systems down
+            </span>
+          )}
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import {
 } from "@/schemas/auth/verify-mfa.schema";
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
+import axios from "axios";
 
 export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
   success: boolean;
@@ -54,7 +55,14 @@ export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.VerifyMfa]: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Me]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.VerifyMfa]: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",

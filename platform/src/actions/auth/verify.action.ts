@@ -7,6 +7,7 @@ import {
   verifySchema,
 } from "@/schemas/auth/verify.schema";
 import { api } from "@/lib/api";
+import axios from "axios";
 
 export async function verifyAction(input: VerifyInput): Promise<{
   success: boolean;
@@ -42,7 +43,14 @@ export async function verifyAction(input: VerifyInput): Promise<{
       message: res.data.message,
     };
   } catch (error) {
-    console.error("[Action.Auth.Verify] Error: ", { error });
+    if (axios.isAxiosError(error)) {
+      console.error("[Action.Auth.Me]:", {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("[Action.Auth.Verify] Error: ", error);
+    }
     return {
       success: false,
       message: "Internal Server Action Error",
