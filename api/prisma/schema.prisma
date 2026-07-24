@@ -110,6 +110,7 @@ model PlatformUser {
   lastName                    String
   email                       String  @unique
   passwordHash                String?
+  image                       String?
   failedLoginAttempts         Int     @default(0)
   failedVerificationAttempts  Int     @default(0)
   failedPasswordResetAttempts Int     @default(0)
@@ -229,6 +230,7 @@ model WhiteLabelUser {
   lastName                    String
   email                       String
   passwordHash                String?
+  image                       String?
   failedLoginAttempts         Int     @default(0)
   failedVerificationAttempts  Int     @default(0)
   failedPasswordResetAttempts Int     @default(0)

@@ -36,7 +36,7 @@ export class StorageService implements OnModuleInit {
   /**
    * Uploads a buffer to your S3 bucket
    */
-  async uploadFile(
+  async uploadFileBuffer(
     key: string,
     fileBuffer: Buffer,
     mimeType: string,
@@ -50,9 +50,8 @@ export class StorageService implements OnModuleInit {
 
     await this.s3Client.send(command);
 
-    // Return the public URL pattern
-    const region = this.configService.get('AWS_REGION', { infer: true });
-    return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+    // Return key
+    return key;
   }
 
   /**
@@ -71,6 +70,7 @@ export class StorageService implements OnModuleInit {
     }
 
     const byteArray = await response.Body.transformToByteArray();
+
     return Buffer.from(byteArray);
   }
 }
