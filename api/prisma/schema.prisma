@@ -25,15 +25,6 @@ enum WhiteLabelUserRole {
   CLIENT
 }
 
-enum WorkspaceAccessRole {
-  OWNER
-  PARTNER
-  ADMIN
-  MANAGER
-  STAFF
-  CLIENT
-}
-
 enum OAuthAccountProvider {
   GOOGLE
   GITHUB
@@ -171,7 +162,6 @@ model WhiteLabel {
   domain           WhiteLabelDomain?
   partners         WhiteLabelPartner[]
   users            WhiteLabelUser[]
-  workspaces       Workspace[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -260,9 +250,6 @@ model WhiteLabelUser {
   oAuthAccounts     OAuthAccount[]
   sessions          Session[]
   whiteLabelPartner WhiteLabelPartner?
-  workspaces        Workspace[]
-  workspacePartner  WorkspacePartner?
-  workspacesAccess  WorkspaceAccess[]
 
   // Timestamps
   lastLoginAt DateTime?
@@ -291,90 +278,6 @@ model WhiteLabelPartner {
   // Parent Relations
   whiteLabel WhiteLabel     @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
   user       WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints && Indexes
-}
-
-model Workspace {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-
-  // Flags
-
-  // Enums
-
-  // Foreign Keys
-  whiteLabelId String
-  ownerId      String
-
-  // Parent Relations
-  whiteLabel WhiteLabel     @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
-  owner      WhiteLabelUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-  partners WorkspacePartner[]
-  access   WorkspaceAccess[]
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints && Indexes
-}
-
-model WorkspacePartner {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-
-  // Flags
-
-  // Enums
-
-  // Foreign Keys
-  workspaceId String
-  userId      String @unique
-
-  // Parent Relations
-  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints && Indexes
-}
-
-model WorkspaceAccess {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-
-  // Flags
-
-  // Enums
-  role WorkspaceAccessRole @default(CLIENT)
-
-  // Foreign Keys
-  workspaceId String
-  userId      String
-
-  // Parent Relations
-  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      WhiteLabelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Child Relations
 

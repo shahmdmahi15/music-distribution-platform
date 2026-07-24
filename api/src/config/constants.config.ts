@@ -1,5 +1,5 @@
 export const CONSTANTS = {
   platform: {
-    url: 'https://ptl.royalmotionit.com',
+    url: 'https://plt.royalmotionit.com',
   },
 };
