@@ -1,19 +1,22 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
-import { UserModule } from './user/user.module';
-import { AuthModule } from './auth/auth.module';
 import { PlatformMiddleware } from './platform.middleware';
+import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './admin/admin.module';
+import { ClientModule } from './client/client.module';
 
 @Module({
   imports: [
-    UserModule,
     AuthModule,
+    AdminModule,
+    ClientModule,
     RouterModule.register([
       {
         path: 'platform',
         children: [
-          { path: '', module: UserModule },
           { path: '', module: AuthModule },
+          { path: '', module: AdminModule },
+          { path: '', module: ClientModule },
         ],
       },
     ]),

@@ -131,15 +131,19 @@ export function AdminSidebarFooter({ user }: { user: User }) {
               <DropdownMenuSeparator />
 
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/admin/profile")}>
                   <UserPen />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/admin/sessions")}
+                >
                   <ShieldPlus />
                   Sessions
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/admin/accounts")}
+                >
                   <BookUser />
                   Accounts
                 </DropdownMenuItem>

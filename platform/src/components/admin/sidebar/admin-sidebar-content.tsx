@@ -66,11 +66,11 @@ const navigations = [
         items: [
           {
             title: "Platform",
-            url: "#",
+            url: "/admin/users/platform",
           },
           {
             title: "WhiteLabel",
-            url: "#",
+            url: "/admin/users/whitelabel",
           },
         ],
       },
