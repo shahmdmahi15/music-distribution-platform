@@ -13,6 +13,13 @@ export async function logoutAction(): Promise<{
 
     const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
 
+    if (!token) {
+      return {
+        success: false,
+        message: "Session Token Not Found",
+      };
+    }
+
     const res = await api.post(
       "/platform/auth/logout",
       {},

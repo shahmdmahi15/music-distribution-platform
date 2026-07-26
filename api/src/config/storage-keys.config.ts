@@ -7,7 +7,7 @@ export const STORAGE_KEYS = {
       profile: {
         key: (userId: string, ext: string) =>
           `platform/users/profile/${userId}.${ext}`,
-        limit: 1024 * 1024 * 5,
+        limit: 1024 * 1024 * 1,
       },
     },
   },

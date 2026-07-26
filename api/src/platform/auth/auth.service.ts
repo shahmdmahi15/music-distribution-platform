@@ -11,6 +11,7 @@ import * as crypto from 'crypto';
 import { RedisService } from 'src/lib/redis/redis.service';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { MailService } from 'src/lib/mail/mail.service';
+import { StorageService } from 'src/lib/storage/storage.service';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
 import { REDIS_KEYS } from 'src/config/redis-keys.config';
 import { RegisterDto } from './dto/register.dto';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -306,6 +308,7 @@ export class AuthService {
           failedTwoFactorAttempts: 0,
           failedPasswordResetAttempts: 0,
           lockedUntil: null,
+          lastLoginAt: new Date(),
         },
         select: {
           id: true,
@@ -313,6 +316,7 @@ export class AuthService {
           failedTwoFactorAttempts: true,
           failedPasswordResetAttempts: true,
           lockedUntil: true,
+          lastLoginAt: true,
         },
       });
 
@@ -414,6 +418,7 @@ export class AuthService {
           failedTwoFactorAttempts: 0,
           failedPasswordResetAttempts: 0,
           lockedUntil: null,
+          lastLoginAt: new Date(),
         },
         select: {
           id: true,
@@ -421,6 +426,7 @@ export class AuthService {
           failedTwoFactorAttempts: true,
           failedPasswordResetAttempts: true,
           lockedUntil: true,
+          lastLoginAt: true,
         },
       });
 

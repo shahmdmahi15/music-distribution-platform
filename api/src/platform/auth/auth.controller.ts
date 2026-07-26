@@ -78,6 +78,7 @@ export class AuthController {
         email: user.email,
         twoFactorEnabled: user.twoFactorEnabled,
         role: user.role,
+        image: user.image,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

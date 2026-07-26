@@ -16,6 +16,13 @@ export async function meAction(sessionToken?: string): Promise<{
     const token =
       sessionToken ?? cookieStore.get("__Host-SESSION_TOKEN")?.value;
 
+    if (!token) {
+      return {
+        success: false,
+        message: "Session Token Not Found",
+      };
+    }
+
     const res = await api.get("/platform/auth/me", {
       headers: {
         Authorization: `Bearer ${token}`,

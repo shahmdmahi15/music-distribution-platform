@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AdminSidebar } from "@/components/admin/sidebar/admin-sidebar";
-import { meAction } from "@/actions/auth/me";
+import { meAction } from "@/actions/auth/me.action";
 
 export default async function AdminLayout({
   children,

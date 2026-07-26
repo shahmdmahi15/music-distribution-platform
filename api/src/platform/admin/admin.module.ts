@@ -1,26 +1,14 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { RouterModule } from '@nestjs/core';
 import { AdminMiddleware } from './admin.middleware';
-import { UsersModule } from './users/users.module';
 import { ProfileModule } from './profile/profile.module';
+import { PlatformUsersModule } from './platform-users/platform-users.module';
+import { WhitelabelUsersModule } from './whitelabel-users/whitelabel-users.module';
 
 @Module({
-  imports: [
-    UsersModule,
-    ProfileModule,
-    RouterModule.register([
-      {
-        path: 'admin',
-        children: [
-          { path: '', module: UsersModule },
-          { path: '', module: ProfileModule },
-        ],
-      },
-    ]),
-  ],
+  imports: [ProfileModule, PlatformUsersModule, WhitelabelUsersModule],
 })
 export class AdminModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AdminMiddleware).forRoutes('admin/*path');
+    consumer.apply(AdminMiddleware).forRoutes('platform/admin/*path');
   }
 }

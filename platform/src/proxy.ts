@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { meAction } from "@/actions/auth/me";
+import { meAction } from "@/actions/auth/me.action";
 import { Role } from "@/types/user";
 
 const ADMIN_ROLES: Role[] = [Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF];

@@ -13,6 +13,7 @@ export interface User {
   email: string;
   twoFactorEnabled: boolean;
   role: Role;
+  image: string;
   lastLoginAt: string;
   createdAt: Date;
   updatedAt: Date;

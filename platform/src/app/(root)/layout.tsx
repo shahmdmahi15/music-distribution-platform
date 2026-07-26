@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { RootSidebar } from "@/components/root/sidebar/root-sidebar";
-import { meAction } from "@/actions/auth/me";
+import { meAction } from "@/actions/auth/me.action";
 
 export default async function RootLayout({
   children,

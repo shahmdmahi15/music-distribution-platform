@@ -10,6 +10,7 @@ import { PlatformUser, Session } from 'src/generated/prisma/client';
 import * as crypto from 'crypto';
 import { Request } from 'express';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
+import { StorageService } from 'src/lib/storage/storage.service';
 
 export interface AuthenticatedRequest extends Request {
   user: PlatformUser;
@@ -18,7 +19,10 @@ export interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class SessionGuard implements CanActivate {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -63,7 +67,16 @@ export class SessionGuard implements CanActivate {
       );
     }
 
+    let profileImage: string | null = null;
+
+    if (session.platformUser.image) {
+      profileImage = await this.storageService.getImageBase64(
+        session.platformUser.image,
+      );
+    }
+
     request.user = session.platformUser;
+    request.user.image = profileImage;
     request.session = session;
 
     return true;

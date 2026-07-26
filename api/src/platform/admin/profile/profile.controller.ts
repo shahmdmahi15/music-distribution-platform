@@ -1,17 +1,26 @@
 import { Body, Controller, Patch } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
-import { UploadProfileImageDto } from './dto/upload-profile-image.dto';
+import { UpdateProfileImageDto } from './dto/update-profile-image.dto';
+import { UpdateProfileNameDto } from './dto/update-profile-name.dto';
 
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Patch('upload')
-  async uploadProfileImage(
+  @Patch('image')
+  async updateProfileImage(
     @CurrentUser('id') id: string,
-    @Body() dto: UploadProfileImageDto,
+    @Body() dto: UpdateProfileImageDto,
   ) {
-    return await this.profileService.uploadProfileImage(id, dto.image);
+    return await this.profileService.updateProfileImage(id, dto);
+  }
+
+  @Patch('name')
+  async updateProfileName(
+    @CurrentUser('id') id: string,
+    @Body() dto: UpdateProfileNameDto,
+  ) {
+    return await this.profileService.updateProfileName(id, dto);
   }
 }

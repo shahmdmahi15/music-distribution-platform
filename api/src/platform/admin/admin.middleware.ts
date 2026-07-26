@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
+import { StorageService } from 'src/lib/storage/storage.service';
 import * as crypto from 'crypto';
 import { PlatformUserRole } from 'src/generated/prisma/enums';
 import { PlatformUser, Session } from 'src/generated/prisma/client';
@@ -18,7 +19,10 @@ export interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class AdminMiddleware implements NestMiddleware {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
@@ -74,7 +78,16 @@ export class AdminMiddleware implements NestMiddleware {
       );
     }
 
+    let profileImage: string | null = null;
+
+    if (session.platformUser.image) {
+      profileImage = await this.storageService.getImageBase64(
+        session.platformUser.image,
+      );
+    }
+
     req.user = session.platformUser;
+    req.user.image = profileImage;
     req.session = session;
 
     next();

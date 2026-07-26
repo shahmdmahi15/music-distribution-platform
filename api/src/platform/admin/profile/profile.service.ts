@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { STORAGE_KEYS } from 'src/config/storage-keys.config';
+import { UpdateProfileImageDto } from './dto/update-profile-image.dto';
+import { UpdateProfileNameDto } from './dto/update-profile-name.dto';
 
 @Injectable()
 export class ProfileService {
@@ -10,8 +12,81 @@ export class ProfileService {
     private readonly storageService: StorageService,
   ) {}
 
-  async uploadProfileImage(userId: string, image: string) {
-    const match = image.match(/^data:(image\/(jpeg|png|webp));base64,(.+)$/);
+  private getImageDimensions(
+    buffer: Buffer,
+  ): { width: number; height: number } | null {
+    if (buffer.length < 24) return null;
+
+    // PNG
+    if (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    ) {
+      const width = buffer.readUInt32BE(16);
+      const height = buffer.readUInt32BE(20);
+      return { width, height };
+    }
+
+    // JPEG
+    if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+      let offset = 2;
+      while (offset < buffer.length) {
+        if (buffer[offset] !== 0xff) break;
+        const marker = buffer[offset + 1];
+        if (
+          marker >= 0xc0 &&
+          marker <= 0xcf &&
+          marker !== 0xc4 &&
+          marker !== 0xc8 &&
+          marker !== 0xcc
+        ) {
+          const height = buffer.readUInt16BE(offset + 5);
+          const width = buffer.readUInt16BE(offset + 7);
+          return { width, height };
+        }
+        const length = buffer.readUInt16BE(offset + 2);
+        offset += 2 + length;
+      }
+    }
+
+    // WebP
+    if (
+      buffer.length >= 30 &&
+      buffer.toString('ascii', 0, 4) === 'RIFF' &&
+      buffer.toString('ascii', 8, 12) === 'WEBP'
+    ) {
+      const type = buffer.toString('ascii', 12, 16);
+      if (type === 'VP8 ') {
+        const width = buffer.readUInt16LE(26) & 0x3fff;
+        const height = buffer.readUInt16LE(28) & 0x3fff;
+        return { width, height };
+      }
+      if (type === 'VP8L') {
+        const width = 1 + (buffer[21] | ((buffer[22] & 0x3f) << 8));
+        const height =
+          1 +
+          (((buffer[22] & 0xc0) >> 6) |
+            (buffer[23] << 2) |
+            ((buffer[24] & 0x3) << 10));
+        return { width, height };
+      }
+      if (type === 'VP8X') {
+        const width = 1 + (buffer[24] | (buffer[25] << 8) | (buffer[26] << 16));
+        const height =
+          1 + (buffer[27] | (buffer[28] << 8) | (buffer[29] << 16));
+        return { width, height };
+      }
+    }
+
+    return null;
+  }
+
+  async updateProfileImage(userId: string, dto: UpdateProfileImageDto) {
+    const match = dto.image.match(
+      /^data:(image\/(jpeg|png|webp));base64,(.+)$/,
+    );
     if (!match) throw new BadRequestException('Invalid image data');
 
     const [, mimeType, ext, base64Data] = match;
@@ -19,7 +94,14 @@ export class ProfileService {
     const fileBuffer = Buffer.from(base64Data, 'base64');
 
     if (fileBuffer.length > STORAGE_KEYS.platform.users.profile.limit) {
-      throw new BadRequestException('Image exceeds 5MB limit');
+      throw new BadRequestException('Image exceeds 1MB limit');
+    }
+
+    const dimensions = this.getImageDimensions(fileBuffer);
+    if (dimensions && (dimensions.width !== 500 || dimensions.height !== 500)) {
+      throw new BadRequestException(
+        `Image resolution must be exactly 500x500px (Selected: ${dimensions.width}x${dimensions.height}px)`,
+      );
     }
 
     const key = STORAGE_KEYS.platform.users.profile.key(userId, ext);
@@ -35,11 +117,35 @@ export class ProfileService {
       data: {
         image: imageKey,
       },
+      select: {
+        id: true,
+        image: true,
+      },
     });
 
     return {
       success: true,
-      message: 'Profile Image Uploaded Successfully',
+      message: 'Profile Image Updated Successfully',
+    };
+  }
+
+  async updateProfileName(userId: string, dto: UpdateProfileNameDto) {
+    await this.prismaService.platformUser.update({
+      where: { id: userId },
+      data: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Profile Name Updated Successfully',
     };
   }
 }
