@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { ClientModule } from './client/client.module';
 import { ProfileModule as AdminProfileModule } from './admin/profile/profile.module';
+import { SessionModule as AdminSessionModule } from './admin/session/session.module';
 import { PlatformUsersModule as AdminPlatformUsersModule } from './admin/platform-users/platform-users.module';
 import { WhitelabelUsersModule as AdminWhitelabelUsersModule } from './admin/whitelabel-users/whitelabel-users.module';
 import { ProfileModule as ClientProfileModule } from './client/profile/profile.module';
@@ -28,6 +29,10 @@ import { ProfileModule as ClientProfileModule } from './client/profile/profile.m
               {
                 path: '',
                 module: AdminProfileModule,
+              },
+              {
+                path: '',
+                module: AdminSessionModule,
               },
               {
                 path: '',

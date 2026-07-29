@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from 'src/config/env.config';
@@ -72,6 +73,22 @@ export class StorageService implements OnModuleInit {
     const byteArray = await response.Body.transformToByteArray();
 
     return Buffer.from(byteArray);
+  }
+
+  /**
+   * Delete a file from S3
+   */
+  async deleteFile(key: string): Promise<boolean> {
+    if (!key) return false;
+
+    const command = new DeleteObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+
+    await this.s3Client.send(command);
+
+    return true;
   }
 
   /**

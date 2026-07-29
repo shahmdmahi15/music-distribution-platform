@@ -42,7 +42,7 @@ import { logoutAction } from "@/actions/auth/logout.action";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function RootSidebarFooter({ user }: { user: User }) {
+export function ClientSidebarFooter({ user }: { user: User }) {
   const name = `${user.firstName} ${user.lastName}`;
   const email = user.email;
   const avatar = "";

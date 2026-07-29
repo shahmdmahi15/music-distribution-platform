@@ -28,19 +28,21 @@ import { adminNameUpdateAction } from "@/actions/admin/profile/admin-name-update
 import { useRouter } from "next/navigation";
 
 interface AdminNameUpdateCardProps {
-  initialFirstName?: string;
-  initialLastName?: string;
+  initialFirstName?: string | null;
+  initialLastName?: string | null;
 }
 
 export function AdminNameUpdateCard({
   initialFirstName = "",
   initialLastName = "",
 }: AdminNameUpdateCardProps) {
+  const safeFirstName = initialFirstName || "";
+  const safeLastName = initialLastName || "";
   const router = useRouter();
   const form = useForm({
     defaultValues: {
-      firstName: initialFirstName,
-      lastName: initialLastName,
+      firstName: safeFirstName,
+      lastName: safeLastName,
     },
     validators: {
       onSubmit: adminNameUpdateSchema,
@@ -103,12 +105,12 @@ export function AdminNameUpdateCard({
         >
           {([isSubmitting, values]) => {
             const currentValues = values as {
-              firstName: string;
-              lastName: string;
+              firstName?: string;
+              lastName?: string;
             };
             const isUnchanged =
-              currentValues.firstName.trim() === initialFirstName.trim() &&
-              currentValues.lastName.trim() === initialLastName.trim();
+              (currentValues.firstName || "").trim() === safeFirstName.trim() &&
+              (currentValues.lastName || "").trim() === safeLastName.trim();
 
             return (
               <>

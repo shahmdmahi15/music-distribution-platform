@@ -23,7 +23,6 @@ import {
   Sparkles,
   UserPen,
   ShieldPlus,
-  BookUser,
   LogOut,
 } from "lucide-react";
 import {
@@ -140,12 +139,6 @@ export function AdminSidebarFooter({ user }: { user: User }) {
                 >
                   <ShieldPlus />
                   Sessions
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push("/admin/accounts")}
-                >
-                  <BookUser />
-                  Accounts
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 

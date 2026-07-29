@@ -19,6 +19,10 @@ import { SessionGuard } from '../guard/session.guard';
 import { CurrentSession } from '../decorator/current-session-decorator';
 import { CurrentUser } from '../decorator/current-user.decorator';
 import { type PlatformUser } from 'src/generated/prisma/client';
+import {
+  ClientInfo,
+  type ClientMetadata,
+} from '../decorator/client-info.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -43,14 +47,17 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
-    return await this.authService.login(dto);
+  async login(@ClientInfo() clientInfo: ClientMetadata, @Body() dto: LoginDto) {
+    return await this.authService.login(dto, clientInfo);
   }
 
   @Post('verify-mfa')
   @HttpCode(HttpStatus.OK)
-  async verifyMfa(@Body() dto: VerifyMfaDto) {
-    return await this.authService.verifyMfa(dto);
+  async verifyMfa(
+    @ClientInfo() clientInfo: ClientMetadata,
+    @Body() dto: VerifyMfaDto,
+  ) {
+    return await this.authService.verifyMfa(dto, clientInfo);
   }
 
   @Post('request-password-reset')
@@ -67,7 +74,10 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionGuard)
-  getCurrentUser(@CurrentUser() user: PlatformUser) {
+  getCurrentUser(
+    @CurrentUser() user: PlatformUser,
+    @CurrentSession('id') id: string,
+  ) {
     return {
       success: true,
       message: 'Current user fetched successfully',
@@ -79,6 +89,7 @@ export class AuthController {
         twoFactorEnabled: user.twoFactorEnabled,
         role: user.role,
         image: user.image,
+        sessionId: id,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

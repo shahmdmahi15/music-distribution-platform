@@ -21,10 +21,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { Camera, Upload, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { adminImageUpdateAction } from "@/actions/admin/profile/admin-image-update-action";
+import { adminImageRemoveAction } from "@/actions/admin/profile/admin-image-remove.action";
 import { useRouter } from "next/navigation";
 
 interface AdminImageUpdateCardProps {
-  initialImage?: string;
+  initialImage?: string | null;
   userName?: string;
 }
 
@@ -32,6 +33,7 @@ export function AdminImageUpdateCard({
   initialImage = "",
   userName = "Admin User",
 }: AdminImageUpdateCardProps) {
+  const safeInitialImage = initialImage || "";
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +46,7 @@ export function AdminImageUpdateCard({
 
   const form = useForm({
     defaultValues: {
-      image: initialImage,
+      image: safeInitialImage,
     },
     validators: {
       onSubmit: adminImageUpdateSchema,
@@ -127,9 +129,21 @@ export function AdminImageUpdateCard({
     reader.readAsDataURL(selectedFile);
   };
 
-  // Standalone remove image handler (unrelated to upload form)
-  const handleRemoveImage = () => {
-    toast.info("Remove image action clicked (Backend integration pending)");
+  const handleRemoveImage = async () => {
+    try {
+      const result = await adminImageRemoveAction();
+
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success(result.message);
+      router.refresh();
+    } catch (error) {
+      console.log("[Component.Admin.Profile.ImageUpdate] Error: ", error);
+      toast.error("Internal Form Error");
+    }
   };
 
   return (
@@ -151,8 +165,9 @@ export function AdminImageUpdateCard({
           selector={(state) => [state.isSubmitting, state.values]}
         >
           {([isSubmitting, values]) => {
-            const currentImage = (values as { image: string }).image;
-            const isUnchanged = !currentImage;
+            const currentImage = (values as { image?: string })?.image || "";
+            const isUnchanged =
+              !currentImage || currentImage.trim() === safeInitialImage.trim();
 
             return (
               <>
@@ -173,7 +188,7 @@ export function AdminImageUpdateCard({
                             !field.state.meta.isValid;
 
                           const currentPreview =
-                            field.state.value || initialImage;
+                            field.state.value || safeInitialImage;
 
                           return (
                             <Field
@@ -252,7 +267,7 @@ export function AdminImageUpdateCard({
 
                 <CardFooter className="pt-2 border-t border-border/40 mt-4 flex flex-wrap items-center justify-between gap-2">
                   {/* Separate Standalone Remove Image Button (No relation to upload form) */}
-                  {initialImage ? (
+                  {safeInitialImage ? (
                     <Button
                       type="button"
                       variant="outline"

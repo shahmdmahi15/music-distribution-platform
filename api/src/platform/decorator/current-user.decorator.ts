@@ -1,6 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { PlatformUser } from 'src/generated/prisma/client';
 import { AuthenticatedRequest } from '../guard/session.guard';
+import { PlatformUser } from 'src/generated/prisma/client';
 
 export const CurrentUser = createParamDecorator(
   (

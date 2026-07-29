@@ -81,9 +81,16 @@ export class AdminMiddleware implements NestMiddleware {
     let profileImage: string | null = null;
 
     if (session.platformUser.image) {
-      profileImage = await this.storageService.getImageBase64(
-        session.platformUser.image,
-      );
+      try {
+        profileImage = await this.storageService.getImageBase64(
+          session.platformUser.image,
+        );
+      } catch (error) {
+        console.error(
+          '[AdminMiddleware] Failed to retrieve user profile image from storage:',
+          error,
+        );
+      }
     }
 
     req.user = session.platformUser;

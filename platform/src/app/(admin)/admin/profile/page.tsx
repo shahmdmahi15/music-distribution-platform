@@ -1,6 +1,9 @@
 import { meAction } from "@/actions/auth/me.action";
+import { adminGetLinkedAccountsAction } from "@/actions/admin/profile/admin-get-linked-accounts.action";
 import { AdminNameUpdateCard } from "@/components/admin/profile/admin-name-update-card";
 import { AdminImageUpdateCard } from "@/components/admin/profile/admin-image-update-card";
+import { AdminPasswordUpdateCard } from "@/components/admin/profile/admin-password-update-card";
+import { AdminLinkedAccountCard } from "@/components/admin/profile/admin-linked-account-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -37,6 +40,7 @@ function formatDate(dateValue: string | Date | undefined) {
 
 export default async function AdminProfilePage() {
   const res = await meAction();
+  const linkedAccounts = await adminGetLinkedAccountsAction();
 
   if (!res.success || !res.user) {
     return (
@@ -243,10 +247,11 @@ export default async function AdminProfilePage() {
         <section>
           <div className="mb-4">
             <h2 className="text-lg font-semibold tracking-tight">
-              Profile Settings
+              Profile Settings & Security
             </h2>
             <p className="text-xs text-muted-foreground">
-              Update your display name and profile picture.
+              Manage your display name, profile picture, password security, and
+              linked accounts.
             </p>
           </div>
 
@@ -259,6 +264,29 @@ export default async function AdminProfilePage() {
               initialImage={avatar}
               userName={`${user.firstName} ${user.lastName}`}
             />
+            <AdminPasswordUpdateCard
+              isPasswordLinked={
+                linkedAccounts.success
+                  ? linkedAccounts.linkedAccounts?.password
+                    ? true
+                    : false
+                  : true
+              }
+            />
+            {linkedAccounts?.success ? (
+              <AdminLinkedAccountCard
+                linkedAccounts={linkedAccounts.linkedAccounts}
+              />
+            ) : (
+              <Card className="p-4">
+                <Alert variant={"destructive"}>
+                  <AlertDescription>
+                    {linkedAccounts?.message ||
+                      "Failed to fetch linked accounts"}
+                  </AlertDescription>
+                </Alert>
+              </Card>
+            )}
           </div>
         </section>
       </div>

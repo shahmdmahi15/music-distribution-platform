@@ -70,9 +70,16 @@ export class SessionGuard implements CanActivate {
     let profileImage: string | null = null;
 
     if (session.platformUser.image) {
-      profileImage = await this.storageService.getImageBase64(
-        session.platformUser.image,
-      );
+      try {
+        profileImage = await this.storageService.getImageBase64(
+          session.platformUser.image,
+        );
+      } catch (error) {
+        console.error(
+          '[SessionGuard] Failed to retrieve user profile image from storage:',
+          error,
+        );
+      }
     }
 
     request.user = session.platformUser;

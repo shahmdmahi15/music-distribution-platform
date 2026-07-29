@@ -1,12 +1,12 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import * as Prisma from 'src/generated/prisma/client';
 import { AuthenticatedRequest } from '../guard/session.guard';
+import { Session } from 'src/generated/prisma/client';
 
 export const CurrentSession = createParamDecorator(
   (
-    data: keyof Prisma.Session | undefined,
+    data: keyof Session | undefined,
     ctx: ExecutionContext,
-  ): Prisma.Session | Prisma.Session[keyof Prisma.Session] | undefined => {
+  ): Session | Session[keyof Session] | undefined => {
     const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     const session = request.session;
 

@@ -13,8 +13,9 @@ export interface User {
   email: string;
   twoFactorEnabled: boolean;
   role: Role;
-  image: string;
-  lastLoginAt: string;
+  image: string | null;
+  lastLoginAt: string | null;
+  sessionId: string;
   createdAt: Date;
   updatedAt: Date;
 }

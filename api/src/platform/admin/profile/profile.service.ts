@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import * as argon2 from 'argon2';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { STORAGE_KEYS } from 'src/config/storage-keys.config';
+import { ARGON2_CONFIG } from 'src/config/argon2.config';
 import { UpdateProfileImageDto } from './dto/update-profile-image.dto';
 import { UpdateProfileNameDto } from './dto/update-profile-name.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { OAuthAccountProvider } from 'src/generated/prisma/enums';
 
 @Injectable()
 export class ProfileService {
@@ -129,6 +133,35 @@ export class ProfileService {
     };
   }
 
+  async removeProfileImage(userId: string) {
+    const user = await this.prismaService.platformUser.findUnique({
+      where: { id: userId },
+      select: { image: true },
+    });
+
+    if (!user || !user.image) {
+      throw new BadRequestException('No profile image found to delete');
+    }
+
+    await this.storageService.deleteFile(user.image);
+
+    await this.prismaService.platformUser.update({
+      where: { id: userId },
+      data: {
+        image: null,
+      },
+      select: {
+        id: true,
+        image: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Profile Image Removed Successfully',
+    };
+  }
+
   async updateProfileName(userId: string, dto: UpdateProfileNameDto) {
     await this.prismaService.platformUser.update({
       where: { id: userId },
@@ -146,6 +179,68 @@ export class ProfileService {
     return {
       success: true,
       message: 'Profile Name Updated Successfully',
+    };
+  }
+
+  async updatePassword(userId: string, dto: UpdatePasswordDto) {
+    const user = await this.prismaService.platformUser.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user || !user.passwordHash) {
+      throw new BadRequestException('No password found to update');
+    }
+
+    const isCurrentPasswordValid = await argon2.verify(
+      user.passwordHash,
+      dto.currentPassword,
+      ARGON2_CONFIG,
+    );
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Invalid current password');
+    }
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException(
+        'New password cannot be the same as current password',
+      );
+    }
+    const newPasswordHash = await argon2.hash(dto.newPassword, ARGON2_CONFIG);
+    await this.prismaService.platformUser.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+      select: { id: true, passwordHash: true },
+    });
+    return {
+      success: true,
+      message: 'Password Updated Successfully',
+    };
+  }
+
+  async getLinkedAccounts(userId: string) {
+    const user = await this.prismaService.platformUser.findUnique({
+      where: { id: userId },
+      select: {
+        passwordHash: true,
+        oAuthAccounts: { select: { provider: true } },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    return {
+      success: true,
+      message: 'Linked Accounts Fetched Successfully',
+      linkedAccounts: {
+        password: user.passwordHash !== null,
+        google: user.oAuthAccounts.some(
+          (account) => account.provider === OAuthAccountProvider.GOOGLE,
+        ),
+        github: user.oAuthAccounts.some(
+          (account) => account.provider === OAuthAccountProvider.GITHUB,
+        ),
+      },
     };
   }
 }

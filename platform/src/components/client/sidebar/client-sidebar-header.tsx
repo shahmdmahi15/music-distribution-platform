@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Music } from "lucide-react";
 
-export function RootSidebarHeader() {
+export function ClientSidebarHeader() {
   return (
     <SidebarHeader>
       <SidebarMenu>

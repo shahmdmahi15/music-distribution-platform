@@ -21,6 +21,7 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyMfaDto } from './dto/verify-mfa.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
+import { ClientMetadata } from '../decorator/client-info.decorator';
 
 @Injectable()
 export class AuthService {
@@ -192,7 +193,7 @@ export class AuthService {
     }
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, clientInfo: ClientMetadata) {
     let user = await this.prismaService.platformUser.findUnique({
       where: { email: dto.email },
     });
@@ -297,6 +298,8 @@ export class AuthService {
         data: {
           token: tokenHash,
           platformUserId: user.id,
+          ipAddress: clientInfo.ip,
+          userAgent: clientInfo.userAgent,
           expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
         },
       });
@@ -333,7 +336,7 @@ export class AuthService {
     }
   }
 
-  async verifyMfa(dto: VerifyMfaDto) {
+  async verifyMfa(dto: VerifyMfaDto, clientInfo: ClientMetadata) {
     let user = await this.prismaService.platformUser.findUnique({
       where: { id: dto.userId },
     });
@@ -407,6 +410,8 @@ export class AuthService {
         data: {
           token: tokenHash,
           platformUserId: dto.userId,
+          ipAddress: clientInfo.ip,
+          userAgent: clientInfo.userAgent,
           expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
         },
       });

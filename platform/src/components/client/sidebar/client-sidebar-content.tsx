@@ -154,7 +154,7 @@ const navigations = [
   },
 ];
 
-export function RootSidebarContent() {
+export function ClientSidebarContent() {
   return (
     <SidebarContent>
       {navigations.map((navigation, index) => (
