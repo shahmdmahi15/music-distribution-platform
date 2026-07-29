@@ -23,7 +23,6 @@ import {
   Sparkles,
   UserPen,
   ShieldPlus,
-  BookUser,
   LogOut,
 } from "lucide-react";
 import {
@@ -45,7 +44,7 @@ import { useRouter } from "next/navigation";
 export function ClientSidebarFooter({ user }: { user: User }) {
   const name = `${user.firstName} ${user.lastName}`;
   const email = user.email;
-  const avatar = "";
+  const avatar = user.image;
   const avatarFallback = user.firstName.charAt(0) + user.lastName.charAt(0);
   const role = user.role;
 
@@ -131,17 +130,13 @@ export function ClientSidebarFooter({ user }: { user: User }) {
               <DropdownMenuSeparator />
 
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
                   <UserPen />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/sessions")}>
                   <ShieldPlus />
                   Sessions
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <BookUser />
-                  Accounts
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 

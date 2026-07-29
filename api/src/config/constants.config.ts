@@ -3,6 +3,6 @@
  */
 export const CONSTANTS = {
   platform: {
-    url: 'https://plt.royalmotionit.com',
+    url: 'https://platform.royalmotionit.com',
   },
 };

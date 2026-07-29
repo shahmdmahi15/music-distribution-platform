@@ -1,9 +1,9 @@
 import { meAction } from "@/actions/auth/me.action";
-import { adminGetLinkedAccountsAction } from "@/actions/admin/profile/admin-get-linked-accounts.action";
-import { AdminNameUpdateCard } from "@/components/admin/profile/admin-name-update-card";
-import { AdminImageUpdateCard } from "@/components/admin/profile/admin-image-update-card";
-import { AdminPasswordUpdateCard } from "@/components/admin/profile/admin-password-update-card";
-import { AdminLinkedAccountCard } from "@/components/admin/profile/admin-linked-account-card";
+import { clientGetLinkedAccountsAction } from "@/actions/client/profile/client-get-linked-accounts.action";
+import { ClientNameUpdateCard } from "@/components/client/profile/client-name-update-card";
+import { ClientImageUpdateCard } from "@/components/client/profile/client-image-update-card";
+import { ClientPasswordUpdateCard } from "@/components/client/profile/client-password-update-card";
+import { ClientLinkedAccountCard } from "@/components/client/profile/client-linked-account-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -38,9 +38,9 @@ function formatDate(dateValue: string | Date | undefined) {
   }).format(date);
 }
 
-export default async function AdminProfilePage() {
+export default async function ClientProfilePage() {
   const res = await meAction();
-  const linkedAccounts = await adminGetLinkedAccountsAction();
+  const linkedAccounts = await clientGetLinkedAccountsAction();
 
   if (!res.success || !res.user) {
     return (
@@ -69,7 +69,7 @@ export default async function AdminProfilePage() {
         <div className="flex items-center gap-2 text-primary">
           <UserCheck className="h-6 w-6" />
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Admin Profile
+            Client Profile
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -256,15 +256,15 @@ export default async function AdminProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            <AdminNameUpdateCard
+            <ClientNameUpdateCard
               initialFirstName={user.firstName}
               initialLastName={user.lastName}
             />
-            <AdminImageUpdateCard
+            <ClientImageUpdateCard
               initialImage={avatar}
               userName={`${user.firstName} ${user.lastName}`}
             />
-            <AdminPasswordUpdateCard
+            <ClientPasswordUpdateCard
               isPasswordLinked={
                 linkedAccounts.success
                   ? linkedAccounts.linkedAccounts?.password
@@ -274,7 +274,7 @@ export default async function AdminProfilePage() {
               }
             />
             {linkedAccounts?.success ? (
-              <AdminLinkedAccountCard
+              <ClientLinkedAccountCard
                 linkedAccounts={linkedAccounts.linkedAccounts}
               />
             ) : (

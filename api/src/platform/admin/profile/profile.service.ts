@@ -93,7 +93,7 @@ export class ProfileService {
     );
     if (!match) throw new BadRequestException('Invalid image data');
 
-    const [, mimeType, ext, base64Data] = match;
+    const [, mimeType, , base64Data] = match;
 
     const fileBuffer = Buffer.from(base64Data, 'base64');
 
@@ -108,7 +108,7 @@ export class ProfileService {
       );
     }
 
-    const key = STORAGE_KEYS.platform.users.profile.key(userId, ext);
+    const key = STORAGE_KEYS.platform.users.profile.key(userId);
 
     const imageKey = await this.storageService.uploadFileBuffer(
       key,

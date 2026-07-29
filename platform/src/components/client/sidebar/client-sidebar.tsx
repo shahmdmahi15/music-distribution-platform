@@ -4,7 +4,7 @@ import { ClientSidebarHeader } from "./client-sidebar-header";
 import { ClientSidebarContent } from "./client-sidebar-content";
 import { ClientSidebarFooter } from "./client-sidebar-footer";
 
-export function RootSidebar({ user }: { user: User }) {
+export function ClientSidebar({ user }: { user: User }) {
   return (
     <Sidebar collapsible="icon" variant="inset">
       <ClientSidebarHeader />

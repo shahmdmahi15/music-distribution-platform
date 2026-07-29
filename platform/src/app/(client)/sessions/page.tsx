@@ -1,6 +1,6 @@
-import { adminGetAllSessionsAction } from "@/actions/admin/session/admin-get-all-sessions.action";
+import { clientGetAllSessionsAction } from "@/actions/client/session/client-get-all-sessions.action";
 import { meAction } from "@/actions/auth/me.action";
-import { AdminSessionList } from "@/components/admin/session/admin-session-list";
+import { ClientSessionList } from "@/components/client/session/client-session-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -41,9 +41,9 @@ function getSessionStats(sessions: Session[]) {
   };
 }
 
-export default async function AdminSessionsPage() {
+export default async function ClientSessionsPage() {
   const [sessionsRes, meRes] = await Promise.all([
-    adminGetAllSessionsAction(),
+    clientGetAllSessionsAction(),
     meAction(),
   ]);
 
@@ -77,7 +77,7 @@ export default async function AdminSessionsPage() {
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          View and manage all active sessions for your admin account. Monitor
+          View and manage all active sessions for your client account. Monitor
           devices and revoke suspicious sessions.
         </p>
       </div>
@@ -137,7 +137,7 @@ export default async function AdminSessionsPage() {
       </div>
 
       {/* Main Sessions List Component */}
-      <AdminSessionList
+      <ClientSessionList
         sessions={sessions}
         currentSessionId={currentSessionId}
       />

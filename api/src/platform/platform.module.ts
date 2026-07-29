@@ -9,6 +9,7 @@ import { SessionModule as AdminSessionModule } from './admin/session/session.mod
 import { PlatformUsersModule as AdminPlatformUsersModule } from './admin/platform-users/platform-users.module';
 import { WhitelabelUsersModule as AdminWhitelabelUsersModule } from './admin/whitelabel-users/whitelabel-users.module';
 import { ProfileModule as ClientProfileModule } from './client/profile/profile.module';
+import { SessionModule as ClientSessionModule } from './client/session/session.module';
 
 @Module({
   imports: [
@@ -50,6 +51,10 @@ import { ProfileModule as ClientProfileModule } from './client/profile/profile.m
               {
                 path: '',
                 module: ClientProfileModule,
+              },
+              {
+                path: '',
+                module: ClientSessionModule,
               },
             ],
           },
