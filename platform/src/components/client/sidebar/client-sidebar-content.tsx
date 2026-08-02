@@ -14,6 +14,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { PaymentStatus, Subscription } from "@/types/subscription";
 import {
   Webhook,
   ChevronRight,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const navigations = [
+const navigationsWithSubscriptionRunning = [
   {
     name: "Dashboard",
     items: [
@@ -154,7 +155,136 @@ const navigations = [
   },
 ];
 
-export function ClientSidebarContent() {
+const navigationsWithSubscriptionNotStarted = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Home",
+        url: "/",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+  {
+    name: "Subscription",
+    items: [
+      {
+        title: "Starting",
+        url: "/starting",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+];
+
+const navigationsWithoutSubscription = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Home",
+        url: "/",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+  {
+    name: "Subscription",
+    items: [
+      {
+        title: "Subscribe",
+        url: "/subscribe",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+];
+
+const navigationsWithSubscriptionExpired = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Home",
+        url: "/",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+  {
+    name: "Subscription",
+    items: [
+      {
+        title: "Renew",
+        url: "/renew",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+];
+
+const navigationsWithSuspendedSubscription = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Home",
+        url: "/",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+  {
+    name: "Suspension",
+    items: [
+      {
+        title: "Reason",
+        url: "/reason",
+        icon: House,
+        items: [],
+      },
+    ],
+  },
+];
+
+export function ClientSidebarContent({
+  subscription,
+}: {
+  subscription?: Subscription;
+}) {
+  const payments = subscription?.payments ?? [];
+  const firstPayment = payments[0];
+
+  const noSubscription = !subscription || payments.length === 0;
+
+  const isNotStarted =
+    !noSubscription &&
+    (firstPayment.startsAt > new Date() ||
+      firstPayment.status !== PaymentStatus.COMPLETED);
+
+  const isExpired = !noSubscription && firstPayment.endsAt < new Date();
+
+  const isSuspended =
+    !!subscription?.suspendedAt && subscription.suspendedAt > new Date();
+
+  const navigations = noSubscription
+    ? navigationsWithoutSubscription
+    : isNotStarted
+      ? navigationsWithSubscriptionNotStarted
+      : isExpired
+        ? navigationsWithSubscriptionExpired
+        : isSuspended
+          ? navigationsWithSuspendedSubscription
+          : navigationsWithSubscriptionRunning;
+
   return (
     <SidebarContent>
       {navigations.map((navigation, index) => (

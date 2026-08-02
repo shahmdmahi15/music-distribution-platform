@@ -30,6 +30,14 @@ enum OAuthAccountProvider {
   GITHUB
 }
 
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REFUNDED
+  CANCELED
+}
+
 model OAuthAccount {
   // Primary key
   id String @id @default(cuid())
@@ -130,13 +138,71 @@ model PlatformUser {
   // Child Relations
   oAuthAccounts OAuthAccount[]
   sessions      Session[]
-  whiteLabel    WhiteLabel?
+  subscription  PlatformSubscription?
 
   // Timestamps
   lastLoginAt DateTime?
   lockedUntil DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model PlatformSubscription {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+
+  // Flags
+
+  // Enums
+
+  // Foreign Keys
+  subscriberId String @unique
+
+  // Parent Relations
+  subscriber PlatformUser @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+  payments   PlatformSubscriptionPayment[]
+  whiteLabel WhiteLabel?
+
+  // Timestamps
+  suspendedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Constraints && Indexes
+}
+
+model PlatformSubscriptionPayment {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  amount   Int
+  discount Int @default(0)
+
+  // Flags
+
+  // Enums
+  status PaymentStatus @default(PENDING)
+
+  // Foreign Keys
+  subscriptionId String
+
+  // Parent Relations
+  subscription PlatformSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Constraints && Indexes
 }
@@ -153,66 +219,14 @@ model WhiteLabel {
   // Enums
 
   // Foreign Keys
-  ownerId String @unique
+  subscriptionId String @unique
 
   // Parent Relations
-  owner PlatformUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  subscription PlatformSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   // Child Relations
-  whiteLabelConfig WhiteLabelConfig?
-  domain           WhiteLabelDomain?
   partners         WhiteLabelPartner[]
   users            WhiteLabelUser[]
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints && Indexes
-}
-
-model WhiteLabelConfig {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-
-  // Flags
-
-  // Enums
-
-  // Foreign Keys
-  whiteLabelId String @unique
-
-  // Parent Relations
-  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
-
-  // Child Relations
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints && Indexes
-}
-
-model WhiteLabelDomain {
-  // Primary key
-  id String @id @default(cuid())
-
-  // Data Fields
-
-  // Flags
-
-  // Enums
-
-  // Foreign Keys
-  whiteLabelId String @unique
-
-  // Parent Relations
-  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
-
-  // Child Relations
 
   // Timestamps
   createdAt DateTime @default(now())

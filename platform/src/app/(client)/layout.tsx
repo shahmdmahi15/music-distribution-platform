@@ -6,19 +6,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ClientSidebar } from "@/components/client/sidebar/client-sidebar";
 import { meAction } from "@/actions/auth/me.action";
+import { clientGetCurrentSubscriptionAction } from "@/actions/client/subscription/client-get-current-subscription.action";
 
 export default async function ClientLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const res = await meAction();
-  if (!res.success) return null;
-  if (!res.user) return null;
+  const [me, subscription] = await Promise.all([
+    await meAction(),
+    await clientGetCurrentSubscriptionAction(),
+  ]);
+  if (!me.success) return null;
+  if (!me.user) return null;
   return (
     <div className="flex min-h-screen w-full">
       <SidebarProvider>
-        <ClientSidebar user={res.user} />
+        <ClientSidebar user={me.user} subscription={subscription.subscription} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">
