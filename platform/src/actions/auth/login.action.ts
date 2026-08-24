@@ -15,6 +15,8 @@ export async function loginAction(input: LoginInput): Promise<{
   message: string;
   requireMfa?: boolean;
   userId?: string;
+  redirectUrl?: string;
+  user?: any;
   error?: LoginError;
 }> {
   try {
@@ -61,9 +63,15 @@ export async function loginAction(input: LoginInput): Promise<{
       path: "/",
     });
 
+    const userRole = res.data.user?.role;
+    const redirectUrl =
+      userRole === "CLIENT" ? "/" : "/admin/whitelabels";
+
     return {
       success: res.data.success,
       message: res.data.message,
+      redirectUrl,
+      user: res.data.user,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {

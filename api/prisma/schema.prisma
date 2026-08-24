@@ -38,11 +38,34 @@ enum PaymentStatus {
   CANCELED
 }
 
+enum WhiteLabelBusinessType {
+  RECORD_LABEL
+  DISTRIBUTOR_AGGREGATOR
+  MUSIC_PUBLISHER
+  OTHER
+}
+
+enum WhiteLabelSignupModel {
+  OPEN_PUBLIC
+  INVITE_ONLY
+  VETTED_APPLICATION
+  MANUAL_APPROVAL
+}
+
+enum WhiteLabelStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 model OAuthAccount {
   // Primary key
   id String @id @default(cuid())
 
   // Data Fields
+  code         String  @unique
   accountId    String
   providerId   String
   accessToken  String?
@@ -80,6 +103,7 @@ model Session {
   id String @id @default(cuid())
 
   // Data Fields
+  code         String  @unique
   token        String  @unique
   ipAddress    String?
   userAgent    String?
@@ -114,6 +138,7 @@ model PlatformUser {
   id String @id @default(cuid())
 
   // Data Fields
+  code                        String  @unique
   firstName                   String
   lastName                    String
   email                       String  @unique
@@ -154,6 +179,7 @@ model PlatformSubscription {
   id String @id @default(cuid())
 
   // Data Fields
+  code String @unique
 
   // Flags
 
@@ -182,8 +208,9 @@ model PlatformSubscriptionPayment {
   id String @id @default(cuid())
 
   // Data Fields
+  code     String        @unique
   amount   Int
-  discount Int @default(0)
+  discount Int           @default(0)
 
   // Flags
 
@@ -212,11 +239,64 @@ model WhiteLabel {
   id String @id @default(cuid())
 
   // Data Fields
+  code String @unique
   name String
 
-  // Flags
+  // Corporate Profile
+  businessType         WhiteLabelBusinessType @default(RECORD_LABEL)
+  companyWebsite       String?
+  country              String?
+  yearsInBusiness      Int                    @default(0)
+  isIncorporated       Boolean                @default(false)
+  incorporationDocUrl  String?
 
-  // Enums
+  // Identity & Branding
+  subdomain            String?                @unique
+  customDomain         String?                @unique
+  tagline              String?
+  description          String?
+  logoUrl              String?
+  logoDarkUrl          String?
+  faviconUrl           String?
+  bannerUrl            String?
+  primaryColor         String?                @default("#6366f1")
+  accentColor          String?                @default("#ec4899")
+  supportEmail         String?
+  supportPhone         String?
+  copyrightText        String?
+  socialInstagram      String?
+  socialTwitter        String?
+  socialYoutube        String?
+  socialSpotify        String?
+  socialFacebook       String?
+  socialLinkedin       String?
+  socialTiktok         String?
+
+  // Contact Person
+  contactFirstName     String?
+  contactLastName      String?
+  contactEmail         String?
+  contactLinkedIn      String?
+
+  // Catalog & Operational Telemetry
+  catalogTrackCount       Int                    @default(0)
+  monthlyTrackDelivery    Int                    @default(0)
+  monthlyRevenueUsd       Decimal?               @db.Decimal(14, 2)
+  hasDirectDeals          Boolean                @default(false)
+  currentDistributors     String[]               @default([])
+  royaltySolutions        String[]               @default([])
+  primaryCatalogLanguage  String                 @default("en")
+  wantsCatalogMigration   Boolean                @default(false)
+  hasSampleBasedCovers    Boolean                @default(false)
+  userSignupModel         WhiteLabelSignupModel  @default(INVITE_ONLY)
+
+  // Compliance & Status Lifecycle
+  privacyPolicyAccepted   Boolean                @default(true)
+  marketingConsent        Boolean                @default(false)
+  status                  WhiteLabelStatus       @default(PENDING)
+  statusReason            String?
+  approvedAt              DateTime?
+  reviewedAt              DateTime?
 
   // Foreign Keys
   subscriptionId String @unique
@@ -225,6 +305,8 @@ model WhiteLabel {
   subscription PlatformSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   // Child Relations
+  artists          WhiteLabelTopArtist[]
+  documents        WhiteLabelDocument[]
   partners         WhiteLabelPartner[]
   users            WhiteLabelUser[]
 
@@ -235,11 +317,69 @@ model WhiteLabel {
   // Constraints && Indexes
 }
 
+model WhiteLabelTopArtist {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code              String   @unique
+  artistName        String
+  instagramHandle   String?
+  spotifyProfileUrl String?
+  youtubeChannelUrl String?
+  monthlyListeners  Int?
+  orderIndex        Int      @default(1)
+
+  // Foreign Keys
+  whiteLabelId String
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([whiteLabelId])
+}
+
+model WhiteLabelDocument {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code          String   @unique
+  type          String
+  name          String
+  fileKey       String
+  mimeType      String?
+  fileSizeBytes Int?
+
+  // Foreign Keys
+  whiteLabelId String
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([whiteLabelId])
+}
+
 model WhiteLabelUser {
   // Primary key
   id String @id @default(cuid())
 
   // Data Fields
+  code                        String  @unique
   firstName                   String
   lastName                    String
   email                       String
@@ -282,6 +422,7 @@ model WhiteLabelPartner {
   id String @id @default(cuid())
 
   // Data Fields
+  code String @unique
 
   // Flags
 
@@ -303,26 +444,3 @@ model WhiteLabelPartner {
 
   // Constraints && Indexes
 }
-
-// {
-// // Primary key
-// id String @id @default(cuid())
-
-// // Data Fields
-
-// // Flags
-
-// // Enums
-
-// // Foreign Keys
-
-// // Parent Relations
-
-// // Child Relations
-
-// // Timestamps
-// createdAt DateTime @default(now())
-// updatedAt DateTime @updatedAt
-
-// // Constraints && Indexes
-// }

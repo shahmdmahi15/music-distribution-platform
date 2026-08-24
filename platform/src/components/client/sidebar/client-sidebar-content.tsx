@@ -25,15 +25,20 @@ import {
   CreditCard,
   FolderLock,
   House,
+  UserPen,
+  ShieldPlus,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
-const navigationsWithSubscriptionRunning = [
+// 1. Navigation for Approved & Active WhiteLabel Tenants
+const navigationsWithActiveWhiteLabel = [
   {
     name: "Dashboard",
     items: [
       {
-        title: "Home",
+        title: "Overview",
         url: "/",
         icon: House,
         items: [],
@@ -49,11 +54,11 @@ const navigationsWithSubscriptionRunning = [
         icon: Disc3,
         items: [
           {
-            title: "Identity",
-            url: "#",
+            title: "Identity & Branding",
+            url: "/whitelabel/branding",
           },
           {
-            title: "Theme",
+            title: "Theme Customizer",
             url: "#",
           },
         ],
@@ -64,23 +69,23 @@ const navigationsWithSubscriptionRunning = [
     name: "Developer",
     items: [
       {
-        title: "Domain",
+        title: "Domain & DNS",
         url: "#",
         icon: Globe,
         items: [
           {
-            title: "Setup",
+            title: "Custom Domain",
             url: "#",
           },
         ],
       },
       {
-        title: "Credentials",
+        title: "Credentials & SSO",
         url: "#",
         icon: FolderLock,
         items: [
           {
-            title: "Setup",
+            title: "Auth Providers",
             url: "#",
           },
         ],
@@ -91,11 +96,11 @@ const navigationsWithSubscriptionRunning = [
         icon: KeyRound,
         items: [
           {
-            title: "Create",
+            title: "Generate Key",
             url: "#",
           },
           {
-            title: "All",
+            title: "All Keys",
             url: "#",
           },
         ],
@@ -106,11 +111,11 @@ const navigationsWithSubscriptionRunning = [
         icon: Webhook,
         items: [
           {
-            title: "Create",
+            title: "Configure",
             url: "#",
           },
           {
-            title: "All",
+            title: "Event Logs",
             url: "#",
           },
         ],
@@ -118,7 +123,7 @@ const navigationsWithSubscriptionRunning = [
     ],
   },
   {
-    name: "Billing & Payments",
+    name: "Billing & Financials",
     items: [
       {
         title: "Transactions",
@@ -126,7 +131,7 @@ const navigationsWithSubscriptionRunning = [
         icon: CreditCard,
         items: [
           {
-            title: "Subscription",
+            title: "Invoices & Receipts",
             url: "#",
           },
           {
@@ -138,15 +143,27 @@ const navigationsWithSubscriptionRunning = [
     ],
   },
   {
-    name: "Security",
+    name: "Account & Security",
     items: [
+      {
+        title: "Profile",
+        url: "/profile",
+        icon: UserPen,
+        items: [],
+      },
+      {
+        title: "Active Sessions",
+        url: "/sessions",
+        icon: ShieldPlus,
+        items: [],
+      },
       {
         title: "Audit Logs",
         url: "#",
         icon: Logs,
         items: [
           {
-            title: "All",
+            title: "Activity Stream",
             url: "#",
           },
         ],
@@ -155,100 +172,32 @@ const navigationsWithSubscriptionRunning = [
   },
 ];
 
-const navigationsWithSubscriptionNotStarted = [
+// 2. Navigation for Clients in Onboarding / Review
+const navigationsOnboarding = [
   {
-    name: "Dashboard",
+    name: "Application",
     items: [
       {
-        title: "Home",
+        title: "Onboarding & Status",
         url: "/",
-        icon: House,
+        icon: Sparkles,
         items: [],
       },
     ],
   },
   {
-    name: "Subscription",
+    name: "Account & Security",
     items: [
       {
-        title: "Starting",
-        url: "/starting",
-        icon: House,
+        title: "Profile",
+        url: "/profile",
+        icon: UserPen,
         items: [],
       },
-    ],
-  },
-];
-
-const navigationsWithoutSubscription = [
-  {
-    name: "Dashboard",
-    items: [
       {
-        title: "Home",
-        url: "/",
-        icon: House,
-        items: [],
-      },
-    ],
-  },
-  {
-    name: "Subscription",
-    items: [
-      {
-        title: "Subscribe",
-        url: "/subscribe",
-        icon: House,
-        items: [],
-      },
-    ],
-  },
-];
-
-const navigationsWithSubscriptionExpired = [
-  {
-    name: "Dashboard",
-    items: [
-      {
-        title: "Home",
-        url: "/",
-        icon: House,
-        items: [],
-      },
-    ],
-  },
-  {
-    name: "Subscription",
-    items: [
-      {
-        title: "Renew",
-        url: "/renew",
-        icon: House,
-        items: [],
-      },
-    ],
-  },
-];
-
-const navigationsWithSuspendedSubscription = [
-  {
-    name: "Dashboard",
-    items: [
-      {
-        title: "Home",
-        url: "/",
-        icon: House,
-        items: [],
-      },
-    ],
-  },
-  {
-    name: "Suspension",
-    items: [
-      {
-        title: "Reason",
-        url: "/reason",
-        icon: House,
+        title: "Active Sessions",
+        url: "/sessions",
+        icon: ShieldPlus,
         items: [],
       },
     ],
@@ -263,27 +212,13 @@ export function ClientSidebarContent({
   const payments = subscription?.payments ?? [];
   const firstPayment = payments[0];
 
-  const noSubscription = !subscription || payments.length === 0;
+  const isApprovedAndPaid =
+    subscription?.whiteLabel?.status === "APPROVED" &&
+    payments.some((p) => p.status === PaymentStatus.COMPLETED);
 
-  const isNotStarted =
-    !noSubscription &&
-    (firstPayment.startsAt > new Date() ||
-      firstPayment.status !== PaymentStatus.COMPLETED);
-
-  const isExpired = !noSubscription && firstPayment.endsAt < new Date();
-
-  const isSuspended =
-    !!subscription?.suspendedAt && subscription.suspendedAt > new Date();
-
-  const navigations = noSubscription
-    ? navigationsWithoutSubscription
-    : isNotStarted
-      ? navigationsWithSubscriptionNotStarted
-      : isExpired
-        ? navigationsWithSubscriptionExpired
-        : isSuspended
-          ? navigationsWithSuspendedSubscription
-          : navigationsWithSubscriptionRunning;
+  const navigations = isApprovedAndPaid
+    ? navigationsWithActiveWhiteLabel
+    : navigationsOnboarding;
 
   return (
     <SidebarContent>
@@ -296,12 +231,10 @@ export function ClientSidebarContent({
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     tooltip={item.title}
-                    className="flex items-center"
+                    render={<Link href={item.url} />}
                   >
-                    {item.icon && <item.icon />}
-                    <Link href={item.url}>
-                      <span>{item.title}</span>
-                    </Link>
+                    {item.icon && <item.icon className="h-4 w-4" />}
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
@@ -313,7 +246,7 @@ export function ClientSidebarContent({
                       <CollapsibleTrigger
                         render={
                           <SidebarMenuButton tooltip={item.title}>
-                            {item.icon && <item.icon />}
+                            {item.icon && <item.icon className="h-4 w-4" />}
                             <span>{item.title}</span>
                             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>

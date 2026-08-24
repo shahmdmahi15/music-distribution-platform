@@ -56,6 +56,14 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Returns standard S3 public / object URL
+   */
+  getFileUrl(key: string): string {
+    const region = this.configService.get('AWS_REGION', { infer: true });
+    return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+  }
+
+  /**
    * Retrieves a file's buffer from S3
    */
   async getFileBuffer(key: string): Promise<Buffer> {

@@ -50,7 +50,8 @@ export async function clientNameUpdateAction(input: ClientNameUpdateInput) {
       };
     }
 
-    revalidatePath("/client/profile");
+    revalidatePath("/profile");
+    revalidatePath("/");
 
     return {
       success: res.data.success,

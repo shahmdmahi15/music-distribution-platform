@@ -4,6 +4,8 @@ import axios from "axios";
 import { cookies } from "next/headers";
 import { api } from "@/lib/api";
 
+import { revalidatePath } from "next/cache";
+
 export async function adminRevokeAllOtherSessionsAction(): Promise<{
   success: boolean;
   message: string;
@@ -37,6 +39,7 @@ export async function adminRevokeAllOtherSessionsAction(): Promise<{
       };
     }
 
+    revalidatePath("/admin/sessions");
     return {
       success: res.data.success,
       message: res.data.message,

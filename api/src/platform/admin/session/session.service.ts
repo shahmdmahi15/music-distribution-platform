@@ -12,6 +12,7 @@ export class SessionService {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        code: true,
         platformUserId: true,
         ipAddress: true,
         userAgent: true,

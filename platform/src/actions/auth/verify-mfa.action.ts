@@ -13,6 +13,8 @@ import axios from "axios";
 export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
   success: boolean;
   message: string;
+  redirectUrl?: string;
+  user?: any;
   error?: VerifyMfaError;
 }> {
   try {
@@ -50,9 +52,15 @@ export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
       path: "/",
     });
 
+    const userRole = res.data.user?.role;
+    const redirectUrl =
+      userRole === "CLIENT" ? "/" : "/admin/whitelabels";
+
     return {
       success: res.data.success,
       message: res.data.message,
+      redirectUrl,
+      user: res.data.user,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {

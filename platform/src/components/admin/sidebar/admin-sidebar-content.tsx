@@ -26,6 +26,8 @@ import {
   Blocks,
   Disc2,
   House,
+  UserPen,
+  ShieldPlus,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,8 +36,8 @@ const navigations = [
     name: "Dashboard",
     items: [
       {
-        title: "Home",
-        url: "/",
+        title: "Overview",
+        url: "/admin",
         icon: House,
         items: [],
       },
@@ -50,12 +52,8 @@ const navigations = [
         icon: Disc3,
         items: [
           {
-            title: "Create",
-            url: "#",
-          },
-          {
-            title: "All",
-            url: "#",
+            title: "Instances & Vetting",
+            url: "/admin/whitelabels",
           },
         ],
       },
@@ -65,11 +63,11 @@ const navigations = [
         icon: Users,
         items: [
           {
-            title: "Platform",
+            title: "Platform Users",
             url: "/admin/users/platform",
           },
           {
-            title: "WhiteLabel",
+            title: "WhiteLabel Users",
             url: "/admin/users/whitelabel",
           },
         ],
@@ -158,9 +156,8 @@ const navigations = [
             title: "Upload",
             url: "#",
           },
-
           {
-            title: "All",
+            title: "All Files",
             url: "#",
           },
         ],
@@ -171,11 +168,11 @@ const navigations = [
         icon: FileChartColumn,
         items: [
           {
-            title: "Process",
+            title: "Process Statements",
             url: "#",
           },
           {
-            title: "All",
+            title: "All Reports",
             url: "#",
           },
         ],
@@ -183,10 +180,10 @@ const navigations = [
     ],
   },
   {
-    name: "Analyticals",
+    name: "Analytics",
     items: [
       {
-        title: "Analytics",
+        title: "Telemetry",
         url: "#",
         icon: ChartNoAxesCombined,
         items: [
@@ -199,11 +196,11 @@ const navigations = [
             url: "#",
           },
           {
-            title: "Revenew",
+            title: "Revenue",
             url: "#",
           },
           {
-            title: "Geo",
+            title: "Geography",
             url: "#",
           },
         ],
@@ -211,19 +208,31 @@ const navigations = [
     ],
   },
   {
-    name: "Security",
+    name: "Account & Security",
     items: [
+      {
+        title: "Profile",
+        url: "/admin/profile",
+        icon: UserPen,
+        items: [],
+      },
+      {
+        title: "Active Sessions",
+        url: "/admin/sessions",
+        icon: ShieldPlus,
+        items: [],
+      },
       {
         title: "Audit Logs",
         url: "#",
         icon: Logs,
         items: [
           {
-            title: "Platform",
+            title: "Platform Logs",
             url: "#",
           },
           {
-            title: "WhiteLabel",
+            title: "WhiteLabel Logs",
             url: "#",
           },
         ],
@@ -244,12 +253,10 @@ export function AdminSidebarContent() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     tooltip={item.title}
-                    className="flex items-center"
+                    render={<Link href={item.url} />}
                   >
-                    {item.icon && <item.icon />}
-                    <Link href={item.url}>
-                      <span>{item.title}</span>
-                    </Link>
+                    {item.icon && <item.icon className="h-4 w-4" />}
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
@@ -261,7 +268,7 @@ export function AdminSidebarContent() {
                       <CollapsibleTrigger
                         render={
                           <SidebarMenuButton tooltip={item.title}>
-                            {item.icon && <item.icon />}
+                            {item.icon && <item.icon className="h-4 w-4" />}
                             <span>{item.title}</span>
                             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>

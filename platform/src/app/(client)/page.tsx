@@ -1,13 +1,24 @@
-export default async function RootPage() {
+import { meAction } from "@/actions/auth/me.action";
+import { clientGetCurrentSubscriptionAction } from "@/actions/client/subscription/client-get-current-subscription.action";
+import { ClientWhiteLabelView } from "@/components/client/whitelabel/client-whitelabel-view";
+import { redirect } from "next/navigation";
+
+export default async function ClientRootPage() {
+  const [me, subRes] = await Promise.all([
+    meAction(),
+    clientGetCurrentSubscriptionAction(),
+  ]);
+
+  if (!me.success || !me.user) {
+    redirect("/auth/login");
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        Welcome to RoyalMotionIT
-      </h1>
-      <p className="mt-4 text-muted-foreground">
-        Get started by editing{" "}
-        <code className="font-mono text-sm">app/page.tsx</code>
-      </p>
-    </main>
+    <div className="w-full min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8">
+      <ClientWhiteLabelView
+        user={me.user}
+        subscription={subRes.subscription || null}
+      />
+    </div>
   );
 }

@@ -3,9 +3,15 @@ import { ClientMiddleware } from './client.middleware';
 import { ProfileModule } from './profile/profile.module';
 import { SessionModule } from './session/session.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { ClientWhitelabelModule } from './whitelabel/whitelabel.module';
 
 @Module({
-  imports: [ProfileModule, SessionModule, SubscriptionModule],
+  imports: [
+    ProfileModule,
+    SessionModule,
+    SubscriptionModule,
+    ClientWhitelabelModule,
+  ],
 })
 export class ClientModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

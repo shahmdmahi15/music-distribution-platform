@@ -68,7 +68,7 @@ export function VerifyMfaForm({ userId }: { userId: string }) {
         }
 
         toast.success(result.message);
-        router.replace("/");
+        router.replace(result.redirectUrl || "/");
       } catch (error) {
         console.log("[Component.Auth.VerifyMfa] Error: ", error);
         toast.error("Internal Form Error");

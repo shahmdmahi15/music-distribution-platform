@@ -18,13 +18,36 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   );
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function formatSelectValue(val: any) {
+  if (typeof val === "string") {
+    if (/^[A-Z0-9_]+$/.test(val)) {
+      return val
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ");
+    }
+  }
+  return val;
+}
+
+function SelectValue({
+  className,
+  children,
+  ...props
+}: SelectPrimitive.Value.Props) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
-      className={cn("flex flex-1 text-left", className)}
+      className={cn("flex flex-1 text-left truncate", className)}
       {...props}
-    />
+    >
+      {typeof children === "function"
+        ? children
+        : (val: any) => {
+            if (children && typeof children !== "function") return children;
+            return formatSelectValue(val);
+          }}
+    </SelectPrimitive.Value>
   );
 }
 

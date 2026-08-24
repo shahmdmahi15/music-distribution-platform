@@ -49,7 +49,8 @@ export async function clientImageUpdateAction(input: ClientImageUpdateInput) {
       };
     }
 
-    revalidatePath("/client/profile");
+    revalidatePath("/profile");
+    revalidatePath("/");
 
     return {
       success: res.data.success,

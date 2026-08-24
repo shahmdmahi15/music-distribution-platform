@@ -73,7 +73,7 @@ export function LoginForm() {
         }
 
         toast.success(result.message);
-        router.replace("/");
+        router.replace(result.redirectUrl || "/");
       } catch (error) {
         console.log("[Component.Auth.Login] Error: ", error);
         toast.error("Internal Form Error");

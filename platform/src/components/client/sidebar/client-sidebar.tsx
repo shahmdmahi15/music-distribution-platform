@@ -14,7 +14,7 @@ export function ClientSidebar({
 }) {
   return (
     <Sidebar collapsible="icon" variant="inset">
-      <ClientSidebarHeader />
+      <ClientSidebarHeader whiteLabel={subscription?.whiteLabel} />
       <ClientSidebarContent subscription={subscription} />
       <ClientSidebarFooter user={user} />
       <SidebarRail />

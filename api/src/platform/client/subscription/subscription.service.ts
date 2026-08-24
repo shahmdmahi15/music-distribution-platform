@@ -11,6 +11,16 @@ export class SubscriptionService {
       await this.prismaService.platformSubscription.findUnique({
         where: { subscriberId: userId },
         include: {
+          whiteLabel: {
+            include: {
+              artists: {
+                orderBy: {
+                  orderIndex: 'asc',
+                },
+              },
+              documents: true,
+            },
+          },
           payments: {
             where: {
               status: PaymentStatus.COMPLETED,

@@ -9,6 +9,7 @@ import {
   KeyRound,
   Laptop,
   Clock,
+  ShieldOff,
 } from "lucide-react";
 import { Session } from "@/types/session";
 
@@ -37,7 +38,8 @@ function getSessionStats(sessions: Session[]) {
     active,
     revoked,
     expired,
-    inactiveTotal: revoked + expired,
+    activePercent:
+      sessions.length > 0 ? Math.round((active / sessions.length) * 100) : 0,
   };
 }
 
@@ -67,29 +69,25 @@ export default async function ClientSessionsPage() {
   const stats = getSessionStats(sessions);
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0 p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Page Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 text-primary">
           <Laptop className="h-6 w-6" />
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Session Management
+            Device Sessions
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          View and manage all active sessions for your client account. Monitor
-          devices and revoke suspicious sessions.
+          Monitor your active logins across devices and browsers. Terminate sessions if you suspect unauthorized access.
         </p>
       </div>
 
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Overview Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary/10 text-primary">
-              <KeyRound className="h-6 w-6" />
-            </div>
+        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+          <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total Sessions
@@ -97,16 +95,17 @@ export default async function ClientSessionsPage() {
               <div className="text-2xl font-bold tracking-tight text-foreground">
                 {stats.total}
               </div>
+              <span className="text-xs text-muted-foreground">All recorded devices</span>
+            </div>
+            <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+              <KeyRound className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>
 
         {/* Active Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
+        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+          <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Active Sessions
@@ -114,23 +113,52 @@ export default async function ClientSessionsPage() {
               <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                 {stats.active}
               </div>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                {stats.activePercent}% active rate
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <ShieldCheck className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Inactive / Revoked / Expired Card */}
-        <Card className="shadow-sm border-border/60 bg-card">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-              <Clock className="h-6 w-6" />
-            </div>
+        {/* Revoked Sessions Card */}
+        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+          <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Revoked & Expired
+                Revoked Sessions
               </span>
-              <div className="text-2xl font-bold tracking-tight text-foreground">
-                {stats.inactiveTotal}
+              <div className="text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
+                {stats.revoked}
               </div>
+              <span className="text-xs text-rose-600 dark:text-rose-400">
+                Terminated by user/system
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
+              <ShieldOff className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expired Sessions Card */}
+        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Expired Sessions
+              </span>
+              <div className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
+                {stats.expired}
+              </div>
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                Natural TTL expiry
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+              <Clock className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>

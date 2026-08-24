@@ -13,7 +13,6 @@ export default async function proxy(request: NextRequest) {
   const userRole = session.user?.role;
 
   const hasAdminPanelAccess = userRole ? ADMIN_ROLES.includes(userRole) : false;
-  // Client panel is CLIENT-only now — admins do NOT get client panel access.
   const hasClientPanelAccess = userRole === Role.CLIENT;
 
   const pathname = request.nextUrl.pathname;
@@ -22,7 +21,7 @@ export default async function proxy(request: NextRequest) {
   const isAdminRoute = pathname.startsWith("/admin");
   const isClientRoute = !isAuthRoute && !isAdminRoute;
 
-  // Authenticated user hitting an auth route (login/register/etc.)
+  // 1. Authenticated user attempting to access auth pages (login, register, reset, etc.)
   if (isAuthenticated && isAuthRoute) {
     if (hasAdminPanelAccess) {
       return NextResponse.redirect(new URL("/admin", request.url));
@@ -30,36 +29,35 @@ export default async function proxy(request: NextRequest) {
     if (hasClientPanelAccess) {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    // Authenticated but no valid role/panel access at all — this session
-    // is effectively broken. Clear the bad cookie instead of redirecting
-    // anywhere, or we risk looping back through this same branch.
+
+    // Broken session state — clean cookie safely
     const response = NextResponse.next();
     response.cookies.delete("__Host-SESSION_TOKEN");
     return response;
   }
 
-  // Not authenticated and trying to access anything other than /auth/*
+  // 2. Unauthenticated user attempting to access protected application routes
   if (!isAuthenticated && !isAuthRoute) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    const loginUrl = new URL("/auth/login", request.url);
+    if (pathname !== "/" && pathname !== "/admin") {
+      loginUrl.searchParams.set("redirect", pathname);
+    }
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated, on an admin route, but lacks admin access
+  // 3. Authenticated client attempting to access admin routes without permission
   if (isAuthenticated && isAdminRoute && !hasAdminPanelAccess) {
     if (hasClientPanelAccess) {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    // No access anywhere — route through /auth/login, which will clear
-    // the broken session on the next pass (see isAuthRoute branch above).
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // Authenticated, on a client route, but lacks client access
+  // 4. Authenticated admin attempting to access client routes
   if (isAuthenticated && isClientRoute && !hasClientPanelAccess) {
     if (hasAdminPanelAccess) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
-    // No access anywhere — same as above, resolves via the auth-route
-    // branch instead of looping.
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
@@ -68,6 +66,6 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|favicon.ico|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|svg)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js)$).*)",
   ],
 };

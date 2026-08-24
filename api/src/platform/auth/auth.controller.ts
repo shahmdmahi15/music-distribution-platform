@@ -83,6 +83,7 @@ export class AuthController {
       message: 'Current user fetched successfully',
       user: {
         id: user.id,
+        code: user.code,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,

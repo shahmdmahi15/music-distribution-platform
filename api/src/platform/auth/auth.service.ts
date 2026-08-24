@@ -14,6 +14,10 @@ import { MailService } from 'src/lib/mail/mail.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
 import { REDIS_KEYS } from 'src/config/redis-keys.config';
+import {
+  generateUniqueCode,
+  CodePrefix,
+} from 'src/lib/prisma/code-generator';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyDto } from './dto/verify.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
@@ -44,8 +48,15 @@ export class AuthService {
 
     const hashedPassword = await argon2.hash(dto.password, ARGON2_CONFIG);
 
+    const code = await generateUniqueCode(
+      this.prismaService,
+      'platformUser',
+      CodePrefix.PLATFORM_USER,
+    );
+
     const newUser = await this.prismaService.platformUser.create({
       data: {
+        code,
         email: dto.email,
         passwordHash: hashedPassword,
         firstName: dto.firstName,
@@ -294,8 +305,16 @@ export class AuthService {
         .createHash('sha256')
         .update(rawToken)
         .digest('hex');
+
+      const sessionCode = await generateUniqueCode(
+        this.prismaService,
+        'session',
+        CodePrefix.SESSION,
+      );
+
       await this.prismaService.session.create({
         data: {
+          code: sessionCode,
           token: tokenHash,
           platformUserId: user.id,
           ipAddress: clientInfo.ip,
@@ -327,6 +346,11 @@ export class AuthService {
         success: true,
         message: 'Logged in successfully.',
         token: rawToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
       };
     } catch (error) {
       console.error('[AuthService] Login Session Creation Failure:', error);
@@ -406,8 +430,16 @@ export class AuthService {
         .createHash('sha256')
         .update(rawToken)
         .digest('hex');
+
+      const sessionCode = await generateUniqueCode(
+        this.prismaService,
+        'session',
+        CodePrefix.SESSION,
+      );
+
       await this.prismaService.session.create({
         data: {
+          code: sessionCode,
           token: tokenHash,
           platformUserId: dto.userId,
           ipAddress: clientInfo.ip,
@@ -439,6 +471,11 @@ export class AuthService {
         success: true,
         message: 'Logged in successfully via 2FA verification.',
         token: rawToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
       };
     } catch (error) {
       console.error(

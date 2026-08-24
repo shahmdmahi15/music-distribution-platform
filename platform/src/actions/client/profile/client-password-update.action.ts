@@ -52,10 +52,11 @@ export async function clientPasswordUpdateAction(
       };
     }
 
-    revalidatePath("/client/profile");
+    revalidatePath("/profile");
+    revalidatePath("/");
 
     return {
-      success: res.data.success,
+      success: true,
       message: res.data.message,
     };
   } catch (error) {

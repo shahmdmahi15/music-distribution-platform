@@ -1,5 +1,6 @@
 export interface Session {
   id: string;
+  code?: string;
   createdAt: Date;
   updatedAt: Date;
   ipAddress: string | null;
