@@ -75,7 +75,7 @@ export function RequestPasswordResetForm() {
   });
 
   return (
-    <Card className="shadow-xl">
+    <Card className="glass-card shadow-2xl border-border/80">
       <CardHeader className="space-y-1.5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight">
           Reset Password

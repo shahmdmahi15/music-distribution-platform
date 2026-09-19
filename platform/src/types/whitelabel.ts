@@ -5,7 +5,17 @@ export enum WhiteLabelBusinessType {
   OTHER = "OTHER",
 }
 
+export enum WhiteLabelUserRole {
+  OWNER = "OWNER",
+  PARTNER = "PARTNER",
+  ADMIN = "ADMIN",
+  MANAGER = "MANAGER",
+  STAFF = "STAFF",
+  CLIENT = "CLIENT",
+}
+
 export enum WhiteLabelSignupModel {
+
   OPEN_PUBLIC = "OPEN_PUBLIC",
   INVITE_ONLY = "INVITE_ONLY",
   VETTED_APPLICATION = "VETTED_APPLICATION",
@@ -15,8 +25,12 @@ export enum WhiteLabelSignupModel {
 export enum WhiteLabelStatus {
   PENDING = "PENDING",
   UNDER_REVIEW = "UNDER_REVIEW",
-  APPROVED = "APPROVED",
+  PROCESSING = "PROCESSING",
   REJECTED = "REJECTED",
+  CONTRACTED = "CONTRACTED",
+  PAID = "PAID",
+  APPROVED = "APPROVED",
+  ACTIVE = "ACTIVE",
   SUSPENDED = "SUSPENDED",
 }
 
@@ -78,6 +92,12 @@ export interface WhiteLabel {
   statusReason?: string | null;
   approvedAt?: string | null;
   reviewedAt?: string | null;
+  contractKey?: string | null;
+  contractFileName?: string | null;
+  contractFileSize?: number | null;
+  contractUploadedAt?: string | null;
+  contractUploadedBy?: string | null;
+  contractPreviewUrl?: string | null;
   subscriptionId: string;
   subscription?: {
     id: string;
@@ -166,4 +186,79 @@ export interface WhiteLabelBranding {
   socialLinkedin?: string | null;
   socialTiktok?: string | null;
 }
+
+export interface WhiteLabelTheme {
+  primaryColor: string;
+  accentColor: string;
+  radius: string;
+  mode: "light" | "dark" | "system";
+  fontFamily: string;
+  cardStyle: "modern" | "glass" | "flat" | "bordered";
+  navbarStyle: "solid" | "glass" | "floating";
+}
+
+export interface WhiteLabelDomainStatus {
+  verified: boolean;
+  lastCheckedAt?: string | null;
+  sslStatus: "ACTIVE" | "PROVISIONING" | "NOT_CONFIGURED" | "PENDING_VERIFICATION" | "FAILED";
+  dnsStatus: "CONNECTED" | "PENDING_SETUP" | "PENDING_VERIFICATION" | "VERIFIED";
+  diagnostic?: string;
+}
+
+export interface WhiteLabelDomainConfig {
+  subdomain?: string | null;
+  platformSubdomainFqdn?: string | null;
+  customDomain?: string | null;
+  domainVerificationToken?: string | null;
+  cnameHost: string;
+  cnameTarget?: string;
+  txtRecordName: string;
+  txtRecordValue: string;
+  verified?: boolean;
+  verifiedAt?: string | null;
+  sslStatus?: string;
+  status?: WhiteLabelDomainStatus;
+}
+
+export interface WhiteLabelSsoConfig {
+  userSignupModel: WhiteLabelSignupModel;
+  googleEnabled: boolean;
+  googleClientId: string;
+  googleClientSecretMasked: string;
+  githubEnabled: boolean;
+  githubClientId: string;
+  githubClientSecretMasked: string;
+  enforce2fa: boolean;
+  sessionTimeoutHours: number;
+}
+
+export interface WhiteLabelApiKey {
+  id: string;
+  code?: string;
+  name: string;
+  prefix: string;
+  keyMasked?: string;
+  scopes: string[];
+  createdAt: string;
+  lastUsedAt?: string | null;
+  status: "ACTIVE" | "REVOKED";
+}
+
+export interface WhiteLabelWebhookConfig {
+  url: string;
+  events: string[];
+  isActive: boolean;
+  signingSecretMasked: string;
+}
+
+export interface WhiteLabelWebhookLog {
+  id: string;
+  event: string;
+  url: string;
+  statusCode: number;
+  deliveredAt: string;
+  success: boolean;
+  responseSummary: string;
+}
+
 

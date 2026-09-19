@@ -55,8 +55,12 @@ enum WhiteLabelSignupModel {
 enum WhiteLabelStatus {
   PENDING
   UNDER_REVIEW
-  APPROVED
+  PROCESSING
   REJECTED
+  CONTRACTED
+  PAID
+  APPROVED
+  ACTIVE
   SUSPENDED
 }
 
@@ -131,6 +135,9 @@ model Session {
   updatedAt  DateTime  @updatedAt
 
   // Constraints && Indexes
+  // Supports the active-session lookups and counts filtered by owner + state.
+  @@index([platformUserId, revokedAt])
+  @@index([expiresAt])
 }
 
 model PlatformUser {
@@ -172,6 +179,12 @@ model PlatformUser {
   updatedAt   DateTime  @updatedAt
 
   // Constraints && Indexes
+  // Backs the admin list filters and the stats aggregates.
+  @@index([role])
+  @@index([lockedUntil])
+  @@index([emailVerified])
+  @@index([twoFactorEnabled])
+  @@index([createdAt])
 }
 
 model PlatformSubscription {
@@ -220,6 +233,11 @@ model PlatformSubscriptionPayment {
   // Foreign Keys
   subscriptionId String
 
+  // Payment Details
+  paymentMethod    String?  @default("OFFLINE_MANUAL")
+  receiptReference String?
+  adminNotes       String?
+
   // Parent Relations
   subscription PlatformSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
@@ -232,6 +250,8 @@ model PlatformSubscriptionPayment {
   updatedAt DateTime @updatedAt
 
   // Constraints && Indexes
+  // Backs the active/pending subscription payment lookups.
+  @@index([subscriptionId, status, endsAt])
 }
 
 model WhiteLabel {
@@ -251,32 +271,47 @@ model WhiteLabel {
   incorporationDocUrl  String?
 
   // Identity & Branding
-  subdomain            String?                @unique
-  customDomain         String?                @unique
-  tagline              String?
-  description          String?
-  logoUrl              String?
-  logoDarkUrl          String?
-  faviconUrl           String?
-  bannerUrl            String?
-  primaryColor         String?                @default("#6366f1")
-  accentColor          String?                @default("#ec4899")
-  supportEmail         String?
-  supportPhone         String?
-  copyrightText        String?
-  socialInstagram      String?
-  socialTwitter        String?
-  socialYoutube        String?
-  socialSpotify        String?
-  socialFacebook       String?
-  socialLinkedin       String?
-  socialTiktok         String?
+  subdomain               String?                @unique
+  customDomain            String?                @unique
+  domainVerificationToken String?
+  domainVerified          Boolean                @default(false)
+  domainVerifiedAt        DateTime?
+  domainSslStatus         String?                @default("NOT_CONFIGURED")
+  tagline                 String?
+  description             String?
+  logoUrl                 String?
+  logoDarkUrl             String?
+  faviconUrl              String?
+  bannerUrl               String?
+  primaryColor            String?                @default("#6366f1")
+  accentColor             String?                @default("#ec4899")
+  themeRadius             String?                @default("0.5rem")
+  themeFont               String?                @default("Inter")
+  themeMode               String?                @default("dark")
+  navbarStyle             String?                @default("glass")
+  cardStyle               String?                @default("modern")
+  supportEmail            String?
+  supportPhone            String?
+  copyrightText           String?
+  socialInstagram         String?
+  socialTwitter           String?
+  socialYoutube           String?
+  socialSpotify           String?
+  socialFacebook          String?
+  socialLinkedin          String?
+  socialTiktok            String?
+
+  // SSO & Security Configuration
+  ssoGoogleEnabled        Boolean                @default(true)
+  ssoGithubEnabled        Boolean                @default(false)
+  ssoEnforce2fa           Boolean                @default(false)
+  ssoSessionTimeoutHours  Int                    @default(72)
 
   // Contact Person
-  contactFirstName     String?
-  contactLastName      String?
-  contactEmail         String?
-  contactLinkedIn      String?
+  contactFirstName        String?
+  contactLastName         String?
+  contactEmail            String?
+  contactLinkedIn         String?
 
   // Catalog & Operational Telemetry
   catalogTrackCount       Int                    @default(0)
@@ -298,6 +333,13 @@ model WhiteLabel {
   approvedAt              DateTime?
   reviewedAt              DateTime?
 
+  // Contract Information
+  contractKey             String?
+  contractFileName        String?
+  contractFileSize        Int?
+  contractUploadedAt      DateTime?
+  contractUploadedBy      String?
+
   // Foreign Keys
   subscriptionId String @unique
 
@@ -309,12 +351,17 @@ model WhiteLabel {
   documents        WhiteLabelDocument[]
   partners         WhiteLabelPartner[]
   users            WhiteLabelUser[]
+  apiKeys          WhiteLabelApiKey[]
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Constraints && Indexes
+  // Backs the admin list filters and the status-count aggregate.
+  @@index([status])
+  @@index([businessType])
+  @@index([createdAt])
 }
 
 model WhiteLabelTopArtist {
@@ -443,4 +490,38 @@ model WhiteLabelPartner {
   updatedAt DateTime @updatedAt
 
   // Constraints && Indexes
+}
+
+model WhiteLabelApiKey {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code       String    @unique
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  keyMasked  String
+  scopes     String[]  @default(["*"])
+
+  // Telemetry
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  // Flags
+  isActive   Boolean   @default(true)
+
+  // Foreign Keys
+  whiteLabelId String
+
+  // Parent Relations
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([whiteLabelId, isActive])
+  @@index([keyHash])
 }

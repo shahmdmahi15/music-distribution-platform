@@ -1,0 +1,27 @@
+import {
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
+import { Transform, TransformFnParams } from 'class-transformer';
+
+export class PasswordResetDto {
+  @IsNotEmpty({ message: 'Reset token is required.' })
+  @IsString({ message: 'Reset token must be a string.' })
+  token!: string;
+
+  @IsNotEmpty({ message: 'Password is required.' })
+  @IsString({ message: 'Password must be a string.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
+  @MinLength(8, { message: 'Password must be at least 8 characters long.' })
+  @MaxLength(64, { message: 'Password must be at most 64 characters long.' })
+  @Matches(/((?=.*\d)|(?=.*\W+))(?=.*[a-z])(?=.*[A-Z]).*$/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number or special character.',
+  })
+  password!: string;
+}

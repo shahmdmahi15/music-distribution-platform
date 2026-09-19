@@ -25,10 +25,10 @@ export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Users */}
-      <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+      <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
         <CardContent className="p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Total Platform Users
             </span>
             <div className="text-2xl font-bold tracking-tight text-foreground">
@@ -39,16 +39,16 @@ export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
             </div>
           </div>
           <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
-            <Users className="h-6 w-6" />
+            <Users className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
 
       {/* Active Users */}
-      <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+      <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
         <CardContent className="p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Active Accounts
             </span>
             <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
@@ -60,16 +60,16 @@ export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
             </div>
           </div>
           <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-            <UserCheck className="h-6 w-6" />
+            <UserCheck className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
 
       {/* Locked / Suspended Users */}
-      <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+      <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
         <CardContent className="p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Locked Accounts
             </span>
             <div className="text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
@@ -85,16 +85,16 @@ export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
             </div>
           </div>
           <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
-            <UserX className="h-6 w-6" />
+            <UserX className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
 
       {/* 2FA Adoption */}
-      <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+      <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
         <CardContent className="p-5 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               2FA Security Adoption
             </span>
             <div className="text-2xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">
@@ -106,7 +106,7 @@ export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
             </div>
           </div>
           <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-            <ShieldCheck className="h-6 w-6" />
+            <ShieldCheck className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>

@@ -7,7 +7,6 @@ import { ClientModule } from './client/client.module';
 import { ProfileModule as AdminProfileModule } from './admin/profile/profile.module';
 import { SessionModule as AdminSessionModule } from './admin/session/session.module';
 import { PlatformUsersModule as AdminPlatformUsersModule } from './admin/platform-users/platform-users.module';
-import { WhitelabelUsersModule as AdminWhitelabelUsersModule } from './admin/whitelabel-users/whitelabel-users.module';
 import { AdminWhitelabelModule } from './admin/whitelabel/whitelabel.module';
 import { ProfileModule as ClientProfileModule } from './client/profile/profile.module';
 import { SessionModule as ClientSessionModule } from './client/session/session.module';
@@ -41,10 +40,6 @@ import { ClientWhitelabelModule } from './client/whitelabel/whitelabel.module';
               {
                 path: '',
                 module: AdminPlatformUsersModule,
-              },
-              {
-                path: '',
-                module: AdminWhitelabelUsersModule,
               },
               {
                 path: '',

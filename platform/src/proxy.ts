@@ -5,12 +5,17 @@ import { Role } from "@/types/user";
 
 const ADMIN_ROLES: Role[] = [Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF];
 
-export default async function proxy(request: NextRequest) {
+/**
+ * Next.js 16 LTS Proxy boundary (replaces deprecated middleware.ts).
+ * Enforces unified authentication, administrative RBAC, and WhiteLabel tenant gates.
+ */
+export async function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get("__Host-SESSION_TOKEN")?.value;
   const session = await meAction(sessionToken);
 
   const isAuthenticated = session.success && !!session.user;
-  const userRole = session.user?.role;
+  const user = session.user;
+  const userRole = user?.role;
 
   const hasAdminPanelAccess = userRole ? ADMIN_ROLES.includes(userRole) : false;
   const hasClientPanelAccess = userRole === Role.CLIENT;
@@ -19,6 +24,8 @@ export default async function proxy(request: NextRequest) {
 
   const isAuthRoute = pathname.startsWith("/auth");
   const isAdminRoute = pathname.startsWith("/admin");
+  const isWhiteLabelRoute =
+    pathname === "/whitelabel" || pathname.startsWith("/whitelabel/");
   const isClientRoute = !isAuthRoute && !isAdminRoute;
 
   // 1. Authenticated user attempting to access auth pages (login, register, reset, etc.)
@@ -27,6 +34,10 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
     if (hasClientPanelAccess) {
+      // If client has an approved, active WhiteLabel, route directly to console; otherwise to onboarding hub
+      if (user?.isWhiteLabelActive) {
+        return NextResponse.redirect(new URL("/whitelabel", request.url));
+      }
       return NextResponse.redirect(new URL("/", request.url));
     }
 
@@ -48,7 +59,9 @@ export default async function proxy(request: NextRequest) {
   // 3. Authenticated client attempting to access admin routes without permission
   if (isAuthenticated && isAdminRoute && !hasAdminPanelAccess) {
     if (hasClientPanelAccess) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(
+        new URL(user?.isWhiteLabelActive ? "/whitelabel" : "/", request.url),
+      );
     }
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
@@ -61,8 +74,20 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
+  // 5. WhiteLabel Management Console Gate:
+  // Clients MUST have an APPROVED and ACTIVE/PAID WhiteLabel subscription to access /whitelabel/* routes.
+  // If the client is still in Onboarding, Pending Review, Rejected, or Waiting for Payment,
+  // they are intercepted and redirected to the application status overview at `/`.
+  if (isAuthenticated && isWhiteLabelRoute && hasClientPanelAccess) {
+    if (!user?.isWhiteLabelActive) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
+
+export default proxy;
 
 export const config = {
   matcher: [

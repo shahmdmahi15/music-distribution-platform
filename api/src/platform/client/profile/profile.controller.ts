@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Patch } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
+import { CurrentSession } from 'src/platform/decorator/current-session-decorator';
 import { UpdateProfileImageDto } from './dto/update-profile-image.dto';
 import { UpdateProfileNameDto } from './dto/update-profile-name.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -33,9 +34,10 @@ export class ProfileController {
   @Patch('password')
   async updatePassword(
     @CurrentUser('id') id: string,
+    @CurrentSession('id') sessionId: string,
     @Body() dto: UpdatePasswordDto,
   ) {
-    return await this.profileService.updatePassword(id, dto);
+    return await this.profileService.updatePassword(id, sessionId, dto);
   }
 
   @Get('linked-accounts')

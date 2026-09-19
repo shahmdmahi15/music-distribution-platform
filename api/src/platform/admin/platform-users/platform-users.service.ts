@@ -47,15 +47,22 @@ export class PlatformUsersService {
 
     const where: Prisma.PlatformUserWhereInput = {};
 
+    // Each of these is a disjunction in its own right, so they are collected
+    // and combined with AND. Assigning them all to `where.OR` would mean the
+    // last one silently discarding the others.
+    const disjunctions: Prisma.PlatformUserWhereInput[] = [];
+
     // Search query filter (matches code, firstName, lastName, email)
     if (dto.search?.trim()) {
       const term = dto.search.trim();
-      where.OR = [
-        { code: { contains: term, mode: 'insensitive' } },
-        { firstName: { contains: term, mode: 'insensitive' } },
-        { lastName: { contains: term, mode: 'insensitive' } },
-        { email: { contains: term, mode: 'insensitive' } },
-      ];
+      disjunctions.push({
+        OR: [
+          { code: { contains: term, mode: 'insensitive' } },
+          { firstName: { contains: term, mode: 'insensitive' } },
+          { lastName: { contains: term, mode: 'insensitive' } },
+          { email: { contains: term, mode: 'insensitive' } },
+        ],
+      });
     }
 
     // Role filter
@@ -67,7 +74,9 @@ export class PlatformUsersService {
     if (dto.status) {
       switch (dto.status) {
         case UserStatusFilter.ACTIVE:
-          where.OR = [{ lockedUntil: null }, { lockedUntil: { lt: now } }];
+          disjunctions.push({
+            OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }],
+          });
           break;
         case UserStatusFilter.LOCKED:
           where.lockedUntil = { gte: now };
@@ -85,6 +94,10 @@ export class PlatformUsersService {
           where.twoFactorEnabled = false;
           break;
       }
+    }
+
+    if (disjunctions.length > 0) {
+      where.AND = disjunctions;
     }
 
     // Sorting
@@ -119,12 +132,15 @@ export class PlatformUsersService {
           lockedUntil: true,
           createdAt: true,
           updatedAt: true,
-          sessions: {
-            where: {
-              revokedAt: null,
-              expiresAt: { gt: now },
+          _count: {
+            select: {
+              sessions: {
+                where: {
+                  revokedAt: null,
+                  expiresAt: { gt: now },
+                },
+              },
             },
-            select: { id: true },
           },
           oAuthAccounts: {
             select: { provider: true },
@@ -142,52 +158,37 @@ export class PlatformUsersService {
       this.getStatsData(now),
     ]);
 
-    // Resolve images
-    const usersWithImages = await Promise.all(
-      rawUsers.map(async (u) => {
-        let avatar: string | null = null;
-        if (u.image) {
-          try {
-            avatar = await this.storageService.getImageBase64(u.image);
-          } catch (e) {
-            console.error(
-              `[PlatformUsersService] Failed to load image for user ${u.id}:`,
-              e,
-            );
-          }
-        }
+    const users = rawUsers.map((u) => {
+      const isLocked = u.lockedUntil ? new Date(u.lockedUntil) > now : false;
 
-        const isLocked = u.lockedUntil ? new Date(u.lockedUntil) > now : false;
-
-        return {
-          id: u.id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-          role: u.role,
-          image: avatar,
-          emailVerified: u.emailVerified,
-          twoFactorEnabled: u.twoFactorEnabled,
-          failedLoginAttempts: u.failedLoginAttempts,
-          failedVerificationAttempts: u.failedVerificationAttempts,
-          failedPasswordResetAttempts: u.failedPasswordResetAttempts,
-          failedTwoFactorAttempts: u.failedTwoFactorAttempts,
-          lastLoginAt: u.lastLoginAt,
-          lockedUntil: u.lockedUntil,
-          isLocked,
-          createdAt: u.createdAt,
-          updatedAt: u.updatedAt,
-          activeSessionCount: u.sessions.length,
-          oauthProviders: u.oAuthAccounts.map((a) => a.provider),
-          subscription: u.subscription,
-        };
-      }),
-    );
+      return {
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        role: u.role,
+        image: u.image ? this.storageService.getFileUrl(u.image) : null,
+        emailVerified: u.emailVerified,
+        twoFactorEnabled: u.twoFactorEnabled,
+        failedLoginAttempts: u.failedLoginAttempts,
+        failedVerificationAttempts: u.failedVerificationAttempts,
+        failedPasswordResetAttempts: u.failedPasswordResetAttempts,
+        failedTwoFactorAttempts: u.failedTwoFactorAttempts,
+        lastLoginAt: u.lastLoginAt,
+        lockedUntil: u.lockedUntil,
+        isLocked,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        activeSessionCount: u._count.sessions,
+        oauthProviders: u.oAuthAccounts.map((a) => a.provider),
+        subscription: u.subscription,
+      };
+    });
 
     return {
       success: true,
       message: 'Platform users fetched successfully.',
-      users: usersWithImages,
+      users,
       pagination: {
         total: totalCount,
         page,
@@ -208,58 +209,43 @@ export class PlatformUsersService {
   }
 
   private async getStatsData(now: Date) {
-    const [
-      totalUsers,
-      lockedUsers,
-      verifiedUsers,
-      twoFactorUsers,
-      ownerCount,
-      adminCount,
-      managerCount,
-      staffCount,
-      clientCount,
-    ] = await Promise.all([
-      this.prismaService.platformUser.count(),
-      this.prismaService.platformUser.count({
-        where: { lockedUntil: { gte: now } },
-      }),
-      this.prismaService.platformUser.count({
-        where: { emailVerified: true },
-      }),
-      this.prismaService.platformUser.count({
-        where: { twoFactorEnabled: true },
-      }),
-      this.prismaService.platformUser.count({
-        where: { role: PlatformUserRole.OWNER },
-      }),
-      this.prismaService.platformUser.count({
-        where: { role: PlatformUserRole.ADMIN },
-      }),
-      this.prismaService.platformUser.count({
-        where: { role: PlatformUserRole.MANAGER },
-      }),
-      this.prismaService.platformUser.count({
-        where: { role: PlatformUserRole.STAFF },
-      }),
-      this.prismaService.platformUser.count({
-        where: { role: PlatformUserRole.CLIENT },
-      }),
-    ]);
+    const [totalUsers, lockedUsers, verificationFlags, roleGroups] =
+      await Promise.all([
+        this.prismaService.platformUser.count(),
+        this.prismaService.platformUser.count({
+          where: { lockedUntil: { gte: now } },
+        }),
+        // One cross-tab replaces the separate verified / 2FA counts.
+        this.prismaService.platformUser.groupBy({
+          by: ['emailVerified', 'twoFactorEnabled'],
+          _count: { _all: true },
+        }),
+        this.prismaService.platformUser.groupBy({
+          by: ['role'],
+          _count: { _all: true },
+        }),
+      ]);
 
-    const activeUsers = Math.max(0, totalUsers - lockedUsers);
+    const sumWhere = (predicate: (row: (typeof verificationFlags)[number]) => boolean) =>
+      verificationFlags
+        .filter(predicate)
+        .reduce((total, row) => total + row._count._all, 0);
+
+    const roleCount = (role: PlatformUserRole) =>
+      roleGroups.find((group) => group.role === role)?._count._all ?? 0;
 
     return {
       totalUsers,
-      activeUsers,
+      activeUsers: Math.max(0, totalUsers - lockedUsers),
       lockedUsers,
-      verifiedUsers,
-      twoFactorUsers,
+      verifiedUsers: sumWhere((row) => row.emailVerified),
+      twoFactorUsers: sumWhere((row) => row.twoFactorEnabled),
       roleCounts: {
-        OWNER: ownerCount,
-        ADMIN: adminCount,
-        MANAGER: managerCount,
-        STAFF: staffCount,
-        CLIENT: clientCount,
+        OWNER: roleCount(PlatformUserRole.OWNER),
+        ADMIN: roleCount(PlatformUserRole.ADMIN),
+        MANAGER: roleCount(PlatformUserRole.MANAGER),
+        STAFF: roleCount(PlatformUserRole.STAFF),
+        CLIENT: roleCount(PlatformUserRole.CLIENT),
       },
     };
   }
@@ -311,18 +297,6 @@ export class PlatformUsersService {
       throw new NotFoundException('Platform user not found.');
     }
 
-    let avatar: string | null = null;
-    if (user.image) {
-      try {
-        avatar = await this.storageService.getImageBase64(user.image);
-      } catch (e) {
-        console.error(
-          `[PlatformUsersService] Failed to load image for user ${user.id}:`,
-          e,
-        );
-      }
-    }
-
     const isLocked = user.lockedUntil
       ? new Date(user.lockedUntil) > now
       : false;
@@ -336,7 +310,7 @@ export class PlatformUsersService {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        image: avatar,
+        image: user.image ? this.storageService.getFileUrl(user.image) : null,
         emailVerified: user.emailVerified,
         twoFactorEnabled: user.twoFactorEnabled,
         failedLoginAttempts: user.failedLoginAttempts,

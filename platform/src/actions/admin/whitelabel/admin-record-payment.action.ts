@@ -14,6 +14,9 @@ export async function adminRecordPaymentAction(
     startsAt: string;
     endsAt: string;
     status?: string;
+    paymentMethod?: string;
+    receiptReference?: string;
+    adminNotes?: string;
   },
 ): Promise<{
   success: boolean;

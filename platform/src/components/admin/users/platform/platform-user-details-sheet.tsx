@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { UAParser } from "ua-parser-js";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ import { adminUpdatePlatformUserAction } from "@/actions/admin/users/platform/ad
 import { PlatformUserDetail, PlatformUserItem } from "@/types/platform-user";
 import { Role } from "@/types/user";
 
-interface PlatformUserDetailsSheetProps {
+export interface PlatformUserDetailsDialogProps {
   userId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,6 +61,8 @@ interface PlatformUserDetailsSheetProps {
   currentUserId?: string;
   currentUserRole?: Role;
 }
+
+export type PlatformUserDetailsSheetProps = PlatformUserDetailsDialogProps;
 
 function parseUserAgent(uaString: string | null) {
   if (!uaString) return { browser: "Unknown Browser", os: "Unknown OS" };
@@ -79,7 +81,7 @@ function parseUserAgent(uaString: string | null) {
   }
 }
 
-export function PlatformUserDetailsSheet({
+export function PlatformUserDetailsDialog({
   userId,
   open,
   onOpenChange,
@@ -89,7 +91,7 @@ export function PlatformUserDetailsSheet({
   onOpenDelete,
   currentUserId,
   currentUserRole,
-}: PlatformUserDetailsSheetProps) {
+}: PlatformUserDetailsDialogProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -267,10 +269,10 @@ export function PlatformUserDetailsSheet({
         : { label: "Secure", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-6 space-y-5">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full sm:max-w-3xl lg:max-w-4xl max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-2xl glass-panel border border-border/80 shadow-2xl">
         {loading || !userDetail ? (
-          <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+          <div className="flex flex-col items-center justify-center h-[50vh] gap-3 p-6">
             <Spinner className="h-8 w-8 text-primary" />
             <p className="text-sm text-muted-foreground">
               Loading platform user details...
@@ -278,97 +280,98 @@ export function PlatformUserDetailsSheet({
           </div>
         ) : (
           <>
-            {/* Header / User Card */}
-            <SheetHeader className="text-left space-y-3 pb-2 border-b border-border/40">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-16 w-16 rounded-2xl border-2 border-border shadow-sm">
-                    <AvatarImage
-                      src={userDetail.image || undefined}
-                      alt={fullName}
-                    />
-                    <AvatarFallback className="rounded-2xl text-lg font-bold bg-primary/10 text-primary">
-                      {avatarFallback}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <SheetTitle className="text-xl font-bold flex items-center gap-2 flex-wrap">
-                      <span>{fullName}</span>
-                      {userDetail.code && (
-                        <div className="flex items-center gap-1">
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-xs px-2 py-0.5 font-bold border-primary/40 bg-primary/10 text-primary"
-                          >
-                            {userDetail.code}
-                          </Badge>
-                          <button
-                            onClick={() => copyToClipboard(userDetail.code!, "User Code")}
-                            className="text-muted-foreground hover:text-foreground"
-                            title="Copy User Code"
-                          >
-                            {copiedField === "User Code" ? (
-                              <Check className="h-3.5 w-3.5 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </SheetTitle>
-                    <SheetDescription className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span>{userDetail.email}</span>
-                      <button
-                        onClick={() => copyToClipboard(userDetail.email, "Email")}
-                        className="text-muted-foreground hover:text-foreground"
-                        title="Copy Email"
-                      >
-                        {copiedField === "Email" ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-500" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
+            {/* Pinned Header / User Card */}
+            <div className="p-6 pb-0 border-b border-border/60 bg-muted/20 space-y-4 shrink-0">
+              <DialogHeader className="text-left space-y-3 pb-2 border-b border-border/40">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-16 w-16 rounded-2xl border-2 border-border shadow-sm">
+                      <AvatarImage
+                        src={userDetail.image || undefined}
+                        alt={fullName}
+                      />
+                      <AvatarFallback className="rounded-2xl text-lg font-bold bg-primary/10 text-primary">
+                        {avatarFallback}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="text-xl font-bold flex items-center gap-2 flex-wrap">
+                        <span>{fullName}</span>
+                        {userDetail.code && (
+                          <div className="flex items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className="font-mono text-xs px-2 py-0.5 font-bold border-primary/40 bg-primary/10 text-primary"
+                            >
+                              {userDetail.code}
+                            </Badge>
+                            <button
+                              onClick={() => copyToClipboard(userDetail.code!, "User Code")}
+                              className="text-muted-foreground hover:text-foreground"
+                              title="Copy User Code"
+                            >
+                              {copiedField === "User Code" ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
                         )}
-                      </button>
-                    </SheetDescription>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs px-2 py-0.5 font-medium flex items-center gap-1 ${roleConfig.badgeColor}`}
-                      >
-                        <RoleIcon className="h-3 w-3" />
-                        {roleConfig.label}
-                      </Badge>
-
-                      {userDetail.isLocked ? (
-                        <Badge
-                          variant="destructive"
-                          className="text-xs px-2 py-0.5 flex items-center gap-1 font-medium"
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{userDetail.email}</span>
+                        <button
+                          onClick={() => copyToClipboard(userDetail.email, "Email")}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="Copy Email"
                         >
-                          <Lock className="h-3 w-3" />
-                          Locked
-                        </Badge>
-                      ) : (
+                          {copiedField === "Email" ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </DialogDescription>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <Badge
                           variant="outline"
-                          className="text-xs px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium"
+                          className={`text-xs px-2 py-0.5 font-medium flex items-center gap-1 ${roleConfig.badgeColor}`}
                         >
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Active
+                          <RoleIcon className="h-3 w-3" />
+                          {roleConfig.label}
                         </Badge>
-                      )}
 
-                      <Badge
-                        variant="outline"
-                        className={`text-xs px-2 py-0.5 font-medium ${securityRiskLevel.color}`}
-                      >
-                        {securityRiskLevel.label}
-                      </Badge>
+                        {userDetail.isLocked ? (
+                          <Badge
+                            variant="destructive"
+                            className="text-xs px-2 py-0.5 flex items-center gap-1 font-medium"
+                          >
+                            <Lock className="h-3 w-3" />
+                            Locked
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-xs px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium"
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Active
+                          </Badge>
+                        )}
+
+                        <Badge
+                          variant="outline"
+                          className={`text-xs px-2 py-0.5 font-medium ${securityRiskLevel.color}`}
+                        >
+                          {securityRiskLevel.label}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </SheetHeader>
+              </DialogHeader>
 
             {/* Quick Actions Strip */}
             <div className="flex flex-wrap items-center gap-2">
@@ -471,7 +474,10 @@ export function PlatformUserDetailsSheet({
                 Active Sessions ({userDetail.sessions?.length || 0})
               </button>
             </div>
+            </div>
 
+            {/* Scrollable Content Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
             {/* Tab 1: Profile & Details */}
             {activeTab === "profile" && (
               <div className="space-y-4 pt-1 text-xs">
@@ -801,9 +807,12 @@ export function PlatformUserDetailsSheet({
                 )}
               </div>
             )}
+            </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
+
+export const PlatformUserDetailsSheet = PlatformUserDetailsDialog;

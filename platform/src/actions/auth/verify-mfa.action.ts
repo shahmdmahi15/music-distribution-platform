@@ -7,6 +7,7 @@ import {
   verifyMfaSchema,
 } from "@/schemas/auth/verify-mfa.schema";
 import { api } from "@/lib/api";
+import { MFA_CHALLENGE_COOKIE } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
 import axios from "axios";
 
@@ -28,12 +29,35 @@ export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
       };
     }
 
+    const cookieStore = await cookies();
+
+    // Read the challenge from its cookie rather than trusting the request body:
+    // the token is what proves a password check happened for this account.
+    const mfaToken = cookieStore.get(MFA_CHALLENGE_COOKIE)?.value;
+
+    if (!mfaToken) {
+      return {
+        success: false,
+        message: "Your verification session has expired. Please sign in again.",
+      };
+    }
+
     const body = {
-      userId: validate.data.userId,
+      mfaToken,
       code: validate.data.code,
     };
 
     const res = await api.post("/platform/auth/verify-mfa", body);
+
+    // The API consumes the challenge on every outcome, correct code or not, so
+    // the cookie is spent either way and must not outlive this call.
+    cookieStore.set(MFA_CHALLENGE_COOKIE, "", {
+      maxAge: 0,
+      sameSite: "lax",
+      secure: true,
+      httpOnly: true,
+      path: "/",
+    });
 
     if (res.data.error) {
       return {
@@ -41,8 +65,6 @@ export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
         message: res.data.message,
       };
     }
-
-    const cookieStore = await cookies();
 
     cookieStore.set("__Host-SESSION_TOKEN", res.data.token, {
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24),

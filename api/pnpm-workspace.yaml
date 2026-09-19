@@ -3,3 +3,7 @@ allowBuilds:
   argon2: true
   prisma: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1133.0'
+  - '@aws-sdk/client-sesv2@3.1133.0'
+  - '@aws-sdk/s3-request-presigner@3.1133.0'

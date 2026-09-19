@@ -4,73 +4,61 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Sparkles,
-  Globe,
-  Palette,
-  Image as ImageIcon,
+  Layers,
   Upload,
   Trash2,
-  Share2,
   Save,
   CheckCircle2,
-  HelpCircle,
-  Copy,
-  Check,
-  Shield,
-  Layers,
-  FileText,
+  Image as ImageIcon,
   Mail,
   Phone,
-  Music,
+  FileText,
+  Share2,
   ExternalLink,
-  ChevronRight,
+  ArrowRight,
+  Globe,
+  Palette,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { WhiteLabelBranding } from "@/types/whitelabel";
 import { clientUpdateBrandingAction } from "@/actions/client/whitelabel/client-update-branding.action";
 import { clientUploadBrandingAssetAction } from "@/actions/client/whitelabel/client-upload-branding-asset.action";
 import { clientDeleteBrandingAssetAction } from "@/actions/client/whitelabel/client-delete-branding-asset.action";
+import { WhiteLabelSubNav } from "./whitelabel-subnav";
+import Link from "next/link";
 
 interface ClientBrandingViewProps {
   initialBranding: WhiteLabelBranding;
 }
 
-const COLOR_PRESETS = [
-  { name: "Royal Indigo", primary: "#6366f1", accent: "#ec4899" },
-  { name: "Neon Emerald", primary: "#10b981", accent: "#06b6d4" },
-  { name: "Sunset Amber", primary: "#f59e0b", accent: "#ef4444" },
-  { name: "Electric Violet", primary: "#8b5cf6", accent: "#f43f5e" },
-  { name: "Ocean Breeze", primary: "#0ea5e9", accent: "#3b82f6" },
-  { name: "Rose Gold", primary: "#f43f5e", accent: "#fbbf24" },
-];
-
 export function ClientBrandingView({ initialBranding }: ClientBrandingViewProps) {
   const router = useRouter();
   const [branding, setBranding] = useState<WhiteLabelBranding>(initialBranding);
-  const [activeTab, setActiveTab] = useState<"visuals" | "colors" | "domains" | "profile" | "social">("visuals");
   const [saving, setSaving] = useState(false);
   const [uploadingAsset, setUploadingAsset] = useState<string | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
 
-  // Form State
+  // Form State - Identity & Brand Assets Only (Single Source of Truth)
   const [formData, setFormData] = useState({
     name: initialBranding.name || "",
-    subdomain: initialBranding.subdomain || "",
-    customDomain: initialBranding.customDomain || "",
     tagline: initialBranding.tagline || "",
     description: initialBranding.description || "",
-    primaryColor: initialBranding.primaryColor || "#6366f1",
-    accentColor: initialBranding.accentColor || "#ec4899",
     supportEmail: initialBranding.supportEmail || "",
     supportPhone: initialBranding.supportPhone || "",
     copyrightText:
       initialBranding.copyrightText ||
-      `© ${new Date().getFullYear()} ${initialBranding.name}. All rights reserved.`,
+      `© ${new Date().getFullYear()} ${initialBranding.name || "WhiteLabel"}. All rights reserved.`,
     socialInstagram: initialBranding.socialInstagram || "",
     socialTwitter: initialBranding.socialTwitter || "",
     socialYoutube: initialBranding.socialYoutube || "",
@@ -80,12 +68,18 @@ export function ClientBrandingView({ initialBranding }: ClientBrandingViewProps)
     socialTiktok: initialBranding.socialTiktok || "",
   });
 
-  const handleSave = async () => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error("Brand name is required.");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await clientUpdateBrandingAction(formData);
       if (res.success) {
-        toast.success(res.message);
+        toast.success(res.message || "Branding identity saved successfully.");
         if (res.branding) {
           setBranding(res.branding);
         }
@@ -100,26 +94,38 @@ export function ClientBrandingView({ initialBranding }: ClientBrandingViewProps)
     }
   };
 
-  const handleFileUpload = async (
+  const handleAssetUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     assetType: "logo" | "logoDark" | "favicon" | "banner",
   ) => {
-    if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB.");
+      return;
+    }
 
     setUploadingAsset(assetType);
     try {
-      const payload = new FormData();
-      payload.append("file", file);
-      payload.append("assetType", assetType);
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("assetType", assetType);
 
-      const res = await clientUploadBrandingAssetAction(payload);
+      const res = await clientUploadBrandingAssetAction(uploadFormData);
       if (res.success) {
         toast.success(res.message);
-        setBranding((prev) => ({
-          ...prev,
-          [`${assetType}Url`]: res.assetUrl,
-        }));
+        const fieldKey =
+          assetType === "logo"
+            ? "logoUrl"
+            : assetType === "logoDark"
+              ? "logoDarkUrl"
+              : assetType === "favicon"
+                ? "faviconUrl"
+                : "bannerUrl";
+        if (res.assetUrl) {
+          setBranding((prev) => ({ ...prev, [fieldKey]: res.assetUrl }));
+        }
         router.refresh();
       } else {
         toast.error(res.message);
@@ -128,803 +134,501 @@ export function ClientBrandingView({ initialBranding }: ClientBrandingViewProps)
       toast.error(`Failed to upload ${assetType}.`);
     } finally {
       setUploadingAsset(null);
+      e.target.value = "";
     }
   };
 
   const handleDeleteAsset = async (
     assetType: "logo" | "logoDark" | "favicon" | "banner",
   ) => {
+    if (!confirm(`Are you sure you want to remove this ${assetType}?`)) return;
+
+    setUploadingAsset(assetType);
     try {
       const res = await clientDeleteBrandingAssetAction(assetType);
       if (res.success) {
         toast.success(res.message);
-        setBranding((prev) => ({
-          ...prev,
-          [`${assetType}Url`]: null,
-        }));
+        const fieldKey =
+          assetType === "logo"
+            ? "logoUrl"
+            : assetType === "logoDark"
+              ? "logoDarkUrl"
+              : assetType === "favicon"
+                ? "faviconUrl"
+                : "bannerUrl";
+        setBranding((prev) => ({ ...prev, [fieldKey]: null }));
         router.refresh();
       } else {
         toast.error(res.message);
       }
     } catch {
-      toast.error(`Failed to delete ${assetType}.`);
+      toast.error(`Failed to remove ${assetType}.`);
+    } finally {
+      setUploadingAsset(null);
     }
   };
 
-  const previewDomain = formData.customDomain
-    ? `https://${formData.customDomain}`
-    : formData.subdomain
-    ? `https://${formData.subdomain}.rmitdistribution.com`
-    : `https://${branding.code.toLowerCase()}.rmitdistribution.com`;
-
-  const copyDomain = () => {
-    navigator.clipboard.writeText(previewDomain);
-    setCopiedUrl(true);
-    toast.success("Domain URL copied to clipboard");
-    setTimeout(() => setCopiedUrl(false), 2000);
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in-50 duration-300">
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-            <span>WhiteLabel</span>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground font-medium">Identity & Branding</span>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <WhiteLabelSubNav
+        tenantName={branding.name}
+        tenantCode={branding.code}
+        subdomain={branding.subdomain}
+        customDomain={branding.customDomain}
+      />
+
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Top Actions & Notification Strip */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/70 bg-card shadow-xs">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Identity &amp; Brand Assets
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Manage your company name, logo assets, support contacts, and legal notices.
+            </p>
           </div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-              Identity & Custom Branding
-            </h1>
-            <Badge variant="outline" className="font-mono text-xs font-semibold border-primary/30 bg-primary/10 text-primary">
-              {branding.code}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Configure visual assets, color themes, and custom domain routing for your record label portal.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={saving}
-            className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm h-8 px-4"
-          >
-            <Save className="h-3.5 w-3.5" />
-            {saving ? "Saving Changes..." : "Save Branding"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Modern WhiteLabel Identity Overview Card */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs relative overflow-hidden">
-        <div
-          className="absolute top-0 left-0 right-0 h-1"
-          style={{
-            background: `linear-gradient(90deg, ${formData.primaryColor} 0%, ${formData.accentColor} 100%)`,
-          }}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div
-              className="h-14 w-14 rounded-2xl bg-muted/30 border-2 p-1.5 flex items-center justify-center overflow-hidden shrink-0 shadow-xs transition-colors"
-              style={{ borderColor: formData.primaryColor }}
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              size="sm"
+              disabled={saving}
+              className="text-xs font-semibold gap-1.5 h-9"
             >
-              {branding.logoUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={branding.logoUrl}
-                  alt="Logo"
-                  className="max-h-full max-w-full object-contain"
-                />
-              ) : (
-                <Music className="h-7 w-7 text-muted-foreground" />
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base font-bold text-foreground">
-                  {formData.name || "My Record Label"}
-                </h3>
-                <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 text-[10px] font-semibold border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
-                  Live Portal
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground max-w-lg">
-                {formData.tagline || "Independent Music Distribution Platform"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-muted/40 border border-border/60 px-3 py-1.5 rounded-xl text-xs">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-2.5 w-2.5 rounded-full border shadow-2xs"
-                  style={{ backgroundColor: formData.primaryColor }}
-                />
-                <span className="font-mono text-[11px] font-semibold">{formData.primaryColor}</span>
-              </div>
-              <span className="text-muted-foreground">/</span>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-2.5 w-2.5 rounded-full border shadow-2xs"
-                  style={{ backgroundColor: formData.accentColor }}
-                />
-                <span className="font-mono text-[11px] font-semibold">{formData.accentColor}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={copyDomain}
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/40 hover:bg-muted/80 border border-border/60 text-xs font-mono text-foreground transition-colors cursor-pointer"
-              title="Click to copy live endpoint"
-            >
-              {copiedUrl ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
-              <span className="text-[11px] font-semibold">{previewDomain.replace("https://", "")}</span>
-            </button>
+              <Save className="h-3.5 w-3.5" />
+              <span>{saving ? "Saving Changes..." : "Save Branding"}</span>
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Modern Navigation Tabs */}
-      <div className="flex items-center gap-1.5 border-b border-border/60 pb-px text-xs overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("visuals")}
-          className={`px-4 py-2.5 font-semibold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
-            activeTab === "visuals"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <ImageIcon className="h-4 w-4" />
-          Brand Logos & Assets
-        </button>
-        <button
-          onClick={() => setActiveTab("colors")}
-          className={`px-4 py-2.5 font-semibold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
-            activeTab === "colors"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Palette className="h-4 w-4" />
-          Color Palette & Theme
-        </button>
-        <button
-          onClick={() => setActiveTab("domains")}
-          className={`px-4 py-2.5 font-semibold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
-            activeTab === "domains"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Globe className="h-4 w-4" />
-          Subdomain & Custom Domain
-        </button>
-        <button
-          onClick={() => setActiveTab("profile")}
-          className={`px-4 py-2.5 font-semibold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
-            activeTab === "profile"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FileText className="h-4 w-4" />
-          Brand Voice & Support
-        </button>
-        <button
-          onClick={() => setActiveTab("social")}
-          className={`px-4 py-2.5 font-semibold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
-            activeTab === "social"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Share2 className="h-4 w-4" />
-          Social Channels
-        </button>
-      </div>
-
-      {/* TAB 1: Brand Logos & Visual Assets */}
-      {activeTab === "visuals" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Primary Logo */}
-          <Card className="border-border/60">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                  Primary Brand Logo
-                </span>
-                {branding.logoUrl && (
-                  <button
-                    onClick={() => handleDeleteAsset("logo")}
-                    className="text-[11px] text-destructive hover:underline flex items-center gap-1 font-normal"
-                  >
-                    <Trash2 className="h-3 w-3" /> Remove
-                  </button>
-                )}
+        {/* 1. Visual Brand Assets (Logos & Favicon) */}
+        <Card className="border-border/70 shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Brand Visual Assets
               </CardTitle>
-              <CardDescription className="text-[11px]">
-                Main logo for light mode navigation and headers (PNG, SVG, or WEBP).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 space-y-3">
-              <label className="block w-full cursor-pointer group">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                  onChange={(e) => handleFileUpload(e, "logo")}
-                  disabled={uploadingAsset === "logo"}
-                  className="hidden"
-                />
-                <div className="h-28 rounded-xl border-2 border-dashed border-border/80 group-hover:border-primary/50 group-hover:bg-muted/30 bg-muted/10 transition-all flex flex-col items-center justify-center p-3 relative overflow-hidden">
+            </div>
+            <CardDescription className="text-xs">
+              Upload SVG or high-resolution PNG assets for your WhiteLabel portal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Primary Logo (Light Mode) */}
+              <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-muted/20 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Primary Logo (Light)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">PNG / SVG</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Displayed on light backgrounds and email templates.
+                  </p>
+                </div>
+
+                <div className="h-28 rounded-lg border border-dashed border-border flex items-center justify-center bg-background p-3 relative overflow-hidden">
                   {branding.logoUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={branding.logoUrl}
                       alt="Primary Logo"
-                      className="max-h-20 max-w-[160px] object-contain transition-transform group-hover:scale-105"
+                      className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <div className="text-center space-y-1">
-                      <Upload className="h-5 w-5 text-muted-foreground mx-auto group-hover:text-primary transition-colors" />
-                      <p className="text-xs font-semibold">
-                        {uploadingAsset === "logo" ? "Uploading to S3..." : "Click to upload primary logo"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Transparent PNG or SVG recommended (512x512)</p>
+                    <div className="text-center text-muted-foreground text-xs">
+                      No Logo Uploaded
                     </div>
                   )}
                 </div>
-              </label>
-            </CardContent>
-          </Card>
 
-          {/* Dark Mode Logo */}
-          <Card className="border-border/60">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                  Dark Mode Alternative Logo
-                </span>
-                {branding.logoDarkUrl && (
-                  <button
-                    onClick={() => handleDeleteAsset("logoDark")}
-                    className="text-[11px] text-destructive hover:underline flex items-center gap-1 font-normal"
-                  >
-                    <Trash2 className="h-3 w-3" /> Remove
-                  </button>
-                )}
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                Inverted light-colored logo rendered in dark mode themes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 space-y-3">
-              <label className="block w-full cursor-pointer group">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                  onChange={(e) => handleFileUpload(e, "logoDark")}
-                  disabled={uploadingAsset === "logoDark"}
-                  className="hidden"
-                />
-                <div className="h-28 rounded-xl border-2 border-dashed border-border/80 group-hover:border-primary/50 bg-zinc-950 transition-all flex flex-col items-center justify-center p-3 relative overflow-hidden">
+                <div className="flex items-center gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "logo")}
+                      disabled={uploadingAsset === "logo"}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs h-8 cursor-pointer"
+                      disabled={uploadingAsset === "logo"}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      {uploadingAsset === "logo" ? "Uploading..." : "Upload Logo"}
+                    </Button>
+                  </label>
+                  {branding.logoUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleDeleteAsset("logo")}
+                      className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Dark Mode Logo */}
+              <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-muted/20 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Dark Mode Logo
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">PNG / SVG</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Rendered in dark portal navigation bars.
+                  </p>
+                </div>
+
+                <div className="h-28 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center bg-zinc-950 p-3 relative overflow-hidden">
                   {branding.logoDarkUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={branding.logoDarkUrl}
-                      alt="Dark Logo"
-                      className="max-h-20 max-w-[160px] object-contain transition-transform group-hover:scale-105"
+                      alt="Dark Mode Logo"
+                      className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <div className="text-center space-y-1 text-zinc-400">
-                      <Upload className="h-5 w-5 mx-auto group-hover:text-white transition-colors" />
-                      <p className="text-xs font-semibold">
-                        {uploadingAsset === "logoDark" ? "Uploading to S3..." : "Click to upload dark logo"}
-                      </p>
-                      <p className="text-[10px] text-zinc-500">Falls back to primary logo if omitted</p>
+                    <div className="text-center text-zinc-500 text-xs">
+                      No Dark Logo Uploaded
                     </div>
                   )}
                 </div>
-              </label>
-            </CardContent>
-          </Card>
 
-          {/* Favicon Icon */}
-          <Card className="border-border/60">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-primary" />
-                  Browser Favicon (32x32)
-                </span>
-                {branding.faviconUrl && (
-                  <button
-                    onClick={() => handleDeleteAsset("favicon")}
-                    className="text-[11px] text-destructive hover:underline flex items-center gap-1 font-normal"
-                  >
-                    <Trash2 className="h-3 w-3" /> Remove
-                  </button>
-                )}
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                Icon displayed in browser tabs and bookmarks bar (ICO or PNG).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 space-y-3">
-              <label className="block w-full cursor-pointer group">
-                <input
-                  type="file"
-                  accept="image/x-icon,image/png"
-                  onChange={(e) => handleFileUpload(e, "favicon")}
-                  disabled={uploadingAsset === "favicon"}
-                  className="hidden"
-                />
-                <div className="h-24 rounded-xl border border-dashed border-border/80 group-hover:border-primary/50 bg-muted/10 transition-all flex items-center justify-center gap-3 p-3">
-                  <div className="h-10 w-10 rounded-lg border bg-card shadow-xs flex items-center justify-center p-1.5">
-                    {branding.faviconUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={branding.faviconUrl} alt="Favicon" className="h-7 w-7 object-contain" />
-                    ) : (
-                      <Globe className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="text-left space-y-0.5">
-                    <p className="text-xs font-semibold">
-                      {branding.faviconUrl ? "Click to replace favicon" : "Click to upload favicon"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">ICO or PNG up to 1MB (32x32 or 64x64)</p>
-                  </div>
-                </div>
-              </label>
-            </CardContent>
-          </Card>
-
-          {/* Hero Banner Image */}
-          <Card className="border-border/60">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Layers className="h-3.5 w-3.5 text-primary" />
-                  Portal Cover Banner (1920x400)
-                </span>
-                {branding.bannerUrl && (
-                  <button
-                    onClick={() => handleDeleteAsset("banner")}
-                    className="text-[11px] text-destructive hover:underline flex items-center gap-1 font-normal"
-                  >
-                    <Trash2 className="h-3 w-3" /> Remove
-                  </button>
-                )}
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                Top cover image for dashboards and portal headers.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 space-y-3">
-              <label className="block w-full cursor-pointer group">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(e) => handleFileUpload(e, "banner")}
-                  disabled={uploadingAsset === "banner"}
-                  className="hidden"
-                />
-                <div className="h-24 rounded-xl border border-dashed border-border/80 group-hover:border-primary/50 bg-muted/10 transition-all flex items-center justify-center relative overflow-hidden p-3">
-                  {branding.bannerUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={branding.bannerUrl} alt="Banner" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <div className="text-center space-y-1">
-                      <Upload className="h-5 w-5 text-muted-foreground mx-auto group-hover:text-primary transition-colors" />
-                      <p className="text-xs font-semibold">Click to upload custom banner</p>
-                      <p className="text-[10px] text-muted-foreground">Recommended 1920x400 JPG or PNG</p>
-                    </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "logoDark")}
+                      disabled={uploadingAsset === "logoDark"}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs h-8 cursor-pointer"
+                      disabled={uploadingAsset === "logoDark"}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      {uploadingAsset === "logoDark" ? "Uploading..." : "Upload Dark Logo"}
+                    </Button>
+                  </label>
+                  {branding.logoDarkUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleDeleteAsset("logoDark")}
+                      className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   )}
                 </div>
-              </label>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* TAB 2: Color Palette & Theme */}
-      {activeTab === "colors" && (
-        <div className="space-y-5">
-          <Card className="border-border/60">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-bold flex items-center gap-2">
-                <Palette className="h-3.5 w-3.5 text-primary" />
-                Designer Color Themes
-              </CardTitle>
-              <CardDescription className="text-[11px]">
-                Quickly apply tailored color schemes optimized for music streaming and record labels.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-2">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-                {COLOR_PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        primaryColor: preset.primary,
-                        accentColor: preset.accent,
-                      }))
-                    }
-                    className={`p-2.5 rounded-xl border text-left space-y-1.5 transition-all hover:scale-[1.02] cursor-pointer ${
-                      formData.primaryColor === preset.primary && formData.accentColor === preset.accent
-                        ? "border-primary ring-2 ring-primary/20 bg-primary/5 font-semibold"
-                        : "border-border/60 hover:border-border"
-                    }`}
-                  >
-                    <div
-                      className="h-6 w-full rounded-md shadow-inner"
-                      style={{
-                        background: `linear-gradient(135deg, ${preset.primary} 0%, ${preset.accent} 100%)`,
-                      }}
-                    />
-                    <div>
-                      <p className="text-[11px] font-bold truncate">{preset.name}</p>
-                      <p className="text-[9px] font-mono text-muted-foreground">{preset.primary}</p>
-                    </div>
-                  </button>
-                ))}
               </div>
-            </CardContent>
-          </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Primary Color Picker */}
-            <Card className="border-border/60">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold">Primary Brand Color</CardTitle>
-                <CardDescription className="text-[11px]">
-                  Applied to active links, primary buttons, badges, and accent highlights.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={formData.primaryColor}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        primaryColor: e.target.value,
-                      }))
-                    }
-                    className="h-9 w-12 shrink-0 rounded-lg cursor-pointer border bg-transparent p-0.5"
-                  />
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[11px] font-semibold">Hex Code</Label>
-                    <Input
-                      value={formData.primaryColor}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          primaryColor: e.target.value,
-                        }))
-                      }
-                      className="h-8 font-mono text-xs uppercase"
-                    />
+              {/* Favicon */}
+              <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-muted/20 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Browser Favicon
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">32x32 / ICO</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Accent Color Picker */}
-            <Card className="border-border/60">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold">Secondary Accent Color</CardTitle>
-                <CardDescription className="text-[11px]">
-                  Used for gradient endpoints, chart lines, and secondary visual accents.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={formData.accentColor}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        accentColor: e.target.value,
-                      }))
-                    }
-                    className="h-9 w-12 shrink-0 rounded-lg cursor-pointer border bg-transparent p-0.5"
-                  />
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[11px] font-semibold">Hex Code</Label>
-                    <Input
-                      value={formData.accentColor}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          accentColor: e.target.value,
-                        }))
-                      }
-                      className="h-8 font-mono text-xs uppercase"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: Subdomain & Custom Domain */}
-      {activeTab === "domains" && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Managed Subdomain */}
-            <Card className="border-border/60">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold flex items-center gap-2">
-                  <Globe className="h-3.5 w-3.5 text-primary" />
-                  Managed Platform Subdomain
-                </CardTitle>
-                <CardDescription className="text-[11px]">
-                  Instant SSL-enabled domain hosted on RMIT high-speed distribution edge.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-2 space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Subdomain Handle</Label>
-                  <div className="flex items-center">
-                    <Input
-                      placeholder="myrecordlabel"
-                      value={formData.subdomain}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                        }))
-                      }
-                      className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
-                    />
-                    <span className="h-8 px-2.5 bg-muted/60 border border-l-0 rounded-r-md text-[11px] font-mono flex items-center text-muted-foreground shrink-0 select-none">
-                      .rmitdistribution.com
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Lowercase letters, numbers, and hyphens only.
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Browser tab icon for your custom portal domain.
                   </p>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Custom Domain (CNAME) */}
-            <Card className="border-border/60">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold flex items-center gap-2">
-                  <Shield className="h-3.5 w-3.5 text-primary" />
-                  Custom FQDN Domain
-                </CardTitle>
-                <CardDescription className="text-[11px]">
-                  Map your own domain name (e.g. <span className="font-mono text-foreground">music.mylabel.com</span>).
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-2 space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Domain Name</Label>
-                  <Input
-                    placeholder="music.myrecordlabel.com"
-                    value={formData.customDomain}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        customDomain: e.target.value.toLowerCase().trim(),
-                      }))
-                    }
-                    className="h-8 text-xs font-mono"
-                  />
+                <div className="h-28 rounded-lg border border-dashed border-border flex items-center justify-center bg-background p-3 relative overflow-hidden">
+                  {branding.faviconUrl ? (
+                    <img
+                      src={branding.faviconUrl}
+                      alt="Favicon"
+                      className="h-10 w-10 object-contain rounded"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground text-xs">
+                      No Favicon
+                    </div>
+                  )}
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-muted/30 border text-[11px] space-y-1">
-                  <p className="font-bold flex items-center gap-1 text-foreground">
-                    <HelpCircle className="h-3 w-3 text-primary" /> DNS CNAME Record
-                  </p>
-                  <div className="font-mono text-[10px] bg-card p-1.5 rounded border flex justify-between">
-                    <span>Host: <strong className="text-foreground">music</strong></span>
-                    <span>Target: <strong className="text-foreground">cname.rmitdistribution.com</strong></span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/png,image/x-icon,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "favicon")}
+                      disabled={uploadingAsset === "favicon"}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs h-8 cursor-pointer"
+                      disabled={uploadingAsset === "favicon"}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      {uploadingAsset === "favicon" ? "Uploading..." : "Upload Favicon"}
+                    </Button>
+                  </label>
+                  {branding.faviconUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleDeleteAsset("favicon")}
+                      className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* TAB 4: Brand Voice & Support */}
-      {activeTab === "profile" && (
-        <Card className="border-border/60">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-bold">Brand Information & Support Details</CardTitle>
-            <CardDescription className="text-[11px]">
-              Surfaced in portal footers, notification emails, and automated statements.
+        {/* 2. Brand Identity & Profile */}
+        <Card className="border-border/70 shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Organization &amp; Brand Profile
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Define the brand name and public bio displayed across artist onboarding and portal headers.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-2 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="pt-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Brand Display Name</Label>
+                <Label className="text-xs font-semibold">Portal / Brand Name *</Label>
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  className="h-8 text-xs font-semibold"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Royal Music Distribution"
+                  className="text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Tagline / Slogan</Label>
+                <Label className="text-xs font-semibold">Brand Tagline</Label>
                 <Input
-                  placeholder="e.g. Next-Generation Sound & Distribution"
                   value={formData.tagline}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, tagline: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                  placeholder="Global Music Distribution & Rights Management"
+                  className="text-xs"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">About / Brand Biography</Label>
+              <Label className="text-xs font-semibold">Brand Description</Label>
               <Textarea
-                placeholder="Describe your record label, roster highlights, or mission statement..."
+                rows={3}
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                className="text-xs min-h-[70px]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Mail className="h-3 w-3 text-muted-foreground" />
-                  Public Support Email
-                </Label>
-                <Input
-                  type="email"
-                  placeholder="support@myrecordlabel.com"
-                  value={formData.supportEmail}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, supportEmail: e.target.value }))}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  Support Phone / Hotline
-                </Label>
-                <Input
-                  type="tel"
-                  placeholder="+1 (555) 019-2834"
-                  value={formData.supportPhone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, supportPhone: e.target.value }))}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Legal & Copyright Notice</Label>
-              <Input
-                placeholder="© 2026 My Record Label. All rights reserved."
-                value={formData.copyrightText}
-                onChange={(e) => setFormData((prev) => ({ ...prev, copyrightText: e.target.value }))}
-                className="h-8 text-xs"
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief summary of your music label or distribution business for artists and record labels."
+                className="text-xs"
               />
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* TAB 5: Social Channels */}
-      {activeTab === "social" && (
-        <Card className="border-border/60">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs font-bold">Social Media Profiles</CardTitle>
-            <CardDescription className="text-[11px]">
-              Link your official artist roster and label social ecosystem.
+        {/* 3. Support Contacts & Legal Notices */}
+        <Card className="border-border/70 shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Support Channels &amp; Legal Notices
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Contact addresses and copyright statements shown in portal footers and outgoing notifications.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-2 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="pt-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Instagram URL</Label>
+                <Label className="text-xs font-semibold">Support Email</Label>
                 <Input
-                  placeholder="https://instagram.com/myrecordlabel"
+                  type="email"
+                  value={formData.supportEmail}
+                  onChange={(e) => setFormData({ ...formData, supportEmail: e.target.value })}
+                  placeholder="support@yourlabel.com"
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Support Phone</Label>
+                <Input
+                  value={formData.supportPhone}
+                  onChange={(e) => setFormData({ ...formData, supportPhone: e.target.value })}
+                  placeholder="+1 (555) 019-2834"
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Footer Copyright Statement</Label>
+              <Input
+                value={formData.copyrightText}
+                onChange={(e) => setFormData({ ...formData, copyrightText: e.target.value })}
+                placeholder="© 2026 Your Label Name. All rights reserved."
+                className="text-xs"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. Social Media Channels */}
+        <Card className="border-border/70 shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Social Media Channels
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Optional links to your public social channels displayed in the portal footer.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Instagram Handle</Label>
+                <Input
                   value={formData.socialInstagram}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialInstagram: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, socialInstagram: e.target.value })}
+                  placeholder="@yourlabel"
+                  className="text-xs"
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">X / Twitter URL</Label>
+                <Label className="text-xs font-semibold">Twitter / X Handle</Label>
                 <Input
-                  placeholder="https://x.com/myrecordlabel"
                   value={formData.socialTwitter}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialTwitter: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, socialTwitter: e.target.value })}
+                  placeholder="@yourlabel"
+                  className="text-xs"
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">YouTube Channel URL</Label>
+                <Label className="text-xs font-semibold">YouTube URL</Label>
                 <Input
-                  placeholder="https://youtube.com/@myrecordlabel"
                   value={formData.socialYoutube}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialYoutube: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, socialYoutube: e.target.value })}
+                  placeholder="https://youtube.com/@yourlabel"
+                  className="text-xs"
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Spotify Label Profile</Label>
+                <Label className="text-xs font-semibold">Spotify Curated URL</Label>
                 <Input
-                  placeholder="https://open.spotify.com/user/myrecordlabel"
                   value={formData.socialSpotify}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialSpotify: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, socialSpotify: e.target.value })}
+                  placeholder="https://open.spotify.com/user/..."
+                  className="text-xs"
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">TikTok Profile</Label>
+                <Label className="text-xs font-semibold">LinkedIn Company URL</Label>
                 <Input
-                  placeholder="https://tiktok.com/@myrecordlabel"
-                  value={formData.socialTiktok}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialTiktok: e.target.value }))}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">LinkedIn Page</Label>
-                <Input
-                  placeholder="https://linkedin.com/company/myrecordlabel"
                   value={formData.socialLinkedin}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinkedin: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setFormData({ ...formData, socialLinkedin: e.target.value })}
+                  placeholder="https://linkedin.com/company/..."
+                  className="text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">TikTok Handle</Label>
+                <Input
+                  value={formData.socialTiktok}
+                  onChange={(e) => setFormData({ ...formData, socialTiktok: e.target.value })}
+                  placeholder="@yourlabel"
+                  className="text-xs"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Clean Bottom Footer Bar */}
-      <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-          <span>All saved changes reflect dynamically across your WhiteLabel portal.</span>
+        {/* Bottom Banner linking to Domain & Theme */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-border/70 shadow-xs bg-muted/20">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  <span>Domain &amp; Routing</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Configure your platform subdomain (*.platform.royalmotionit.com) or verify a custom domain.
+                </p>
+              </div>
+              <Link href="/whitelabel/domain">
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  Configure &rarr;
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 shadow-xs bg-muted/20">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Palette className="h-3.5 w-3.5 text-primary" />
+                  <span>Theme &amp; Styling</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Customize your brand accent colors, dark/light styling, and UI typography.
+                </p>
+              </div>
+              <Link href="/whitelabel/theme">
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  Customize &rarr;
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={saving}
-          className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm px-5 h-8"
-        >
-          <Save className="h-3.5 w-3.5" />
-          {saving ? "Saving..." : "Save Branding Settings"}
-        </Button>
-      </div>
+
+        {/* Save Footer Bar */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="text-xs font-semibold gap-1.5 h-9"
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>{saving ? "Saving Changes..." : "Save Branding Changes"}</span>
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

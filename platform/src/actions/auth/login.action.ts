@@ -7,6 +7,7 @@ import {
   loginSchema,
 } from "@/schemas/auth/login.schema";
 import { api } from "@/lib/api";
+import { MFA_CHALLENGE_COOKIE, MFA_CHALLENGE_TTL_MS } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
 import axios from "axios";
 
@@ -14,7 +15,6 @@ export async function loginAction(input: LoginInput): Promise<{
   success: boolean;
   message: string;
   requireMfa?: boolean;
-  userId?: string;
   redirectUrl?: string;
   user?: any;
   error?: LoginError;
@@ -44,11 +44,20 @@ export async function loginAction(input: LoginInput): Promise<{
       };
     }
 
-    if (res.data.require2FA) {
+    if (res.data.requireMfa) {
+      const mfaCookieStore = await cookies();
+
+      mfaCookieStore.set(MFA_CHALLENGE_COOKIE, res.data.mfaToken, {
+        expires: new Date(Date.now() + MFA_CHALLENGE_TTL_MS),
+        sameSite: "lax",
+        secure: true,
+        httpOnly: true,
+        path: "/",
+      });
+
       return {
         success: true,
         requireMfa: res.data.requireMfa,
-        userId: res.data.userId,
         message: res.data.message,
       };
     }

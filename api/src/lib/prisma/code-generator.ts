@@ -13,36 +13,50 @@ export enum CodePrefix {
   WHITELABEL_DOCUMENT = 'RMIT-DOC-',
 }
 
+export type CodeModel =
+  | 'platformUser'
+  | 'whiteLabelUser'
+  | 'whiteLabel'
+  | 'platformSubscription'
+  | 'platformSubscriptionPayment'
+  | 'session'
+  | 'oAuthAccount'
+  | 'whiteLabelPartner'
+  | 'whiteLabelTopArtist'
+  | 'whiteLabelDocument';
+
+/**
+ * Sequence backing each model's human-readable code.
+ *
+ * The sequences are created by migration, not at runtime, so this helper needs
+ * no DDL privileges and takes no locks on the hot path.
+ */
+const CODE_SEQUENCES: Record<CodeModel, string> = {
+  platformUser: 'platformuser_code_seq',
+  whiteLabelUser: 'whitelabeluser_code_seq',
+  whiteLabel: 'whitelabel_code_seq',
+  platformSubscription: 'platformsubscription_code_seq',
+  platformSubscriptionPayment: 'platformsubscriptionpayment_code_seq',
+  session: 'session_code_seq',
+  oAuthAccount: 'oauthaccount_code_seq',
+  whiteLabelPartner: 'whitelabelpartner_code_seq',
+  whiteLabelTopArtist: 'whitelabeltopartist_code_seq',
+  whiteLabelDocument: 'whitelabeldocument_code_seq',
+};
+
 export async function generateUniqueCode(
   prisma: PrismaService,
-  modelName:
-    | 'platformUser'
-    | 'whiteLabelUser'
-    | 'whiteLabel'
-    | 'platformSubscription'
-    | 'platformSubscriptionPayment'
-    | 'session'
-    | 'oAuthAccount'
-    | 'whiteLabelPartner'
-    | 'whiteLabelTopArtist'
-    | 'whiteLabelDocument',
+  modelName: CodeModel,
   prefix: CodePrefix,
 ): Promise<string> {
-  const sequenceName = `${modelName.toLowerCase()}_code_seq`;
-  try {
-    await prisma.$executeRawUnsafe(
-      `CREATE SEQUENCE IF NOT EXISTS ${sequenceName} START 1;`,
-    );
-    const result = await prisma.$queryRawUnsafe<
-      { nextval: string | number | bigint }[]
-    >(`SELECT nextval('${sequenceName}') as nextval;`);
-    const num = Number(result[0]?.nextval || 1);
-    return `${prefix}${String(num).padStart(7, '0')}`;
-  } catch {
-    // Fallback if raw query fails
-    const count = await (prisma[modelName] as any).count();
-    const randomOffset = Math.floor(Math.random() * 900) + 100;
-    const num = count + randomOffset;
-    return `${prefix}${String(num).padStart(7, '0')}`;
+  const result = await prisma.$queryRaw<{ nextval: bigint }[]>`
+    SELECT nextval(${CODE_SEQUENCES[modelName]}::regclass) AS nextval
+  `;
+
+  const next = result[0]?.nextval;
+  if (next === undefined) {
+    throw new Error(`Sequence for ${modelName} returned no value`);
   }
+
+  return `${prefix}${String(next).padStart(7, '0')}`;
 }

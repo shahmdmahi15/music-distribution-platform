@@ -73,7 +73,7 @@ export function VerifyForm({ token }: { token: string }) {
   });
 
   return (
-    <Card className="shadow-xl">
+    <Card className="glass-card shadow-2xl border-border/80">
       <CardHeader className="space-y-1.5 pb-6 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
           <ShieldCheck className="h-6 w-6" />

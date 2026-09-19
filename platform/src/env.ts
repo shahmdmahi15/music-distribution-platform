@@ -5,6 +5,7 @@ export const env = createEnv({
   server: {
     API_BASE_URL: z.url(),
     API_KEY: z.string(),
+    INTERNAL_API_SECRET: z.string().min(32),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -13,5 +14,6 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     API_BASE_URL: process.env.API_BASE_URL,
     API_KEY: process.env.API_KEY,
+    INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET,
   },
 });

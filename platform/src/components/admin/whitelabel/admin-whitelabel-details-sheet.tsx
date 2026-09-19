@@ -42,19 +42,13 @@ import {
   Phone,
   Share2,
   Image as ImageIcon,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +70,8 @@ import { formatDate } from "@/lib/utils";
 import { adminUpdateWhiteLabelStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-status.action";
 import { adminRecordPaymentAction } from "@/actions/admin/whitelabel/admin-record-payment.action";
 import { adminActivateWhiteLabelAction } from "@/actions/admin/whitelabel/admin-activate-whitelabel.action";
+import { adminUploadContractAction } from "@/actions/admin/whitelabel/admin-upload-contract.action";
+import { adminGetContractPreviewAction } from "@/actions/admin/whitelabel/admin-get-contract-preview.action";
 import { adminUploadDocumentAction } from "@/actions/admin/whitelabel/admin-upload-document.action";
 import { adminDeleteDocumentAction } from "@/actions/admin/whitelabel/admin-delete-document.action";
 import { adminDeletePaymentAction } from "@/actions/admin/whitelabel/admin-delete-payment.action";
@@ -85,19 +81,21 @@ import { adminUpdateBrandingAction } from "@/actions/admin/whitelabel/admin-upda
 import { adminUploadBrandingAssetAction } from "@/actions/admin/whitelabel/admin-upload-branding-asset.action";
 import { adminDeleteBrandingAssetAction } from "@/actions/admin/whitelabel/admin-delete-branding-asset.action";
 
-interface AdminWhiteLabelDetailsSheetProps {
+export interface AdminWhiteLabelDetailsDialogProps {
   whiteLabel: WhiteLabel | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRefresh?: () => void;
 }
 
-export function AdminWhiteLabelDetailsSheet({
+export type AdminWhiteLabelDetailsSheetProps = AdminWhiteLabelDetailsDialogProps;
+
+export function AdminWhiteLabelDetailsDialog({
   whiteLabel,
   open,
   onOpenChange,
   onRefresh,
-}: AdminWhiteLabelDetailsSheetProps) {
+}: AdminWhiteLabelDetailsDialogProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "artists" | "documents" | "payments" | "branding">("overview");
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -123,7 +121,16 @@ export function AdminWhiteLabelDetailsSheet({
       .toISOString()
       .split("T")[0],
     status: "COMPLETED",
+    paymentMethod: "HAND_TO_HAND",
+    receiptReference: "",
+    adminNotes: "",
   });
+
+  // Contract Modal State
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [contractPreviewLoading, setContractPreviewLoading] = useState(false);
 
   // Document Upload Modal State
   const [showDocModal, setShowDocModal] = useState(false);
@@ -189,6 +196,55 @@ export function AdminWhiteLabelDetailsSheet({
     }
   };
 
+  const handleUploadContract = async () => {
+    if (!contractFile) {
+      toast.error("Please select a signed contract PDF file.");
+      return;
+    }
+
+    if (contractFile.type !== "application/pdf") {
+      toast.error("Contract must be a valid PDF document.");
+      return;
+    }
+
+    setContractLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", contractFile);
+
+      const res = await adminUploadContractAction(whiteLabel.id, formData);
+      if (res.success) {
+        toast.success(res.message);
+        setShowContractModal(false);
+        setContractFile(null);
+        router.refresh();
+        if (onRefresh) onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to upload contract agreement.");
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
+  const handlePreviewContract = async () => {
+    setContractPreviewLoading(true);
+    try {
+      const res = await adminGetContractPreviewAction(whiteLabel.id);
+      if (res.success && res.contractUrl) {
+        window.open(res.contractUrl, "_blank");
+      } else {
+        toast.error(res.message || "Contract file could not be loaded.");
+      }
+    } catch {
+      toast.error("Failed to load contract preview.");
+    } finally {
+      setContractPreviewLoading(false);
+    }
+  };
+
   const handleRecordPayment = async () => {
     if (!paymentForm.startsAt || !paymentForm.endsAt) {
       toast.error("Please provide valid start and end dates.");
@@ -203,6 +259,9 @@ export function AdminWhiteLabelDetailsSheet({
         startsAt: new Date(paymentForm.startsAt).toISOString(),
         endsAt: new Date(paymentForm.endsAt).toISOString(),
         status: paymentForm.status,
+        paymentMethod: paymentForm.paymentMethod,
+        receiptReference: paymentForm.receiptReference,
+        adminNotes: paymentForm.adminNotes,
       });
 
       if (res.success) {
@@ -457,26 +516,30 @@ export function AdminWhiteLabelDetailsSheet({
     }
   };
 
-  const statusBadges = {
+  const statusBadges: Record<string, string> = {
     [WhiteLabelStatus.PENDING]: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
     [WhiteLabelStatus.UNDER_REVIEW]: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    [WhiteLabelStatus.PROCESSING]: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+    [WhiteLabelStatus.CONTRACTED]: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    [WhiteLabelStatus.PAID]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
     [WhiteLabelStatus.APPROVED]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    [WhiteLabelStatus.ACTIVE]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
     [WhiteLabelStatus.REJECTED]: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
     [WhiteLabelStatus.SUSPENDED]: "bg-destructive/10 text-destructive border-destructive/30",
   };
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="sm:max-w-[720px] overflow-y-auto p-0 flex flex-col">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="w-full sm:max-w-4xl lg:max-w-5xl max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-2xl glass-panel border border-border/80 shadow-2xl">
           {/* Header Banner */}
-          <div className="p-6 pb-4 border-b border-border/60 bg-muted/20 space-y-4">
+          <div className="p-6 pb-4 border-b border-border/60 bg-muted/20 space-y-4 shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <SheetTitle className="text-xl font-bold truncate">
+                  <DialogTitle className="text-xl font-bold truncate">
                     {whiteLabel.name}
-                  </SheetTitle>
+                  </DialogTitle>
                   <Badge
                     variant="outline"
                     className="font-mono text-xs px-2 py-0.5 font-bold border-primary/40 bg-primary/10 text-primary"
@@ -495,27 +558,131 @@ export function AdminWhiteLabelDetailsSheet({
                     )}
                   </button>
                 </div>
-                <SheetDescription className="text-xs text-muted-foreground flex items-center gap-2">
+                <DialogDescription className="text-xs text-muted-foreground flex items-center gap-2">
                   <span>{whiteLabel.businessType.replace("_", " ")}</span>
                   {whiteLabel.country && <span>• {whiteLabel.country}</span>}
-                </SheetDescription>
+                </DialogDescription>
               </div>
 
               <Badge
                 variant="outline"
                 className={`text-xs px-2.5 py-1 font-semibold capitalize shrink-0 ${
-                  (statusBadges as Record<string, string>)[whiteLabel.status] ||
-                  "border-border"
+                  statusBadges[whiteLabel.status] || "border-border"
                 }`}
               >
                 {String(whiteLabel.status).replace("_", " ").toLowerCase()}
               </Badge>
             </div>
 
-            {/* Quick Action Buttons */}
+            {/* Strict Sequential Action Buttons Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              {whiteLabel.status !== WhiteLabelStatus.APPROVED &&
-                whiteLabel.status !== WhiteLabelStatus.SUSPENDED && (
+              {/* Step 1: PENDING -> UNDER_REVIEW or REJECTED */}
+              {whiteLabel.status === WhiteLabelStatus.PENDING && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)}
+                    disabled={statusLoading}
+                    className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Begin Review
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    disabled={statusLoading}
+                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                  >
+                    Decline Application
+                  </Button>
+                </>
+              )}
+
+              {/* Step 2: UNDER_REVIEW -> PROCESSING or REJECTED */}
+              {whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => handleUpdateStatus(WhiteLabelStatus.PROCESSING)}
+                    disabled={statusLoading}
+                    className="h-8 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Complete Review & Mark Processing
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    disabled={statusLoading}
+                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                  >
+                    Decline Application
+                  </Button>
+                </>
+              )}
+
+              {/* Step 3: PROCESSING -> CONTRACTED */}
+              {whiteLabel.status === WhiteLabelStatus.PROCESSING && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowContractModal(true)}
+                    className="h-8 text-xs font-bold gap-1.5 bg-purple-600 hover:bg-purple-500 text-white shadow-sm"
+                  >
+                    <FileSignature className="h-3.5 w-3.5" />
+                    Upload Signed Contract PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    disabled={statusLoading}
+                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                  >
+                    Decline Application
+                  </Button>
+                </>
+              )}
+
+              {/* Step 4: CONTRACTED -> PAID */}
+              {whiteLabel.status === WhiteLabelStatus.CONTRACTED && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowPaymentModal(true)}
+                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Record Hand-to-Hand / Offline Payment
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviewContract}
+                    disabled={contractPreviewLoading}
+                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {contractPreviewLoading ? "Loading..." : "Preview Signed Contract"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowContractModal(true)}
+                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Replace Contract PDF
+                  </Button>
+                </>
+              )}
+
+              {/* Step 5: PAID -> ACTIVE */}
+              {whiteLabel.status === WhiteLabelStatus.PAID && (
+                <>
                   <Button
                     size="sm"
                     onClick={handleActivate}
@@ -523,22 +690,35 @@ export function AdminWhiteLabelDetailsSheet({
                     className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
                   >
                     <Play className="h-3.5 w-3.5 fill-current" />
-                    Activate WhiteLabel
+                    {activateLoading ? "Provisioning Cloudflare DNS..." : "Activate WhiteLabel (Cloudflare Auto-DNS)"}
                   </Button>
-                )}
+                  {whiteLabel.contractKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewContract}
+                      disabled={contractPreviewLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Preview Contract
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPaymentModal(true)}
+                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Add Additional Payment
+                  </Button>
+                </>
+              )}
 
-              {whiteLabel.status === WhiteLabelStatus.SUSPENDED ? (
-                <Button
-                  size="sm"
-                  onClick={handleUnsuspend}
-                  disabled={suspendLoading}
-                  className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Unsuspend / Reactivate
-                </Button>
-              ) : (
-                whiteLabel.status === WhiteLabelStatus.APPROVED && (
+              {/* Step 6: ACTIVE / APPROVED -> SUSPENDED */}
+              {(whiteLabel.status === WhiteLabelStatus.ACTIVE || whiteLabel.status === WhiteLabelStatus.APPROVED) && (
+                <>
                   <Button
                     variant="outline"
                     size="sm"
@@ -548,18 +728,68 @@ export function AdminWhiteLabelDetailsSheet({
                     <ShieldAlert className="h-3.5 w-3.5" />
                     Suspend WhiteLabel
                   </Button>
-                )
+                  {whiteLabel.contractKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewContract}
+                      disabled={contractPreviewLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Preview Contract
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPaymentModal(true)}
+                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Extend Subscription / Payment
+                  </Button>
+                </>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPaymentModal(true)}
-                className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-              >
-                <CreditCard className="h-3.5 w-3.5" />
-                Record Payment / Plan
-              </Button>
+              {/* SUSPENDED -> ACTIVE */}
+              {whiteLabel.status === WhiteLabelStatus.SUSPENDED && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleUnsuspend}
+                    disabled={suspendLoading}
+                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Unsuspend / Reactivate
+                  </Button>
+                  {whiteLabel.contractKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewContract}
+                      disabled={contractPreviewLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Preview Contract
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* REJECTED -> UNDER_REVIEW */}
+              {whiteLabel.status === WhiteLabelStatus.REJECTED && (
+                <Button
+                  size="sm"
+                  onClick={() => handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)}
+                  disabled={statusLoading}
+                  className="h-8 text-xs font-semibold gap-1.5 bg-muted text-foreground border border-border/70"
+                >
+                  Re-open Application for Review
+                </Button>
+              )}
 
               <Button
                 variant="outline"
@@ -568,7 +798,7 @@ export function AdminWhiteLabelDetailsSheet({
                 className="h-8 text-xs font-semibold gap-1.5 border-border/80"
               >
                 <Upload className="h-3.5 w-3.5" />
-                Upload PDF Agreement
+                Upload Other Document
               </Button>
 
               {/* Status Switcher Select */}
@@ -586,7 +816,10 @@ export function AdminWhiteLabelDetailsSheet({
                   <SelectContent>
                     <SelectItem value={WhiteLabelStatus.PENDING}>Pending</SelectItem>
                     <SelectItem value={WhiteLabelStatus.UNDER_REVIEW}>Under Review</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.APPROVED}>Approved</SelectItem>
+                    <SelectItem value={WhiteLabelStatus.PROCESSING}>Processing</SelectItem>
+                    <SelectItem value={WhiteLabelStatus.CONTRACTED}>Contracted</SelectItem>
+                    <SelectItem value={WhiteLabelStatus.PAID}>Paid</SelectItem>
+                    <SelectItem value={WhiteLabelStatus.ACTIVE}>Active</SelectItem>
                     <SelectItem value={WhiteLabelStatus.REJECTED}>Rejected</SelectItem>
                     <SelectItem value={WhiteLabelStatus.SUSPENDED}>Suspended</SelectItem>
                   </SelectContent>
@@ -650,7 +883,7 @@ export function AdminWhiteLabelDetailsSheet({
           </div>
 
           {/* Body Content */}
-          <div className="p-6 space-y-6 flex-1 text-xs">
+          <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar text-xs">
             {/* TAB 1: Profile & Operations */}
             {activeTab === "overview" && (
               <div className="space-y-6">
@@ -1464,12 +1697,12 @@ export function AdminWhiteLabelDetailsSheet({
               </div>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Record Offline Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px] z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" />
@@ -1578,6 +1811,61 @@ export function AdminWhiteLabelDetailsSheet({
                 />
               </div>
             </div>
+
+            {/* Payment Method & Receipt Reference */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Payment Method</Label>
+                <Select
+                  value={paymentForm.paymentMethod}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setPaymentForm((prev) => ({ ...prev, paymentMethod: val }));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs w-full">
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HAND_TO_HAND">Hand-to-Hand (Cash / Direct)</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">Direct Bank Wire / ACH</SelectItem>
+                    <SelectItem value="CASH">In-Person Cash</SelectItem>
+                    <SelectItem value="INVOICE">Corporate Invoice / PO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Receipt / Reference ID</Label>
+                <Input
+                  placeholder="e.g. REC-2026-081 or Wire Ref"
+                  value={paymentForm.receiptReference}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      receiptReference: e.target.value,
+                    }))
+                  }
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Admin Notes / Receipt Details</Label>
+              <Input
+                placeholder="e.g. Received $1,200 hand-to-hand signed by representative"
+                value={paymentForm.adminNotes}
+                onChange={(e) =>
+                  setPaymentForm((prev) => ({
+                    ...prev,
+                    adminNotes: e.target.value,
+                  }))
+                }
+                className="h-9 text-xs"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -1601,9 +1889,64 @@ export function AdminWhiteLabelDetailsSheet({
         </DialogContent>
       </Dialog>
 
+      {/* Upload Executed Contract Modal */}
+      <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
+        <DialogContent className="sm:max-w-[480px] z-[60]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-purple-600 dark:text-purple-400">
+              <FileSignature className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              Upload Executed Contract Agreement
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Upload the signed mutual partnership agreement PDF between RoyalMotionIT and {whiteLabel.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Signed Contract PDF File <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setContractFile(e.target.files[0]);
+                  }
+                }}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Only PDF files are accepted. Once uploaded, the WhiteLabel will advance to <strong>CONTRACTED</strong> status, unlocking preview for both parties and payment registration.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowContractModal(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleUploadContract}
+              disabled={contractLoading || !contractFile}
+              className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white"
+            >
+              {contractLoading ? "Uploading to S3..." : "Upload Contract & Advance Status"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Suspend Confirmation Modal */}
       <Dialog open={showSuspendModal} onOpenChange={setShowSuspendModal}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-[440px] z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
               <ShieldAlert className="h-5 w-5 text-destructive" />
@@ -1649,7 +1992,7 @@ export function AdminWhiteLabelDetailsSheet({
 
       {/* Upload Document / Agreement Modal */}
       <Dialog open={showDocModal} onOpenChange={setShowDocModal}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px] z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
@@ -1728,3 +2071,5 @@ export function AdminWhiteLabelDetailsSheet({
     </>
   );
 }
+
+export const AdminWhiteLabelDetailsSheet = AdminWhiteLabelDetailsDialog;

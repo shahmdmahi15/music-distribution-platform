@@ -3,6 +3,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
@@ -11,6 +12,25 @@ import {
   WhiteLabelBusinessType,
   WhiteLabelStatus,
 } from 'src/generated/prisma/enums';
+
+/** Columns the admin list may be ordered by. */
+export enum WhiteLabelSortBy {
+  CREATED_AT = 'createdAt',
+  UPDATED_AT = 'updatedAt',
+  NAME = 'name',
+  STATUS = 'status',
+}
+
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
+// `sortBy` becomes a Prisma `orderBy` key, so it must never accept a free-form
+// string.
+const SORT_BY_PATTERN = new RegExp(
+  `^(${Object.values(WhiteLabelSortBy).join('|')}):(${Object.values(SortOrder).join('|')})$`,
+);
 
 export class AdminWhiteLabelQueryDto {
   @IsOptional()
@@ -39,6 +59,8 @@ export class AdminWhiteLabelQueryDto {
   businessType?: WhiteLabelBusinessType;
 
   @IsOptional()
-  @IsString()
+  @Matches(SORT_BY_PATTERN, {
+    message: `sortBy must be one of ${Object.values(WhiteLabelSortBy).join(', ')} followed by :asc or :desc.`,
+  })
   sortBy?: string = 'createdAt:desc';
 }

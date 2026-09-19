@@ -11,12 +11,12 @@ import { EnvironmentVariables } from 'src/config/env.config';
 import { compile } from 'handlebars';
 import * as fs from 'fs/promises';
 import { join } from 'path';
-import { CONSTANTS } from 'src/config/constants.config';
 
 @Injectable()
 export class MailService implements OnModuleInit {
   private transporter!: nodemailer.Transporter<SESTransport.SentMessageInfo>;
   private senderEmail!: string;
+  private platformUrl!: string;
 
   constructor(
     private configService: ConfigService<EnvironmentVariables, true>,
@@ -31,6 +31,11 @@ export class MailService implements OnModuleInit {
       infer: true,
     });
     this.senderEmail = this.configService.get('SENDER_EMAIL', { infer: true });
+    // Trailing slashes are stripped so the link builders below can always
+    // concatenate with a single leading slash.
+    this.platformUrl = this.configService
+      .get('PLATFORM_URL', { infer: true })
+      .replace(/\/+$/, '');
 
     const sesClient = new SESv2Client({
       region,
@@ -79,7 +84,7 @@ export class MailService implements OnModuleInit {
     name: string,
     token: string,
   ): Promise<SESTransport.SentMessageInfo> {
-    const verificationUrl = `${CONSTANTS.platform.url}/auth/verify?token=${token}`;
+    const verificationUrl = `${this.platformUrl}/auth/verify?token=${token}`;
 
     const htmlContent = await this.compileTemplate(
       'platform-email-verification',
@@ -123,7 +128,7 @@ export class MailService implements OnModuleInit {
     name: string,
     token: string,
   ): Promise<SESTransport.SentMessageInfo> {
-    const resetUrl = `${CONSTANTS.platform.url}/auth/password-reset?token=${token}`;
+    const resetUrl = `${this.platformUrl}/auth/password-reset?token=${token}`;
 
     const htmlContent = await this.compileTemplate('platform-password-reset', {
       name: name,

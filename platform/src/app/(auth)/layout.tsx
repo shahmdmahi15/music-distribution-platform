@@ -1,6 +1,7 @@
 import { operationalAction } from "@/actions/system/operational.action";
 import { Music, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/common/theme-toggle";
 
 export default async function AuthLayout({
   children,
@@ -110,6 +111,11 @@ export default async function AuthLayout({
       <div className="flex-1 lg:col-span-7 flex flex-col justify-center items-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden bg-background">
         {/* Glow behind forms */}
         <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%] w-75 sm:w-125 h-75 sm:h-125 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+
+        {/* Floating Theme Toggle */}
+        <div className="absolute top-6 right-6 z-20">
+          <ThemeToggle />
+        </div>
 
         {/* Small screen brand logo */}
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">

@@ -5,8 +5,16 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from 'src/config/env.config';
+
+export interface UploadOptions {
+  cacheControl?: string;
+}
+
+/** Lifetime of signed URLs for private objects, in seconds. */
+export const DOCUMENT_URL_TTL_SECONDS = 900;
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -41,12 +49,14 @@ export class StorageService implements OnModuleInit {
     key: string,
     fileBuffer: Buffer,
     mimeType: string,
+    options?: UploadOptions,
   ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       Body: fileBuffer,
       ContentType: mimeType,
+      CacheControl: options?.cacheControl,
     });
 
     await this.s3Client.send(command);
@@ -56,7 +66,10 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
-   * Returns standard S3 public / object URL
+   * Returns standard S3 public / object URL.
+   *
+   * Only valid for objects the bucket policy exposes publicly. Anything
+   * sensitive must be served through `getPresignedUrl` instead.
    */
   getFileUrl(key: string): string {
     const region = this.configService.get('AWS_REGION', { infer: true });
@@ -64,23 +77,17 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
-   * Retrieves a file's buffer from S3
+   * Returns a time-limited signed URL for a private object.
+   *
+   * @param expiresIn Lifetime in seconds (S3 caps SigV4 at 7 days).
    */
-  async getFileBuffer(key: string): Promise<Buffer> {
+  async getPresignedUrl(key: string, expiresIn = 900): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucketName,
       Key: key,
     });
 
-    const response = await this.s3Client.send(command);
-
-    if (!response.Body) {
-      throw new Error(`S3 GetObject returned empty body for key: ${key}`);
-    }
-
-    const byteArray = await response.Body.transformToByteArray();
-
-    return Buffer.from(byteArray);
+    return getSignedUrl(this.s3Client, command, { expiresIn });
   }
 
   /**
@@ -97,42 +104,5 @@ export class StorageService implements OnModuleInit {
     await this.s3Client.send(command);
 
     return true;
-  }
-
-  /**
-   * Retrieves a image's base64 data URL from S3
-   */
-  async getImageBase64(key: string): Promise<string> {
-    const fileBuffer = await this.getFileBuffer(key);
-
-    let mimeType = 'image/png';
-
-    if (
-      fileBuffer.length >= 4 &&
-      fileBuffer[0] === 0x89 &&
-      fileBuffer[1] === 0x50 &&
-      fileBuffer[2] === 0x4e &&
-      fileBuffer[3] === 0x47
-    ) {
-      mimeType = 'image/png';
-    } else if (
-      fileBuffer.length >= 2 &&
-      fileBuffer[0] === 0xff &&
-      fileBuffer[1] === 0xd8
-    ) {
-      mimeType = 'image/jpeg';
-    } else if (
-      fileBuffer.length >= 12 &&
-      fileBuffer.toString('ascii', 0, 4) === 'RIFF' &&
-      fileBuffer.toString('ascii', 8, 12) === 'WEBP'
-    ) {
-      mimeType = 'image/webp';
-    } else if (key.endsWith('.jpg') || key.endsWith('.jpeg')) {
-      mimeType = 'image/jpeg';
-    } else if (key.endsWith('.webp')) {
-      mimeType = 'image/webp';
-    }
-
-    return `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
   }
 }

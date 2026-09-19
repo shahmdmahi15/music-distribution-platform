@@ -1,12 +1,12 @@
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { ClientSidebar } from "@/components/client/sidebar/client-sidebar";
+import { DashboardHeader } from "@/components/common/dashboard-header";
 import { meAction } from "@/actions/auth/me.action";
 import { clientGetCurrentSubscriptionAction } from "@/actions/client/subscription/client-get-current-subscription.action";
+import { redirect } from "next/navigation";
 
 export default async function ClientLayout({
   children,
@@ -14,26 +14,26 @@ export default async function ClientLayout({
   children: React.ReactNode;
 }>) {
   const [me, subscription] = await Promise.all([
-    await meAction(),
-    await clientGetCurrentSubscriptionAction(),
+    meAction(),
+    clientGetCurrentSubscriptionAction(),
   ]);
-  if (!me.success) return null;
-  if (!me.user) return null;
+
+  if (!me.success || !me.user) {
+    redirect("/auth/login");
+  }
+
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full bg-background">
       <SidebarProvider>
         <ClientSidebar user={me.user} subscription={subscription.subscription} />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-            </div>
-          </header>
-          <main>{children}</main>
+        <SidebarInset className="flex flex-col min-h-screen overflow-hidden">
+          <DashboardHeader user={me.user} isAdmin={false} />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+            {/* Subtle background ambient mesh */}
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none -z-10" />
+            <div className="absolute bottom-10 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none -z-10" />
+            {children}
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </div>

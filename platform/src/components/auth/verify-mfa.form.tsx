@@ -28,11 +28,10 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function VerifyMfaForm({ userId }: { userId: string }) {
+export function VerifyMfaForm() {
   const router = useRouter();
   const form = useForm({
     defaultValues: {
-      userId: userId,
       code: "",
     },
     validators: {
@@ -77,7 +76,7 @@ export function VerifyMfaForm({ userId }: { userId: string }) {
   });
 
   return (
-    <Card className="shadow-xl">
+    <Card className="glass-card shadow-2xl border-border/80">
       <CardHeader className="space-y-1.5 pb-6 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
           <KeyRound className="h-6 w-6" />
@@ -104,36 +103,6 @@ export function VerifyMfaForm({ userId }: { userId: string }) {
                 }}
               >
                 <FieldGroup className="gap-4">
-                  {/* User Id Field (Hidden) */}
-                  <form.Field name="userId">
-                    {(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched && !field.state.meta.isValid;
-                      return (
-                        <Field data-invalid={isInvalid} className="hidden">
-                          <FieldLabel htmlFor={field.name} hidden>
-                            User Id
-                          </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            aria-invalid={isInvalid}
-                            placeholder="User Id"
-                            autoComplete="off"
-                            type="text"
-                            hidden
-                          />
-                          {isInvalid && (
-                            <FieldError errors={field.state.meta.errors} />
-                          )}
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
-
                   {/* Code Field */}
                   <form.Field name="code">
                     {(field) => {

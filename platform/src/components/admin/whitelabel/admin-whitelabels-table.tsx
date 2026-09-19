@@ -1,32 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Building2,
   CheckCircle2,
   Clock,
-  Copy,
-  Check,
   Disc3,
-  ExternalLink,
   Eye,
-  FileCheck2,
-  Globe,
-  Headphones,
-  Lock,
-  Mail,
-  Music,
   Play,
-  Plus,
   RefreshCw,
   Search,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,13 +24,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { WhiteLabel, WhiteLabelStatus, WhiteLabelBusinessType } from "@/types/whitelabel";
-import { AdminWhiteLabelDetailsSheet } from "./admin-whitelabel-details-sheet";
+import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
+import { AdminWhiteLabelDetailsDialog } from "./admin-whitelabel-details-sheet";
 import { adminActivateWhiteLabelAction } from "@/actions/admin/whitelabel/admin-activate-whitelabel.action";
 
 interface AdminWhiteLabelsTableProps {
   initialData: {
-    items: any[];
+    items: WhiteLabel[];
     pagination: {
       total: number;
       page: number;
@@ -65,15 +49,16 @@ interface AdminWhiteLabelsTableProps {
 
 export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProps) {
   const router = useRouter();
-  const [items, setItems] = useState(initialData.items || []);
+  const [items, setItems] = useState<WhiteLabel[]>(initialData.items || []);
   const [counts, setCounts] = useState(initialData.counts || { all: 0, pending: 0, underReview: 0, approved: 0, rejected: 0 });
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedWhiteLabel, setSelectedWhiteLabel] = useState<WhiteLabel | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
+  const [prevInitialData, setPrevInitialData] = useState(initialData);
+  if (initialData !== prevInitialData) {
+    setPrevInitialData(initialData);
     setItems(initialData.items || []);
     setCounts(
       initialData.counts || {
@@ -86,18 +71,11 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
     );
     if (selectedWhiteLabel) {
       const updated = (initialData.items || []).find(
-        (x: any) => x.id === selectedWhiteLabel.id,
+        (x) => x.id === selectedWhiteLabel.id,
       );
       if (updated) setSelectedWhiteLabel(updated);
     }
-  }, [initialData]);
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(label);
-    toast.success(`Copied ${label} to clipboard!`);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
+  }
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -150,8 +128,113 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
 
   return (
     <div className="space-y-6">
+      {/* Metric Stat Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card
+          onClick={() => setStatusFilter("all")}
+          className={`glass-card cursor-pointer border-border/80 transition-all ${
+            statusFilter === "all"
+              ? "ring-2 ring-primary/40 shadow-sm"
+              : "hover:border-border"
+          }`}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Total Submissions
+              </span>
+              <div className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                {counts.all}
+              </div>
+              <span className="text-[10px] text-muted-foreground">All time applications</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+              <Disc3 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          onClick={() => setStatusFilter(WhiteLabelStatus.PENDING)}
+          className={`glass-card cursor-pointer border-border/80 transition-all ${
+            statusFilter === WhiteLabelStatus.PENDING
+              ? "ring-2 ring-amber-500/40 shadow-sm"
+              : "hover:border-border"
+          }`}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Pending Vetting
+              </span>
+              <div className="text-xl sm:text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
+                {counts.pending}
+              </div>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                Awaiting manual review
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+              <Clock className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          onClick={() => setStatusFilter(WhiteLabelStatus.UNDER_REVIEW)}
+          className={`glass-card cursor-pointer border-border/80 transition-all ${
+            statusFilter === WhiteLabelStatus.UNDER_REVIEW
+              ? "ring-2 ring-blue-500/40 shadow-sm"
+              : "hover:border-border"
+          }`}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Under Review
+              </span>
+              <div className="text-xl sm:text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                {counts.underReview}
+              </div>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                Identity & legal check
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+              <Eye className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          onClick={() => setStatusFilter(WhiteLabelStatus.APPROVED)}
+          className={`glass-card cursor-pointer border-border/80 transition-all ${
+            statusFilter === WhiteLabelStatus.APPROVED
+              ? "ring-2 ring-emerald-500/40 shadow-sm"
+              : "hover:border-border"
+          }`}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Active Partners
+              </span>
+              <div className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+                {counts.approved}
+              </div>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                Live distribution tenants
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Controls Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -159,7 +242,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
             placeholder="Search by company, code, contact or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-xs"
+            className="pl-9 h-9 text-xs rounded-lg"
           />
         </div>
 
@@ -169,7 +252,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-8 text-xs gap-1.5"
+            className="h-9 text-xs gap-1.5 rounded-lg"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -253,17 +336,17 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-2xl border border-border/60 overflow-hidden shadow-sm bg-card">
+        <div className="rounded-2xl border border-border/80 overflow-hidden shadow-sm bg-card/60 backdrop-blur-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30 text-[11px] uppercase tracking-wider">
-                  <TableHead className="font-semibold">Company / Code</TableHead>
-                  <TableHead className="font-semibold">Representative</TableHead>
-                  <TableHead className="font-semibold">Business Type</TableHead>
-                  <TableHead className="font-semibold">Catalog & Revenue</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="text-right font-semibold">Actions</TableHead>
+                <TableRow className="bg-muted/40 text-[11px] uppercase tracking-wider border-b border-border/80">
+                  <TableHead className="font-bold">Company / Code</TableHead>
+                  <TableHead className="font-bold">Representative</TableHead>
+                  <TableHead className="font-bold">Business Type</TableHead>
+                  <TableHead className="font-bold">Catalog & Revenue</TableHead>
+                  <TableHead className="font-bold">Status</TableHead>
+                  <TableHead className="text-right font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -271,7 +354,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                   <TableRow
                     key={wl.id}
                     onClick={() => setSelectedWhiteLabel(wl)}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors text-xs"
+                    className="cursor-pointer hover:bg-muted/50 transition-colors text-xs border-b border-border/40"
                   >
                     {/* Company / Code */}
                     <TableCell>
@@ -308,7 +391,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
 
                     {/* Business Type */}
                     <TableCell>
-                      <Badge variant="secondary" className="text-[11px] font-medium py-0 px-2">
+                      <Badge variant="secondary" className="text-[11px] font-medium py-0 px-2 rounded-md">
                         {wl.businessType.replace("_", " ")}
                       </Badge>
                     </TableCell>
@@ -329,11 +412,22 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={`text-[11px] px-2.5 py-0.5 font-semibold capitalize ${
+                        className={`text-[11px] px-2.5 py-0.5 font-semibold capitalize inline-flex items-center gap-1.5 ${
                           (statusBadges as Record<string, string>)[wl.status] ||
                           "border-border"
                         }`}
                       >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            wl.status === WhiteLabelStatus.APPROVED
+                              ? "bg-emerald-500"
+                              : wl.status === WhiteLabelStatus.PENDING
+                                ? "bg-amber-500"
+                                : wl.status === WhiteLabelStatus.UNDER_REVIEW
+                                  ? "bg-blue-500"
+                                  : "bg-rose-500"
+                          }`}
+                        />
                         {String(wl.status).replace("_", " ").toLowerCase()}
                       </Badge>
                     </TableCell>
@@ -345,7 +439,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                           <Button
                             size="sm"
                             onClick={(e) => handleQuickActivate(e, wl.id)}
-                            className="h-7 text-xs font-semibold gap-1 bg-emerald-600 hover:bg-emerald-500 text-white"
+                            className="h-7 text-xs font-semibold gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
                           >
                             <Play className="h-3 w-3 fill-current" />
                             Activate
@@ -356,7 +450,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                           variant="ghost"
                           size="icon"
                           onClick={() => setSelectedWhiteLabel(wl)}
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg"
                           title="Inspect application"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -371,9 +465,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
         </div>
       )}
 
-      {/* Inspector Details Sheet */}
+      {/* Inspector Details Dialog */}
       {selectedWhiteLabel && (
-        <AdminWhiteLabelDetailsSheet
+        <AdminWhiteLabelDetailsDialog
           whiteLabel={selectedWhiteLabel}
           open={Boolean(selectedWhiteLabel)}
           onOpenChange={(open) => {

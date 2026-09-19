@@ -124,7 +124,7 @@ export function AdminProfileView({
   return (
     <div className="w-full space-y-6">
       {/* Hero Profile Header Banner */}
-      <Card className="overflow-hidden shadow-sm border-border/60 bg-card">
+      <Card className="overflow-hidden shadow-md border-border/80 glass-card">
         {/* Top Decorative Background Banner */}
         <div className="h-32 w-full bg-linear-to-r from-primary/20 via-primary/10 to-background border-b border-border/40 relative">
           <div className="absolute right-4 top-4 opacity-10">

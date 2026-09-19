@@ -10,6 +10,15 @@ export const envSchema = z.object({
   SENDER_EMAIL: z.email('SENDER_EMAIL must be a valid email address'),
   AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
   PLATFORM_API_KEY: z.string().min(1, 'PLATFORM_API_KEY is required'),
+  WHITELABEL_API_KEY: z.string().optional(),
+  INTERNAL_API_SECRET: z
+    .string()
+    .min(32, 'INTERNAL_API_SECRET must be at least 32 characters'),
+  PLATFORM_URL: z.url('PLATFORM_URL must be a valid URL'),
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  CLOUDFLARE_ZONE_ID: z.string().optional(),
+  CLOUDFLARE_BASE_DOMAIN: z.string().default('platform.royalmotionit.com'),
+  CLOUDFLARE_TARGET_CNAME: z.string().default('platform.royalmotionit.com'),
 });
 
 export type EnvironmentVariables = z.infer<typeof envSchema>;

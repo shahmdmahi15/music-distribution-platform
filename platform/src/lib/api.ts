@@ -1,6 +1,7 @@
 import { env } from "@/env";
 import axios from "axios";
 import { headers } from "next/headers";
+import { resolveForwardedIp } from "@/lib/client-ip";
 
 export const api = axios.create({
   baseURL: env.API_BASE_URL,
@@ -21,21 +22,21 @@ api.interceptors.request.use(async (config) => {
     // 1. Fetch current user context headers dynamically
     const headerList = await headers();
 
-    const forwardedFor = headerList.get("x-forwarded-for");
-    const realIp = headerList.get("x-real-ip");
+    const clientIp = resolveForwardedIp(headerList);
     const userAgent = headerList.get("user-agent") || "Unknown-Agent";
 
-    // 2. Parse and clean the IP address safely
-    const clientIp = forwardedFor
-      ? forwardedFor.split(",")[0].trim()
-      : realIp || "127.0.0.1";
+    // 2. Forward the client IP only when it could actually be established, and
+    // always pair it with the secret that proves this request came from this
+    // server rather than a browser. Sending a placeholder address would bucket
+    // unrelated users together under one rate limit.
+    if (clientIp) {
+      config.headers["x-real-ip"] = clientIp;
+      config.headers["x-internal-secret"] = env.INTERNAL_API_SECRET;
+    }
 
-    // 3. Inject them directly into this specific outgoing request
-    config.headers["x-real-ip"] = clientIp;
     config.headers["User-Agent"] = userAgent;
   } catch (error) {
     console.log("[Lib.Api]: ", error);
-    config.headers["x-real-ip"] = "127.0.0.1";
     config.headers["User-Agent"] = "NextJS-Server-Side";
   }
 

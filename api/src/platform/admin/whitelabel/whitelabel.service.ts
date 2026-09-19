@@ -9,10 +9,19 @@ import {
   generateUniqueCode,
   CodePrefix,
 } from 'src/lib/prisma/code-generator';
-import { AdminWhiteLabelQueryDto } from './dto/admin-whitelabel-query.dto';
+import {
+  AdminWhiteLabelQueryDto,
+  SortOrder,
+} from './dto/admin-whitelabel-query.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateWhiteLabelStatusDto } from './dto/update-status.dto';
-import { StorageService } from 'src/lib/storage/storage.service';
+import {
+  DOCUMENT_URL_TTL_SECONDS,
+  StorageService,
+} from 'src/lib/storage/storage.service';
+import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
+import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
+import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
 import {
   PaymentStatus,
   Prisma,
@@ -24,6 +33,7 @@ export class AdminWhitelabelService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
+    private readonly cloudflareDnsService: CloudflareDnsService,
   ) {}
 
   async getWhiteLabels(query: AdminWhiteLabelQueryDto) {
@@ -59,54 +69,48 @@ export class AdminWhitelabelService {
     ).split(':');
 
     const orderBy: Prisma.WhiteLabelOrderByWithRelationInput = {
-      [field]: order === 'asc' ? 'asc' : 'desc',
+      [field]: order === SortOrder.ASC ? Prisma.SortOrder.asc : Prisma.SortOrder.desc,
     };
 
-    const [items, total, pendingCount, underReviewCount, approvedCount, rejectedCount] =
-      await Promise.all([
-        this.prismaService.whiteLabel.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy,
-          include: {
-            subscription: {
-              include: {
-                subscriber: {
-                  select: {
-                    id: true,
-                    code: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    role: true,
-                  },
-                },
-                payments: {
-                  orderBy: { createdAt: 'desc' },
+    const [items, total, statusGroups] = await Promise.all([
+      this.prismaService.whiteLabel.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          subscription: {
+            include: {
+              subscriber: {
+                select: {
+                  id: true,
+                  code: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  role: true,
                 },
               },
+              payments: {
+                orderBy: { createdAt: 'desc' },
+              },
             },
-            artists: {
-              orderBy: { orderIndex: 'asc' },
-            },
-            documents: true,
           },
-        }),
-        this.prismaService.whiteLabel.count({ where }),
-        this.prismaService.whiteLabel.count({
-          where: { status: WhiteLabelStatus.PENDING },
-        }),
-        this.prismaService.whiteLabel.count({
-          where: { status: WhiteLabelStatus.UNDER_REVIEW },
-        }),
-        this.prismaService.whiteLabel.count({
-          where: { status: WhiteLabelStatus.APPROVED },
-        }),
-        this.prismaService.whiteLabel.count({
-          where: { status: WhiteLabelStatus.REJECTED },
-        }),
-      ]);
+          artists: {
+            orderBy: { orderIndex: 'asc' },
+          },
+          documents: true,
+        },
+      }),
+      this.prismaService.whiteLabel.count({ where }),
+      this.prismaService.whiteLabel.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const statusCount = (status: WhiteLabelStatus) =>
+      statusGroups.find((group) => group.status === status)?._count._all ?? 0;
 
     return {
       success: true,
@@ -120,10 +124,10 @@ export class AdminWhitelabelService {
       },
       counts: {
         all: total,
-        pending: pendingCount,
-        underReview: underReviewCount,
-        approved: approvedCount,
-        rejected: rejectedCount,
+        pending: statusCount(WhiteLabelStatus.PENDING),
+        underReview: statusCount(WhiteLabelStatus.UNDER_REVIEW),
+        approved: statusCount(WhiteLabelStatus.APPROVED),
+        rejected: statusCount(WhiteLabelStatus.REJECTED),
       },
     };
   }
@@ -194,17 +198,85 @@ export class AdminWhitelabelService {
     };
   }
 
+  // Strict state transition graph:
+  // PENDING -> UNDER_REVIEW -> REJECTED or PROCESSING -> CONTRACTED -> PAID -> ACTIVE -> SUSPENDED
+  private static readonly VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+    PENDING: ['UNDER_REVIEW', 'REJECTED'],
+    UNDER_REVIEW: ['PROCESSING', 'REJECTED'],
+    PROCESSING: ['CONTRACTED', 'REJECTED'],
+    CONTRACTED: ['PAID', 'REJECTED'],
+    PAID: ['ACTIVE', 'APPROVED'],
+    APPROVED: ['ACTIVE', 'SUSPENDED'],
+    ACTIVE: ['SUSPENDED'],
+    SUSPENDED: ['ACTIVE'],
+    REJECTED: ['PENDING'],
+  };
+
   async updateStatus(
     id: string,
     dto: UpdateWhiteLabelStatusDto,
   ) {
     const existing = await this.prismaService.whiteLabel.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      include: {
+        subscription: {
+          include: {
+            payments: {
+              where: { status: PaymentStatus.COMPLETED },
+              take: 1,
+            },
+          },
+        },
+      },
     });
 
     if (!existing) {
       throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    const currentStatus = existing.status as string;
+    const targetStatus = dto.status as string;
+
+    const allowed = AdminWhitelabelService.VALID_STATUS_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(targetStatus)) {
+      throw new BadRequestException(
+        `Invalid status transition from "${currentStatus}" to "${targetStatus}". The lifecycle must strictly follow: PENDING -> UNDER_REVIEW -> PROCESSING / REJECTED -> CONTRACTED -> PAID -> ACTIVE -> SUSPENDED.`,
+      );
+    }
+
+    // Guard: Advancing to CONTRACTED requires a signed contract PDF
+    if (targetStatus === 'CONTRACTED' && !existing.contractKey) {
+      throw new BadRequestException(
+        'Cannot advance to CONTRACTED before uploading a signed contract agreement PDF.',
+      );
+    }
+
+    // Guard: Advancing to PAID requires at least one completed payment record
+    if (targetStatus === 'PAID') {
+      const hasPayment =
+        existing.subscription?.payments && existing.subscription.payments.length > 0;
+      if (!hasPayment) {
+        throw new BadRequestException(
+          'Cannot advance to PAID before a payment record is registered in the system.',
+        );
+      }
+    }
+
+    // Guard: Advancing to ACTIVE provisions Cloudflare DNS
+    let cloudflareMessage = '';
+    if (targetStatus === 'ACTIVE' || targetStatus === 'APPROVED') {
+      const hasPayment =
+        existing.subscription?.payments && existing.subscription.payments.length > 0;
+      if (!hasPayment) {
+        throw new BadRequestException(
+          'Cannot activate WhiteLabel before payment is recorded and verified.',
+        );
+      }
+
+      if (existing.subdomain) {
+        const dnsResult = await this.cloudflareDnsService.provisionSubdomain(existing.subdomain);
+        cloudflareMessage = ` (${dnsResult.message})`;
+      }
     }
 
     const updated = await this.prismaService.whiteLabel.update({
@@ -213,7 +285,7 @@ export class AdminWhitelabelService {
         status: dto.status,
         statusReason: dto.statusReason || null,
         reviewedAt: new Date(),
-        ...(dto.status === WhiteLabelStatus.APPROVED && {
+        ...((dto.status === WhiteLabelStatus.ACTIVE || dto.status === WhiteLabelStatus.APPROVED) && {
           approvedAt: new Date(),
         }),
       },
@@ -227,8 +299,104 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: `WhiteLabel status updated to ${dto.status}.`,
+      message: `WhiteLabel status transitioned to ${dto.status}.${cloudflareMessage}`,
       whiteLabel: updated,
+    };
+  }
+
+  async uploadContract(
+    id: string,
+    file: Express.Multer.File,
+    adminEmail?: string,
+  ) {
+    const whiteLabel = await this.prismaService.whiteLabel.findUnique({
+      where: { id },
+    });
+
+    if (!whiteLabel) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    if (file.mimetype !== 'application/pdf') {
+      throw new BadRequestException('Contract file must be a valid PDF document.');
+    }
+
+    const currentStatus = whiteLabel.status as string;
+    if (
+      currentStatus !== WhiteLabelStatus.PROCESSING &&
+      currentStatus !== WhiteLabelStatus.CONTRACTED
+    ) {
+      throw new BadRequestException(
+        `Cannot upload contract in current state "${currentStatus}". WhiteLabel must be in PROCESSING or CONTRACTED state.`,
+      );
+    }
+
+    const fileKey = `whitelabel/${whiteLabel.code}/contracts/contract_${Date.now()}.pdf`;
+    await this.storageService.uploadFileBuffer(
+      fileKey,
+      file.buffer,
+      file.mimetype,
+      { cacheControl: IMMUTABLE_CACHE_CONTROL },
+    );
+
+    // Save contract metadata and advance status to CONTRACTED
+    const updated = await this.prismaService.whiteLabel.update({
+      where: { id },
+      data: {
+        contractKey: fileKey,
+        contractFileName: file.originalname,
+        contractFileSize: file.size,
+        contractUploadedAt: new Date(),
+        contractUploadedBy: adminEmail || 'Administrator',
+        status: WhiteLabelStatus.CONTRACTED,
+        reviewedAt: new Date(),
+      },
+    });
+
+    const previewUrl = await this.storageService.getPresignedUrl(fileKey, 3600);
+
+    return {
+      success: true,
+      message: `Signed contract "${file.originalname}" uploaded successfully. WhiteLabel status transitioned to CONTRACTED.`,
+      contractUrl: previewUrl,
+      whiteLabel: updated,
+    };
+  }
+
+  async getContractPreview(id: string) {
+    const whiteLabel = await this.prismaService.whiteLabel.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        code: true,
+        contractKey: true,
+        contractFileName: true,
+        contractFileSize: true,
+        contractUploadedAt: true,
+        contractUploadedBy: true,
+      },
+    });
+
+    if (!whiteLabel) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    if (!whiteLabel.contractKey) {
+      throw new NotFoundException('No signed contract agreement has been uploaded for this WhiteLabel.');
+    }
+
+    const contractUrl = await this.storageService.getPresignedUrl(
+      whiteLabel.contractKey,
+      3600,
+    );
+
+    return {
+      success: true,
+      contractUrl,
+      fileName: whiteLabel.contractFileName || 'contract.pdf',
+      fileSize: whiteLabel.contractFileSize,
+      uploadedAt: whiteLabel.contractUploadedAt,
+      uploadedBy: whiteLabel.contractUploadedBy,
     };
   }
 
@@ -240,6 +408,17 @@ export class AdminWhitelabelService {
 
     if (!whiteLabel) {
       throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    const currentStatus = whiteLabel.status as string;
+    if (
+      currentStatus !== WhiteLabelStatus.CONTRACTED &&
+      currentStatus !== WhiteLabelStatus.PAID &&
+      currentStatus !== WhiteLabelStatus.PROCESSING
+    ) {
+      throw new BadRequestException(
+        `Cannot record payment in current state "${currentStatus}". WhiteLabel must be in CONTRACTED state first.`,
+      );
     }
 
     const paymentCode = await generateUniqueCode(
@@ -256,14 +435,27 @@ export class AdminWhitelabelService {
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
         status: dto.status || PaymentStatus.COMPLETED,
+        paymentMethod: dto.paymentMethod || 'HAND_TO_HAND',
+        receiptReference: dto.receiptReference || null,
+        adminNotes: dto.adminNotes || null,
         subscriptionId: whiteLabel.subscriptionId,
+      },
+    });
+
+    // Advance WhiteLabel status to PAID
+    const updated = await this.prismaService.whiteLabel.update({
+      where: { id },
+      data: {
+        status: WhiteLabelStatus.PAID,
+        reviewedAt: new Date(),
       },
     });
 
     return {
       success: true,
-      message: 'Payment recorded successfully.',
+      message: 'Payment recorded successfully. WhiteLabel status transitioned to PAID.',
       payment,
+      whiteLabel: updated,
     };
   }
 
@@ -287,34 +479,33 @@ export class AdminWhitelabelService {
       throw new NotFoundException('WhiteLabel not found.');
     }
 
-    // Ensure at least one active payment exists, or create a default 1-year trial payment if none recorded
-    if (!whiteLabel.subscription.payments || whiteLabel.subscription.payments.length === 0) {
-      const paymentCode = await generateUniqueCode(
-        this.prismaService,
-        'platformSubscriptionPayment',
-        CodePrefix.PLATFORM_PAYMENT,
+    const currentStatus = whiteLabel.status as string;
+    if (
+      currentStatus !== WhiteLabelStatus.PAID &&
+      currentStatus !== WhiteLabelStatus.APPROVED
+    ) {
+      throw new BadRequestException(
+        `Cannot activate WhiteLabel in current state "${currentStatus}". WhiteLabel must be in PAID state with verified payment before activation.`,
       );
-      const now = new Date();
-      const oneYearLater = new Date(now);
-      oneYearLater.setFullYear(now.getFullYear() + 1);
+    }
 
-      await this.prismaService.platformSubscriptionPayment.create({
-        data: {
-          code: paymentCode,
-          amount: 0,
-          discount: 0,
-          startsAt: now,
-          endsAt: oneYearLater,
-          status: PaymentStatus.COMPLETED,
-          subscriptionId: whiteLabel.subscriptionId,
-        },
-      });
+    if (!whiteLabel.subscription.payments || whiteLabel.subscription.payments.length === 0) {
+      throw new BadRequestException(
+        'Cannot activate WhiteLabel without a recorded payment. Please record payment first.',
+      );
+    }
+
+    // Automate Cloudflare DNS provisioning for platform subdomain
+    let cloudflareMessage = '';
+    if (whiteLabel.subdomain) {
+      const dnsRes = await this.cloudflareDnsService.provisionSubdomain(whiteLabel.subdomain);
+      cloudflareMessage = ` (${dnsRes.message})`;
     }
 
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
       data: {
-        status: WhiteLabelStatus.APPROVED,
+        status: WhiteLabelStatus.ACTIVE,
         statusReason: 'Activated by administrator.',
         approvedAt: new Date(),
         reviewedAt: new Date(),
@@ -327,12 +518,12 @@ export class AdminWhitelabelService {
       },
     });
 
-      return {
-        success: true,
-        message: `WhiteLabel ${updated.name} activated successfully! Client menus are now unlocked.`,
-        whiteLabel: updated,
-      };
-    }
+    return {
+      success: true,
+      message: `WhiteLabel ${updated.name} activated successfully!${cloudflareMessage} Full console menus and portal access unlocked.`,
+      whiteLabel: updated,
+    };
+  }
 
   async suspendWhiteLabel(id: string, reason?: string) {
     const whiteLabel = await this.prismaService.whiteLabel.findUnique({
@@ -370,7 +561,7 @@ export class AdminWhitelabelService {
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
       data: {
-        status: WhiteLabelStatus.APPROVED,
+        status: WhiteLabelStatus.ACTIVE,
         statusReason: 'Reactivated / Unsuspended by administrator.',
       },
     });
@@ -410,7 +601,10 @@ export class AdminWhitelabelService {
       file.mimetype,
     );
 
-    const fileUrl = this.storageService.getFileUrl(fileKey);
+    const fileUrl = await this.storageService.getPresignedUrl(
+      fileKey,
+      DOCUMENT_URL_TTL_SECONDS,
+    );
     const docCode = await generateUniqueCode(
       this.prismaService,
       'whiteLabelDocument',
@@ -445,10 +639,15 @@ export class AdminWhitelabelService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const docsWithUrls = documents.map((doc) => ({
-      ...doc,
-      fileUrl: this.storageService.getFileUrl(doc.fileKey),
-    }));
+    const docsWithUrls = await Promise.all(
+      documents.map(async (doc) => ({
+        ...doc,
+        fileUrl: await this.storageService.getPresignedUrl(
+          doc.fileKey,
+          DOCUMENT_URL_TTL_SECONDS,
+        ),
+      })),
+    );
 
     return {
       success: true,
@@ -543,7 +742,7 @@ export class AdminWhitelabelService {
     };
   }
 
-  async updateBranding(whiteLabelId: string, dto: any) {
+  async updateBranding(whiteLabelId: string, dto: AdminUpdateBrandingDto) {
     const wl = await this.prismaService.whiteLabel.findUnique({
       where: { id: whiteLabelId },
     });
@@ -638,6 +837,7 @@ export class AdminWhitelabelService {
       fileKey,
       file.buffer,
       file.mimetype,
+      { cacheControl: IMMUTABLE_CACHE_CONTROL },
     );
 
     const assetUrl = this.storageService.getFileUrl(fileKey);

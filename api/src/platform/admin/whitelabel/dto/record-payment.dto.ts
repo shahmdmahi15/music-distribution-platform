@@ -35,4 +35,13 @@ export class RecordPaymentDto {
   @IsOptional()
   @IsEnum(PaymentStatus)
   status?: PaymentStatus = PaymentStatus.COMPLETED;
+
+  @IsOptional()
+  paymentMethod?: string = 'HAND_TO_HAND';
+
+  @IsOptional()
+  receiptReference?: string;
+
+  @IsOptional()
+  adminNotes?: string;
 }

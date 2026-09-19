@@ -17,6 +17,8 @@ export interface User {
   image: string | null;
   lastLoginAt: string | null;
   sessionId: string;
+  whiteLabelStatus?: string | null;
+  isWhiteLabelActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

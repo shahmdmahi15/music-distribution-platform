@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyDto } from './dto/verify.dto';
@@ -29,30 +30,35 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
   async register(@Body() dto: RegisterDto) {
     return await this.authService.register(dto);
   }
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   async verify(@Body() dto: VerifyDto) {
     return await this.authService.verify(dto);
   }
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
   async resendVerification(@Body() dto: ResendVerificationDto) {
     return await this.authService.resendVerification(dto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async login(@ClientInfo() clientInfo: ClientMetadata, @Body() dto: LoginDto) {
     return await this.authService.login(dto, clientInfo);
   }
 
   @Post('verify-mfa')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async verifyMfa(
     @ClientInfo() clientInfo: ClientMetadata,
     @Body() dto: VerifyMfaDto,
@@ -62,40 +68,25 @@ export class AuthController {
 
   @Post('request-password-reset')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
   async requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
     return await this.authService.requestPasswordReset(dto);
   }
 
   @Post('password-reset')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   async passwordReset(@Body() dto: PasswordResetDto) {
     return await this.authService.passwordReset(dto);
   }
 
   @Get('me')
   @UseGuards(SessionGuard)
-  getCurrentUser(
+  async getCurrentUser(
     @CurrentUser() user: PlatformUser,
     @CurrentSession('id') id: string,
   ) {
-    return {
-      success: true,
-      message: 'Current user fetched successfully',
-      user: {
-        id: user.id,
-        code: user.code,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        twoFactorEnabled: user.twoFactorEnabled,
-        role: user.role,
-        image: user.image,
-        sessionId: id,
-        lastLoginAt: user.lastLoginAt,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-    };
+    return await this.authService.getMe(user, id);
   }
 
   @Post('logout')

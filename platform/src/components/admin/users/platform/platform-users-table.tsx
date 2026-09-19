@@ -40,13 +40,11 @@ import {
   LogOut,
   Trash2,
   ShieldCheck,
-  ShieldAlert,
   MailCheck,
   MailWarning,
   Laptop,
   Check,
   Copy,
-  Users,
   X,
   UserCheck,
 } from "lucide-react";
@@ -55,7 +53,7 @@ import {
   PlatformUsersPagination as PaginationType,
 } from "@/types/platform-user";
 import { Role } from "@/types/user";
-import { PlatformUserDetailsSheet } from "./platform-user-details-sheet";
+import { PlatformUserDetailsDialog } from "./platform-user-details-sheet";
 import { EditPlatformUserDialog } from "./edit-platform-user-dialog";
 import { LockPlatformUserDialog } from "./lock-platform-user-dialog";
 import { ResetPasswordPlatformUserDialog } from "./reset-password-platform-user-dialog";
@@ -823,8 +821,8 @@ export function PlatformUsersTable({
         </div>
       )}
 
-      {/* Modals and Slide-over Sheet */}
-      <PlatformUserDetailsSheet
+      {/* Modals and Details Dialog */}
+      <PlatformUserDetailsDialog
         userId={selectedUserForDetails}
         open={detailsSheetOpen}
         onOpenChange={setDetailsSheetOpen}

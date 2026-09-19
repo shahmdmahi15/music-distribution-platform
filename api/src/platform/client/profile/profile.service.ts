@@ -1,8 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
-import { STORAGE_KEYS } from 'src/config/storage-keys.config';
+import {
+  IMMUTABLE_CACHE_CONTROL,
+  STORAGE_KEYS,
+} from 'src/config/storage-keys.config';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
 import { UpdateProfileImageDto } from './dto/update-profile-image.dto';
 import { UpdateProfileNameDto } from './dto/update-profile-name.dto';
@@ -95,6 +99,12 @@ export class ProfileService {
 
     const [, mimeType, , base64Data] = match;
 
+    // Base64 inflates by ~4/3, so reject on the encoded length before paying
+    // for the decode of an oversized payload.
+    if ((base64Data.length * 3) / 4 > STORAGE_KEYS.platform.users.profile.limit) {
+      throw new BadRequestException('Image exceeds 1MB limit');
+    }
+
     const fileBuffer = Buffer.from(base64Data, 'base64');
 
     if (fileBuffer.length > STORAGE_KEYS.platform.users.profile.limit) {
@@ -102,18 +112,33 @@ export class ProfileService {
     }
 
     const dimensions = this.getImageDimensions(fileBuffer);
-    if (dimensions && (dimensions.width !== 500 || dimensions.height !== 500)) {
+    if (!dimensions) {
+      throw new BadRequestException('Unsupported or corrupt image file');
+    }
+    if (dimensions.width !== 500 || dimensions.height !== 500) {
       throw new BadRequestException(
         `Image resolution must be exactly 500x500px (Selected: ${dimensions.width}x${dimensions.height}px)`,
       );
     }
 
-    const key = STORAGE_KEYS.platform.users.profile.key(userId);
+    const previous = await this.prismaService.platformUser.findUnique({
+      where: { id: userId },
+      select: { image: true },
+    });
+
+    const contentHash = crypto
+      .createHash('sha256')
+      .update(fileBuffer)
+      .digest('hex')
+      .slice(0, 8);
+
+    const key = STORAGE_KEYS.platform.users.profile.key(userId, contentHash);
 
     const imageKey = await this.storageService.uploadFileBuffer(
       key,
       fileBuffer,
       mimeType,
+      { cacheControl: IMMUTABLE_CACHE_CONTROL },
     );
 
     await this.prismaService.platformUser.update({
@@ -126,6 +151,15 @@ export class ProfileService {
         image: true,
       },
     });
+
+    if (previous?.image && previous.image !== imageKey) {
+      await this.storageService.deleteFile(previous.image).catch((error) => {
+        console.error(
+          `[ProfileService] Failed to delete superseded avatar ${previous.image}:`,
+          error,
+        );
+      });
+    }
 
     return {
       success: true,
@@ -182,7 +216,11 @@ export class ProfileService {
     };
   }
 
-  async updatePassword(userId: string, dto: UpdatePasswordDto) {
+  async updatePassword(
+    userId: string,
+    sessionId: string,
+    dto: UpdatePasswordDto,
+  ) {
     const user = await this.prismaService.platformUser.findUnique({
       where: { id: userId },
       select: { passwordHash: true },
@@ -205,11 +243,26 @@ export class ProfileService {
       );
     }
     const newPasswordHash = await argon2.hash(dto.newPassword, ARGON2_CONFIG);
-    await this.prismaService.platformUser.update({
-      where: { id: userId },
-      data: { passwordHash: newPasswordHash },
-      select: { id: true, passwordHash: true },
-    });
+
+    await this.prismaService.$transaction([
+      this.prismaService.platformUser.update({
+        where: { id: userId },
+        data: { passwordHash: newPasswordHash },
+        select: { id: true, passwordHash: true },
+      }),
+      this.prismaService.session.updateMany({
+        where: {
+          platformUserId: userId,
+          revokedAt: null,
+          id: { not: sessionId },
+        },
+        data: {
+          revokedAt: new Date(),
+          revokeReason: 'Password Changed',
+        },
+      }),
+    ]);
+
     return {
       success: true,
       message: 'Password Updated Successfully',

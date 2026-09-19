@@ -80,13 +80,13 @@ export function RegisterForm() {
   });
 
   return (
-    <Card className="shadow-xl">
+    <Card className="glass-card shadow-2xl border-border/80">
       <CardHeader className="space-y-1.5 pb-6">
         <CardTitle className="text-2xl font-bold tracking-tight">
           Create your account
         </CardTitle>
         <CardDescription>
-          Join Octave and distribute your tracks to the world
+          Join RoyalMotionIT and distribute your tracks worldwide
         </CardDescription>
       </CardHeader>
 

@@ -2,7 +2,6 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AdminMiddleware } from './admin.middleware';
 import { ProfileModule } from './profile/profile.module';
 import { PlatformUsersModule } from './platform-users/platform-users.module';
-import { WhitelabelUsersModule } from './whitelabel-users/whitelabel-users.module';
 import { SessionModule } from './session/session.module';
 import { AdminWhitelabelModule } from './whitelabel/whitelabel.module';
 
@@ -10,7 +9,6 @@ import { AdminWhitelabelModule } from './whitelabel/whitelabel.module';
   imports: [
     ProfileModule,
     PlatformUsersModule,
-    WhitelabelUsersModule,
     SessionModule,
     AdminWhitelabelModule,
   ],

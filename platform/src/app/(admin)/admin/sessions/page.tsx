@@ -86,10 +86,10 @@ export default async function AdminSessionsPage() {
       {/* Overview Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+        <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
           <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Total Sessions
               </span>
               <div className="text-2xl font-bold tracking-tight text-foreground">
@@ -98,16 +98,16 @@ export default async function AdminSessionsPage() {
               <span className="text-xs text-muted-foreground">All recorded devices</span>
             </div>
             <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
-              <KeyRound className="h-6 w-6" />
+              <KeyRound className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Active Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+        <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
           <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Active Sessions
               </span>
               <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
@@ -118,16 +118,16 @@ export default async function AdminSessionsPage() {
               </span>
             </div>
             <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <ShieldCheck className="h-6 w-6" />
+              <ShieldCheck className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Revoked Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+        <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
           <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Revoked Sessions
               </span>
               <div className="text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
@@ -138,16 +138,16 @@ export default async function AdminSessionsPage() {
               </span>
             </div>
             <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
-              <ShieldOff className="h-6 w-6" />
+              <ShieldOff className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Expired Sessions Card */}
-        <Card className="shadow-sm border-border/60 bg-card hover:border-border transition-colors">
+        <Card className="glass-card shadow-sm border-border/80 hover:border-border transition-all">
           <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Expired Sessions
               </span>
               <div className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
@@ -158,7 +158,7 @@ export default async function AdminSessionsPage() {
               </span>
             </div>
             <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-              <Clock className="h-6 w-6" />
+              <Clock className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>

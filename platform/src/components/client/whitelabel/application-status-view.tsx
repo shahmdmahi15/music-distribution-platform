@@ -9,34 +9,31 @@ import {
   Clock,
   Copy,
   Check,
-  Disc3,
   ExternalLink,
   FileCheck2,
   Globe,
-  Headphones,
-  Camera,
   Lock,
   Mail,
   Music,
   RefreshCw,
   ShieldAlert,
-  ShieldCheck,
   Sparkles,
-  Users,
-  Video,
   DollarSign,
-  Layers,
   FileText,
   Download,
   File,
+  ChevronRight,
+  Receipt,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { WhiteLabel, WhiteLabelStatus, WhiteLabelDocument } from "@/types/whitelabel";
+import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
 import { formatDate } from "@/lib/utils";
 import { SubscriptionPayment } from "@/types/subscription";
+import { clientGetContractPreviewAction } from "@/actions/client/whitelabel/client-get-contract-preview.action";
 
 interface ApplicationStatusViewProps {
   whiteLabel: WhiteLabel;
@@ -47,11 +44,11 @@ interface ApplicationStatusViewProps {
 export function WhiteLabelApplicationStatusView({
   whiteLabel,
   payments = [],
-  onReapply,
 }: ApplicationStatusViewProps) {
   const router = useRouter();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPreviewingContract, setIsPreviewingContract] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -65,87 +62,163 @@ export function WhiteLabelApplicationStatusView({
     router.refresh();
     setTimeout(() => {
       setIsRefreshing(false);
-      toast.success("Status refreshed.");
+      toast.success("Status updated.");
     }, 600);
   };
 
-  const statusConfig = {
+  const handlePreviewContract = async () => {
+    setIsPreviewingContract(true);
+    try {
+      const res = await clientGetContractPreviewAction();
+      if (res.success && res.contractUrl) {
+        window.open(res.contractUrl, "_blank");
+      } else {
+        toast.error(res.message || "Contract file could not be loaded.");
+      }
+    } catch {
+      toast.error("Failed to fetch contract preview.");
+    } finally {
+      setIsPreviewingContract(false);
+    }
+  };
+
+  const statusConfig: Record<
+    WhiteLabelStatus,
+    {
+      label: string;
+      color: string;
+      description: string;
+      stepIndex: number;
+    }
+  > = {
     [WhiteLabelStatus.PENDING]: {
       label: "Application Pending Review",
       color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-      description: "Our partner onboarding specialists are reviewing your catalog details and corporate documents.",
-      currentStep: 1,
+      description:
+        "Your WhiteLabel application has been safely received. Platform administrators will review your credentials and reach out directly.",
+      stepIndex: 1,
     },
     [WhiteLabelStatus.UNDER_REVIEW]: {
       label: "Under Review & Direct Contact",
       color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-      description: "Our team has contacted your representative for catalog validation and digital contract preparation.",
-      currentStep: 2,
+      description:
+        "A platform administrator is currently reviewing your catalog details and reaching out to finalize partnership terms.",
+      stepIndex: 2,
+    },
+    [WhiteLabelStatus.PROCESSING]: {
+      label: "Review Complete • Contract Preparation",
+      color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+      description:
+        "Review is complete! The formal partnership agreement is being drafted and prepared for mutual execution.",
+      stepIndex: 3,
+    },
+    [WhiteLabelStatus.CONTRACTED]: {
+      label: "Agreement Executed (Contract Signed)",
+      color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+      description:
+        "The signed agreement has been uploaded by the platform administrator. You can preview the agreement below. Next step is hand-to-hand / offline payment registration.",
+      stepIndex: 4,
+    },
+    [WhiteLabelStatus.PAID]: {
+      label: "Payment Verified • Pending Final Activation",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+      description:
+        "Payment has been registered and verified by administrators. Cloudflare DNS provisioning and final account activation are being finalized.",
+      stepIndex: 5,
     },
     [WhiteLabelStatus.APPROVED]: {
-      label: "WhiteLabel Activated & Live",
+      label: "WhiteLabel Active & Operational",
       color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-      description: "Your WhiteLabel instance is active! Full distribution and developer tools are unlocked.",
-      currentStep: 5,
+      description:
+        "Your WhiteLabel instance is completely operational with automated Cloudflare routing and full platform console unlocked.",
+      stepIndex: 6,
+    },
+    [WhiteLabelStatus.ACTIVE]: {
+      label: "WhiteLabel Active & Operational",
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+      description:
+        "Your WhiteLabel instance is live! Subdomain routing is automated via Cloudflare, and full console navigation is unlocked.",
+      stepIndex: 6,
     },
     [WhiteLabelStatus.REJECTED]: {
-      label: "Application Needs Revision",
+      label: "Application Declined",
       color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-      description: whiteLabel.statusReason || "Additional verification or documentation is required.",
-      currentStep: 2,
+      description:
+        whiteLabel.statusReason ||
+        "Your application was reviewed and could not be approved at this time. Please contact support for more details.",
+      stepIndex: 2,
     },
     [WhiteLabelStatus.SUSPENDED]: {
-      label: "Account Suspended",
+      label: "WhiteLabel Suspended",
       color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-      description: whiteLabel.statusReason || "Your WhiteLabel instance has been temporarily suspended.",
-      currentStep: 5,
+      description:
+        whiteLabel.statusReason ||
+        "Your WhiteLabel instance has been suspended due to subscription expiration or administrative action.",
+      stepIndex: 6,
     },
   };
 
   const currentCfg = statusConfig[whiteLabel.status] || statusConfig[WhiteLabelStatus.PENDING];
-  const hasCompletedPayment = payments.some((p) => p.status === "COMPLETED");
+  const stepIdx = currentCfg.stepIndex;
 
   const steps = [
     {
       num: 1,
-      title: "Application Submitted",
-      desc: "Received & queued for partner review",
-      isDone: true,
+      id: "pending",
+      title: "1. Submitted",
+      desc: "Received & pending initial review",
+      isDone: stepIdx > 1,
+      isActive: stepIdx === 1,
     },
     {
       num: 2,
-      title: "Under Review & RMIT Contact",
-      desc: "Direct contact & catalog review",
-      isDone: whiteLabel.status !== WhiteLabelStatus.PENDING,
-      isActive: whiteLabel.status === WhiteLabelStatus.PENDING || whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW,
+      id: "review",
+      title: "2. Under Review",
+      desc: "Admin catalog verification & contact",
+      isDone: stepIdx > 2,
+      isActive: stepIdx === 2,
     },
     {
       num: 3,
-      title: "Digital Agreement & Signing",
-      desc: "Upload signed PDF agreement",
-      isDone: (whiteLabel.documents && whiteLabel.documents.length > 0) || whiteLabel.status === WhiteLabelStatus.APPROVED,
-      isActive: whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW,
+      id: "processing",
+      title: "3. Processing",
+      desc: "Review complete, agreement drafting",
+      isDone: stepIdx > 3,
+      isActive: stepIdx === 3,
     },
     {
       num: 4,
-      title: "Payment Recording & Verification",
-      desc: "Wire, bank, cash, or invoice verification",
-      isDone: hasCompletedPayment || whiteLabel.status === WhiteLabelStatus.APPROVED,
-      isActive: whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW && !hasCompletedPayment,
+      id: "contracted",
+      title: "4. Contracted",
+      desc: "Signed agreement uploaded & verified",
+      isDone: stepIdx > 4,
+      isActive: stepIdx === 4,
     },
     {
       num: 5,
-      title: "Subscription Live & Activated",
-      desc: "Full WhiteLabel & developer access unlocked",
-      isDone: whiteLabel.status === WhiteLabelStatus.APPROVED,
-      isActive: whiteLabel.status === WhiteLabelStatus.APPROVED,
+      id: "paid",
+      title: "5. Paid",
+      desc: "Hand-to-hand / offline payment registered",
+      isDone: stepIdx > 5,
+      isActive: stepIdx === 5,
+    },
+    {
+      num: 6,
+      id: "active",
+      title: "6. Active",
+      desc: "Cloudflare DNS live & console unlocked",
+      isDone: stepIdx >= 6 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
+      isActive: stepIdx >= 6 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
     },
   ];
 
+  const latestPayment = payments[0] || (whiteLabel.payments && whiteLabel.payments[0]);
+  const isLive = whiteLabel.status === WhiteLabelStatus.ACTIVE || whiteLabel.status === WhiteLabelStatus.APPROVED;
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in-50 duration-300">
-      {/* Hero Header Card */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      {/* Header Card */}
+      <Card className="overflow-hidden border-border/80 shadow-md glass-card">
         <div className="p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -161,7 +234,7 @@ export function WhiteLabelApplicationStatusView({
                 </Badge>
                 <button
                   onClick={() => copyToClipboard(whiteLabel.code, "WhiteLabel Code")}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   title="Copy WhiteLabel Code"
                 >
                   {copiedField === "WhiteLabel Code" ? (
@@ -208,22 +281,28 @@ export function WhiteLabelApplicationStatusView({
           </div>
         </div>
 
-        {/* Milestone Progression Stepper */}
+        {/* 6-Step Milestone Progression Stepper */}
         <Separator />
         <div className="p-6 bg-muted/20 space-y-4">
-          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-            Onboarding & Activation Progression
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Onboarding & Activation Flow
+            </h3>
+            <span className="text-[11px] font-mono text-muted-foreground">
+              Step {Math.min(stepIdx, 6)} of 6
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {steps.map((s) => (
               <div
-                key={s.num}
+                key={s.id}
                 className={`p-3 rounded-xl border transition-all space-y-1.5 ${
                   s.isDone
                     ? "border-emerald-500/40 bg-emerald-500/5"
                     : s.isActive
-                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border/50 bg-card/60 opacity-60"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xs"
+                      : "border-border/40 bg-card/40 opacity-50"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -248,6 +327,173 @@ export function WhiteLabelApplicationStatusView({
         </div>
       </Card>
 
+      {/* Active WhiteLabel Live Gateway */}
+      {isLive && (
+        <Card className="border-emerald-500/40 bg-emerald-500/5 shadow-sm">
+          <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
+                  ACTIVE & OPERATIONAL
+                </Badge>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Cloudflare Automated DNS Active
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-foreground">
+                Your WhiteLabel instance is provisioned and ready for your clients.
+              </p>
+              {whiteLabel.subdomain && (
+                <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  https://{whiteLabel.subdomain}.platform.royalmotionit.com
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {whiteLabel.subdomain && (
+                <a
+                  href={`https://${whiteLabel.subdomain}.platform.royalmotionit.com`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-xs font-medium gap-1.5 h-9 px-3 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Visit Live Subdomain
+                </a>
+              )}
+              <Button
+                size="sm"
+                onClick={() => router.push("/whitelabel/domain")}
+                className="gap-1.5 text-xs h-9 bg-primary text-primary-foreground"
+              >
+                Configure Custom Domain
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Contract Agreement Section */}
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <FileSignature className="h-4 w-4 text-primary" />
+              Partnership Contract Agreement
+            </CardTitle>
+            <CardDescription className="text-xs">
+              The official executed agreement governing your WhiteLabel licensing and service level terms.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {whiteLabel.contractKey ? (
+            <div className="p-4 rounded-xl border border-border/70 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-3 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <FileCheck2 className="h-5 w-5" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-foreground text-sm truncate">
+                      {whiteLabel.contractFileName || "Executed_Contract_Agreement.pdf"}
+                    </p>
+                    <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                      SIGNED & VERIFIED
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {whiteLabel.contractFileSize && (
+                      <span>{(whiteLabel.contractFileSize / 1024).toFixed(1)} KB</span>
+                    )}
+                    {whiteLabel.contractUploadedAt && (
+                      <span suppressHydrationWarning>
+                        • Uploaded {formatDate(whiteLabel.contractUploadedAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviewContract}
+                disabled={isPreviewingContract}
+                className="h-8 text-xs gap-1.5 shrink-0"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {isPreviewingContract ? "Loading..." : "Preview / Download PDF"}
+              </Button>
+            </div>
+          ) : (
+            <div className="p-6 text-center border border-dashed rounded-xl space-y-2 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto opacity-40 text-muted-foreground" />
+              <p className="text-xs font-semibold text-foreground">
+                Contract Agreement Not Yet Uploaded
+              </p>
+              <p className="text-[11px] max-w-sm mx-auto">
+                Once the initial catalog review is marked complete, your platform administrator will upload the signed contract agreement here for your records.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Information Section */}
+      {(latestPayment || whiteLabel.status === WhiteLabelStatus.PAID || isLive) && (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="space-y-0.5">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-primary" />
+                Recorded Payment & Subscription Status
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Offline, wire, or hand-to-hand payment registered and verified by platform administrators.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {latestPayment ? (
+              <div className="p-4 rounded-xl border border-border/70 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-foreground">
+                      ${latestPayment.amount.toLocaleString()} USD
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                      {latestPayment.status}
+                    </Badge>
+                    {latestPayment.code && (
+                      <span className="text-[11px] font-mono text-muted-foreground">
+                        #{latestPayment.code}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span suppressHydrationWarning>
+                      Valid: {formatDate(latestPayment.startsAt)} – {formatDate(latestPayment.endsAt)}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="text-xs text-muted-foreground font-mono bg-background/80 px-3 py-1.5 rounded-lg border border-border/50">
+                  Payment Confirmed by Admin
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl border bg-muted/20 text-xs text-muted-foreground">
+                Payment verified. Subscription active.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Suspension Alert Banner */}
       {whiteLabel.status === WhiteLabelStatus.SUSPENDED && (
         <div className="p-4 rounded-2xl border border-destructive/40 bg-destructive/10 text-destructive flex items-start gap-3 shadow-xs">
@@ -256,83 +502,11 @@ export function WhiteLabelApplicationStatusView({
             <h4 className="font-bold text-sm">Account Temporarily Suspended</h4>
             <p className="text-xs text-muted-foreground">
               {whiteLabel.statusReason ||
-                "Your WhiteLabel account has been temporarily suspended by platform administrators. Please contact RMIT support to resolve."}
+                "Your WhiteLabel account has been suspended by platform administrators. Please contact RMIT support to resolve."}
             </p>
           </div>
         </div>
       )}
-
-      {/* Legal Documents & S3 Stored Agreements */}
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="space-y-0.5">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <FileCheck2 className="h-4 w-4 text-primary" />
-              Legal Documents & Executed Agreements
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Executed partnership agreements and legal documentation verified and provided by RMIT administrators.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {whiteLabel.documents && whiteLabel.documents.length > 0 ? (
-            <div className="space-y-2.5">
-              {whiteLabel.documents.map((doc: WhiteLabelDocument) => (
-                <div
-                  key={doc.id}
-                  className="p-3.5 rounded-xl border border-border/60 bg-muted/20 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                      <FileText className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground text-xs truncate">
-                          {doc.name}
-                        </p>
-                        <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0">
-                          {doc.code}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="capitalize">
-                          {doc.type.replace(/_/g, " ").toLowerCase()}
-                        </span>
-                        {doc.fileSizeBytes && (
-                          <span>• {(doc.fileSizeBytes / 1024).toFixed(1)} KB</span>
-                        )}
-                        <span>• {formatDate(doc.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {doc.fileUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 shrink-0"
-                      render={<a href={doc.fileUrl} target="_blank" rel="noreferrer" />}
-                    >
-                      <Download className="h-3 w-3" />
-                      View PDF
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-6 text-center border border-dashed rounded-xl space-y-2 text-muted-foreground">
-              <File className="h-7 w-7 mx-auto opacity-50" />
-              <p className="text-xs font-semibold">No documents uploaded yet</p>
-              <p className="text-[11px] max-w-sm mx-auto">
-                Once you sign your digital agreement with RMIT, upload the signed PDF here to advance to payment and activation.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -425,90 +599,6 @@ export function WhiteLabelApplicationStatusView({
           </CardContent>
         </Card>
       </div>
-
-      {/* Top 3 Artists in Roster */}
-      {whiteLabel.artists && whiteLabel.artists.length > 0 && (
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Headphones className="h-4 w-4 text-primary" />
-              Top Roster Artists ({whiteLabel.artists.length}/3)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Direct DSP profile links submitted for streaming partner verification.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {whiteLabel.artists.map((artist, idx) => (
-                <div
-                  key={artist.id || idx}
-                  className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-foreground truncate">
-                      {artist.artistName}
-                    </span>
-                    <Badge variant="outline" className="font-mono text-[9px] px-1 py-0">
-                      {artist.code || `#${idx + 1}`}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    {artist.instagramHandle && (
-                      <div className="flex items-center gap-1.5 text-[11px]">
-                        <Camera className="h-3 w-3 text-pink-500 shrink-0" />
-                        <span className="truncate">{artist.instagramHandle}</span>
-                      </div>
-                    )}
-
-                    {artist.spotifyProfileUrl && (
-                      <a
-                        href={artist.spotifyProfileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline truncate"
-                      >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span>Spotify Profile</span>
-                      </a>
-                    )}
-
-                    {artist.youtubeChannelUrl && (
-                      <a
-                        href={artist.youtubeChannelUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 text-[11px] text-rose-600 dark:text-rose-400 hover:underline truncate"
-                      >
-                        <Video className="h-3 w-3 shrink-0" />
-                        <span>YouTube Channel</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Re-apply CTA if rejected */}
-      {whiteLabel.status === WhiteLabelStatus.REJECTED && onReapply && (
-        <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between">
-          <div className="space-y-0.5 text-xs text-rose-700 dark:text-rose-300">
-            <p className="font-bold">Would you like to revise your application?</p>
-            <p>Update your details or attach requested documents to resubmit for approval.</p>
-          </div>
-          <Button
-            size="sm"
-            onClick={onReapply}
-            className="text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700"
-          >
-            Update Application
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
