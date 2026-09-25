@@ -51,14 +51,14 @@ export function ClientOverviewView({
   const portalUrl = branding.customDomain
     ? `https://${branding.customDomain}`
     : branding.subdomain
-      ? `https://${branding.subdomain}.platform.royalmotionit.com`
-      : "http://localhost:3001";
+      ? `https://${branding.subdomain}.rmitdistribution.com`
+      : "https://platform.royalmotionit.com";
 
   const envSnippet = `# WhiteLabel Hosting Bundle (.env)
 # Only 3 environment variables required. All branding, themes & SEO load from database via Setup Wizard.
-API_BASE_URL="http://localhost:5000"
-API_KEY="${latestKeyPrefix ? latestKeyPrefix.replace("...", "xxxx") : "rmit_live_your_generated_api_key"}"
-INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
+API_BASE_URL="https://api.royalmotionit.com"
+API_KEY="${latestKeyPrefix ? `${latestKeyPrefix}...` : "<Not generated yet — generate in API Keys tab>"}"
+INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
 
   const copySnippet = () => {
     navigator.clipboard.writeText(envSnippet);
@@ -67,14 +67,21 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isSetupDone = Boolean(branding.isSetupComplete);
   const isDomainConfigured = Boolean(
     branding.subdomain || branding.customDomain,
   );
   const isBrandingComplete = Boolean(
-    branding.name && (branding.logoUrl || branding.primaryColor),
+    branding.logoUrl && (branding.tagline || branding.supportEmail),
   );
   const isApiReady = activeKeyCount > 0;
-  const isSetupDone = Boolean(branding.isSetupComplete);
+  const isPortalDeployed = Boolean(
+    isSetupDone && isBrandingComplete && isDomainConfigured && isApiReady,
+  );
+  const hasDedicatedEc2 = Boolean(branding.awsInstanceId);
+  const configuredElasticIp =
+    branding.awsElasticIp || branding.elasticIpv4 || null;
+  const hasDedicatedS3 = Boolean(branding.bucketName);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -392,15 +399,25 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Server className="h-3.5 w-3.5 text-blue-500" />
                   EC2 Instance
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">
-                  {branding.awsInstanceState || "ACTIVE"}
+                <span
+                  className={`font-mono text-[10px] ${
+                    hasDedicatedEc2
+                      ? "text-emerald-500 font-semibold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {hasDedicatedEc2
+                    ? branding.awsInstanceState || "RUNNING"
+                    : "NOT CONFIGURED"}
                 </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.awsInstanceId || "i-09f4b7a2... (Provisioned)"}
+                {branding.awsInstanceId || "Not Provisioned"}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                {branding.awsInstanceType || "t4g.medium (ARM64 Graviton)"}
+                {hasDedicatedEc2
+                  ? branding.awsInstanceType || "Dedicated Compute"
+                  : "Using Shared Platform Cluster"}
               </div>
             </div>
 
@@ -411,17 +428,23 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Cpu className="h-3.5 w-3.5 text-amber-500" />
                   Dedicated Elastic IP
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">
-                  STATIC IPv4
+                <span
+                  className={`font-mono text-[10px] ${
+                    configuredElasticIp
+                      ? "text-emerald-500 font-semibold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {configuredElasticIp ? "STATIC IPv4" : "OPTIONAL"}
                 </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.awsElasticIp ||
-                  branding.elasticIpv4 ||
-                  "54.226.114.89"}
+                {configuredElasticIp || "Not Configured"}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Zero-Downtime Dedicated IPv4
+                {configuredElasticIp
+                  ? "Zero-Downtime Dedicated IPv4"
+                  : "Cloudflare Anycast Edge Proxy"}
               </div>
             </div>
 
@@ -432,15 +455,23 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <HardDrive className="h-3.5 w-3.5 text-emerald-500" />
                   S3 Audio Vault
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">
-                  CORS + GLACIER
+                <span
+                  className={`font-mono text-[10px] ${
+                    hasDedicatedS3
+                      ? "text-emerald-500 font-semibold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {hasDedicatedS3 ? "DEDICATED S3" : "NOT CONFIGURED"}
                 </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.bucketName || "rmit-audio-vault"}
+                {branding.bucketName || "Not Configured"}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Cost-saving Glacier archive rules
+                {hasDedicatedS3
+                  ? "Dedicated S3 Bucket Active"
+                  : "Configure custom S3 in Credentials & SSO"}
               </div>
             </div>
 
@@ -451,25 +482,33 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Globe className="h-3.5 w-3.5 text-sky-500" />
                   Edge SSL &amp; Routing
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">
-                  PROXIED
+                <span
+                  className={`font-mono text-[10px] ${
+                    isDomainConfigured
+                      ? "text-emerald-500 font-semibold"
+                      : "text-amber-500"
+                  }`}
+                >
+                  {isDomainConfigured ? "PROXIED" : "PENDING"}
                 </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
                 {branding.customDomain ||
                   (branding.subdomain
-                    ? `${branding.subdomain}.platform...`
-                    : "backstage.royalmotionit.com")}
+                    ? `${branding.subdomain}.rmitdistribution.com`
+                    : "Not Configured")}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Automatic DKIM CNAME &amp; Edge SSL
+                {isDomainConfigured
+                  ? "Cloudflare Auto-DNS Subdomain Active"
+                  : "Assign subdomain in Domain & DNS"}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 4-Step Production Launch Roadmap */}
+      {/* 5-Step Production Launch Roadmap */}
       <Card className="border-border/70 shadow-xs bg-card">
         <CardHeader className="pb-4 border-b border-border/60">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -491,7 +530,7 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     isBrandingComplete,
                     isDomainConfigured,
                     isApiReady,
-                    true,
+                    isPortalDeployed,
                   ].filter(Boolean).length
                 }
                 /5 Complete
@@ -587,8 +626,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   Domain Routing &amp; DNS Ownership
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Assign platform subdomain (*.platform.royalmotionit.com) or
-                  verify custom domain with DNS TXT record.
+                  Assign platform subdomain (*.rmitdistribution.com) or verify
+                  custom domain with DNS TXT record.
                 </div>
               </div>
             </div>
@@ -631,22 +670,33 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
           {/* Step 5: Portal Launch */}
           <div className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">
-                <Check className="h-4 w-4" />
+              <div
+                className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                  isPortalDeployed
+                    ? "bg-emerald-500/10 text-emerald-500"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isPortalDeployed ? <Check className="h-4 w-4" /> : "5"}
               </div>
               <div>
                 <div className="text-xs font-semibold text-foreground">
                   WhiteLabel Portal Deployment
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Deploy the bundle on your hosting server and point traffic to
-                  your domain.
+                  {isPortalDeployed
+                    ? "Your WhiteLabel portal is fully configured and ready for live traffic."
+                    : "Complete the Setup Wizard, Brand Assets, and API Key generation above to deploy."}
                 </div>
               </div>
             </div>
             <a href={portalUrl} target="_blank" rel="noreferrer">
-              <Button size="sm" className="text-xs h-8 gap-1">
-                <span>Launch Portal</span>
+              <Button
+                variant={isPortalDeployed ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-8 gap-1"
+              >
+                <span>Preview Portal</span>
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </a>

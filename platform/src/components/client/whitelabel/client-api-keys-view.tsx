@@ -288,9 +288,9 @@ export function ClientApiKeysView({
             <div className="p-3 rounded-xl bg-muted/80 border border-border/80 font-mono text-xs overflow-x-auto text-foreground">
               <pre className="text-[11px] leading-relaxed">
                 {`# WhiteLabel Portal (.env) - Only 3 variables needed!
-API_BASE_URL="http://localhost:5000"
-API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace("...", "xxxxxxxx") : "rmit_live_your_generated_key_here"}"
-INTERNAL_API_SECRET="your_32_character_internal_api_secret"`}
+API_BASE_URL="https://api.royalmotionit.com"
+API_KEY="${keys[0]?.prefix ? `${keys[0].prefix}...` : "<Generate an API key above first>"}"
+INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`}
               </pre>
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -318,8 +318,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`}
           </CardHeader>
           <CardContent>
             <div className="p-3 rounded-xl bg-muted/70 border border-border/70 font-mono text-xs overflow-x-auto text-foreground">
-              <code>{`curl -X GET "http://localhost:5000/whitelabel/tenant" \\
-  -H "x-api-key: rmit_live_xxxxxxxxxxxxxxxxxxxxxxxx"`}</code>
+              <code>{`curl -X GET "https://api.royalmotionit.com/whitelabel/tenant" \\
+  -H "x-api-key: ${keys[0]?.prefix ? `${keys[0].prefix}...` : "<YOUR_API_KEY>"}"`}</code>
             </div>
           </CardContent>
         </Card>

@@ -173,14 +173,14 @@ export function ClientWhiteLabelSetupWizard({
   const portalHost = branding.customDomain
     ? `https://${branding.customDomain}`
     : branding.subdomain
-      ? `https://${branding.subdomain}.platform.royalmotionit.com`
-      : "http://localhost:3001";
+      ? `https://${branding.subdomain}.rmitdistribution.com`
+      : "https://platform.royalmotionit.com";
 
   const envSnippet = `# WhiteLabel Portal (.env)
 # Only 3 environment variables required:
-API_BASE_URL="http://localhost:5000"
-API_KEY="${latestKeyPrefix ? latestKeyPrefix.replace("...", "xxxx") : "rmit_live_your_generated_api_key"}"
-INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
+API_BASE_URL="https://api.royalmotionit.com"
+API_KEY="${latestKeyPrefix ? `${latestKeyPrefix}...` : "<Generate in API Keys tab>"}"
+INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
 
   const copyEnvSnippet = () => {
     navigator.clipboard.writeText(envSnippet);
