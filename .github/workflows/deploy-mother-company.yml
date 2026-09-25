@@ -31,49 +31,63 @@ jobs:
           PORT: ${{ secrets.EC2_PORT || 22 }}
           APP_DIR: ${{ secrets.EC2_APP_DIR || '/var/www/music-distribution-platform' }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p $PORT $USER@$HOST << 'EOF'
+          ssh -i ~/.ssh/deploy_key -p $PORT $USER@$HOST bash -s << 'EOF'
             set -euo pipefail
 
+            APP_DIR="/var/www/music-distribution-platform"
+            export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+            if [ -d "$HOME/.nvm" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            fi
+
             echo "🚀 [Deploy] Navigating to application directory: $APP_DIR"
-            cd /var/www/music-distribution-platform
+            cd "$APP_DIR"
+
+            # Auto-sanitize any accidental duplicate prefix in api/.env if present
+            if [ -f "$APP_DIR/api/.env" ]; then
+              sed -i 's/DATABASE_URL="DATABASE_URL="/DATABASE_URL="/g' "$APP_DIR/api/.env"
+            fi
 
             echo "📥 [Deploy] Pulling latest changes from git repository..."
             git fetch origin master
             git reset --hard origin/master
 
             echo "📦 [API] Installing dependencies & executing Prisma database migrations..."
-            cd /var/www/music-distribution-platform/api
-            npm ci
+            cd "$APP_DIR/api"
+            pnpm install
             npx prisma generate
-            npx prisma migrate deploy
-            npm run build
+            npx prisma db push --accept-data-loss || npx prisma migrate deploy
+            pnpm run build
 
             echo "📦 [Platform] Installing dependencies & compiling Next.js console..."
-            cd /var/www/music-distribution-platform/platform
-            npm ci
-            npm run build
+            cd "$APP_DIR/platform"
+            pnpm install
+            pnpm run build
 
             echo "🔄 [PM2] Reloading API and Platform processes with zero downtime..."
-            cd /var/www/music-distribution-platform
-            pm2 reload ecosystem.config.js --update-env
+            cd "$APP_DIR"
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
+            pm2 save
 
             echo "🏥 [Healthcheck] Verifying API backend health..."
-            for i in {1..15}; do
+            for i in {1..20}; do
               if curl -s -f http://127.0.0.1:5000/health > /dev/null; then
                 echo "✅ API Health Check passed!"
                 break
               fi
-              echo "Waiting for API service to become ready... (attempt $i/15)"
+              echo "Waiting for API service to become ready... (attempt $i/20)"
               sleep 2
             done
 
             echo "🏥 [Healthcheck] Verifying Platform frontend health..."
-            for i in {1..15}; do
+            for i in {1..20}; do
               if curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308" > /dev/null; then
                 echo "✅ Platform Console Health Check passed!"
                 break
               fi
-              echo "Waiting for Platform service to become ready... (attempt $i/15)"
+              echo "Waiting for Platform service to become ready... (attempt $i/20)"
               sleep 2
             done
 

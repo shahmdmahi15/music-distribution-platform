@@ -42,16 +42,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.13.0
+
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: api/package-lock.json
+          cache: pnpm
+          cache-dependency-path: api/pnpm-lock.yaml
 
       - name: Install Dependencies
         working-directory: api
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         working-directory: api
@@ -61,7 +66,7 @@ jobs:
 
       - name: Build API Bundle
         working-directory: api
-        run: npm run build
+        run: pnpm run build
 
   validate-platform:
     name: Typecheck & Validate Platform Console
@@ -70,16 +75,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.13.0
+
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: platform/package-lock.json
+          cache: pnpm
+          cache-dependency-path: platform/pnpm-lock.yaml
 
       - name: Install Dependencies
         working-directory: platform
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Verify TypeScript Types
         working-directory: platform
@@ -92,15 +102,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22 LTS
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 11.13.0
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: whitelabel/pnpm-lock.yaml
 
       - name: Install Dependencies
         working-directory: whitelabel
