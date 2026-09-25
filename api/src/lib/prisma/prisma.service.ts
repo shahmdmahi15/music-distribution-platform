@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { PrismaClient } from 'src/generated/prisma/client';
 import { EnvironmentVariables } from 'src/config/env.config';
 
@@ -9,14 +10,21 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  private readonly pool: Pool;
+
   constructor(configService: ConfigService<EnvironmentVariables, true>) {
     const databaseUrl = configService.get('DATABASE_URL', { infer: true });
+    const isRds = databaseUrl.includes('rds.amazonaws.com') || databaseUrl.includes('sslmode=');
 
-    const adapter = new PrismaPg({
+    const pool = new Pool({
       connectionString: databaseUrl,
+      ...(isRds ? { ssl: { rejectUnauthorized: false } } : {}),
     });
 
+    const adapter = new PrismaPg(pool);
+
     super({ adapter });
+    this.pool = pool;
   }
 
   async onModuleInit() {
@@ -52,5 +60,6 @@ export class PrismaService
   /** Releases pooled connections so shutdown does not have to wait on them. */
   async onModuleDestroy() {
     await this.$disconnect();
+    await this.pool.end();
   }
 }
