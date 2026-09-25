@@ -715,7 +715,10 @@ export function WhiteLabelOnboardingWizard({
         ...formData,
         elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
         topArtists: validArtists,
-        onboardingDetails: formData.onboardingDetails,
+        onboardingDetails: {
+          ...formData.onboardingDetails,
+          estimatedLaunchTimeline: formData.estimatedLaunchTimeline,
+        },
       });
 
       if (res.success) {

@@ -174,12 +174,12 @@ export function ClientSidebarFooter({ user }: { user: User }) {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
-                    window.location.href = `mailto:partner-desk@royalmotionit.com?subject=Assistance Request from ${name} [${code || "Client"}]`;
+                    window.location.href = `mailto:support@royalmotionit.com?subject=Assistance Request from ${name} [${code || "Client"}]`;
                   }}
                   className="cursor-pointer text-xs"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Contact Partner Desk
+                  Contact Support Desk
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 

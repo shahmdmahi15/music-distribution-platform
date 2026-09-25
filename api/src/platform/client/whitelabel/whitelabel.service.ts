@@ -443,16 +443,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    // Automatically slugify brand name to unique subdomain (verifying Cloudflare DNS + DB)
+    // Automatically slugify desired subdomain or brand name to unique subdomain (verifying Cloudflare DNS + DB)
+    const preferredSubdomainBase = dto.desiredSubdomain?.trim() || dto.name;
     let finalSubdomain: string;
     if (
       subscription.whiteLabel?.subdomain &&
-      subscription.whiteLabel.name === dto.name
+      (subscription.whiteLabel.subdomain === dto.desiredSubdomain?.trim() ||
+        subscription.whiteLabel.name === dto.name)
     ) {
       finalSubdomain = subscription.whiteLabel.subdomain;
     } else {
       finalSubdomain = await this.generateUniqueSubdomain(
-        dto.name,
+        preferredSubdomainBase,
         subscription.whiteLabel?.id,
       );
     }

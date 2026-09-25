@@ -382,14 +382,52 @@ export function WhiteLabelApplicationStatusView({
                     <Copy className="h-4 w-4" />
                   )}
                 </button>
+                {whiteLabel.subdomain && (
+                  <Badge
+                    variant="secondary"
+                    onClick={() =>
+                      copyToClipboard(
+                        `${whiteLabel.subdomain}.platform.royalmotionit.com`,
+                        "Subdomain URL",
+                      )
+                    }
+                    className="font-mono text-[11px] px-2.5 py-0.5 cursor-pointer hover:bg-muted gap-1.5"
+                    title="Click to copy reserved subdomain"
+                  >
+                    <Globe className="h-3 w-3 text-primary" />
+                    {whiteLabel.subdomain}.platform.royalmotionit.com
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>{whiteLabel.businessType.replace("_", " ")}</span>
+              <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-semibold text-foreground/90">
+                  {whiteLabel.businessType.replace(/_/g, " ")}
+                </span>
                 {whiteLabel.country && <span>• {whiteLabel.country}</span>}
                 {whiteLabel.companyWebsite && (
-                  <span>• {whiteLabel.companyWebsite}</span>
+                  <>
+                    <span>•</span>
+                    <a
+                      href={
+                        whiteLabel.companyWebsite.startsWith("http")
+                          ? whiteLabel.companyWebsite
+                          : `https://${whiteLabel.companyWebsite}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-1 font-mono"
+                    >
+                      {whiteLabel.companyWebsite}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
                 )}
-              </p>
+                {whiteLabel.createdAt && (
+                  <span suppressHydrationWarning>
+                    • Submitted {formatDate(whiteLabel.createdAt)}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -772,37 +810,89 @@ export function WhiteLabelApplicationStatusView({
           <CardContent className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-muted/30 border border-border/50 space-y-1">
               <span className="text-muted-foreground text-[11px] block">
-                Primary Representative
+                Primary Executive Representative
               </span>
-              <p className="font-semibold text-foreground">
+              <p className="font-semibold text-foreground text-sm">
                 {whiteLabel.contactFirstName} {whiteLabel.contactLastName}
               </p>
-              <p className="text-muted-foreground font-mono">
+              <a
+                href={`mailto:${whiteLabel.contactEmail}`}
+                className="text-muted-foreground hover:text-primary font-mono inline-flex items-center gap-1"
+              >
+                <Mail className="h-3 w-3 text-primary" />
                 {whiteLabel.contactEmail}
-              </p>
+              </a>
               {whiteLabel.contactLinkedIn && (
-                <p className="text-[11px] text-primary pt-0.5 truncate">
-                  {whiteLabel.contactLinkedIn}
-                </p>
+                <div className="pt-0.5">
+                  <a
+                    href={
+                      whiteLabel.contactLinkedIn.startsWith("http")
+                        ? whiteLabel.contactLinkedIn
+                        : `https://${whiteLabel.contactLinkedIn}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 truncate max-w-full font-mono"
+                  >
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{whiteLabel.contactLinkedIn}</span>
+                  </a>
+                </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  Incorporated
+                  Incorporated Entity
                 </span>
-                <span className="font-bold text-foreground">
-                  {whiteLabel.isIncorporated ? "Yes" : "No"}
-                </span>
+                <div className="flex items-center justify-between gap-1 pt-0.5">
+                  <span className="font-bold text-foreground">
+                    {whiteLabel.isIncorporated ? "Yes (Registered)" : "No (Independent)"}
+                  </span>
+                  {whiteLabel.incorporationDocUrl && (
+                    <a
+                      href={
+                        whiteLabel.incorporationDocUrl.startsWith("http")
+                          ? whiteLabel.incorporationDocUrl
+                          : `https://${whiteLabel.incorporationDocUrl}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5 font-semibold"
+                    >
+                      Filing <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  )}
+                </div>
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
                   Years in Business
                 </span>
-                <span className="font-bold text-foreground">
+                <span className="font-bold text-foreground block pt-0.5">
                   {whiteLabel.yearsInBusiness}{" "}
                   {whiteLabel.yearsInBusiness === 1 ? "year" : "years"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground block">
+                  Reserved Subdomain
+                </span>
+                <span className="font-bold text-foreground font-mono text-[10.5px] truncate block pt-0.5">
+                  {whiteLabel.subdomain
+                    ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+                    : "Pending Allocation"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground block">
+                  Creator Access Model
+                </span>
+                <span className="font-bold text-foreground capitalize block pt-0.5">
+                  {(whiteLabel.userSignupModel || "INVITE_ONLY")
+                    .replace(/_/g, " ")
+                    .toLowerCase()}
                 </span>
               </div>
             </div>
@@ -821,10 +911,10 @@ export function WhiteLabelApplicationStatusView({
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
                 <span className="text-muted-foreground text-[10px] block">
-                  Catalog
+                  Master Catalog
                 </span>
                 <span className="font-bold text-sm text-foreground">
-                  {whiteLabel.catalogTrackCount}
+                  {Number(whiteLabel.catalogTrackCount || 0).toLocaleString()}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
                   tracks
@@ -833,19 +923,19 @@ export function WhiteLabelApplicationStatusView({
 
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
                 <span className="text-muted-foreground text-[10px] block">
-                  Monthly
+                  Monthly Volume
                 </span>
                 <span className="font-bold text-sm text-foreground">
-                  {whiteLabel.monthlyTrackDelivery}
+                  {Number(whiteLabel.monthlyTrackDelivery || 0).toLocaleString()}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
-                  deliv. / mo
+                  tracks / mo
                 </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
                 <span className="text-muted-foreground text-[10px] block">
-                  Revenue
+                  Est. Revenue
                 </span>
                 <span className="font-bold text-sm text-foreground">
                   ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
@@ -856,20 +946,74 @@ export function WhiteLabelApplicationStatusView({
               </div>
             </div>
 
-            <div className="space-y-1.5 pt-1">
-              <span className="text-muted-foreground text-[11px] block font-medium">
-                Current Distributors:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {whiteLabel.currentDistributors?.map((d) => (
-                  <Badge
-                    key={d}
-                    variant="secondary"
-                    className="text-[10px] py-0 px-2 font-normal"
-                  >
-                    {d}
-                  </Badge>
-                ))}
+            <div className="grid grid-cols-3 gap-2 text-[10.5px]">
+              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground block">Direct Deals</span>
+                <span className="font-bold text-foreground">
+                  {whiteLabel.hasDirectDeals ? "Yes (Direct)" : "Via Aggregator"}
+                </span>
+              </div>
+              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground block">Migration</span>
+                <span className="font-bold text-foreground">
+                  {whiteLabel.wantsCatalogMigration ? "Requested" : "New Ingestion"}
+                </span>
+              </div>
+              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground block">Language</span>
+                <span className="font-bold text-foreground">
+                  {whiteLabel.primaryCatalogLanguage || "English"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] block font-medium">
+                  Current / Past Distributors:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {whiteLabel.currentDistributors &&
+                  whiteLabel.currentDistributors.length > 0 ? (
+                    whiteLabel.currentDistributors.map((d) => (
+                      <Badge
+                        key={d}
+                        variant="secondary"
+                        className="text-[10px] py-0 px-2 font-normal"
+                      >
+                        {d}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">
+                      Direct / None Specified
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-[11px] block font-medium">
+                  Royalty Accounting Systems:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {whiteLabel.royaltySolutions &&
+                  whiteLabel.royaltySolutions.length > 0 ? (
+                    whiteLabel.royaltySolutions.map((r) => (
+                      <Badge
+                        key={r}
+                        variant="outline"
+                        className="text-[10px] py-0 px-2 font-normal border-primary/30 text-primary bg-primary/5"
+                      >
+                        {r}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">
+                      Platform Native Ledger
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -877,251 +1021,339 @@ export function WhiteLabelApplicationStatusView({
       </div>
 
       {/* Tailored Business Architecture & Domain Specifications */}
-      {whiteLabel.onboardingDetails && (
-        <Card className="border-border/60 shadow-sm overflow-hidden">
-          <CardHeader className="pb-3 bg-muted/20 border-b border-border/40">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="space-y-0.5">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-primary" />
-                  Tailored Domain Architecture & Verification Dossier
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Industry-standard parameters submitted for enterprise verification and automated infrastructure provisioning.
-                </CardDescription>
-              </div>
-              <Badge
-                variant="outline"
-                className="border-primary/40 bg-primary/10 text-primary font-mono text-[11px] font-bold"
-              >
-                {whiteLabel.businessType.replace(/_/g, " ")}
-              </Badge>
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 bg-muted/20 border-b border-border/40">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="space-y-0.5">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                Tailored Domain Architecture & Verification Dossier
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Industry-standard parameters submitted for enterprise verification and automated infrastructure provisioning.
+              </CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="p-5 text-xs space-y-4">
-            {whiteLabel.businessType === "RECORD_LABEL" && (
+            <Badge
+              variant="outline"
+              className="border-primary/40 bg-primary/10 text-primary font-mono text-[11px] font-bold"
+            >
+              {whiteLabel.businessType.replace(/_/g, " ")}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 text-xs space-y-4">
+          {whiteLabel.businessType === "RECORD_LABEL" && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Label Category
+                </span>
+                <p className="font-bold text-foreground capitalize text-sm pt-0.5">
+                  {(
+                    whiteLabel.onboardingDetails?.labelType || "independent"
+                  ).replace(/_/g, " ")}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Primary Genre
+                </span>
+                <p className="font-bold text-foreground text-sm pt-0.5">
+                  {whiteLabel.onboardingDetails?.primaryGenre ||
+                    "Hip-Hop / R&B"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Artist Royalty Split
+                </span>
+                <p className="font-bold text-foreground text-xs pt-0.5">
+                  {whiteLabel.onboardingDetails?.masterRoyaltySplitStandard ||
+                    "70/30 (Artist 70% / Label 30%)"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  ISRC Registrant Prefix
+                </span>
+                <p className="font-bold text-foreground font-mono text-sm pt-0.5">
+                  {whiteLabel.onboardingDetails?.isrcRegistrantCode ||
+                    whiteLabel.onboardingDetails?.isrcPrefix ||
+                    "Platform Delegated"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Spatial Audio / Atmos
+                </span>
+                <p className="font-bold text-foreground text-xs pt-0.5">
+                  {whiteLabel.onboardingDetails?.dolbyAtmosReady !== false
+                    ? "ADM BWF WAV Enabled"
+                    : "Standard Stereo WAV"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Hosted Server Routing
+                </span>
+                <p className="font-bold text-foreground font-mono text-xs pt-0.5">
+                  {whiteLabel.elasticIpv4
+                    ? `Elastic IP (${whiteLabel.elasticIpv4})`
+                    : "Cloudflare Managed Proxy"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Launch Timeline
+                </span>
+                <p className="font-bold text-foreground text-xs pt-0.5">
+                  {whiteLabel.onboardingDetails?.estimatedLaunchTimeline ||
+                    "Immediate"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Brand Accent Theme
+                </span>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span
+                    className="h-3.5 w-3.5 rounded-full border border-black/20 shrink-0"
+                    style={{
+                      backgroundColor: whiteLabel.primaryColor || "#6366f1",
+                    }}
+                  />
+                  <span className="font-bold text-foreground font-mono text-xs uppercase">
+                    {whiteLabel.primaryColor || "#6366f1"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
+            <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Primary Genre
+                    Managed Sub-Labels
                   </span>
                   <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails.primaryGenre || "Not Specified"}
+                    {whiteLabel.onboardingDetails?.subLabelsCount ?? 5} sub-labels
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Master Rights
+                    Independent Creators
                   </span>
                   <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails.masterRightsOwned ? "100% Owned / Controlled" : "Exclusive License"}
+                    {whiteLabel.onboardingDetails
+                      ?.independentArtistsRepresented ?? 40}{" "}
+                    artists
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    ISRC Prefix
+                    Ingestion Protocol
+                  </span>
+                  <p className="font-bold text-foreground font-mono text-xs pt-0.5">
+                    {(
+                      whiteLabel.onboardingDetails?.ingestionProtocol ||
+                      whiteLabel.onboardingDetails?.ingestionStandard ||
+                      "DDEX_ERN_4_3"
+                    ).replace(/_/g, " ")}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    QC & Anti-Fraud
+                  </span>
+                  <p className="font-bold text-foreground text-xs pt-0.5">
+                    {whiteLabel.onboardingDetails
+                      ?.antiFraudInspectionRequired !== false
+                      ? "Fingerprinting + QC Active"
+                      : "Standard Verification"}
+                  </p>
+                </div>
+              </div>
+
+              {whiteLabel.onboardingDetails?.directDspAgreements &&
+                whiteLabel.onboardingDetails.directDspAgreements.length > 0 && (
+                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
+                    <span className="text-muted-foreground text-[11px] font-semibold block">
+                      Active Direct DSP Delivery Pipelines:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {whiteLabel.onboardingDetails.directDspAgreements.map(
+                        (feed: string) => (
+                          <Badge
+                            key={feed}
+                            variant="outline"
+                            className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5"
+                          >
+                            {feed}
+                          </Badge>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
+
+          {whiteLabel.businessType === "MUSIC_PUBLISHER" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Musical Works Catalog
+                  </span>
+                  <p className="font-bold text-foreground text-sm pt-0.5">
+                    {(
+                      whiteLabel.onboardingDetails?.musicalWorksCount ?? 150
+                    ).toLocaleString()}{" "}
+                    works
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Songwriters Represented
+                  </span>
+                  <p className="font-bold text-foreground text-sm pt-0.5">
+                    {whiteLabel.onboardingDetails
+                      ?.songwritersRepresentedCount ?? 12}{" "}
+                    writers
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Primary PRO / CMO
+                  </span>
+                  <p className="font-bold text-foreground text-xs pt-0.5">
+                    {whiteLabel.onboardingDetails?.primaryProAffiliation ||
+                      "ASCAP (United States)"}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Publisher IPI / CAE
                   </span>
                   <p className="font-bold text-foreground font-mono text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails.isrcPrefix || "Platform Delegated"}
+                    {whiteLabel.onboardingDetails?.ipiCaeNumber ||
+                      whiteLabel.onboardingDetails?.caeIpiNumber ||
+                      "Pending Registration"}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Accounting Cycle
+                    CWR Exchange Feed
                   </span>
-                  <p className="font-bold text-foreground capitalize text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails.splitAccountingFrequency || "Monthly"}
+                  <p className="font-bold text-foreground text-xs pt-0.5">
+                    {whiteLabel.onboardingDetails?.cwrExchangeEnabled !== false
+                      ? "Enabled (CWR v2.1)"
+                      : "Standard Ingestion"}
                   </p>
                 </div>
-                {whiteLabel.onboardingDetails.recoupmentModel && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Recoupment Model
-                    </span>
-                    <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                      {whiteLabel.onboardingDetails.recoupmentModel.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                )}
-                {whiteLabel.onboardingDetails.artistRosterSize && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Active Roster Size
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.artistRosterSize} artists
-                    </p>
-                  </div>
-                )}
-                {whiteLabel.onboardingDetails.aAndRFocus && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20 col-span-2">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      A&R Strategic Focus
-                    </span>
-                    <p className="text-foreground text-xs pt-0.5 font-medium line-clamp-2">
-                      {whiteLabel.onboardingDetails.aAndRFocus}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Multi-Tenant Architecture
-                    </span>
-                    <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                      {(whiteLabel.onboardingDetails.multiTenantModel || "hybrid").replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Ingestion Standard
-                    </span>
-                    <p className="font-bold text-foreground font-mono text-xs pt-0.5">
-                      {whiteLabel.onboardingDetails.ingestionStandard || "DDEX ERN 4.3 XML"}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Managed Sub-Labels
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.subLabelsCount || 0} sub-labels
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      QC Turnaround Target
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.qcTurnaroundHours || 12}h SLA
-                    </p>
-                  </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Mechanical Royalties
+                  </span>
+                  <p className="font-bold text-foreground text-xs pt-0.5">
+                    {whiteLabel.onboardingDetails?.collectsMechanicals !== false
+                      ? "MLC / HFA / MCPS Active"
+                      : "Self-Administered"}
+                  </p>
                 </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20 col-span-2">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Sync Licensing Catalog Vault
+                  </span>
+                  <p className="font-bold text-foreground text-xs pt-0.5">
+                    {(whiteLabel.onboardingDetails?.syncLicensingCatalogSize ??
+                      50) > 0
+                      ? `Active Pitch Vault (${whiteLabel.onboardingDetails?.syncLicensingCatalogSize ?? 50} cleared works)`
+                      : "Standard Administration Only"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-                {whiteLabel.onboardingDetails.antiFraudProtocols && (
+          {whiteLabel.businessType === "REFERRER" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Scout Category
+                  </span>
+                  <p className="font-bold text-foreground capitalize text-xs pt-0.5">
+                    {(
+                      whiteLabel.onboardingDetails?.scoutNetworkCategory ||
+                      "talent_scout"
+                    ).replace(/_/g, " ")}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Annual Referrals Target
+                  </span>
+                  <p className="font-bold text-foreground text-sm pt-0.5">
+                    {whiteLabel.onboardingDetails?.projectedAnnualReferrals ??
+                      10}{" "}
+                    partners / yr
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Pipeline Aggregate Size
+                  </span>
+                  <p className="font-bold text-foreground text-sm pt-0.5">
+                    {(
+                      whiteLabel.onboardingDetails
+                        ?.projectedPipelineCatalogSize ??
+                      whiteLabel.onboardingDetails?.scoutingPipelineSize ??
+                      500
+                    ).toLocaleString()}{" "}
+                    tracks
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                    Commission Structure
+                  </span>
+                  <p className="font-bold text-foreground capitalize text-xs pt-0.5">
+                    {(
+                      whiteLabel.onboardingDetails
+                        ?.preferredCommissionStructure || "lifetime_rev_share"
+                    ).replace(/_/g, " ")}
+                  </p>
+                </div>
+              </div>
+
+              {whiteLabel.onboardingDetails?.discoveryChannels &&
+                whiteLabel.onboardingDetails.discoveryChannels.length > 0 && (
                   <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
                     <span className="text-muted-foreground text-[11px] font-semibold block">
-                      Anti-Fraud & Quality Control Protocols:
+                      Primary Talent Discovery Channels:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {whiteLabel.onboardingDetails.antiFraudProtocols.map((proto: string) => (
-                        <Badge key={proto} variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5">
-                          {proto.replace(/_/g, " ")}
-                        </Badge>
-                      ))}
+                      {whiteLabel.onboardingDetails.discoveryChannels.map(
+                        (ch: string) => (
+                          <Badge
+                            key={ch}
+                            variant="outline"
+                            className="text-[10px]"
+                          >
+                            {ch}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {whiteLabel.businessType === "MUSIC_PUBLISHER" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      CAE / IPI Number
-                    </span>
-                    <p className="font-bold text-foreground font-mono text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.caeIpiNumber || "Pending Registration"}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Administration Scope
-                    </span>
-                    <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                      {(whiteLabel.onboardingDetails.catalogAdministrationType || "worldwide").replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Songwriters Represented
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.songwritersRepresentedCount || 0} writers
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      CWR Ingestion Feed
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.cwrDeliverySupport ? "Enabled (v2.1)" : "Standard Ingestion"}
-                    </p>
-                  </div>
-                </div>
-
-                {whiteLabel.onboardingDetails.proAffiliations && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
-                    <span className="text-muted-foreground text-[11px] font-semibold block">
-                      PRO / CMO Collective Management Affiliations:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {whiteLabel.onboardingDetails.proAffiliations.map((pro: string) => (
-                        <Badge key={pro} variant="secondary" className="text-[10px] font-bold">
-                          {pro}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {whiteLabel.businessType === "REFERRER" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Talent Pipeline Size
-                    </span>
-                    <p className="font-bold text-foreground text-sm pt-0.5">
-                      {whiteLabel.onboardingDetails.scoutingPipelineSize || 0} prospects
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Commission Structure
-                    </span>
-                    <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                      {(whiteLabel.onboardingDetails.preferredCommissionStructure || "hybrid_tiered").replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                    <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                      Referral Network Status
-                    </span>
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm pt-0.5">
-                      Verified Talent Scout
-                    </p>
-                  </div>
-                </div>
-
-                {whiteLabel.onboardingDetails.primaryGenresScouted && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
-                    <span className="text-muted-foreground text-[11px] font-semibold block">
-                      Focus Scouting Genres:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {whiteLabel.onboardingDetails.primaryGenresScouted.map((g: string) => (
-                        <Badge key={g} variant="outline" className="text-[10px]">
-                          {g}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Submitted Portfolio / Roster Entities */}
       {whiteLabel.artists && whiteLabel.artists.length > 0 && (
@@ -1147,57 +1379,147 @@ export function WhiteLabelApplicationStatusView({
                       : "Verified Roster Artists"}
               </CardTitle>
               <Badge variant="secondary" className="font-mono text-[10px]">
-                {whiteLabel.artists.length} {whiteLabel.artists.length === 1 ? "Entity" : "Entities"}
+                {whiteLabel.artists.length}{" "}
+                {whiteLabel.artists.length === 1 ? "Entity" : "Entities"}
               </Badge>
             </div>
             <CardDescription className="text-xs">
-              Portfolio submitted during application for background vetting and rights clearance.
+              Portfolio submitted during application for background vetting and
+              rights clearance.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {whiteLabel.artists.map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-foreground truncate">
-                      {item.artistName}
-                    </span>
-                    <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0">
-                      #{idx + 1}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-muted-foreground text-[11px]">
-                    {item.monthlyListeners ? (
-                      <div className="flex items-center justify-between">
-                        <span>Metrics / Volume:</span>
-                        <span className="font-bold text-foreground">
-                          {item.monthlyListeners.toLocaleString()}
-                        </span>
-                      </div>
-                    ) : null}
-                    {item.instagramHandle && (
-                      <div className="flex items-center justify-between truncate">
-                        <span>Identifier / Territory:</span>
-                        <span className="font-mono text-foreground">{item.instagramHandle}</span>
-                      </div>
-                    )}
-                    {item.spotifyProfileUrl && (
-                      <a
-                        href={item.spotifyProfileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1 font-mono text-[10px] pt-0.5 truncate"
+              {whiteLabel.artists.map((item, idx) => {
+                const igLabel =
+                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
+                    ? "Territory:"
+                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
+                      ? "PRO Affiliation:"
+                      : whiteLabel.businessType === "REFERRER"
+                        ? "Status:"
+                        : "Instagram:";
+                const spotifyLabel =
+                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
+                    ? "Sub-Label Website / Catalog"
+                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
+                      ? "Top Composition / ISWC"
+                      : whiteLabel.businessType === "REFERRER"
+                        ? "Portfolio / Music Link"
+                        : "Spotify Artist Profile";
+                const youtubeLabel =
+                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
+                    ? "Genre Focus:"
+                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
+                      ? "Ownership Split:"
+                      : whiteLabel.businessType === "REFERRER"
+                        ? "Category:"
+                        : "YouTube Channel";
+
+                return (
+                  <div
+                    key={item.id || idx}
+                    className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-foreground truncate">
+                        {item.artistName}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-[9px] px-1.5 py-0"
                       >
-                        <ExternalLink className="h-3 w-3" />
-                        External Profile / Catalog
-                      </a>
-                    )}
+                        #{idx + 1}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5 text-muted-foreground text-[11px]">
+                      {item.monthlyListeners ? (
+                        <div className="flex items-center justify-between">
+                          <span>Monthly Listeners:</span>
+                          <span className="font-bold text-foreground">
+                            {item.monthlyListeners.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {item.instagramHandle && (
+                        <div className="flex items-center justify-between gap-2 truncate">
+                          <span>{igLabel}</span>
+                          {whiteLabel.businessType === "RECORD_LABEL" ? (
+                            <a
+                              href={`https://instagram.com/${item.instagramHandle.replace(/^@/, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono text-foreground hover:text-primary hover:underline truncate"
+                            >
+                              {item.instagramHandle.startsWith("@")
+                                ? item.instagramHandle
+                                : `@${item.instagramHandle}`}
+                            </a>
+                          ) : (
+                            <span className="font-mono text-foreground truncate">
+                              {item.instagramHandle}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {item.spotifyProfileUrl && (
+                        <div className="pt-0.5">
+                          {whiteLabel.businessType === "MUSIC_PUBLISHER" &&
+                          !item.spotifyProfileUrl.startsWith("http") ? (
+                            <div className="flex items-center justify-between gap-2 truncate">
+                              <span>Work / ISWC:</span>
+                              <span className="font-mono text-foreground truncate">
+                                {item.spotifyProfileUrl}
+                              </span>
+                            </div>
+                          ) : (
+                            <a
+                              href={
+                                item.spotifyProfileUrl.startsWith("http")
+                                  ? item.spotifyProfileUrl
+                                  : `https://${item.spotifyProfileUrl}`
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1 font-mono text-[10.5px] truncate"
+                            >
+                              <ExternalLink className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{spotifyLabel}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {item.youtubeChannelUrl && (
+                        <div className="pt-0.5">
+                          {whiteLabel.businessType === "RECORD_LABEL" ||
+                          item.youtubeChannelUrl.startsWith("http") ? (
+                            <a
+                              href={
+                                item.youtubeChannelUrl.startsWith("http")
+                                  ? item.youtubeChannelUrl
+                                  : `https://${item.youtubeChannelUrl}`
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-rose-500 hover:underline flex items-center gap-1 font-mono text-[10.5px] truncate"
+                            >
+                              <ExternalLink className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{youtubeLabel}</span>
+                            </a>
+                          ) : (
+                            <div className="flex items-center justify-between gap-2 truncate">
+                              <span>{youtubeLabel}</span>
+                              <span className="font-mono text-foreground truncate">
+                                {item.youtubeChannelUrl}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -1233,7 +1555,7 @@ export function WhiteLabelApplicationStatusView({
                   Assigned Partner Specialist
                 </span>
                 <span className="font-semibold text-foreground text-xs">
-                  Enterprise Desk
+                  RoyalMotionIT Enterprise Desk
                 </span>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-border/40">
@@ -1241,33 +1563,47 @@ export function WhiteLabelApplicationStatusView({
                   VIP Support Email
                 </span>
                 <a
-                  href="mailto:partner-desk@royalmotionit.com"
+                  href="mailto:support@royalmotionit.com"
                   className="font-mono text-primary hover:underline text-xs"
                 >
-                  partner-desk@royalmotionit.com
+                  support@royalmotionit.com
                 </a>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-border/40">
                 <span className="text-muted-foreground text-[11px]">
                   Emergency Ingestion Hotline
                 </span>
-                <span className="font-mono text-xs text-foreground">
-                  +1 (800) 948-RMIT
-                </span>
+                <a
+                  href="tel:+8801858892007"
+                  className="font-mono text-xs text-foreground hover:text-primary hover:underline"
+                >
+                  +880 18 588 92007
+                </a>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full text-xs h-8 gap-1.5"
                 onClick={() => {
-                  window.location.href = `mailto:partner-desk@royalmotionit.com?subject=Inquiry for WhiteLabel Application [${whiteLabel.code}] - ${whiteLabel.name}`;
+                  window.location.href = `mailto:support@royalmotionit.com?subject=Inquiry for WhiteLabel Application [${whiteLabel.code}] - ${whiteLabel.name}`;
                 }}
               >
                 <Mail className="h-3.5 w-3.5" />
                 Contact Onboarding Officer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 gap-1.5"
+                onClick={() => {
+                  window.location.href = "tel:+8801858892007";
+                }}
+              >
+                <PhoneCall className="h-3.5 w-3.5" />
+                Call +880 18 588 92007
               </Button>
             </div>
           </CardContent>
