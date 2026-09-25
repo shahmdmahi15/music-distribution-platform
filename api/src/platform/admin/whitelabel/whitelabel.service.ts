@@ -1166,9 +1166,9 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: `Cloudflare DNS synced for "${existing.subdomain}.rmitdistribution.com": ${dnsResult.message}`,
+      message: `Cloudflare DNS synced for "${existing.subdomain}.platform.royalmotionit.com": ${dnsResult.message}`,
       subdomain: existing.subdomain,
-      fqdn: `${existing.subdomain}.rmitdistribution.com`,
+      fqdn: `${existing.subdomain}.platform.royalmotionit.com`,
       dnsResult,
     };
   }

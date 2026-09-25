@@ -173,7 +173,7 @@ export function ClientWhiteLabelSetupWizard({
   const portalHost = branding.customDomain
     ? `https://${branding.customDomain}`
     : branding.subdomain
-      ? `https://${branding.subdomain}.rmitdistribution.com`
+      ? `https://${branding.subdomain}.platform.royalmotionit.com`
       : "https://platform.royalmotionit.com";
 
   const envSnippet = `# WhiteLabel Portal (.env)

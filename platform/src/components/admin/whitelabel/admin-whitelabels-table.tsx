@@ -379,7 +379,7 @@ export function AdminWhiteLabelsTable({
         wl.businessType,
         `"${wl.country || ""}"`,
         wl.isIncorporated ? "Yes" : "No",
-        wl.subdomain ? `${wl.subdomain}.rmitdistribution.com` : "",
+        wl.subdomain ? `${wl.subdomain}.platform.royalmotionit.com` : "",
         wl.customDomain || "",
         wl.elasticIpv4 || "",
         `"${wl.contactFirstName} ${wl.contactLastName}"`,
@@ -1136,7 +1136,7 @@ export function AdminWhiteLabelsTable({
                             <div className="flex items-center gap-1">
                               <Globe className="h-3 w-3 text-primary shrink-0" />
                               <span className="font-mono text-[11px] font-semibold text-foreground truncate">
-                                {wl.subdomain}.rmitdistribution.com
+                                {wl.subdomain}.platform.royalmotionit.com
                               </span>
                             </div>
                           ) : (
@@ -1357,7 +1357,7 @@ export function AdminWhiteLabelsTable({
                           {wl.status === WhiteLabelStatus.ACTIVE &&
                             wl.subdomain && (
                               <a
-                                href={`https://${wl.customDomain || `${wl.subdomain}.rmitdistribution.com`}`}
+                                href={`https://${wl.customDomain || `${wl.subdomain}.platform.royalmotionit.com`}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Open Live WhiteLabel Tenant Portal"

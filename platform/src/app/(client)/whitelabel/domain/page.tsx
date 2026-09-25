@@ -56,8 +56,10 @@ export default async function WhiteLabelDomainPage() {
       ? `${brandingResult.branding.subdomain}.platform.royalmotionit.com`
       : null,
     customDomain: brandingResult.branding.customDomain,
-    cnameHost: "cname.whitelabel.royalmotionit.com",
-    cnameTarget: "cname.whitelabel.royalmotionit.com",
+    cnameHost: "backstage",
+    cnameTarget: brandingResult.branding.subdomain
+      ? `${brandingResult.branding.subdomain}.platform.royalmotionit.com`
+      : "platform.royalmotionit.com",
     txtRecordName: `_royalmotionit-verification.${brandingResult.branding.customDomain || "yourdomain.com"}`,
     txtRecordValue: `royalmotionit-verification=rmit-verify-${brandingResult.branding.code}`,
     verified: !!brandingResult.branding.customDomain,

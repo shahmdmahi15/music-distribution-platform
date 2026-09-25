@@ -467,7 +467,7 @@ export function AdminWhiteLabelDetailsDialog({
       label: "Subdomain & Routing Architecture",
       passed: Boolean(whiteLabel.subdomain),
       detail: whiteLabel.subdomain
-        ? `${whiteLabel.subdomain}.rmitdistribution.com`
+        ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
         : "Missing Subdomain",
     },
     {
@@ -1058,7 +1058,7 @@ export function AdminWhiteLabelDetailsDialog({
                     {whiteLabel.country && <span>• {whiteLabel.country}</span>}
                     {whiteLabel.subdomain && (
                       <span className="font-mono text-primary">
-                        • {whiteLabel.subdomain}.rmitdistribution.com
+                        • {whiteLabel.subdomain}.platform.royalmotionit.com
                       </span>
                     )}
                     <span>• Applied {formatDate(whiteLabel.createdAt)}</span>
@@ -1618,7 +1618,7 @@ export function AdminWhiteLabelDetailsDialog({
                         </span>
                         <p className="font-mono font-bold text-primary truncate">
                           {whiteLabel.subdomain
-                            ? `${whiteLabel.subdomain}.rmitdistribution.com`
+                            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
                             : "Not Set"}
                         </p>
                       </div>
@@ -2990,7 +2990,7 @@ export function AdminWhiteLabelDetailsDialog({
                         className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
                       />
                       <span className="h-8 px-2 bg-muted/80 border border-l-0 rounded-r-md text-[11px] font-mono flex items-center text-muted-foreground shrink-0 select-none">
-                        .rmitdistribution.com
+                        .platform.royalmotionit.com
                       </span>
                     </div>
                   </div>

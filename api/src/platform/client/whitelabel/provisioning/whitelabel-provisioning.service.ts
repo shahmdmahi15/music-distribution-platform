@@ -358,8 +358,12 @@ export class WhitelabelProvisioningService {
                   '*',
                   `https://${customDomain}`,
                   `https://${baseDomain}`,
-                  'http://localhost:3000',
-                  'http://localhost:3001',
+                  ...(wl.subdomain
+                    ? [`https://${wl.subdomain}.platform.royalmotionit.com`]
+                    : []),
+                  'https://platform.royalmotionit.com',
+                  'https://*.platform.royalmotionit.com',
+                  'https://api.royalmotionit.com',
                 ],
                 ExposeHeaders: ['ETag', 'x-amz-server-side-encryption'],
                 MaxAgeSeconds: 3600,
@@ -637,9 +641,7 @@ export class WhitelabelProvisioningService {
         });
       }
 
-      const apiBaseUrl =
-        this.configService.get('PLATFORM_URL', { infer: true }) ||
-        'http://localhost:5000';
+      const apiBaseUrl = 'https://api.royalmotionit.com';
       const internalSecret =
         this.configService.get('INTERNAL_API_SECRET', { infer: true }) ||
         'internal_api_secret_default';

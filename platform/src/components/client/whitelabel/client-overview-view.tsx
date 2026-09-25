@@ -51,7 +51,7 @@ export function ClientOverviewView({
   const portalUrl = branding.customDomain
     ? `https://${branding.customDomain}`
     : branding.subdomain
-      ? `https://${branding.subdomain}.rmitdistribution.com`
+      ? `https://${branding.subdomain}.platform.royalmotionit.com`
       : "https://platform.royalmotionit.com";
 
   const envSnippet = `# WhiteLabel Hosting Bundle (.env)
@@ -495,7 +495,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
               <div className="font-mono font-bold text-sm text-foreground truncate">
                 {branding.customDomain ||
                   (branding.subdomain
-                    ? `${branding.subdomain}.rmitdistribution.com`
+                    ? `${branding.subdomain}.platform.royalmotionit.com`
                     : "Not Configured")}
               </div>
               <div className="text-[11px] text-muted-foreground">
@@ -626,7 +626,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   Domain Routing &amp; DNS Ownership
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Assign platform subdomain (*.rmitdistribution.com) or verify
+                  Assign platform subdomain (*.platform.royalmotionit.com) or verify
                   custom domain with DNS TXT record.
                 </div>
               </div>

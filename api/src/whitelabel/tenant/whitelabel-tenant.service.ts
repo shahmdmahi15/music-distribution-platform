@@ -164,7 +164,9 @@ export class WhitelabelTenantService {
             ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
             : null,
           customDomain: whiteLabel.customDomain,
-          cnameTarget: 'cname.whitelabel.royalmotionit.com',
+          cnameTarget: whiteLabel.subdomain
+            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+            : 'platform.royalmotionit.com',
           verified:
             whiteLabel.domainVerified || domainStatus?.verified || false,
           sslStatus:

@@ -1408,7 +1408,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         expectedCustomDomain,
         cloudflareZoneId: wl.cloudflareZoneId || null,
         cnameTarget:
-          platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
+          platformSubdomainFqdn || 'platform.royalmotionit.com',
         cnameHost: 'backstage',
         health,
         // Step 1: DNS TXT Ownership Verification
@@ -1429,10 +1429,10 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           title: 'Step 2: Traffic Routing Configuration',
           unlocked: wl.domainVerified,
           cnameTarget:
-            platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
+            platformSubdomainFqdn || 'platform.royalmotionit.com',
           serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
           note: wl.domainVerified
-            ? `Point CNAME for "backstage" to your platform subdomain: ${platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com'}`
+            ? `Point CNAME for "backstage" to your platform subdomain: ${platformSubdomainFqdn || 'platform.royalmotionit.com'}`
             : 'Complete Step 1 TXT ownership verification above to reveal routing configuration.',
         },
         verified: wl.domainVerified,
@@ -1833,7 +1833,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         verifiedAt: updated.domainVerifiedAt,
         cnameTarget: wl.subdomain
           ? `${wl.subdomain}.platform.royalmotionit.com`
-          : 'cname.whitelabel.royalmotionit.com',
+          : 'platform.royalmotionit.com',
         serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
       },
     };

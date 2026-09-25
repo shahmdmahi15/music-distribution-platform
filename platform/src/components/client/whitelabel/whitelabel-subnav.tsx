@@ -20,7 +20,7 @@ export function WhiteLabelSubNav({
   const portalUrl = customDomain
     ? `https://${customDomain}`
     : subdomain
-      ? `https://${subdomain}.rmitdistribution.com`
+      ? `https://${subdomain}.platform.royalmotionit.com`
       : "https://platform.royalmotionit.com";
 
   return (

@@ -171,9 +171,16 @@ export class WhitelabelMiddleware implements NestMiddleware {
             });
           } else if (typeof domainHeader === 'string' && domainHeader.trim()) {
             const dom = domainHeader.trim().toLowerCase();
+            const subFromDom = dom.endsWith('.platform.royalmotionit.com')
+              ? dom.replace('.platform.royalmotionit.com', '')
+              : dom.split('.')[0];
             whiteLabel = await this.prismaService.whiteLabel.findFirst({
               where: {
-                OR: [{ customDomain: dom }, { subdomain: dom }],
+                OR: [
+                  { customDomain: dom },
+                  { subdomain: dom },
+                  { subdomain: subFromDom },
+                ],
               },
             });
           } else {
