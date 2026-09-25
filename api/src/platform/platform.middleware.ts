@@ -22,26 +22,39 @@ export class PlatformMiddleware implements NestMiddleware {
       throw new UnauthorizedException('Missing or invalid API Key format');
     }
 
-    // 2. Fetch the target hash from your environment variables
-    const targetHash = this.configService.get('PLATFORM_API_KEY', {
+    // 2. Fetch target key/hash from environment
+    const targetKeyOrHash = this.configService.get('PLATFORM_API_KEY', {
       infer: true,
     });
 
-    // 3. Hash the incoming plaintext key using SHA-256
-    const incomingHash = crypto
-      .createHash('sha256')
-      .update(incomingKey)
-      .digest('hex');
+    const incomingTrimmed = incomingKey.trim();
+    const targetTrimmed = (targetKeyOrHash || '').trim();
 
-    // 4. Use timingSafeEqual to prevent timing attacks
-    const bufferIncoming = Buffer.from(incomingHash, 'hex');
-    const bufferTarget = Buffer.from(targetHash, 'hex');
+    // 3. Direct constant-time match (if identical raw key configured in both services)
+    const directBufIncoming = Buffer.from(incomingTrimmed);
+    const directBufTarget = Buffer.from(targetTrimmed);
+    const isDirectMatch =
+      directBufIncoming.length === directBufTarget.length &&
+      crypto.timingSafeEqual(directBufIncoming, directBufTarget);
 
-    // Buffers must be the exact same length for timingSafeEqual to work
-    if (
-      bufferIncoming.length !== bufferTarget.length ||
-      !crypto.timingSafeEqual(bufferIncoming, bufferTarget)
-    ) {
+    // 4. SHA-256 hash match (if target is a 64-char hex digest)
+    let isHashMatch = false;
+    if (targetTrimmed.length === 64) {
+      const incomingHash = crypto
+        .createHash('sha256')
+        .update(incomingTrimmed)
+        .digest('hex');
+      const hashBufIncoming = Buffer.from(incomingHash, 'hex');
+      const hashBufTarget = Buffer.from(targetTrimmed, 'hex');
+      if (
+        hashBufIncoming.length === hashBufTarget.length &&
+        crypto.timingSafeEqual(hashBufIncoming, hashBufTarget)
+      ) {
+        isHashMatch = true;
+      }
+    }
+
+    if (!isDirectMatch && !isHashMatch) {
       throw new UnauthorizedException('Invalid API Key');
     }
 
