@@ -291,9 +291,7 @@ export async function clientToggleLockPortalUserAction(
   }
 }
 
-export async function clientApprovePortalUserAction(
-  userId: string,
-): Promise<{
+export async function clientApprovePortalUserAction(userId: string): Promise<{
   success: boolean;
   message: string;
   user?: PortalUserItem;
@@ -333,10 +331,7 @@ export async function clientApprovePortalUserAction(
       user: data.user,
     };
   } catch (error) {
-    console.error(
-      "[Action.Client.WhiteLabel.ApprovePortalUser] Error:",
-      error,
-    );
+    console.error("[Action.Client.WhiteLabel.ApprovePortalUser] Error:", error);
     return {
       success: false,
       message: "An error occurred while approving user.",
@@ -344,9 +339,7 @@ export async function clientApprovePortalUserAction(
   }
 }
 
-export async function clientDeletePortalUserAction(
-  userId: string,
-): Promise<{
+export async function clientDeletePortalUserAction(userId: string): Promise<{
   success: boolean;
   message: string;
 }> {

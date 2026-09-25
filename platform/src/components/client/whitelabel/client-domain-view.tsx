@@ -90,13 +90,15 @@ export function ClientDomainView({
 
   const isInitialCustomDomainConfigured = Boolean(
     config.customDomain &&
-      (config.verified || config.status?.verified || config.sslStatus === "ACTIVE"),
+    (config.verified ||
+      config.status?.verified ||
+      config.sslStatus === "ACTIVE"),
   );
 
   const hasCloudflareCreds = Boolean(
     config.hasCloudflareCredentials ??
-      (branding.hasCloudflareCredentials ||
-        Boolean(branding.cloudflareZoneId && branding.cloudflareBaseDomain)),
+    (branding.hasCloudflareCredentials ||
+      Boolean(branding.cloudflareZoneId && branding.cloudflareBaseDomain)),
   );
 
   const platformSubdomainFqdn = config.subdomain
@@ -161,7 +163,8 @@ export function ClientDomainView({
 
   const [isApplyingCname, setIsApplyingCname] = useState(false);
   const [cnameResult, setCnameResult] = useState<DomainCnameResult | null>(
-    isInitialCustomDomainConfigured || initialConfig.health?.step3.status === "VERIFIED"
+    isInitialCustomDomainConfigured ||
+      initialConfig.health?.step3.status === "VERIFIED"
       ? {
           success: true,
           cnameFqdn: initialConfig.customDomain || expectedCustomDomain,
@@ -280,8 +283,13 @@ export function ClientDomainView({
           }));
 
           if (showToast) {
-            if (res.health.allConnected && res.health.subdomain.status === "VERIFIED") {
-              toast.success("Health check: Subdomain, Elastic IP & all 3 Custom Domain layers are healthy!");
+            if (
+              res.health.allConnected &&
+              res.health.subdomain.status === "VERIFIED"
+            ) {
+              toast.success(
+                "Health check: Subdomain, Elastic IP & all 3 Custom Domain layers are healthy!",
+              );
             } else if (!res.health.allConnected) {
               toast.warning(
                 res.health.step3.status === "FAILED"
@@ -342,37 +350,37 @@ export function ClientDomainView({
   const isStep1Failed = Boolean(
     domainHealth
       ? domainHealth.step1.status === "FAILED"
-      : (cfCheckResult && !cfCheckResult.success),
+      : cfCheckResult && !cfCheckResult.success,
   );
 
   // Step 2 status calculation
   const isStep2Verified = Boolean(
     domainHealth
       ? domainHealth.step2.status === "VERIFIED"
-      : (holdResult?.domainVerified || config.verified),
+      : holdResult?.domainVerified || config.verified,
   );
   const isStep2Failed = Boolean(
     domainHealth
       ? domainHealth.step2.status === "FAILED"
-      : (holdResult && !holdResult.success),
+      : holdResult && !holdResult.success,
   );
 
   // Step 3 status calculation
   const isStep3Verified = Boolean(
     domainHealth
       ? domainHealth.step3.status === "VERIFIED"
-      : (cnameResult?.success && config.sslStatus === "ACTIVE"),
+      : cnameResult?.success && config.sslStatus === "ACTIVE",
   );
   const isStep3Failed = Boolean(
     domainHealth
       ? domainHealth.step3.status === "FAILED"
-      : (cnameResult && !cnameResult.success),
+      : cnameResult && !cnameResult.success,
   );
 
   const areAllLayersConnected = Boolean(
     domainHealth
       ? domainHealth.allConnected
-      : (isStep1Verified && isStep2Verified && isStep3Verified),
+      : isStep1Verified && isStep2Verified && isStep3Verified,
   );
 
   const isCustomDomainActive = Boolean(
@@ -562,7 +570,9 @@ export function ClientDomainView({
       const cfRes = await clientVerifyCloudflareInterconnectionAction();
       setCfCheckResult(cfRes);
       if (!cfRes.success) {
-        toast.error(cfRes.message || "Cloudflare 3-way interconnection failed.");
+        toast.error(
+          cfRes.message || "Cloudflare 3-way interconnection failed.",
+        );
         setIsRunningFullFlow(false);
         setFullFlowStep(0);
         return;
@@ -686,7 +696,8 @@ export function ClientDomainView({
             <span>Domain, Subdomain &amp; Elastic IP Infrastructure</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Continuous periodic verification active for platform subdomains, Elastic IPv4 routing, and Cloudflare custom domains.
+            Continuous periodic verification active for platform subdomains,
+            Elastic IPv4 routing, and Cloudflare custom domains.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -774,7 +785,9 @@ export function ClientDomainView({
                 Custom Domain Status
               </div>
               <div className="text-sm font-bold truncate mt-0.5 text-foreground font-mono">
-                {config.customDomain || expectedCustomDomain || "None connected"}
+                {config.customDomain ||
+                  expectedCustomDomain ||
+                  "None connected"}
               </div>
               <Badge
                 variant={isCustomDomainActive ? "default" : "outline"}
@@ -856,7 +869,8 @@ export function ClientDomainView({
                       Option A: Platform Subdomain &amp; Server Routing
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Authoritative platform routing pointing to your hosted server
+                      Authoritative platform routing pointing to your hosted
+                      server
                     </CardDescription>
                   </div>
                 </div>
@@ -899,7 +913,8 @@ export function ClientDomainView({
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Your platform subdomain is permanently tied to your registered brand code and cannot be modified.
+                  Your platform subdomain is permanently tied to your registered
+                  brand code and cannot be modified.
                 </p>
               </div>
 
@@ -944,8 +959,10 @@ export function ClientDomainView({
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Enter your cloud server&apos;s Elastic IPv4. Cloudflare DNS will automatically create an{" "}
-                  <strong className="text-foreground">A record</strong> routing your subdomain directly to your hosted server.
+                  Enter your cloud server&apos;s Elastic IPv4. Cloudflare DNS
+                  will automatically create an{" "}
+                  <strong className="text-foreground">A record</strong> routing
+                  your subdomain directly to your hosted server.
                 </p>
               </div>
 
@@ -1161,11 +1178,14 @@ export function ClientDomainView({
 
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Connect your brand&apos;s own domain to deliver an uncompromising white-labeled experience. Custom domain is strictly enforced as{" "}
+                Connect your brand&apos;s own domain to deliver an
+                uncompromising white-labeled experience. Custom domain is
+                strictly enforced as{" "}
                 <code className="text-primary font-mono font-semibold">
                   backstage.&lt;basedomain&gt;
                 </code>{" "}
-                and uses your configured Cloudflare Zone for zero-touch DNS orchestration.
+                and uses your configured Cloudflare Zone for zero-touch DNS
+                orchestration.
               </p>
 
               {!hasCloudflareCreds || !cleanBaseDomain ? (
@@ -1181,10 +1201,13 @@ export function ClientDomainView({
                       </h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         To assign and onboard a custom domain, your{" "}
-                        <strong className="text-foreground">Cloudflare API Token</strong>,{" "}
-                        <strong className="text-foreground">Zone ID</strong>, and{" "}
-                        <strong className="text-foreground">Base Domain</strong> must be saved in{" "}
-                        <strong>Credentials &amp; SSO</strong>.
+                        <strong className="text-foreground">
+                          Cloudflare API Token
+                        </strong>
+                        , <strong className="text-foreground">Zone ID</strong>,
+                        and{" "}
+                        <strong className="text-foreground">Base Domain</strong>{" "}
+                        must be saved in <strong>Credentials &amp; SSO</strong>.
                       </p>
                       <p className="text-[11px] text-amber-500 font-medium">
                         Custom domain format:{" "}
@@ -1262,7 +1285,9 @@ export function ClientDomainView({
                       </Badge>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Executes all 3 steps automatically: verifies Cloudflare 3-way interconnection, holds domain &amp; verifies ownership via TXT, and applies proxied CNAME routing.
+                      Executes all 3 steps automatically: verifies Cloudflare
+                      3-way interconnection, holds domain &amp; verifies
+                      ownership via TXT, and applies proxied CNAME routing.
                     </p>
 
                     <Button
@@ -1287,7 +1312,9 @@ export function ClientDomainView({
                       ) : areAllLayersConnected ? (
                         <>
                           <Check className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Domain Fully Onboarded &amp; Continuously Monitored</span>
+                          <span>
+                            Domain Fully Onboarded &amp; Continuously Monitored
+                          </span>
                         </>
                       ) : (
                         <>
@@ -1369,7 +1396,8 @@ export function ClientDomainView({
                   <span>Custom Domain Onboarding Pipeline</span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  Follow the 3 sequential steps or click &quot;Run Complete Automated Onboarding&quot; above.
+                  Follow the 3 sequential steps or click &quot;Run Complete
+                  Automated Onboarding&quot; above.
                 </CardDescription>
               </div>
               <Badge
@@ -1392,7 +1420,8 @@ export function ClientDomainView({
                 Continuous Periodic Verification Active
               </span>
               <span className="text-[11px] text-muted-foreground">
-                • Subdomains, Elastic IP &amp; Custom Domain Monitored ({getLastCheckedLabel()})
+                • Subdomains, Elastic IP &amp; Custom Domain Monitored (
+                {getLastCheckedLabel()})
               </span>
             </div>
 
@@ -1407,7 +1436,9 @@ export function ClientDomainView({
               <RefreshCw
                 className={`h-3 w-3 ${isCheckingHealth ? "animate-spin" : ""}`}
               />
-              <span>{isCheckingHealth ? "Checking..." : "Live Health Check"}</span>
+              <span>
+                {isCheckingHealth ? "Checking..." : "Live Health Check"}
+              </span>
             </Button>
           </div>
 
@@ -1424,7 +1455,8 @@ export function ClientDomainView({
                 variant="outline"
                 className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] font-mono shrink-0"
               >
-                Subdomain DNS • Elastic IP • Cloudflare API • Domain Hold TXT • Proxied CNAME
+                Subdomain DNS • Elastic IP • Cloudflare API • Domain Hold TXT •
+                Proxied CNAME
               </Badge>
             </div>
           )}
@@ -1442,7 +1474,8 @@ export function ClientDomainView({
                       <span>Cloudflare 3-Way Interconnection</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Verify that your API Token, Zone ID, and Base Domain ({cleanBaseDomain}) are interconnected and active.
+                      Verify that your API Token, Zone ID, and Base Domain (
+                      {cleanBaseDomain}) are interconnected and active.
                     </p>
                   </div>
                 </div>
@@ -1475,7 +1508,9 @@ export function ClientDomainView({
                     <RefreshCw
                       className={`h-3 w-3 ${isCheckingCf ? "animate-spin" : ""}`}
                     />
-                    <span>{isCheckingCf ? "Checking..." : "Verify Cloudflare"}</span>
+                    <span>
+                      {isCheckingCf ? "Checking..." : "Verify Cloudflare"}
+                    </span>
                   </Button>
                 </div>
               </div>
@@ -1534,7 +1569,7 @@ export function ClientDomainView({
                         DNS Edit Perms
                       </span>
                       <span className="text-indigo-400 font-semibold">
-                        {cfCheckResult?.details?.hasDnsEditPermission ?? true
+                        {(cfCheckResult?.details?.hasDnsEditPermission ?? true)
                           ? "Granted"
                           : "Restricted"}
                       </span>
@@ -1564,7 +1599,12 @@ export function ClientDomainView({
                       <span>Reserve Domain &amp; Verify Ownership</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Reserves <code className="font-mono text-primary">{expectedCustomDomain}</code> and verifies ownership via automated Cloudflare TXT record.
+                      Reserves{" "}
+                      <code className="font-mono text-primary">
+                        {expectedCustomDomain}
+                      </code>{" "}
+                      and verifies ownership via automated Cloudflare TXT
+                      record.
                     </p>
                   </div>
                 </div>
@@ -1598,7 +1638,9 @@ export function ClientDomainView({
                       className={`h-3 w-3 ${isHoldingDomain ? "animate-spin" : ""}`}
                     />
                     <span>
-                      {isHoldingDomain ? "Reserving..." : "Hold & Verify Domain"}
+                      {isHoldingDomain
+                        ? "Reserving..."
+                        : "Hold & Verify Domain"}
                     </span>
                   </Button>
                 </div>
@@ -1666,8 +1708,17 @@ export function ClientDomainView({
               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/60 text-[11px] text-muted-foreground">
                 <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <span className="font-semibold text-foreground">TXT Record Quotation Marks: </span>
-                  Cloudflare may automatically enclose the TXT record content in double quotation marks (<code className="text-primary font-mono font-semibold">&quot;{txtValue}&quot;</code>). Our platform normalizes quotation marks automatically, so ownership verification functions seamlessly whether entered with or without quotes.
+                  <span className="font-semibold text-foreground">
+                    TXT Record Quotation Marks:{" "}
+                  </span>
+                  Cloudflare may automatically enclose the TXT record content in
+                  double quotation marks (
+                  <code className="text-primary font-mono font-semibold">
+                    &quot;{txtValue}&quot;
+                  </code>
+                  ). Our platform normalizes quotation marks automatically, so
+                  ownership verification functions seamlessly whether entered
+                  with or without quotes.
                 </div>
               </div>
 
@@ -1701,7 +1752,9 @@ export function ClientDomainView({
                       <span>Apply CNAME Traffic Routing</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Creates/updates Cloudflare CNAME record for <code className="font-mono text-primary">backstage</code> pointing to your platform subdomain.
+                      Creates/updates Cloudflare CNAME record for{" "}
+                      <code className="font-mono text-primary">backstage</code>{" "}
+                      pointing to your platform subdomain.
                     </p>
                   </div>
                 </div>
@@ -1747,9 +1800,7 @@ export function ClientDomainView({
                     <span className="text-muted-foreground block text-[10px]">
                       CNAME Record Host
                     </span>
-                    <span className="font-bold text-foreground">
-                      backstage
-                    </span>
+                    <span className="font-bold text-foreground">backstage</span>
                     <span className="text-[10px] text-muted-foreground block">
                       .{cleanBaseDomain}
                     </span>

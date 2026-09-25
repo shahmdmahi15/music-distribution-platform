@@ -136,9 +136,9 @@ export default function RegisterPage() {
               <AlertDescription className="text-xs text-muted-foreground mt-1">
                 Public self-registration is disabled for{" "}
                 {tenant?.name || "this portal"}. Membership is strictly managed
-                by invitation. If you are a signed artist
-                or distribution partner, please check your email invitation link
-                or reach out to the label administrator.
+                by invitation. If you are a signed artist or distribution
+                partner, please check your email invitation link or reach out to
+                the label administrator.
               </AlertDescription>
             </Alert>
 
@@ -177,9 +177,7 @@ export default function RegisterPage() {
               {isAdminApproval ? (
                 <>
                   Your registration for{" "}
-                  <span className="font-semibold text-foreground">
-                    {email}
-                  </span>{" "}
+                  <span className="font-semibold text-foreground">{email}</span>{" "}
                   has been submitted for label administrator review. You will be
                   notified once your account is approved and activated.
                 </>
@@ -187,9 +185,7 @@ export default function RegisterPage() {
                 <>
                   Your portal account has been created. A verification email has
                   been dispatched to{" "}
-                  <span className="font-semibold text-foreground">
-                    {email}
-                  </span>
+                  <span className="font-semibold text-foreground">{email}</span>
                   .
                 </>
               )}

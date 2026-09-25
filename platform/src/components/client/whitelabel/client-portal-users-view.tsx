@@ -56,16 +56,8 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -220,7 +212,9 @@ export function ClientPortalUsersView({
 
       const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
 
-      const isLocked = Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+      const isLocked = Boolean(
+        u.lockedUntil && new Date(u.lockedUntil) > new Date(),
+      );
       const isPending = u.isApproved === false;
 
       let matchesStatus = true;
@@ -231,7 +225,8 @@ export function ClientPortalUsersView({
 
       let matchesTab = true;
       if (activeTab === "pending") matchesTab = isPending;
-      if (activeTab === "artists") matchesTab = u.role === WhiteLabelUserRole.CLIENT;
+      if (activeTab === "artists")
+        matchesTab = u.role === WhiteLabelUserRole.CLIENT;
       if (activeTab === "staff") {
         matchesTab = [
           WhiteLabelUserRole.MANAGER,
@@ -247,8 +242,12 @@ export function ClientPortalUsersView({
 
   // Analytics counts
   const totalUsers = users.length;
-  const pendingApprovalsCount = users.filter((u) => u.isApproved === false).length;
-  const clientCount = users.filter((u) => u.role === WhiteLabelUserRole.CLIENT).length;
+  const pendingApprovalsCount = users.filter(
+    (u) => u.isApproved === false,
+  ).length;
+  const clientCount = users.filter(
+    (u) => u.role === WhiteLabelUserRole.CLIENT,
+  ).length;
   const staffCount = users.filter((u) =>
     [
       WhiteLabelUserRole.MANAGER,
@@ -293,7 +292,9 @@ export function ClientPortalUsersView({
         lastName: createForm.lastName.trim(),
         email: createForm.email.trim(),
         role: createForm.role,
-        password: createForm.autoGeneratePassword ? undefined : createForm.password,
+        password: createForm.autoGeneratePassword
+          ? undefined
+          : createForm.password,
       });
 
       if (res.success && res.user) {
@@ -306,7 +307,9 @@ export function ClientPortalUsersView({
           userName: `${res.user.firstName} ${res.user.lastName}`,
           email: res.user.email,
           code: res.user.code,
-          tempPassword: res.temporaryPassword || (createForm.autoGeneratePassword ? undefined : createForm.password),
+          tempPassword:
+            res.temporaryPassword ||
+            (createForm.autoGeneratePassword ? undefined : createForm.password),
         });
       } else {
         toast.error(res.message || "Failed to create portal user.");
@@ -346,7 +349,9 @@ export function ClientPortalUsersView({
       if (res.success && res.user) {
         toast.success(res.message);
         setUsers((prev) =>
-          prev.map((u) => (u.id === editingUser.id ? { ...u, ...res.user! } : u)),
+          prev.map((u) =>
+            u.id === editingUser.id ? { ...u, ...res.user! } : u,
+          ),
         );
         setEditingUser(null);
       } else {
@@ -493,7 +498,8 @@ export function ClientPortalUsersView({
             )}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage creator profiles, approve registered artists, configure role permissions, and maintain account security for {branding.name}.
+            Manage creator profiles, approve registered artists, configure role
+            permissions, and maintain account security for {branding.name}.
           </p>
         </div>
 
@@ -513,8 +519,12 @@ export function ClientPortalUsersView({
         <Card className="border-border/70 shadow-xs bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{totalUsers}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Total Users
+              </p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {totalUsers}
+              </p>
             </div>
             <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <Users className="h-4 w-4" />
@@ -525,12 +535,18 @@ export function ClientPortalUsersView({
         <Card className="border-border/70 shadow-xs bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Pending Approvals</p>
-              <p className={`text-2xl font-bold mt-1 ${pendingApprovalsCount > 0 ? "text-amber-500" : "text-foreground"}`}>
+              <p className="text-xs font-medium text-muted-foreground">
+                Pending Approvals
+              </p>
+              <p
+                className={`text-2xl font-bold mt-1 ${pendingApprovalsCount > 0 ? "text-amber-500" : "text-foreground"}`}
+              >
                 {pendingApprovalsCount}
               </p>
             </div>
-            <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${pendingApprovalsCount > 0 ? "bg-amber-500/15 text-amber-500" : "bg-muted text-muted-foreground"}`}>
+            <div
+              className={`h-9 w-9 rounded-lg flex items-center justify-center ${pendingApprovalsCount > 0 ? "bg-amber-500/15 text-amber-500" : "bg-muted text-muted-foreground"}`}
+            >
               <Clock className="h-4 w-4" />
             </div>
           </CardContent>
@@ -539,8 +555,12 @@ export function ClientPortalUsersView({
         <Card className="border-border/70 shadow-xs bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Artists &amp; Clients</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{clientCount}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Artists &amp; Clients
+              </p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {clientCount}
+              </p>
             </div>
             <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <UserCheck className="h-4 w-4" />
@@ -551,8 +571,12 @@ export function ClientPortalUsersView({
         <Card className="border-border/70 shadow-xs bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Staff &amp; Managers</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{staffCount}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Staff &amp; Managers
+              </p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {staffCount}
+              </p>
             </div>
             <div className="h-9 w-9 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <ShieldCheck className="h-4 w-4" />
@@ -566,7 +590,11 @@ export function ClientPortalUsersView({
         <CardHeader className="pb-3 border-b border-border/60 bg-muted/15 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Tabs for quick views */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full sm:w-auto"
+            >
               <TabsList className="h-8">
                 <TabsTrigger value="all" className="text-xs">
                   All Users ({totalUsers})
@@ -589,7 +617,10 @@ export function ClientPortalUsersView({
             </Tabs>
 
             {/* Clear Filters Button if any active */}
-            {(search || roleFilter !== "ALL" || statusFilter !== "ALL" || activeTab !== "all") && (
+            {(search ||
+              roleFilter !== "ALL" ||
+              statusFilter !== "ALL" ||
+              activeTab !== "all") && (
               <Button
                 type="button"
                 variant="ghost"
@@ -632,24 +663,40 @@ export function ClientPortalUsersView({
 
             {/* Role Filter (Shadcn Select) */}
             <div className="w-full sm:w-44">
-              <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val ?? "ALL")}>
+              <Select
+                value={roleFilter}
+                onValueChange={(val) => setRoleFilter(val ?? "ALL")}
+              >
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Roles</SelectItem>
-                  <SelectItem value={WhiteLabelUserRole.CLIENT}>Artist / Client</SelectItem>
-                  <SelectItem value={WhiteLabelUserRole.MANAGER}>Catalog Manager</SelectItem>
-                  <SelectItem value={WhiteLabelUserRole.STAFF}>Portal Staff</SelectItem>
-                  <SelectItem value={WhiteLabelUserRole.ADMIN}>Portal Admin</SelectItem>
-                  <SelectItem value={WhiteLabelUserRole.OWNER}>Owner</SelectItem>
+                  <SelectItem value={WhiteLabelUserRole.CLIENT}>
+                    Artist / Client
+                  </SelectItem>
+                  <SelectItem value={WhiteLabelUserRole.MANAGER}>
+                    Catalog Manager
+                  </SelectItem>
+                  <SelectItem value={WhiteLabelUserRole.STAFF}>
+                    Portal Staff
+                  </SelectItem>
+                  <SelectItem value={WhiteLabelUserRole.ADMIN}>
+                    Portal Admin
+                  </SelectItem>
+                  <SelectItem value={WhiteLabelUserRole.OWNER}>
+                    Owner
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Status Filter (Shadcn Select) */}
             <div className="w-full sm:w-44">
-              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "ALL")}>
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => setStatusFilter(val ?? "ALL")}
+              >
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
@@ -670,9 +717,14 @@ export function ClientPortalUsersView({
           {filteredUsers.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2.5" />
-              <p className="text-sm font-semibold text-foreground">No Users Found</p>
+              <p className="text-sm font-semibold text-foreground">
+                No Users Found
+              </p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                {search || roleFilter !== "ALL" || statusFilter !== "ALL" || activeTab !== "all"
+                {search ||
+                roleFilter !== "ALL" ||
+                statusFilter !== "ALL" ||
+                activeTab !== "all"
                   ? "No users match your criteria. Try adjusting or resetting filters."
                   : "No artists or team members registered yet. Click 'Add Portal User' to create the first account."}
               </p>
@@ -681,17 +733,29 @@ export function ClientPortalUsersView({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold pl-4">User &amp; Email</TableHead>
-                  <TableHead className="text-xs font-semibold">User Code</TableHead>
+                  <TableHead className="text-xs font-semibold pl-4">
+                    User &amp; Email
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    User Code
+                  </TableHead>
                   <TableHead className="text-xs font-semibold">Role</TableHead>
-                  <TableHead className="text-xs font-semibold">Status</TableHead>
-                  <TableHead className="text-xs font-semibold hidden md:table-cell">Joined Date</TableHead>
-                  <TableHead className="text-xs font-semibold text-right pr-4">Actions</TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold hidden md:table-cell">
+                    Joined Date
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold text-right pr-4">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((u) => {
-                  const isLocked = Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+                  const isLocked = Boolean(
+                    u.lockedUntil && new Date(u.lockedUntil) > new Date(),
+                  );
                   const isPending = u.isApproved === false;
                   const isLoading = actionLoadingId === u.id;
 
@@ -708,9 +772,14 @@ export function ClientPortalUsersView({
                           </Avatar>
                           <div className="min-w-0">
                             <div className="font-semibold text-foreground truncate flex items-center gap-1.5">
-                              <span>{u.firstName} {u.lastName}</span>
+                              <span>
+                                {u.firstName} {u.lastName}
+                              </span>
                               {u.twoFactorEnabled && (
-                                <span title="2FA Enabled" className="inline-flex items-center">
+                                <span
+                                  title="2FA Enabled"
+                                  className="inline-flex items-center"
+                                >
                                   <Shield className="h-3 w-3 text-blue-500 shrink-0" />
                                 </span>
                               )}
@@ -719,7 +788,9 @@ export function ClientPortalUsersView({
                               <span className="truncate">{u.email}</span>
                               <button
                                 type="button"
-                                onClick={() => handleCopy(u.email, `email-${u.id}`, "Email")}
+                                onClick={() =>
+                                  handleCopy(u.email, `email-${u.id}`, "Email")
+                                }
                                 className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
                                 title="Copy Email"
                               >
@@ -738,7 +809,9 @@ export function ClientPortalUsersView({
                       <TableCell>
                         <button
                           type="button"
-                          onClick={() => handleCopy(u.code, `code-${u.id}`, "User Code")}
+                          onClick={() =>
+                            handleCopy(u.code, `code-${u.id}`, "User Code")
+                          }
                           className="font-mono text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer transition-colors text-[11px]"
                           title="Click to copy user code"
                         >
@@ -753,7 +826,12 @@ export function ClientPortalUsersView({
 
                       {/* Role */}
                       <TableCell>
-                        <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-md border", getRoleBadgeVariant(u.role))}>
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold px-2 py-0.5 rounded-md border",
+                            getRoleBadgeVariant(u.role),
+                          )}
+                        >
                           {u.role}
                         </span>
                       </TableCell>
@@ -761,15 +839,24 @@ export function ClientPortalUsersView({
                       {/* Status */}
                       <TableCell>
                         {isPending ? (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] gap-1">
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] gap-1"
+                          >
                             <Clock className="h-2.5 w-2.5" /> Pending Approval
                           </Badge>
                         ) : isLocked ? (
-                          <Badge variant="outline" className="bg-rose-500/10 text-rose-500 border-rose-500/30 text-[10px] gap-1">
+                          <Badge
+                            variant="outline"
+                            className="bg-rose-500/10 text-rose-500 border-rose-500/30 text-[10px] gap-1"
+                          >
                             <Lock className="h-2.5 w-2.5" /> Locked
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[10px] gap-1">
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[10px] gap-1"
+                          >
                             Active
                           </Badge>
                         )}
@@ -798,19 +885,29 @@ export function ClientPortalUsersView({
                               className="h-7 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5"
                             >
                               <CheckCircle2 className="h-3 w-3" />
-                              <span>{isLoading ? "Approving..." : "Approve"}</span>
+                              <span>
+                                {isLoading ? "Approving..." : "Approve"}
+                              </span>
                             </Button>
                           )}
 
                           {/* Full Dropdown Menu */}
                           <DropdownMenu>
-                            <DropdownMenuTrigger render={
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            } />
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel className="text-xs">User Actions</DropdownMenuLabel>
+                              <DropdownMenuLabel className="text-xs">
+                                User Actions
+                              </DropdownMenuLabel>
                               <DropdownMenuSeparator />
 
                               {isPending && (
@@ -888,7 +985,8 @@ export function ClientPortalUsersView({
               <span>Add Portal User</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Onboard a new creator, label manager, or staff member to {branding.name}.
+              Onboard a new creator, label manager, or staff member to{" "}
+              {branding.name}.
             </DialogDescription>
           </DialogHeader>
 
@@ -898,7 +996,12 @@ export function ClientPortalUsersView({
                 <Label className="text-xs font-semibold">First Name</Label>
                 <Input
                   value={createForm.firstName}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
+                  }
                   placeholder="John"
                   className="text-xs"
                   required
@@ -908,7 +1011,12 @@ export function ClientPortalUsersView({
                 <Label className="text-xs font-semibold">Last Name</Label>
                 <Input
                   value={createForm.lastName}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      lastName: e.target.value,
+                    }))
+                  }
                   placeholder="Doe"
                   className="text-xs"
                   required
@@ -921,13 +1029,16 @@ export function ClientPortalUsersView({
               <Input
                 type="email"
                 value={createForm.email}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({ ...prev, email: e.target.value }))
+                }
                 placeholder="creator@recordlabel.com"
                 className="text-xs font-mono"
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Email will serve as permanent portal identity and cannot be altered later.
+                Email will serve as permanent portal identity and cannot be
+                altered later.
               </p>
             </div>
 
@@ -935,7 +1046,12 @@ export function ClientPortalUsersView({
               <Label className="text-xs font-semibold">Assigned Role</Label>
               <Select
                 value={createForm.role}
-                onValueChange={(val) => setCreateForm((prev) => ({ ...prev, role: val as WhiteLabelUserRole }))}
+                onValueChange={(val) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    role: val as WhiteLabelUserRole,
+                  }))
+                }
               >
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue placeholder="Select a role" />
@@ -953,7 +1069,9 @@ export function ClientPortalUsersView({
             {/* Password Strategy */}
             <div className="space-y-2 pt-2 border-t border-border/60">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Generate Secure Password</Label>
+                <Label className="text-xs font-semibold">
+                  Generate Secure Password
+                </Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -966,7 +1084,9 @@ export function ClientPortalUsersView({
                   }
                   className="h-7 text-[11px]"
                 >
-                  {createForm.autoGeneratePassword ? "Use Custom Password" : "Auto-Generate"}
+                  {createForm.autoGeneratePassword
+                    ? "Use Custom Password"
+                    : "Auto-Generate"}
                 </Button>
               </div>
 
@@ -975,7 +1095,12 @@ export function ClientPortalUsersView({
                   <Input
                     type="password"
                     value={createForm.password}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
                     placeholder="Enter minimum 8-character password..."
                     className="text-xs font-mono"
                     minLength={8}
@@ -986,10 +1111,21 @@ export function ClientPortalUsersView({
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateOpen(false)} className="text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreateOpen(false)}
+                className="text-xs"
+              >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={isCreating} className="text-xs font-semibold">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isCreating}
+                className="text-xs font-semibold"
+              >
                 {isCreating ? "Creating..." : "Create User"}
               </Button>
             </DialogFooter>
@@ -1000,7 +1136,10 @@ export function ClientPortalUsersView({
       {/* ========================================================================= */}
       {/* 2. Credentials Generated Modal                                            */}
       {/* ========================================================================= */}
-      <Dialog open={Boolean(credentialsModal)} onOpenChange={(open) => !open && setCredentialsModal(null)}>
+      <Dialog
+        open={Boolean(credentialsModal)}
+        onOpenChange={(open) => !open && setCredentialsModal(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
@@ -1015,40 +1154,72 @@ export function ClientPortalUsersView({
           <div className="space-y-3 pt-2">
             <div className="p-3 rounded-xl border border-border/70 bg-muted/40 space-y-2.5 text-xs font-mono">
               <div>
-                <span className="text-[11px] text-muted-foreground block font-sans">Email</span>
+                <span className="text-[11px] text-muted-foreground block font-sans">
+                  Email
+                </span>
                 <div className="flex items-center justify-between text-foreground">
                   <span>{credentialsModal?.email}</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy(credentialsModal?.email || "", "cred-email", "Email")}
+                    onClick={() =>
+                      handleCopy(
+                        credentialsModal?.email || "",
+                        "cred-email",
+                        "Email",
+                      )
+                    }
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    {copiedKey === "cred-email" ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    {copiedKey === "cred-email" ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>
 
               {credentialsModal?.tempPassword && (
                 <div>
-                  <span className="text-[11px] text-muted-foreground block font-sans">Temporary Password</span>
+                  <span className="text-[11px] text-muted-foreground block font-sans">
+                    Temporary Password
+                  </span>
                   <div className="flex items-center justify-between text-foreground">
                     <span>
-                      {showCreatedPassword ? credentialsModal.tempPassword : "••••••••••••"}
+                      {showCreatedPassword
+                        ? credentialsModal.tempPassword
+                        : "••••••••••••"}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setShowCreatedPassword(!showCreatedPassword)}
+                        onClick={() =>
+                          setShowCreatedPassword(!showCreatedPassword)
+                        }
                         className="text-muted-foreground hover:text-foreground"
                       >
-                        {showCreatedPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        {showCreatedPassword ? (
+                          <EyeOff className="h-3 w-3" />
+                        ) : (
+                          <Eye className="h-3 w-3" />
+                        )}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCopy(credentialsModal.tempPassword || "", "cred-pass", "Password")}
+                        onClick={() =>
+                          handleCopy(
+                            credentialsModal.tempPassword || "",
+                            "cred-pass",
+                            "Password",
+                          )
+                        }
                         className="text-muted-foreground hover:text-foreground"
                       >
-                        {copiedKey === "cred-pass" ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedKey === "cred-pass" ? (
+                          <Check className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1056,15 +1227,27 @@ export function ClientPortalUsersView({
               )}
 
               <div>
-                <span className="text-[11px] text-muted-foreground block font-sans">User Code</span>
+                <span className="text-[11px] text-muted-foreground block font-sans">
+                  User Code
+                </span>
                 <div className="flex items-center justify-between text-foreground">
                   <span>{credentialsModal?.code}</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy(credentialsModal?.code || "", "cred-code", "User Code")}
+                    onClick={() =>
+                      handleCopy(
+                        credentialsModal?.code || "",
+                        "cred-code",
+                        "User Code",
+                      )
+                    }
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    {copiedKey === "cred-code" ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    {copiedKey === "cred-code" ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -1087,7 +1270,10 @@ export function ClientPortalUsersView({
       {/* ========================================================================= */}
       {/* 3. Edit User Profile Modal (Email strictly immutable)                     */}
       {/* ========================================================================= */}
-      <Dialog open={Boolean(editingUser)} onOpenChange={(open) => !open && setEditingUser(null)}>
+      <Dialog
+        open={Boolean(editingUser)}
+        onOpenChange={(open) => !open && setEditingUser(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
@@ -1095,7 +1281,8 @@ export function ClientPortalUsersView({
               <span>Edit User Profile</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Update name and role permissions. Email address is permanent and immutable.
+              Update name and role permissions. Email address is permanent and
+              immutable.
             </DialogDescription>
           </DialogHeader>
 
@@ -1103,7 +1290,9 @@ export function ClientPortalUsersView({
             {/* Non-changeable Email */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-muted-foreground">Email Address (Immutable)</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Email Address (Immutable)
+                </Label>
                 <Badge variant="outline" className="text-[10px] gap-1">
                   <Lock className="h-2.5 w-2.5" /> Immutable
                 </Badge>
@@ -1114,7 +1303,8 @@ export function ClientPortalUsersView({
                 className="text-xs font-mono bg-muted/50 cursor-not-allowed opacity-80"
               />
               <p className="text-[11px] text-muted-foreground">
-                Email address cannot be changed once registered to safeguard artist catalog ownership and copyright records.
+                Email address cannot be changed once registered to safeguard
+                artist catalog ownership and copyright records.
               </p>
             </div>
 
@@ -1123,7 +1313,12 @@ export function ClientPortalUsersView({
                 <Label className="text-xs font-semibold">First Name</Label>
                 <Input
                   value={editForm.firstName}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
+                  }
                   className="text-xs"
                   required
                 />
@@ -1132,7 +1327,12 @@ export function ClientPortalUsersView({
                 <Label className="text-xs font-semibold">Last Name</Label>
                 <Input
                   value={editForm.lastName}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      lastName: e.target.value,
+                    }))
+                  }
                   className="text-xs"
                   required
                 />
@@ -1143,7 +1343,12 @@ export function ClientPortalUsersView({
               <Label className="text-xs font-semibold">Assigned Role</Label>
               <Select
                 value={editForm.role}
-                onValueChange={(val) => setEditForm((prev) => ({ ...prev, role: val as WhiteLabelUserRole }))}
+                onValueChange={(val) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    role: val as WhiteLabelUserRole,
+                  }))
+                }
               >
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue placeholder="Select a role" />
@@ -1164,10 +1369,21 @@ export function ClientPortalUsersView({
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditingUser(null)} className="text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingUser(null)}
+                className="text-xs"
+              >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={isUpdating} className="text-xs font-semibold">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isUpdating}
+                className="text-xs font-semibold"
+              >
                 {isUpdating ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -1178,7 +1394,10 @@ export function ClientPortalUsersView({
       {/* ========================================================================= */}
       {/* 4. Reset Password Modal                                                   */}
       {/* ========================================================================= */}
-      <Dialog open={Boolean(passwordResetUser)} onOpenChange={(open) => !open && setPasswordResetUser(null)}>
+      <Dialog
+        open={Boolean(passwordResetUser)}
+        onOpenChange={(open) => !open && setPasswordResetUser(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
@@ -1186,7 +1405,9 @@ export function ClientPortalUsersView({
               <span>Reset User Password</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Assign a new password for {passwordResetUser?.firstName} {passwordResetUser?.lastName}. All active sessions will be revoked.
+              Assign a new password for {passwordResetUser?.firstName}{" "}
+              {passwordResetUser?.lastName}. All active sessions will be
+              revoked.
             </DialogDescription>
           </DialogHeader>
 
@@ -1218,16 +1439,31 @@ export function ClientPortalUsersView({
                   onClick={() => setShowResetPassword(!showResetPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showResetPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setPasswordResetUser(null)} className="text-xs">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPasswordResetUser(null)}
+                className="text-xs"
+              >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={isResettingPassword} className="text-xs font-semibold">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isResettingPassword}
+                className="text-xs font-semibold"
+              >
                 {isResettingPassword ? "Resetting..." : "Reset Password"}
               </Button>
             </DialogFooter>
@@ -1238,7 +1474,10 @@ export function ClientPortalUsersView({
       {/* ========================================================================= */}
       {/* 5. Delete User Confirmation Modal                                         */}
       {/* ========================================================================= */}
-      <Dialog open={Boolean(deletingUser)} onOpenChange={(open) => !open && setDeletingUser(null)}>
+      <Dialog
+        open={Boolean(deletingUser)}
+        onOpenChange={(open) => !open && setDeletingUser(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2 text-destructive">
@@ -1248,14 +1487,21 @@ export function ClientPortalUsersView({
             <DialogDescription className="text-xs">
               Are you sure you want to delete the portal user{" "}
               <span className="font-semibold text-foreground">
-                {deletingUser?.firstName} {deletingUser?.lastName} ({deletingUser?.email})
+                {deletingUser?.firstName} {deletingUser?.lastName} (
+                {deletingUser?.email})
               </span>
               ? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter className="gap-2 pt-3">
-            <Button type="button" variant="outline" size="sm" onClick={() => setDeletingUser(null)} className="text-xs">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeletingUser(null)}
+              className="text-xs"
+            >
               Cancel
             </Button>
             <Button

@@ -279,20 +279,20 @@ export interface WhiteLabelDomainConfig {
 }
 
 export interface SubdomainHealthReport {
-  status: 'VERIFIED' | 'FAILED' | 'PENDING' | 'NOT_CONFIGURED';
+  status: "VERIFIED" | "FAILED" | "PENDING" | "NOT_CONFIGURED";
   subdomain: string;
   fqdn: string;
   isElasticIp: boolean;
   elasticIpv4?: string | null;
   expectedTarget: string;
   actualTarget?: string | null;
-  recordType: 'A' | 'CNAME';
+  recordType: "A" | "CNAME";
   proxied?: boolean;
   message: string;
 }
 
 export interface DomainHealthStep {
-  status: 'VERIFIED' | 'FAILED' | 'PENDING' | 'NOT_CONFIGURED';
+  status: "VERIFIED" | "FAILED" | "PENDING" | "NOT_CONFIGURED";
   title: string;
   message: string;
   details?: {
@@ -461,4 +461,3 @@ export interface WhiteLabelProvisioningTelemetry {
   provisionedAt?: string | null;
   provisioningError?: string | null;
 }
-

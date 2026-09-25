@@ -219,7 +219,10 @@ export class WhitelabelMiddleware implements NestMiddleware {
       req.baseUrl?.includes('/whitelabel/tenant') ||
       req.path?.includes('/tenant');
 
-    if (whiteLabel.status !== WhiteLabelStatus.ACTIVE && !isSetupOrTenantRoute) {
+    if (
+      whiteLabel.status !== WhiteLabelStatus.ACTIVE &&
+      !isSetupOrTenantRoute
+    ) {
       throw new ForbiddenException(
         `This WhiteLabel portal is currently ${whiteLabel.status.toLowerCase()}. Please complete setup in the onboarding wizard.`,
       );

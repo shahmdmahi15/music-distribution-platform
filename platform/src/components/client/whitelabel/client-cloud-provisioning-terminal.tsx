@@ -129,7 +129,8 @@ export function ClientCloudProvisioningTerminal({
               </Badge>
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Live AWS (EC2, Elastic IP, S3, SES) &amp; Cloudflare DNS automation
+              Live AWS (EC2, Elastic IP, S3, SES) &amp; Cloudflare DNS
+              automation
             </p>
           </div>
         </div>
@@ -170,7 +171,8 @@ export function ClientCloudProvisioningTerminal({
               Pipeline Stage
             </div>
             <div className="text-sm font-bold text-zinc-100 mt-0.5">
-              {telemetry?.provisioningStep || "Initializing cloud deployment..."}
+              {telemetry?.provisioningStep ||
+                "Initializing cloud deployment..."}
             </div>
           </div>
           <div className="text-right">
@@ -374,7 +376,8 @@ export function ClientCloudProvisioningTerminal({
                 Provisioning Failed
               </div>
               <div className="text-xs text-rose-300 mt-0.5">
-                {telemetry?.provisioningError || "Encountered an error during automated setup."}
+                {telemetry?.provisioningError ||
+                  "Encountered an error during automated setup."}
               </div>
             </div>
           </div>

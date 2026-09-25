@@ -197,7 +197,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
   };
 
   // Cloud Infrastructure Provisioning State
-  const [deploymentMode, setDeploymentMode] = useState<"automated" | "manual">("automated");
+  const [deploymentMode, setDeploymentMode] = useState<"automated" | "manual">(
+    "automated",
+  );
   const [awsAccessKeyId, setAwsAccessKeyId] = useState("");
   const [awsSecretAccessKey, setAwsSecretAccessKey] = useState("");
   const [awsRegion, setAwsRegion] = useState("us-east-1");
@@ -205,9 +207,15 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
   const [showAwsSecret, setShowAwsSecret] = useState(false);
 
   const [cloudflareApiToken, setCloudflareApiToken] = useState("");
-  const [cloudflareZoneId, setCloudflareZoneId] = useState(branding.cloudflareZoneId || "");
-  const [cloudflareBaseDomain, setCloudflareBaseDomain] = useState(branding.cloudflareBaseDomain || "");
-  const [portalSubdomain, setPortalSubdomain] = useState(branding.subdomain || "backstage");
+  const [cloudflareZoneId, setCloudflareZoneId] = useState(
+    branding.cloudflareZoneId || "",
+  );
+  const [cloudflareBaseDomain, setCloudflareBaseDomain] = useState(
+    branding.cloudflareBaseDomain || "",
+  );
+  const [portalSubdomain, setPortalSubdomain] = useState(
+    branding.subdomain || "backstage",
+  );
   const [showCfToken, setShowCfToken] = useState(false);
 
   const [isValidatingCloud, setIsValidatingCloud] = useState(false);
@@ -221,16 +229,16 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
 
   const [isProvisioningActive, setIsProvisioningActive] = useState(
     branding.provisioningStatus === ProvisioningStatus.DEPLOYING_APPLICATION ||
-    branding.provisioningStatus === ProvisioningStatus.EC2_LAUNCHING ||
-    branding.provisioningStatus === ProvisioningStatus.DNS_CONFIGURED ||
-    branding.provisioningStatus === ProvisioningStatus.STORAGE_PROVISIONED
+      branding.provisioningStatus === ProvisioningStatus.EC2_LAUNCHING ||
+      branding.provisioningStatus === ProvisioningStatus.DNS_CONFIGURED ||
+      branding.provisioningStatus === ProvisioningStatus.STORAGE_PROVISIONED,
   );
   const [isProvisioningDone, setIsProvisioningDone] = useState(
     branding.provisioningStatus === ProvisioningStatus.ACTIVE ||
-    (branding.provisioningProgress ?? 0) === 100
+      (branding.provisioningProgress ?? 0) === 100,
   );
   const [deployedDomain, setDeployedDomain] = useState<string | null>(
-    branding.customDomain || null
+    branding.customDomain || null,
   );
 
   const handleValidateCloudCredentials = async () => {
@@ -238,8 +246,14 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
       toast.error("Please enter both AWS Access Key ID and Secret Access Key.");
       return;
     }
-    if (!cloudflareApiToken.trim() || !cloudflareZoneId.trim() || !cloudflareBaseDomain.trim()) {
-      toast.error("Please enter Cloudflare API Token, Zone ID, and Base Domain.");
+    if (
+      !cloudflareApiToken.trim() ||
+      !cloudflareZoneId.trim() ||
+      !cloudflareBaseDomain.trim()
+    ) {
+      toast.error(
+        "Please enter Cloudflare API Token, Zone ID, and Base Domain.",
+      );
       return;
     }
 
@@ -262,7 +276,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
           cloudflare: res.checks.cloudflare,
           details: res.checks.details,
         });
-        toast.success("AWS STS and Cloudflare Zone credentials successfully verified!");
+        toast.success(
+          "AWS STS and Cloudflare Zone credentials successfully verified!",
+        );
       } else {
         const errorMsg = res.message || "Credential verification failed.";
         setCloudValidationResult({
@@ -275,7 +291,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
         toast.error(errorMsg);
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Validation request failed.";
+      const errorMsg =
+        err instanceof Error ? err.message : "Validation request failed.";
       setCloudValidationResult({ isValid: false, error: errorMsg });
       toast.error(errorMsg);
     } finally {
@@ -285,11 +302,19 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
 
   const handleStartCloudProvisioning = async () => {
     if (!awsAccessKeyId.trim() || !awsSecretAccessKey.trim()) {
-      toast.error("AWS credentials are required for automated cloud deployment.");
+      toast.error(
+        "AWS credentials are required for automated cloud deployment.",
+      );
       return;
     }
-    if (!cloudflareApiToken.trim() || !cloudflareZoneId.trim() || !cloudflareBaseDomain.trim()) {
-      toast.error("Cloudflare credentials are required for automated DNS routing.");
+    if (
+      !cloudflareApiToken.trim() ||
+      !cloudflareZoneId.trim() ||
+      !cloudflareBaseDomain.trim()
+    ) {
+      toast.error(
+        "Cloudflare credentials are required for automated DNS routing.",
+      );
       return;
     }
 
@@ -307,12 +332,16 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
 
       if (res.success) {
         setIsProvisioningActive(true);
-        toast.success("Multi-cloud provisioning pipeline started! Real-time telemetry connected.");
+        toast.success(
+          "Multi-cloud provisioning pipeline started! Real-time telemetry connected.",
+        );
       } else {
         toast.error(res.message || "Failed to start cloud provisioning.");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to initiate provisioning.");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to initiate provisioning.",
+      );
     }
   };
 
@@ -500,7 +529,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <Label htmlFor="brandName" className="text-xs font-medium">
-                    Portal / Brand Name <span className="text-destructive">*</span>
+                    Portal / Brand Name{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="brandName"
@@ -565,7 +595,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="copyrightText" className="text-xs font-medium">
+                  <Label
+                    htmlFor="copyrightText"
+                    className="text-xs font-medium"
+                  >
                     Copyright Notice
                   </Label>
                   <Input
@@ -944,7 +977,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-500 flex items-center justify-center">
                       <Globe className="w-4 h-4" />
                     </div>
-                    {signupModel === WhiteLabelSignupModel.OPEN_REGISTRATION && (
+                    {signupModel ===
+                      WhiteLabelSignupModel.OPEN_REGISTRATION && (
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     )}
                   </div>
@@ -977,8 +1011,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   Logos, Favicons &amp; Social Links
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Provide asset URLs. If you prefer to upload files directly, you
-                  can also use the Branding asset uploader in the Platform
+                  Provide asset URLs. If you prefer to upload files directly,
+                  you can also use the Branding asset uploader in the Platform
                   Console after setup.
                 </p>
               </div>
@@ -1116,7 +1150,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="ownerFirstName" className="text-xs font-medium">
+                      <Label
+                        htmlFor="ownerFirstName"
+                        className="text-xs font-medium"
+                      >
                         First Name
                       </Label>
                       <Input
@@ -1129,7 +1166,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="ownerLastName" className="text-xs font-medium">
+                      <Label
+                        htmlFor="ownerLastName"
+                        className="text-xs font-medium"
+                      >
                         Last Name
                       </Label>
                       <Input
@@ -1142,8 +1182,12 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label htmlFor="ownerEmail" className="text-xs font-medium">
-                        Owner Login Email <span className="text-destructive">*</span>
+                      <Label
+                        htmlFor="ownerEmail"
+                        className="text-xs font-medium"
+                      >
+                        Owner Login Email{" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="ownerEmail"
@@ -1156,8 +1200,12 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="ownerPassword" className="text-xs font-medium">
-                        Password (Min 8 chars) <span className="text-destructive">*</span>
+                      <Label
+                        htmlFor="ownerPassword"
+                        className="text-xs font-medium"
+                      >
+                        Password (Min 8 chars){" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <div className="relative">
                         <Input
@@ -1187,7 +1235,8 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                         htmlFor="ownerPasswordConfirm"
                         className="text-xs font-medium"
                       >
-                        Confirm Password <span className="text-destructive">*</span>
+                        Confirm Password{" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="ownerPasswordConfirm"
@@ -1218,7 +1267,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   Deploy Your WhiteLabel Portal
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Choose between automated multi-cloud provisioning (AWS EC2 + Elastic IP + S3 + SES + Cloudflare) or self-hosting via minimal environment variables.
+                  Choose between automated multi-cloud provisioning (AWS EC2 +
+                  Elastic IP + S3 + SES + Cloudflare) or self-hosting via
+                  minimal environment variables.
                 </p>
               </div>
 
@@ -1243,7 +1294,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Zero manual DevOps. Automatically launches an EC2 instance, allocates an Elastic IP, creates S3 Audio Vault, registers SES DKIM DNS records, and sets up Cloudflare Edge SSL.
+                    Zero manual DevOps. Automatically launches an EC2 instance,
+                    allocates an Elastic IP, creates S3 Audio Vault, registers
+                    SES DKIM DNS records, and sets up Cloudflare Edge SSL.
                   </p>
                 </button>
 
@@ -1266,7 +1319,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Host on your own VPS, Docker container, or Vercel server. Requires only 3 environment variables with all database loading handled dynamically.
+                    Host on your own VPS, Docker container, or Vercel server.
+                    Requires only 3 environment variables with all database
+                    loading handled dynamically.
                   </p>
                 </button>
               </div>
@@ -1280,7 +1335,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                         onSuccess={(domain) => {
                           setDeployedDomain(domain);
                           setIsProvisioningDone(true);
-                          toast.success(`Infrastructure live at https://${domain}`);
+                          toast.success(
+                            `Infrastructure live at https://${domain}`,
+                          );
                         }}
                       />
                       <div className="flex items-center justify-end gap-2">
@@ -1311,28 +1368,40 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label htmlFor="awsAccessKeyId" className="text-xs font-medium">
-                              AWS Access Key ID <span className="text-destructive">*</span>
+                            <Label
+                              htmlFor="awsAccessKeyId"
+                              className="text-xs font-medium"
+                            >
+                              AWS Access Key ID{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <Input
                               id="awsAccessKeyId"
                               value={awsAccessKeyId}
-                              onChange={(e) => setAwsAccessKeyId(e.target.value)}
+                              onChange={(e) =>
+                                setAwsAccessKeyId(e.target.value)
+                              }
                               placeholder="AKIAIOSFODNN7EXAMPLE"
                               className="text-xs h-9 font-mono"
                             />
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="awsSecretAccessKey" className="text-xs font-medium">
-                              AWS Secret Access Key <span className="text-destructive">*</span>
+                            <Label
+                              htmlFor="awsSecretAccessKey"
+                              className="text-xs font-medium"
+                            >
+                              AWS Secret Access Key{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <div className="relative">
                               <Input
                                 id="awsSecretAccessKey"
                                 type={showAwsSecret ? "text" : "password"}
                                 value={awsSecretAccessKey}
-                                onChange={(e) => setAwsSecretAccessKey(e.target.value)}
+                                onChange={(e) =>
+                                  setAwsSecretAccessKey(e.target.value)
+                                }
                                 placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
                                 className="text-xs h-9 font-mono pr-9"
                               />
@@ -1351,7 +1420,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="awsRegion" className="text-xs font-medium">
+                            <Label
+                              htmlFor="awsRegion"
+                              className="text-xs font-medium"
+                            >
                               AWS Deployment Region
                             </Label>
                             <select
@@ -1360,16 +1432,29 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                               onChange={(e) => setAwsRegion(e.target.value)}
                               className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             >
-                              <option value="us-east-1">us-east-1 (US East, N. Virginia)</option>
-                              <option value="us-west-2">us-west-2 (US West, Oregon)</option>
-                              <option value="eu-west-1">eu-west-1 (Europe, Ireland)</option>
-                              <option value="ap-southeast-1">ap-southeast-1 (Asia Pacific, Singapore)</option>
-                              <option value="ap-south-1">ap-south-1 (Asia Pacific, Mumbai)</option>
+                              <option value="us-east-1">
+                                us-east-1 (US East, N. Virginia)
+                              </option>
+                              <option value="us-west-2">
+                                us-west-2 (US West, Oregon)
+                              </option>
+                              <option value="eu-west-1">
+                                eu-west-1 (Europe, Ireland)
+                              </option>
+                              <option value="ap-southeast-1">
+                                ap-southeast-1 (Asia Pacific, Singapore)
+                              </option>
+                              <option value="ap-south-1">
+                                ap-south-1 (Asia Pacific, Mumbai)
+                              </option>
                             </select>
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="instanceType" className="text-xs font-medium">
+                            <Label
+                              htmlFor="instanceType"
+                              className="text-xs font-medium"
+                            >
                               EC2 Compute Profile
                             </Label>
                             <select
@@ -1378,10 +1463,20 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                               onChange={(e) => setInstanceType(e.target.value)}
                               className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             >
-                              <option value="t4g.medium">t4g.medium (ARM64 Graviton - Recommended, 2 vCPU, 4GB RAM)</option>
-                              <option value="t4g.large">t4g.large (ARM64 Graviton - High Performance, 2 vCPU, 8GB RAM)</option>
-                              <option value="t3.medium">t3.medium (x86_64 Intel, 2 vCPU, 4GB RAM)</option>
-                              <option value="t3.large">t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)</option>
+                              <option value="t4g.medium">
+                                t4g.medium (ARM64 Graviton - Recommended, 2
+                                vCPU, 4GB RAM)
+                              </option>
+                              <option value="t4g.large">
+                                t4g.large (ARM64 Graviton - High Performance, 2
+                                vCPU, 8GB RAM)
+                              </option>
+                              <option value="t3.medium">
+                                t3.medium (x86_64 Intel, 2 vCPU, 4GB RAM)
+                              </option>
+                              <option value="t3.large">
+                                t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)
+                              </option>
                             </select>
                           </div>
                         </div>
@@ -1395,15 +1490,21 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label htmlFor="cloudflareApiToken" className="text-xs font-medium">
-                              Cloudflare API Token <span className="text-destructive">*</span>
+                            <Label
+                              htmlFor="cloudflareApiToken"
+                              className="text-xs font-medium"
+                            >
+                              Cloudflare API Token{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <div className="relative">
                               <Input
                                 id="cloudflareApiToken"
                                 type={showCfToken ? "text" : "password"}
                                 value={cloudflareApiToken}
-                                onChange={(e) => setCloudflareApiToken(e.target.value)}
+                                onChange={(e) =>
+                                  setCloudflareApiToken(e.target.value)
+                                }
                                 placeholder="Edit Zone DNS API Token"
                                 className="text-xs h-9 font-mono pr-9"
                               />
@@ -1422,44 +1523,62 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="cloudflareZoneId" className="text-xs font-medium">
-                              Cloudflare Zone ID <span className="text-destructive">*</span>
+                            <Label
+                              htmlFor="cloudflareZoneId"
+                              className="text-xs font-medium"
+                            >
+                              Cloudflare Zone ID{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <Input
                               id="cloudflareZoneId"
                               value={cloudflareZoneId}
-                              onChange={(e) => setCloudflareZoneId(e.target.value)}
+                              onChange={(e) =>
+                                setCloudflareZoneId(e.target.value)
+                              }
                               placeholder="32 hex character Zone ID"
                               className="text-xs h-9 font-mono"
                             />
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="cloudflareBaseDomain" className="text-xs font-medium">
-                              Base Domain <span className="text-destructive">*</span>
+                            <Label
+                              htmlFor="cloudflareBaseDomain"
+                              className="text-xs font-medium"
+                            >
+                              Base Domain{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <Input
                               id="cloudflareBaseDomain"
                               value={cloudflareBaseDomain}
-                              onChange={(e) => setCloudflareBaseDomain(e.target.value)}
+                              onChange={(e) =>
+                                setCloudflareBaseDomain(e.target.value)
+                              }
                               placeholder="royalmotionit.com"
                               className="text-xs h-9 font-mono"
                             />
                           </div>
 
                           <div className="space-y-1">
-                            <Label htmlFor="portalSubdomain" className="text-xs font-medium">
+                            <Label
+                              htmlFor="portalSubdomain"
+                              className="text-xs font-medium"
+                            >
                               Portal Subdomain Prefix
                             </Label>
                             <Input
                               id="portalSubdomain"
                               value={portalSubdomain}
-                              onChange={(e) => setPortalSubdomain(e.target.value)}
+                              onChange={(e) =>
+                                setPortalSubdomain(e.target.value)
+                              }
                               placeholder="backstage"
                               className="text-xs h-9 font-mono"
                             />
                             <p className="text-[10px] text-muted-foreground">
-                              Target: {portalSubdomain || "backstage"}.{cloudflareBaseDomain || "yourdomain.com"}
+                              Target: {portalSubdomain || "backstage"}.
+                              {cloudflareBaseDomain || "yourdomain.com"}
                             </p>
                           </div>
                         </div>
@@ -1490,9 +1609,11 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                             <div className="text-[11px] text-muted-foreground font-mono space-y-0.5">
                               <div>AWS STS IAM: Verified &amp; Active</div>
                               <div>Cloudflare Zone: Verified &amp; Active</div>
-                              {cloudValidationResult.details?.map((detail, idx) => (
-                                <div key={idx}>• {detail}</div>
-                              ))}
+                              {cloudValidationResult.details?.map(
+                                (detail, idx) => (
+                                  <div key={idx}>• {detail}</div>
+                                ),
+                              )}
                             </div>
                           ) : (
                             <div className="text-[11px] font-sans">
@@ -1569,14 +1690,16 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   </div>
 
                   <div className="p-3 rounded-lg bg-muted font-mono text-xs overflow-x-auto text-foreground">
-                    <pre className="text-[11px] leading-relaxed">{envSnippet}</pre>
+                    <pre className="text-[11px] leading-relaxed">
+                      {envSnippet}
+                    </pre>
                   </div>
 
                   <div className="text-[11px] text-muted-foreground leading-normal">
                     Paste these 3 variables into your WhiteLabel frontend{" "}
-                    <code className="text-foreground">.env</code>. Once activated,
-                    the frontend communicates with the platform database and unlocks
-                    the portal automatically.
+                    <code className="text-foreground">.env</code>. Once
+                    activated, the frontend communicates with the platform
+                    database and unlocks the portal automatically.
                   </div>
                 </div>
               )}
@@ -1595,9 +1718,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   Review &amp; Activate Your WhiteLabel Portal
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Review your settings below. Clicking &quot;Save Configuration &amp;
-                  Activate WhiteLabel&quot; will persist all configurations into the
-                  database, create the Owner user, and unlock your live portal.
+                  Review your settings below. Clicking &quot;Save Configuration
+                  &amp; Activate WhiteLabel&quot; will persist all
+                  configurations into the database, create the Owner user, and
+                  unlock your live portal.
                 </p>
               </div>
 
@@ -1611,7 +1735,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Support Email:</span>
+                    <span className="text-muted-foreground">
+                      Support Email:
+                    </span>
                     <div className="font-semibold text-foreground mt-0.5">
                       {supportEmail}
                     </div>
@@ -1629,7 +1755,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Primary Color:</span>
+                    <span className="text-muted-foreground">
+                      Primary Color:
+                    </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span
                         className="w-3 h-3 rounded-full"
@@ -1657,7 +1785,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Infrastructure:</span>
+                    <span className="text-muted-foreground">
+                      Infrastructure:
+                    </span>
                     <div className="font-semibold text-foreground mt-0.5">
                       {deploymentMode === "automated"
                         ? `EC2 (${instanceType}) + EIP + S3`

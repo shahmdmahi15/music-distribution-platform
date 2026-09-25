@@ -505,8 +505,12 @@ export function ClientThemeView({
                   </div>
                 </div>
                 <CardDescription className="text-xs">
-                  Real-time preview of your brand logos, colors, and curvature in{" "}
-                  <strong className="text-foreground capitalize">{previewMode} Mode</strong>.
+                  Real-time preview of your brand logos, colors, and curvature
+                  in{" "}
+                  <strong className="text-foreground capitalize">
+                    {previewMode} Mode
+                  </strong>
+                  .
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
@@ -560,7 +564,7 @@ export function ClientThemeView({
                         className="h-14 w-full rounded-md overflow-hidden border border-border/30 relative"
                         style={{ borderRadius: `calc(${theme.radius} * 0.75)` }}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */ }
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={branding.bannerUrl}
                           alt="Hero Banner"
@@ -703,7 +707,9 @@ export function ClientThemeView({
                 {/* Dual-Theme Asset Status & Color Summary */}
                 <div className="space-y-2 p-2.5 rounded-lg bg-muted/40 border border-border/50 text-xs">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">Active Logo Asset:</span>
+                    <span className="text-muted-foreground">
+                      Active Logo Asset:
+                    </span>
                     <span className="font-semibold text-foreground">
                       {previewMode === "dark"
                         ? branding.logoDarkUrl

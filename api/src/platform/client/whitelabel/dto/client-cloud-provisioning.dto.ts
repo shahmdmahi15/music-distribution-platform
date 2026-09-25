@@ -16,7 +16,8 @@ export class ValidateCloudCredentialsDto {
     typeof value === 'string' ? value.trim() : (value as unknown),
   )
   @Matches(/^[a-z]{2}-[a-z]+-\d$/, {
-    message: 'AWS Region must be in valid format (e.g. us-east-1, ap-southeast-1).',
+    message:
+      'AWS Region must be in valid format (e.g. us-east-1, ap-southeast-1).',
   })
   awsRegion!: string;
 

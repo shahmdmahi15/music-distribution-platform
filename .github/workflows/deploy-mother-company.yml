@@ -2,7 +2,7 @@ name: Deploy Mother Company (API & Platform)
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -38,8 +38,8 @@ jobs:
             cd /var/www/music-distribution-platform
 
             echo "📥 [Deploy] Pulling latest changes from git repository..."
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch origin master
+            git reset --hard origin/master
 
             echo "📦 [API] Installing dependencies & executing Prisma database migrations..."
             cd /var/www/music-distribution-platform/api

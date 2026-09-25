@@ -56,7 +56,12 @@ export class UpdateDomainDto {
   subdomain?: string;
 
   @IsOptional()
-  @ValidateIf((o) => o.customDomain !== '' && o.customDomain !== null && o.customDomain !== undefined)
+  @ValidateIf(
+    (o) =>
+      o.customDomain !== '' &&
+      o.customDomain !== null &&
+      o.customDomain !== undefined,
+  )
   @IsString()
   @Matches(/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i, {
     message: 'Custom domain must be a valid FQDN (e.g., catalog.example.com)',
@@ -64,7 +69,12 @@ export class UpdateDomainDto {
   customDomain?: string | null;
 
   @IsOptional()
-  @ValidateIf((o) => o.elasticIpv4 !== '' && o.elasticIpv4 !== null && o.elasticIpv4 !== undefined)
+  @ValidateIf(
+    (o) =>
+      o.elasticIpv4 !== '' &&
+      o.elasticIpv4 !== null &&
+      o.elasticIpv4 !== undefined,
+  )
   @IsString()
   @IsIP(4, { message: 'Must be a valid IPv4 address (e.g. 54.210.12.34)' })
   elasticIpv4?: string | null;
@@ -153,7 +163,8 @@ export class UpdateSsoDto {
 
 export class TestCredentialsDto {
   @IsEnum(['aws_s3', 'aws_ses', 'database', 'redis', 'cloudflare'], {
-    message: 'type must be one of: aws_s3, aws_ses, database, redis, cloudflare',
+    message:
+      'type must be one of: aws_s3, aws_ses, database, redis, cloudflare',
   })
   type!: 'aws_s3' | 'aws_ses' | 'database' | 'redis' | 'cloudflare';
 }

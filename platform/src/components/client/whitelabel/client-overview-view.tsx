@@ -106,9 +106,10 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                  Your tenant is active, but your portal identity has not yet been initialized.
-                  Run the guided 7-step wizard to configure your brand name, dual-mode theme colors,
-                  registration policy, and provision your initial WhiteLabel Super Admin account.
+                  Your tenant is active, but your portal identity has not yet
+                  been initialized. Run the guided 7-step wizard to configure
+                  your brand name, dual-mode theme colors, registration policy,
+                  and provision your initial WhiteLabel Super Admin account.
                 </p>
               </div>
             </div>
@@ -146,7 +147,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
               className="text-xs h-9 gap-1.5 font-semibold"
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span>{isSetupDone ? "Reconfigure Wizard" : "Launch Setup Wizard"}</span>
+              <span>
+                {isSetupDone ? "Reconfigure Wizard" : "Launch Setup Wizard"}
+              </span>
             </Button>
           </Link>
           <Button
@@ -319,20 +322,24 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Badge
                     variant="outline"
                     className={`text-[10px] font-mono font-semibold ${
-                      branding.provisioningStatus === ProvisioningStatus.ACTIVE || branding.awsInstanceId
+                      branding.provisioningStatus ===
+                        ProvisioningStatus.ACTIVE || branding.awsInstanceId
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                        : branding.provisioningStatus === ProvisioningStatus.FAILED
+                        : branding.provisioningStatus ===
+                            ProvisioningStatus.FAILED
                           ? "bg-rose-500/10 text-rose-500 border-rose-500/30"
                           : "bg-amber-500/10 text-amber-500 border-amber-500/30"
                     }`}
                   >
-                    {branding.provisioningStatus === ProvisioningStatus.ACTIVE || branding.awsInstanceId
+                    {branding.provisioningStatus ===
+                      ProvisioningStatus.ACTIVE || branding.awsInstanceId
                       ? "CLOUD DEPLOYED"
                       : branding.provisioningStatus || "NOT DEPLOYED"}
                   </Badge>
                 </div>
                 <CardDescription className="text-xs">
-                  Dedicated AWS EC2 compute, Elastic IP static IPv4, S3 Audio Vault, SES v2 email, and Cloudflare DNS routing.
+                  Dedicated AWS EC2 compute, Elastic IP static IPv4, S3 Audio
+                  Vault, SES v2 email, and Cloudflare DNS routing.
                 </CardDescription>
               </div>
             </div>
@@ -345,7 +352,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                 className="text-xs h-8 gap-1.5 font-mono"
               >
                 <Terminal className="h-3.5 w-3.5 text-amber-500" />
-                <span>{showTerminal ? "Hide Console" : "View Cloud Terminal"}</span>
+                <span>
+                  {showTerminal ? "Hide Console" : "View Cloud Terminal"}
+                </span>
               </Button>
               <Link href="/whitelabel/setup">
                 <Button
@@ -353,7 +362,11 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs h-8 gap-1.5 shadow-sm"
                 >
                   <Zap className="h-3.5 w-3.5" />
-                  <span>{branding.awsInstanceId ? "Re-provision Cloud" : "Deploy Cloud"}</span>
+                  <span>
+                    {branding.awsInstanceId
+                      ? "Re-provision Cloud"
+                      : "Deploy Cloud"}
+                  </span>
                 </Button>
               </Link>
             </div>
@@ -398,10 +411,14 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Cpu className="h-3.5 w-3.5 text-amber-500" />
                   Dedicated Elastic IP
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">STATIC IPv4</span>
+                <span className="font-mono text-[10px] text-emerald-500">
+                  STATIC IPv4
+                </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.awsElasticIp || branding.elasticIpv4 || "54.226.114.89"}
+                {branding.awsElasticIp ||
+                  branding.elasticIpv4 ||
+                  "54.226.114.89"}
               </div>
               <div className="text-[11px] text-muted-foreground">
                 Zero-Downtime Dedicated IPv4
@@ -415,7 +432,9 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <HardDrive className="h-3.5 w-3.5 text-emerald-500" />
                   S3 Audio Vault
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">CORS + GLACIER</span>
+                <span className="font-mono text-[10px] text-emerald-500">
+                  CORS + GLACIER
+                </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
                 {branding.bucketName || "rmit-audio-vault"}
@@ -432,10 +451,15 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                   <Globe className="h-3.5 w-3.5 text-sky-500" />
                   Edge SSL &amp; Routing
                 </span>
-                <span className="font-mono text-[10px] text-emerald-500">PROXIED</span>
+                <span className="font-mono text-[10px] text-emerald-500">
+                  PROXIED
+                </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.customDomain || (branding.subdomain ? `${branding.subdomain}.platform...` : "backstage.royalmotionit.com")}
+                {branding.customDomain ||
+                  (branding.subdomain
+                    ? `${branding.subdomain}.platform...`
+                    : "backstage.royalmotionit.com")}
               </div>
               <div className="text-[11px] text-muted-foreground">
                 Automatic DKIM CNAME &amp; Edge SSL
@@ -492,18 +516,26 @@ INTERNAL_API_SECRET="your_32_character_internal_api_secret"`;
                 <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <span>Guided WhiteLabel Setup Wizard</span>
                   {isSetupDone && (
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]"
+                    >
                       Configured
                     </Badge>
                   )}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  7-step guided workflow for brand identity, dual-mode themes, registration policy, and owner creation.
+                  7-step guided workflow for brand identity, dual-mode themes,
+                  registration policy, and owner creation.
                 </div>
               </div>
             </div>
             <Link href="/whitelabel/setup">
-              <Button variant={isSetupDone ? "outline" : "default"} size="sm" className="text-xs h-8">
+              <Button
+                variant={isSetupDone ? "outline" : "default"}
+                size="sm"
+                className="text-xs h-8"
+              >
                 {isSetupDone ? "Reconfigure" : "Launch Wizard"}
               </Button>
             </Link>

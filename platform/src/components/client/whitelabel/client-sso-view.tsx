@@ -191,7 +191,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
         ...prev,
         [type]: {
           success: false,
-          message: "Network error occurred while contacting verification backend.",
+          message:
+            "Network error occurred while contacting verification backend.",
         },
       }));
     } finally {
@@ -218,12 +219,16 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
             <div>
               <h1 className="text-base font-bold text-foreground flex items-center gap-2">
                 <span>SSO &amp; Infrastructure Credentials</span>
-                <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] uppercase font-semibold"
+                >
                   Multi-Tenant
                 </Badge>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Manage dedicated cloud storage, data backends, Cloudflare edge routing, and SSO authentication for {branding.name}.
+                Manage dedicated cloud storage, data backends, Cloudflare edge
+                routing, and SSO authentication for {branding.name}.
               </p>
             </div>
           </div>
@@ -261,13 +266,17 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                         Dedicated AWS Active
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-muted-foreground"
+                      >
                         Platform Fallback Mode
                       </Badge>
                     )}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Configure your dedicated Amazon Web Services S3 bucket for audio/cover art assets and SES for transactional email.
+                    Configure your dedicated Amazon Web Services S3 bucket for
+                    audio/cover art assets and SES for transactional email.
                   </CardDescription>
                 </div>
               </div>
@@ -283,7 +292,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="h-8 text-xs gap-1.5"
                 >
                   <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{testingService === "aws_s3" ? "Checking S3..." : "Test S3 Bucket"}</span>
+                  <span>
+                    {testingService === "aws_s3"
+                      ? "Checking S3..."
+                      : "Test S3 Bucket"}
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -294,7 +307,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="h-8 text-xs gap-1.5"
                 >
                   <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{testingService === "aws_ses" ? "Checking SES..." : "Test Sender Email"}</span>
+                  <span>
+                    {testingService === "aws_ses"
+                      ? "Checking SES..."
+                      : "Test Sender Email"}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -339,7 +356,9 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold">AWS Region</Label>
-                  <span className="text-[11px] text-muted-foreground">e.g. ap-southeast-1</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    e.g. ap-southeast-1
+                  </span>
                 </div>
                 <Input
                   value={sso.awsRegion || ""}
@@ -354,7 +373,9 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => setSso((prev) => ({ ...prev, awsRegion: r.id }))}
+                      onClick={() =>
+                        setSso((prev) => ({ ...prev, awsRegion: r.id }))
+                      }
                       className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
                         sso.awsRegion === r.id
                           ? "bg-primary text-primary-foreground border-primary font-bold"
@@ -370,8 +391,12 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               {/* S3 Bucket Name */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">S3 Bucket Name</Label>
-                  <span className="text-[11px] text-muted-foreground">Unique bucket name</span>
+                  <Label className="text-xs font-semibold">
+                    S3 Bucket Name
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Unique bucket name
+                  </span>
                 </div>
                 <Input
                   value={sso.bucketName || ""}
@@ -382,20 +407,28 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="text-xs font-mono"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Stores original WAV/FLAC audio masters and hi-res artwork packages.
+                  Stores original WAV/FLAC audio masters and hi-res artwork
+                  packages.
                 </p>
               </div>
 
               {/* AWS Access Key ID */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">AWS Access Key ID</Label>
-                  <span className="text-[11px] text-muted-foreground">IAM User or Role</span>
+                  <Label className="text-xs font-semibold">
+                    AWS Access Key ID
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    IAM User or Role
+                  </span>
                 </div>
                 <Input
                   value={sso.awsAccessKeyId || ""}
                   onChange={(e) =>
-                    setSso((prev) => ({ ...prev, awsAccessKeyId: e.target.value }))
+                    setSso((prev) => ({
+                      ...prev,
+                      awsAccessKeyId: e.target.value,
+                    }))
                   }
                   placeholder="AKIAIOSFODNN7EXAMPLE"
                   className="text-xs font-mono"
@@ -405,9 +438,14 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               {/* AWS Secret Access Key */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">AWS Secret Access Key</Label>
+                  <Label className="text-xs font-semibold">
+                    AWS Secret Access Key
+                  </Label>
                   {sso.hasAwsSecretAccessKey && (
-                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                    >
                       Encrypted in Vault
                     </Badge>
                   )}
@@ -418,7 +456,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     value={awsSecretKey}
                     onChange={(e) => setAwsSecretKey(e.target.value)}
                     placeholder={
-                      sso.awsSecretAccessKeyMasked || "Enter AWS secret access key..."
+                      sso.awsSecretAccessKeyMasked ||
+                      "Enter AWS secret access key..."
                     }
                     className="text-xs font-mono pr-10"
                   />
@@ -427,19 +466,28 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     onClick={() => setShowAwsSecret(!showAwsSecret)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showAwsSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showAwsSecret ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Leave empty to retain currently encrypted key. Entering a new value replaces it.
+                  Leave empty to retain currently encrypted key. Entering a new
+                  value replaces it.
                 </p>
               </div>
 
               {/* Sender Email (SES) */}
               <div className="space-y-1.5 md:col-span-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Transactional Sender Email</Label>
-                  <span className="text-[11px] text-muted-foreground">AWS SES Verified Identity</span>
+                  <Label className="text-xs font-semibold">
+                    Transactional Sender Email
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    AWS SES Verified Identity
+                  </span>
                 </div>
                 <Input
                   type="email"
@@ -451,7 +499,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="text-xs font-mono"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Outbound sender address for onboarding invites, payout receipts, and automated distribution alerts.
+                  Outbound sender address for onboarding invites, payout
+                  receipts, and automated distribution alerts.
                 </p>
               </div>
             </div>
@@ -476,13 +525,18 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                         Dedicated DB Isolated
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-muted-foreground"
+                      >
                         Shared Platform DB
                       </Badge>
                     )}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Enterprise tenants can connect dedicated PostgreSQL databases and Redis clusters for private catalog storage and session isolation.
+                    Enterprise tenants can connect dedicated PostgreSQL
+                    databases and Redis clusters for private catalog storage and
+                    session isolation.
                   </CardDescription>
                 </div>
               </div>
@@ -498,7 +552,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="h-8 text-xs gap-1.5"
                 >
                   <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{testingService === "database" ? "Verifying DB..." : "Test Database"}</span>
+                  <span>
+                    {testingService === "database"
+                      ? "Verifying DB..."
+                      : "Test Database"}
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -509,7 +567,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   className="h-8 text-xs gap-1.5"
                 >
                   <Server className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{testingService === "redis" ? "Verifying Redis..." : "Test Redis"}</span>
+                  <span>
+                    {testingService === "redis"
+                      ? "Verifying Redis..."
+                      : "Test Redis"}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -553,9 +615,14 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               {/* Dedicated Database URL */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Dedicated Database URL (PostgreSQL)</Label>
+                  <Label className="text-xs font-semibold">
+                    Dedicated Database URL (PostgreSQL)
+                  </Label>
                   {sso.hasDatabaseUrl && (
-                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30"
+                    >
                       Configured
                     </Badge>
                   )}
@@ -576,20 +643,30 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     onClick={() => setShowDatabaseUrl(!showDatabaseUrl)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showDatabaseUrl ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showDatabaseUrl ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  PostgreSQL URI for tenant catalog, track releases, user accounts, and financial ledgers.
+                  PostgreSQL URI for tenant catalog, track releases, user
+                  accounts, and financial ledgers.
                 </p>
               </div>
 
               {/* Dedicated Redis URL */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Dedicated Redis URL (Cache &amp; Sessions)</Label>
+                  <Label className="text-xs font-semibold">
+                    Dedicated Redis URL (Cache &amp; Sessions)
+                  </Label>
                   {sso.hasRedisUrl && (
-                    <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-500 border-red-500/30">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-red-500/10 text-red-500 border-red-500/30"
+                    >
                       Configured
                     </Badge>
                   )}
@@ -610,11 +687,16 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     onClick={() => setShowRedisUrl(!showRedisUrl)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showRedisUrl ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showRedisUrl ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Redis URI for lightning-fast user session storage, token revoking, and real-time telemetry caching.
+                  Redis URI for lightning-fast user session storage, token
+                  revoking, and real-time telemetry caching.
                 </p>
               </div>
             </div>
@@ -639,13 +721,17 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                         Cloudflare Connected
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-muted-foreground"
+                      >
                         Optional
                       </Badge>
                     )}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Automate SSL cert provisioning, edge routing, and CNAME record propagation via your Cloudflare account.
+                    Automate SSL cert provisioning, edge routing, and CNAME
+                    record propagation via your Cloudflare account.
                   </CardDescription>
                 </div>
               </div>
@@ -660,8 +746,14 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   onClick={() => handleTestService("cloudflare")}
                   className="h-8 text-xs gap-1.5"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${testingService === "cloudflare" ? "animate-spin" : ""}`} />
-                  <span>{testingService === "cloudflare" ? "Verifying..." : "Verify Cloudflare Zone"}</span>
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 text-muted-foreground ${testingService === "cloudflare" ? "animate-spin" : ""}`}
+                  />
+                  <span>
+                    {testingService === "cloudflare"
+                      ? "Verifying..."
+                      : "Verify Cloudflare Zone"}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -688,9 +780,14 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               {/* Cloudflare API Token */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Cloudflare API Token</Label>
+                  <Label className="text-xs font-semibold">
+                    Cloudflare API Token
+                  </Label>
                   {sso.hasCloudflareApiToken && (
-                    <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-500 border-orange-500/30">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-orange-500/10 text-orange-500 border-orange-500/30"
+                    >
                       Token Stored
                     </Badge>
                   )}
@@ -710,44 +807,68 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     onClick={() => setShowCloudflareToken(!showCloudflareToken)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showCloudflareToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showCloudflareToken ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Requires Zone:DNS:Edit permissions.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Requires Zone:DNS:Edit permissions.
+                </p>
               </div>
 
               {/* Cloudflare Zone ID */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Cloudflare Zone ID</Label>
-                  <span className="text-[11px] text-muted-foreground">32-char hex</span>
+                  <Label className="text-xs font-semibold">
+                    Cloudflare Zone ID
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    32-char hex
+                  </span>
                 </div>
                 <Input
                   value={sso.cloudflareZoneId || ""}
                   onChange={(e) =>
-                    setSso((prev) => ({ ...prev, cloudflareZoneId: e.target.value }))
+                    setSso((prev) => ({
+                      ...prev,
+                      cloudflareZoneId: e.target.value,
+                    }))
                   }
                   placeholder="3b5ae0f533b73c5fcfca616d74ae7aca"
                   className="text-xs font-mono"
                 />
-                <p className="text-[11px] text-muted-foreground">Found on your Cloudflare Domain Overview page.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Found on your Cloudflare Domain Overview page.
+                </p>
               </div>
 
               {/* Cloudflare Base Domain */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Cloudflare Base Domain</Label>
-                  <span className="text-[11px] text-muted-foreground">e.g. mylabel.com</span>
+                  <Label className="text-xs font-semibold">
+                    Cloudflare Base Domain
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    e.g. mylabel.com
+                  </span>
                 </div>
                 <Input
                   value={sso.cloudflareBaseDomain || ""}
                   onChange={(e) =>
-                    setSso((prev) => ({ ...prev, cloudflareBaseDomain: e.target.value }))
+                    setSso((prev) => ({
+                      ...prev,
+                      cloudflareBaseDomain: e.target.value,
+                    }))
                   }
                   placeholder="mylabel.com"
                   className="text-xs font-mono"
                 />
-                <p className="text-[11px] text-muted-foreground">Target apex zone for subdomains &amp; DNS routing.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Target apex zone for subdomains &amp; DNS routing.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -765,7 +886,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               </CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Select how new artists, producers, and label managers access your WhiteLabel portal.
+              Select how new artists, producers, and label managers access your
+              WhiteLabel portal.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-5">
@@ -793,7 +915,9 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                         >
                           {model.badge}
                         </Badge>
-                        {isSelected && <Check className="h-4 w-4 text-primary" />}
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
                       </div>
                       <div className="text-xs font-bold text-foreground mt-2">
                         {model.title}
@@ -821,7 +945,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               </CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Allow creators and staff to authenticate using external Google or GitHub OAuth credentials.
+              Allow creators and staff to authenticate using external Google or
+              GitHub OAuth credentials.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-5 space-y-6">
@@ -863,7 +988,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                       )}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      Allow users to authenticate using their Google Workspace or personal Google accounts.
+                      Allow users to authenticate using their Google Workspace
+                      or personal Google accounts.
                     </div>
                   </div>
                 </div>
@@ -879,7 +1005,9 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                 <div className="space-y-3 pt-3 border-t border-border/60">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium">Google Client ID</Label>
+                      <Label className="text-xs font-medium">
+                        Google Client ID
+                      </Label>
                       <Input
                         value={sso.googleClientId}
                         onChange={(e) =>
@@ -893,14 +1021,17 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium">Google Client Secret</Label>
+                      <Label className="text-xs font-medium">
+                        Google Client Secret
+                      </Label>
                       <div className="relative">
                         <Input
                           type={showGoogleSecret ? "text" : "password"}
                           value={googleSecret}
                           onChange={(e) => setGoogleSecret(e.target.value)}
                           placeholder={
-                            sso.googleClientSecretMasked || "Enter new secret..."
+                            sso.googleClientSecretMasked ||
+                            "Enter new secret..."
                           }
                           className="text-xs font-mono pr-10"
                         />
@@ -909,7 +1040,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                           onClick={() => setShowGoogleSecret(!showGoogleSecret)}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
-                          {showGoogleSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showGoogleSecret ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -981,7 +1116,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                       )}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      Enable authentication via developer and GitHub organization credentials.
+                      Enable authentication via developer and GitHub
+                      organization credentials.
                     </div>
                   </div>
                 </div>
@@ -997,7 +1133,9 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                 <div className="space-y-3 pt-3 border-t border-border/60">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium">GitHub Client ID</Label>
+                      <Label className="text-xs font-medium">
+                        GitHub Client ID
+                      </Label>
                       <Input
                         value={sso.githubClientId}
                         onChange={(e) =>
@@ -1011,14 +1149,17 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium">GitHub Client Secret</Label>
+                      <Label className="text-xs font-medium">
+                        GitHub Client Secret
+                      </Label>
                       <div className="relative">
                         <Input
                           type={showGithubSecret ? "text" : "password"}
                           value={githubSecret}
                           onChange={(e) => setGithubSecret(e.target.value)}
                           placeholder={
-                            sso.githubClientSecretMasked || "Enter new secret..."
+                            sso.githubClientSecretMasked ||
+                            "Enter new secret..."
                           }
                           className="text-xs font-mono pr-10"
                         />
@@ -1027,7 +1168,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                           onClick={() => setShowGithubSecret(!showGithubSecret)}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
-                          {showGithubSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showGithubSecret ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -1075,7 +1220,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
               </CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Enforce two-factor verification and session lifetime rules across your portal instance.
+              Enforce two-factor verification and session lifetime rules across
+              your portal instance.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
@@ -1087,7 +1233,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                   <span>Enforce Two-Factor Authentication (2FA)</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Mandate an authenticator app (TOTP) or email verification passcode for every user login.
+                  Mandate an authenticator app (TOTP) or email verification
+                  passcode for every user login.
                 </div>
               </div>
               <Switch
@@ -1107,7 +1254,8 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
                     <span>Session Inactivity Lifetime</span>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    Automatic logout duration after inactive device usage (between 1 and 720 hours).
+                    Automatic logout duration after inactive device usage
+                    (between 1 and 720 hours).
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

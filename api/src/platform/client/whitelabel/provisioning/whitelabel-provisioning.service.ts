@@ -90,7 +90,8 @@ export class WhitelabelProvisioningService {
 
       if (!cfData?.success || !cfData?.result) {
         throw new Error(
-          cfData?.errors?.[0]?.message || 'Invalid Cloudflare Zone ID or token.',
+          cfData?.errors?.[0]?.message ||
+            'Invalid Cloudflare Zone ID or token.',
         );
       }
 
@@ -542,7 +543,9 @@ export class WhitelabelProvisioningService {
                     IpProtocol: 'tcp',
                     FromPort: 22,
                     ToPort: 22,
-                    IpRanges: [{ CidrIp: '0.0.0.0/0', Description: 'SSH Admin' }],
+                    IpRanges: [
+                      { CidrIp: '0.0.0.0/0', Description: 'SSH Admin' },
+                    ],
                   },
                 ],
               }),
@@ -618,7 +621,10 @@ export class WhitelabelProvisioningService {
 
       if (!activeKey) {
         const rawKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
-        const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+        const keyHash = crypto
+          .createHash('sha256')
+          .update(rawKey)
+          .digest('hex');
         activeKey = await this.prismaService.whiteLabelApiKey.create({
           data: {
             code: `RMIT-KEY-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
@@ -905,7 +911,10 @@ systemctl restart nginx
   /**
    * Resolves the canonical Ubuntu 24.04 LTS (Noble) AMI for the given region & architecture.
    */
-  private async resolveUbuntuAmi(ec2: EC2Client, isArm: boolean): Promise<string> {
+  private async resolveUbuntuAmi(
+    ec2: EC2Client,
+    isArm: boolean,
+  ): Promise<string> {
     try {
       const arch = isArm ? 'arm64' : 'x86_64';
       const namePattern = `ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${arch}-server-*`;
@@ -929,7 +938,9 @@ systemctl restart nginx
         return images[0].ImageId;
       }
     } catch (err: any) {
-      this.logger.warn(`Could not query AMI via DescribeImages: ${err.message}`);
+      this.logger.warn(
+        `Could not query AMI via DescribeImages: ${err.message}`,
+      );
     }
 
     // Standard fallback Noble AMIs

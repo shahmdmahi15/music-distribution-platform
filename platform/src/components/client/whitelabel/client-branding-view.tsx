@@ -282,7 +282,8 @@ export function ClientBrandingView({
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "flex-1 text-xs h-8 cursor-pointer gap-1.5",
-                      uploadingAsset === "logo" && "pointer-events-none opacity-50",
+                      uploadingAsset === "logo" &&
+                        "pointer-events-none opacity-50",
                     )}
                   >
                     <input
@@ -349,7 +350,8 @@ export function ClientBrandingView({
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "flex-1 text-xs h-8 cursor-pointer gap-1.5",
-                      uploadingAsset === "logoDark" && "pointer-events-none opacity-50",
+                      uploadingAsset === "logoDark" &&
+                        "pointer-events-none opacity-50",
                     )}
                   >
                     <input
@@ -416,7 +418,8 @@ export function ClientBrandingView({
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "flex-1 text-xs h-8 cursor-pointer gap-1.5",
-                      uploadingAsset === "favicon" && "pointer-events-none opacity-50",
+                      uploadingAsset === "favicon" &&
+                        "pointer-events-none opacity-50",
                     )}
                   >
                     <input
@@ -465,7 +468,8 @@ export function ClientBrandingView({
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "text-xs h-8 cursor-pointer gap-1.5",
-                      uploadingAsset === "banner" && "pointer-events-none opacity-50",
+                      uploadingAsset === "banner" &&
+                        "pointer-events-none opacity-50",
                     )}
                   >
                     <input

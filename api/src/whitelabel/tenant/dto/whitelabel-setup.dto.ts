@@ -96,7 +96,8 @@ export class WhitelabelSetupDto {
 
   @IsOptional()
   @IsEnum(WhiteLabelSignupModel, {
-    message: 'Registration model must be INVITE_ONLY, ADMIN_APPROVAL, or OPEN_REGISTRATION.',
+    message:
+      'Registration model must be INVITE_ONLY, ADMIN_APPROVAL, or OPEN_REGISTRATION.',
   })
   userSignupModel?: WhiteLabelSignupModel;
 
@@ -126,7 +127,9 @@ export class WhitelabelSetupDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(8, { message: 'Owner password must be at least 8 characters long.' })
+  @MinLength(8, {
+    message: 'Owner password must be at least 8 characters long.',
+  })
   ownerPassword?: string;
 
   @IsOptional()

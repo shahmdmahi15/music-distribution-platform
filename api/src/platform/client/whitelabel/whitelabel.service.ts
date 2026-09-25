@@ -135,11 +135,16 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Schedule periodic health checks every 5 minutes (300,000 ms) across all WhiteLabels
-    this.periodicHealthTimer = setInterval(() => {
-      this.runPeriodicHealthChecksAcrossAllWhiteLabels().catch((err: any) => {
-        this.logger.error(`Periodic domain health check failed: ${err.message}`);
-      });
-    }, 5 * 60 * 1000);
+    this.periodicHealthTimer = setInterval(
+      () => {
+        this.runPeriodicHealthChecksAcrossAllWhiteLabels().catch((err: any) => {
+          this.logger.error(
+            `Periodic domain health check failed: ${err.message}`,
+          );
+        });
+      },
+      5 * 60 * 1000,
+    );
 
     // Initial check 10 seconds after server start
     setTimeout(() => {
@@ -626,12 +631,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-      await this.cloudflareDnsService.provisionSubdomain(
-        finalSubdomain,
-        cleanElasticIpv4 || undefined,
-      );
+    await this.cloudflareDnsService.provisionSubdomain(
+      finalSubdomain,
+      cleanElasticIpv4 || undefined,
+    );
 
-      await this.clearOnboardingDraft(userId);
+    await this.clearOnboardingDraft(userId);
 
     return {
       success: true,
@@ -957,7 +962,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         cloudflareZoneId: wl.cloudflareZoneId || null,
         cloudflareBaseDomain: wl.cloudflareBaseDomain || null,
         hasCloudflareCredentials: Boolean(
-          wl.cloudflareApiToken && wl.cloudflareZoneId && wl.cloudflareBaseDomain,
+          wl.cloudflareApiToken &&
+          wl.cloudflareZoneId &&
+          wl.cloudflareBaseDomain,
         ),
         awsInstanceId: wl.awsInstanceId || null,
         awsElasticIp: wl.awsElasticIp || null,
@@ -1364,7 +1371,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const hasCloudflareCredentials = Boolean(
       wl.cloudflareApiToken && wl.cloudflareZoneId && wl.cloudflareBaseDomain,
     );
-    const cleanBaseDomain = this.extractCleanBaseDomain(wl.cloudflareBaseDomain);
+    const cleanBaseDomain = this.extractCleanBaseDomain(
+      wl.cloudflareBaseDomain,
+    );
     const expectedCustomDomain = cleanBaseDomain
       ? `backstage.${cleanBaseDomain}`
       : null;
@@ -1393,7 +1402,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         cloudflareBaseDomain: cleanBaseDomain || null,
         expectedCustomDomain,
         cloudflareZoneId: wl.cloudflareZoneId || null,
-        cnameTarget: platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
+        cnameTarget:
+          platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
         cnameHost: 'backstage',
         health,
         // Step 1: DNS TXT Ownership Verification
@@ -1402,7 +1412,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           recordType: 'TXT',
           host: wl.customDomain
             ? `_royalmotionit-verification.${wl.customDomain}`
-            : (expectedCustomDomain ? `_royalmotionit-verification.${expectedCustomDomain}` : '_royalmotionit-verification'),
+            : expectedCustomDomain
+              ? `_royalmotionit-verification.${expectedCustomDomain}`
+              : '_royalmotionit-verification',
           value: `royalmotionit-verification=${verificationToken}`,
           verified: wl.domainVerified,
           verifiedAt: wl.domainVerifiedAt,
@@ -1411,7 +1423,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         step2: {
           title: 'Step 2: Traffic Routing Configuration',
           unlocked: wl.domainVerified,
-          cnameTarget: platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
+          cnameTarget:
+            platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com',
           serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
           note: wl.domainVerified
             ? `Point CNAME for "backstage" to your platform subdomain: ${platformSubdomainFqdn || 'cname.whitelabel.royalmotionit.com'}`
@@ -1439,7 +1452,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           : null
         : undefined;
 
-    const cleanBaseDomain = this.extractCleanBaseDomain(wl.cloudflareBaseDomain);
+    const cleanBaseDomain = this.extractCleanBaseDomain(
+      wl.cloudflareBaseDomain,
+    );
     const expectedCustomDomain = cleanBaseDomain
       ? `backstage.${cleanBaseDomain}`
       : null;
@@ -1582,7 +1597,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     }
 
     // If domain is being removed/disconnected, attempt to clean up DNS records in Cloudflare
-    if (customDomain === null && wl.customDomain && wl.cloudflareApiToken && wl.cloudflareZoneId) {
+    if (
+      customDomain === null &&
+      wl.customDomain &&
+      wl.cloudflareApiToken &&
+      wl.cloudflareZoneId
+    ) {
       try {
         const cfHeaders = {
           Authorization: `Bearer ${wl.cloudflareApiToken}`,
@@ -1609,7 +1629,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     }
 
     const isDomainChanging = customDomain !== wl.customDomain;
-    const isVerifiedNow = autoVerified || (isDomainChanging ? false : wl.domainVerified);
+    const isVerifiedNow =
+      autoVerified || (isDomainChanging ? false : wl.domainVerified);
 
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
@@ -1621,8 +1642,10 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           : {}),
         domainVerified: isVerifiedNow,
         domainVerifiedAt: isVerifiedNow
-          ? (wl.domainVerifiedAt || new Date())
-          : (isDomainChanging ? null : wl.domainVerifiedAt),
+          ? wl.domainVerifiedAt || new Date()
+          : isDomainChanging
+            ? null
+            : wl.domainVerifiedAt,
         domainSslStatus: isVerifiedNow
           ? 'ACTIVE'
           : isDomainChanging
@@ -1686,16 +1709,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             },
           );
           const cfData = (await cfRes.json()) as any;
-          if (cfData.success && Array.isArray(cfData.result) && cfData.result.length > 0) {
-            const hasMatch = cfData.result.some(
-              (rec: any) => {
-                const clean = this.normalizeDnsTxtContent(rec.content);
-                return (
-                  clean.includes(expectedToken) ||
-                  clean.includes(wl.domainVerificationToken || '')
-                );
-              },
-            );
+          if (
+            cfData.success &&
+            Array.isArray(cfData.result) &&
+            cfData.result.length > 0
+          ) {
+            const hasMatch = cfData.result.some((rec: any) => {
+              const clean = this.normalizeDnsTxtContent(rec.content);
+              return (
+                clean.includes(expectedToken) ||
+                clean.includes(wl.domainVerificationToken || '')
+              );
+            });
             if (hasMatch) {
               verified = true;
               diagnostic = `DNS TXT ownership verified via Cloudflare API for ${wl.customDomain}`;
@@ -1716,7 +1741,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         for (const target of txtTargets) {
           try {
             const txtRecords = await dns.resolveTxt(target);
-            const flatRecords = txtRecords.map((chunks) => this.normalizeDnsTxtContent(chunks.join('')));
+            const flatRecords = txtRecords.map((chunks) =>
+              this.normalizeDnsTxtContent(chunks.join('')),
+            );
             if (
               flatRecords.some(
                 (rec) =>
@@ -1831,7 +1858,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       return {
         success: false,
         step: 'INVALID_BASE_DOMAIN',
-        message: 'The configured Base Domain is invalid. Please format as a standard domain (e.g. yourlabel.com).',
+        message:
+          'The configured Base Domain is invalid. Please format as a standard domain (e.g. yourlabel.com).',
       };
     }
 
@@ -1849,7 +1877,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       const data = (await res.json()) as any;
 
       if (!data.success || !data.result) {
-        const errMsg = data.errors?.[0]?.message || 'Verification rejected by Cloudflare API';
+        const errMsg =
+          data.errors?.[0]?.message ||
+          'Verification rejected by Cloudflare API';
         return {
           success: false,
           step: 'AUTH_FAILED',
@@ -1956,7 +1986,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException(cfCheck.message);
     }
 
-    const cleanBaseDomain = this.extractCleanBaseDomain(wl.cloudflareBaseDomain);
+    const cleanBaseDomain = this.extractCleanBaseDomain(
+      wl.cloudflareBaseDomain,
+    );
     const expectedCustomDomain = `backstage.${cleanBaseDomain}`;
 
     // Conflict check: Ensure no other label holds this domain
@@ -2007,7 +2039,11 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       );
       const cfTxtData = (await cfTxtSearch.json()) as any;
 
-      if (cfTxtData.success && Array.isArray(cfTxtData.result) && cfTxtData.result.length > 0) {
+      if (
+        cfTxtData.success &&
+        Array.isArray(cfTxtData.result) &&
+        cfTxtData.result.length > 0
+      ) {
         const existingRec = cfTxtData.result[0];
         const cleanExisting = this.normalizeDnsTxtContent(existingRec.content);
         const cleanExpected = this.normalizeDnsTxtContent(txtValue);
@@ -2017,7 +2053,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
         if (isMatch) {
           autoVerified = true;
-          autoSyncMessage = 'TXT ownership verification record verified in Cloudflare.';
+          autoSyncMessage =
+            'TXT ownership verification record verified in Cloudflare.';
         } else {
           await fetch(
             `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records/${existingRec.id}`,
@@ -2034,7 +2071,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             },
           );
           autoVerified = true;
-          autoSyncMessage = 'TXT ownership verification record updated in Cloudflare.';
+          autoSyncMessage =
+            'TXT ownership verification record updated in Cloudflare.';
         }
       } else {
         const createRes = await fetch(
@@ -2058,14 +2096,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
       }
     } catch (err: any) {
-      this.logger.warn(`Could not auto-create TXT record in user Cloudflare zone: ${err.message}`);
+      this.logger.warn(
+        `Could not auto-create TXT record in user Cloudflare zone: ${err.message}`,
+      );
     }
 
     // Verify via DNS if Cloudflare API wasn't definitive
     if (!autoVerified) {
       try {
         const records = await dns.resolveTxt(txtFullFqdn);
-        const flat = records.map((c) => this.normalizeDnsTxtContent(c.join('')));
+        const flat = records.map((c) =>
+          this.normalizeDnsTxtContent(c.join('')),
+        );
         if (
           flat.some(
             (r) =>
@@ -2077,7 +2119,10 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
       } catch {
         // Fallback for local development or DNS propagation
-        if (process.env.NODE_ENV === 'development' || process.env.BYPASS_DNS_CHECK === 'true') {
+        if (
+          process.env.NODE_ENV === 'development' ||
+          process.env.BYPASS_DNS_CHECK === 'true'
+        ) {
           autoVerified = true;
         }
       }
@@ -2089,7 +2134,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         domainVerified: autoVerified,
         domainVerifiedAt: autoVerified ? now : null,
-        domainSslStatus: autoVerified ? 'PENDING_VERIFICATION' : 'NOT_CONFIGURED',
+        domainSslStatus: autoVerified
+          ? 'PENDING_VERIFICATION'
+          : 'NOT_CONFIGURED',
       },
     });
 
@@ -2126,19 +2173,29 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
   async applyCnameRouting(userId: string) {
     const wl = await this.getActiveWhiteLabel(userId);
     if (!wl.customDomain) {
-      throw new BadRequestException('No custom domain held. Please complete Step 2 first.');
+      throw new BadRequestException(
+        'No custom domain held. Please complete Step 2 first.',
+      );
     }
     if (!wl.domainVerified) {
-      throw new BadRequestException('Domain ownership must be verified before applying CNAME routing.');
+      throw new BadRequestException(
+        'Domain ownership must be verified before applying CNAME routing.',
+      );
     }
     if (!wl.cloudflareApiToken || !wl.cloudflareZoneId) {
-      throw new BadRequestException('Cloudflare credentials required to apply CNAME routing.');
+      throw new BadRequestException(
+        'Cloudflare credentials required to apply CNAME routing.',
+      );
     }
     if (!wl.subdomain) {
-      throw new BadRequestException('No platform subdomain assigned to your WhiteLabel.');
+      throw new BadRequestException(
+        'No platform subdomain assigned to your WhiteLabel.',
+      );
     }
 
-    const cleanBaseDomain = this.extractCleanBaseDomain(wl.cloudflareBaseDomain);
+    const cleanBaseDomain = this.extractCleanBaseDomain(
+      wl.cloudflareBaseDomain,
+    );
     const platformSubdomainFqdn = `${wl.subdomain}.platform.royalmotionit.com`;
     const cnameHost = 'backstage';
     const cnameFqdn = `backstage.${cleanBaseDomain}`;
@@ -2156,7 +2213,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const searchData = (await searchRes.json()) as any;
 
     if (!searchData.success) {
-      const errMsg = searchData.errors?.[0]?.message || 'Failed to inspect Cloudflare DNS';
+      const errMsg =
+        searchData.errors?.[0]?.message || 'Failed to inspect Cloudflare DNS';
       throw new BadRequestException(`Cloudflare DNS error: ${errMsg}`);
     }
 
@@ -2252,7 +2310,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
   async syncPlatformSubdomainDns(userId: string) {
     const wl = await this.getActiveWhiteLabel(userId);
     if (!wl.subdomain) {
-      throw new BadRequestException('No platform subdomain assigned to your WhiteLabel.');
+      throw new BadRequestException(
+        'No platform subdomain assigned to your WhiteLabel.',
+      );
     }
 
     const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
@@ -2298,7 +2358,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
   async evaluateFullDomainHealth(wl: any): Promise<DomainHealthReport> {
     const now = new Date().toISOString();
-    const cleanBaseDomain = this.extractCleanBaseDomain(wl.cloudflareBaseDomain);
+    const cleanBaseDomain = this.extractCleanBaseDomain(
+      wl.cloudflareBaseDomain,
+    );
     const expectedCustomDomain = cleanBaseDomain
       ? `backstage.${cleanBaseDomain}`
       : null;
@@ -2435,7 +2497,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             status: 'FAILED',
             title: 'Cloudflare 3-Way Interconnection',
             message:
-              cfData.errors?.[0]?.message || 'Cloudflare API authentication failed.',
+              cfData.errors?.[0]?.message ||
+              'Cloudflare API authentication failed.',
           };
         }
       } catch (err: any) {
@@ -2482,7 +2545,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               const cleanContent = this.normalizeDnsTxtContent(r.content);
               return (
                 cleanContent.includes(wl.domainVerificationToken) ||
-                cleanContent === `royalmotionit-verification=${wl.domainVerificationToken}`
+                cleanContent ===
+                  `royalmotionit-verification=${wl.domainVerificationToken}`
               );
             });
           }
@@ -2497,7 +2561,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
                 flat.some(
                   (r) =>
                     r.includes(wl.domainVerificationToken) ||
-                    r === `royalmotionit-verification=${wl.domainVerificationToken}`,
+                    r ===
+                      `royalmotionit-verification=${wl.domainVerificationToken}`,
                 )
               ) {
                 hasMatchingTxt = true;
@@ -2560,10 +2625,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               const matchingCname = cfCnameData.result.find(
                 (r: any) =>
                   r.type === 'CNAME' &&
-                  (r.content || '')
-                    .toLowerCase()
-                    .trim()
-                    .replace(/\.$/, '') === targetNorm,
+                  (r.content || '').toLowerCase().trim().replace(/\.$/, '') ===
+                    targetNorm,
               );
 
               if (matchingCname) {
@@ -2593,7 +2656,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
       } else {
         report.step3.status = 'PENDING';
-        report.step3.message = 'Waiting for Cloudflare interconnection in Step 1.';
+        report.step3.message =
+          'Waiting for Cloudflare interconnection in Step 1.';
       }
     } else {
       report.step3.status = 'PENDING';
@@ -2639,7 +2703,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         await this.prismaService.whiteLabel.update({
           where: { id: wl.id },
           data: {
-            ...(shouldDemoteSsl ? { domainSslStatus: 'PENDING_VERIFICATION' } : {}),
+            ...(shouldDemoteSsl
+              ? { domainSslStatus: 'PENDING_VERIFICATION' }
+              : {}),
             ...(shouldDemoteVerified ? { domainVerified: false } : {}),
           },
         });
@@ -2761,12 +2827,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         dto.googleEnabled !== undefined ? dto.googleEnabled : undefined,
       ssoGithubEnabled:
         dto.githubEnabled !== undefined ? dto.githubEnabled : undefined,
-      ssoEnforce2fa:
-        dto.enforce2fa !== undefined ? dto.enforce2fa : undefined,
+      ssoEnforce2fa: dto.enforce2fa !== undefined ? dto.enforce2fa : undefined,
       ssoSessionTimeoutHours: dto.sessionTimeoutHours || undefined,
       awsRegion: dto.awsRegion !== undefined ? dto.awsRegion.trim() : undefined,
       awsAccessKeyId:
-        dto.awsAccessKeyId !== undefined ? dto.awsAccessKeyId.trim() : undefined,
+        dto.awsAccessKeyId !== undefined
+          ? dto.awsAccessKeyId.trim()
+          : undefined,
       bucketName:
         dto.bucketName !== undefined ? dto.bucketName.trim() : undefined,
       senderEmail:
@@ -2939,7 +3006,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(sender)) {
-          throw new BadRequestException(`Invalid sender email address: ${sender}`);
+          throw new BadRequestException(
+            `Invalid sender email address: ${sender}`,
+          );
         }
         return {
           success: true,
@@ -2950,7 +3019,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       case 'database': {
         const dbUrl = wl.databaseUrl;
         if (!dbUrl) {
-          throw new BadRequestException('Dedicated Database URL is not configured.');
+          throw new BadRequestException(
+            'Dedicated Database URL is not configured.',
+          );
         }
         try {
           const parsed = new URL(dbUrl);
@@ -2974,7 +3045,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       case 'redis': {
         const rUrl = wl.redisUrl;
         if (!rUrl) {
-          throw new BadRequestException('Dedicated Redis URL is not configured.');
+          throw new BadRequestException(
+            'Dedicated Redis URL is not configured.',
+          );
         }
         try {
           const parsed = new URL(rUrl);

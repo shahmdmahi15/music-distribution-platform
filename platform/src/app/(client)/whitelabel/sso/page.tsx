@@ -11,10 +11,7 @@ import {
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  WhiteLabelSignupModel,
-  WhiteLabelSsoConfig,
-} from "@/types/whitelabel";
+import { WhiteLabelSignupModel, WhiteLabelSsoConfig } from "@/types/whitelabel";
 
 export const dynamic = "force-dynamic";
 

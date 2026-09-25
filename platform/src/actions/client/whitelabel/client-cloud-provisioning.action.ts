@@ -3,9 +3,7 @@
 import { env } from "@/env";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import {
-  WhiteLabelProvisioningTelemetry,
-} from "@/types/whitelabel";
+import { WhiteLabelProvisioningTelemetry } from "@/types/whitelabel";
 
 export interface ValidateCloudCredentialsInput {
   awsRegion: string;
@@ -76,10 +74,14 @@ export async function clientValidateCloudCredentialsAction(
       checks: data.checks,
     };
   } catch (error) {
-    console.error("[Action.Client.WhiteLabel.Provision.Validate] Error:", error);
+    console.error(
+      "[Action.Client.WhiteLabel.Provision.Validate] Error:",
+      error,
+    );
     return {
       success: false,
-      message: "An unexpected network error occurred while validating credentials.",
+      message:
+        "An unexpected network error occurred while validating credentials.",
     };
   }
 }

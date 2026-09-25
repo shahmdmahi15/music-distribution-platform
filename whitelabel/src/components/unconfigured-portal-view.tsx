@@ -59,9 +59,13 @@ export function UnconfiguredPortalView({
   const isApiConnected = Boolean(tenant && !error);
   const isTenantActive = tenant?.status === "ACTIVE";
   const isBrandingConfigured = Boolean(
-    tenant?.name && tenant.name.trim() !== "" && tenant.name !== "WhiteLabel Portal",
+    tenant?.name &&
+    tenant.name.trim() !== "" &&
+    tenant.name !== "WhiteLabel Portal",
   );
-  const isThemeConfigured = Boolean(tenant?.primaryColor || tenant?.theme?.primaryColor);
+  const isThemeConfigured = Boolean(
+    tenant?.primaryColor || tenant?.theme?.primaryColor,
+  );
   const isDomainConfigured = Boolean(tenant?.subdomain || tenant?.customDomain);
   const isOwnerConfigured = Boolean(tenant?.hasOwner);
   const isSetupComplete = Boolean(tenant?.isSetupComplete);
@@ -91,7 +95,9 @@ export function UnconfiguredPortalView({
       category: "Database & Tenancy",
       title: "Tenant Record In Database",
       status: Boolean(tenant?.id),
-      value: tenant?.id ? `Tenant ID: ${tenant.id.slice(0, 10)}...` : "Not Resolved",
+      value: tenant?.id
+        ? `Tenant ID: ${tenant.id.slice(0, 10)}...`
+        : "Not Resolved",
       description: tenant?.id
         ? `Tenant '${tenant.name || tenant.code}' loaded from database partition.`
         : "Database did not recognize this API key or tenant ID.",
@@ -125,7 +131,9 @@ export function UnconfiguredPortalView({
       status: isDomainConfigured,
       value:
         tenant?.customDomain ||
-        (tenant?.subdomain ? `${tenant.subdomain}.platform.royalmotionit.com` : "None Assigned"),
+        (tenant?.subdomain
+          ? `${tenant.subdomain}.platform.royalmotionit.com`
+          : "None Assigned"),
       description: isDomainConfigured
         ? "Subdomain or verified custom domain assigned to tenant."
         : "Domain routing not yet assigned. Configure in Platform Console Domain settings.",
@@ -241,7 +249,9 @@ export function UnconfiguredPortalView({
             disabled={isRefreshing}
             className="text-xs border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 gap-1.5 h-8"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+            />
             <span>Refresh Status</span>
           </Button>
 
@@ -272,11 +282,18 @@ export function UnconfiguredPortalView({
                 WhiteLabel Portal Is Not Configured
               </h1>
               <p className="text-sm text-zinc-300 leading-relaxed">
-                This WhiteLabel portal has been deployed with minimal credentials (3 environment variables),
-                but your portal configuration must be completed inside the{" "}
-                <strong className="text-amber-400 font-semibold">Platform Client Console</strong>.
-                There you will configure your brand identity, colors, registration policy, and create your initial{" "}
-                <strong className="text-zinc-100 font-semibold">WhiteLabel Super Admin / Owner</strong> account.
+                This WhiteLabel portal has been deployed with minimal
+                credentials (3 environment variables), but your portal
+                configuration must be completed inside the{" "}
+                <strong className="text-amber-400 font-semibold">
+                  Platform Client Console
+                </strong>
+                . There you will configure your brand identity, colors,
+                registration policy, and create your initial{" "}
+                <strong className="text-zinc-100 font-semibold">
+                  WhiteLabel Super Admin / Owner
+                </strong>{" "}
+                account.
               </p>
             </div>
 
@@ -312,9 +329,12 @@ export function UnconfiguredPortalView({
           {/* Progress Bar */}
           <div className="mt-6 pt-5 border-t border-amber-500/20">
             <div className="flex items-center justify-between text-xs mb-2">
-              <span className="text-zinc-400 font-medium">Portal Readiness Status</span>
+              <span className="text-zinc-400 font-medium">
+                Portal Readiness Status
+              </span>
               <span className="font-mono font-bold text-amber-400">
-                {configuredCount} of {totalCount} Items Configured ({configuredPercent}%)
+                {configuredCount} of {totalCount} Items Configured (
+                {configuredPercent}%)
               </span>
             </div>
             <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -335,7 +355,8 @@ export function UnconfiguredPortalView({
                 <span>Live Configuration Audit</span>
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Real-time breakdown of what is configured in database &amp; environment vs. what is still required.
+                Real-time breakdown of what is configured in database &amp;
+                environment vs. what is still required.
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
@@ -435,7 +456,8 @@ export function UnconfiguredPortalView({
               <span>How To Complete Onboarding (4 Steps)</span>
             </h2>
             <p className="text-xs text-zinc-400 mt-0.5">
-              The entire onboarding is fully managed inside your client console. Follow these steps:
+              The entire onboarding is fully managed inside your client console.
+              Follow these steps:
             </p>
           </div>
 
@@ -444,9 +466,12 @@ export function UnconfiguredPortalView({
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
                 1
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Open Platform Wizard</h3>
+              <h3 className="text-xs font-bold text-zinc-200">
+                Open Platform Wizard
+              </h3>
               <p className="text-[11px] text-zinc-400 leading-relaxed">
-                Log into your client account at <code className="text-zinc-300">/whitelabel/setup</code>.
+                Log into your client account at{" "}
+                <code className="text-zinc-300">/whitelabel/setup</code>.
               </p>
             </div>
 
@@ -454,9 +479,12 @@ export function UnconfiguredPortalView({
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
                 2
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Set Identity &amp; Theme</h3>
+              <h3 className="text-xs font-bold text-zinc-200">
+                Set Identity &amp; Theme
+              </h3>
               <p className="text-[11px] text-zinc-400 leading-relaxed">
-                Enter your company brand name, pick your dual-mode colors, and configure registration model.
+                Enter your company brand name, pick your dual-mode colors, and
+                configure registration model.
               </p>
             </div>
 
@@ -464,9 +492,12 @@ export function UnconfiguredPortalView({
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
                 3
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Provision Super Admin</h3>
+              <h3 className="text-xs font-bold text-zinc-200">
+                Provision Super Admin
+              </h3>
               <p className="text-[11px] text-zinc-400 leading-relaxed">
-                Step 5 creates your initial portal Owner user with full administrative credentials.
+                Step 5 creates your initial portal Owner user with full
+                administrative credentials.
               </p>
             </div>
 
@@ -474,9 +505,12 @@ export function UnconfiguredPortalView({
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">
                 4
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Save &amp; Go Live</h3>
+              <h3 className="text-xs font-bold text-zinc-200">
+                Save &amp; Go Live
+              </h3>
               <p className="text-[11px] text-zinc-400 leading-relaxed">
-                Click &quot;Save &amp; Activate WhiteLabel&quot;. Refresh this tab and your portal launches instantly!
+                Click &quot;Save &amp; Activate WhiteLabel&quot;. Refresh this
+                tab and your portal launches instantly!
               </p>
             </div>
           </div>
@@ -485,11 +519,19 @@ export function UnconfiguredPortalView({
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <FileCode2 className="w-4 h-4 text-zinc-500" />
               <span>
-                Hosting environment: Only <code className="text-amber-400 font-semibold">3 .env variables</code> required.
-                Everything else is stored in the platform database.
+                Hosting environment: Only{" "}
+                <code className="text-amber-400 font-semibold">
+                  3 .env variables
+                </code>{" "}
+                required. Everything else is stored in the platform database.
               </span>
             </div>
-            <a href={platformWizardUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+            <a
+              href={platformWizardUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto"
+            >
               <Button className="w-full sm:w-auto text-xs bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold gap-1.5 h-9 shadow-md shadow-amber-500/10">
                 <span>Go To Platform Console Setup Wizard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -552,7 +594,8 @@ export function UnconfiguredPortalView({
               )}
 
               <div className="text-[11px] text-zinc-500 pt-1">
-                Note: In production, this diagnostic screen is only displayed to clients before onboarding is finalized.
+                Note: In production, this diagnostic screen is only displayed to
+                clients before onboarding is finalized.
               </div>
             </div>
           )}
@@ -561,7 +604,8 @@ export function UnconfiguredPortalView({
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-zinc-800/80 py-5 text-center text-xs text-zinc-500">
-        RoyalMotionIT WhiteLabel Distribution &bull; Powered by Single Tenant Runtime Engine
+        RoyalMotionIT WhiteLabel Distribution &bull; Powered by Single Tenant
+        Runtime Engine
       </footer>
     </div>
   );

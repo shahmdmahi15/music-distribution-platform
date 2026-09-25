@@ -420,7 +420,7 @@ export class CloudflareDnsService {
         }
       }
 
-        return { success: true, message: `DNS record for ${fqdn} removed.` };
+      return { success: true, message: `DNS record for ${fqdn} removed.` };
     } catch (error: any) {
       this.logger.warn(
         `[CloudflareDnsService] Failed to delete DNS record for ${fqdn}: ${error.message}`,

@@ -3,7 +3,11 @@ import { StorageService } from 'src/lib/storage/storage.service';
 import { RedisService } from 'src/lib/redis/redis.service';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { WhiteLabel } from 'src/generated/prisma/client';
-import { WhiteLabelStatus, WhiteLabelUserRole, WhiteLabelSignupModel } from 'src/generated/prisma/enums';
+import {
+  WhiteLabelStatus,
+  WhiteLabelUserRole,
+  WhiteLabelSignupModel,
+} from 'src/generated/prisma/enums';
 import { WhitelabelSetupDto } from './dto/whitelabel-setup.dto';
 import * as argon2 from 'argon2';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
@@ -214,7 +218,8 @@ export class WhitelabelTenantService {
         themeMode: dto.themeMode || 'dark',
         cardStyle: dto.cardStyle || 'modern',
         navbarStyle: dto.navbarStyle || 'glass',
-        userSignupModel: dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
+        userSignupModel:
+          dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
         logoUrl: dto.logoUrl?.trim() || null,
         logoDarkUrl: dto.logoDarkUrl?.trim() || null,
         faviconUrl: dto.faviconUrl?.trim() || null,
@@ -260,7 +265,8 @@ export class WhitelabelTenantService {
     const brandingResult = await this.getPublicBranding(updated);
     return {
       success: true,
-      message: 'WhiteLabel portal setup completed successfully and saved to database.',
+      message:
+        'WhiteLabel portal setup completed successfully and saved to database.',
       tenant: brandingResult.tenant,
     };
   }

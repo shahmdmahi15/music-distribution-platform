@@ -67,7 +67,10 @@ export default async function WhiteLabelDomainPage() {
     hasCloudflareCredentials:
       domainResult.domain?.hasCloudflareCredentials ??
       brandingResult.branding.hasCloudflareCredentials ??
-      Boolean(brandingResult.branding.cloudflareZoneId && brandingResult.branding.cloudflareBaseDomain),
+      Boolean(
+        brandingResult.branding.cloudflareZoneId &&
+        brandingResult.branding.cloudflareBaseDomain,
+      ),
     cloudflareBaseDomain:
       domainResult.domain?.cloudflareBaseDomain ??
       brandingResult.branding.cloudflareBaseDomain ??
@@ -75,7 +78,13 @@ export default async function WhiteLabelDomainPage() {
     expectedCustomDomain:
       domainResult.domain?.expectedCustomDomain ??
       (brandingResult.branding.cloudflareBaseDomain
-        ? `backstage.${brandingResult.branding.cloudflareBaseDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^backstage\./, '').replace(/^\.+|\.+$/g, '')}`
+        ? `backstage.${brandingResult.branding.cloudflareBaseDomain
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .replace(/\/.*$/, "")
+            .replace(/^backstage\./, "")
+            .replace(/^\.+|\.+$/g, "")}`
         : null),
     status: {
       verified: !!brandingResult.branding.customDomain,
