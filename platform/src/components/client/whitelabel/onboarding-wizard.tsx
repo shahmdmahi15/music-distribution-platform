@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Lock,
   Server,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,11 +75,11 @@ const BUSINESS_TYPES = [
     icon: Building2,
   },
   {
-    id: WhiteLabelBusinessType.OTHER,
-    label: "Other Enterprise",
+    id: WhiteLabelBusinessType.REFERRER,
+    label: "Referrer",
     description:
-      "Media network, management agency, collective, or custom music business.",
-    icon: Sparkles,
+      "Referral partner, affiliate network, or scout bringing talent and labels to the platform.",
+    icon: Users,
   },
 ];
 
@@ -1523,7 +1524,9 @@ export function WhiteLabelOnboardingWizard({
                     Business Model
                   </span>
                   <strong className="text-foreground">
-                    {formData.businessType}
+                    {BUSINESS_TYPES.find(
+                      (t) => t.id === formData.businessType,
+                    )?.label || formData.businessType}
                   </strong>
                 </div>
                 <div>

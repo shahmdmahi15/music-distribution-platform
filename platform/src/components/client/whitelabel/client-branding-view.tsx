@@ -46,7 +46,7 @@ const BUSINESS_TYPE_OPTIONS = [
     label: "Distributor / Aggregator",
   },
   { value: WhiteLabelBusinessType.MUSIC_PUBLISHER, label: "Music Publisher" },
-  { value: WhiteLabelBusinessType.OTHER, label: "Other Media Organization" },
+  { value: WhiteLabelBusinessType.REFERRER, label: "Referrer" },
 ];
 
 export function ClientBrandingView({

@@ -42,7 +42,7 @@ enum WhiteLabelBusinessType {
   RECORD_LABEL
   DISTRIBUTOR_AGGREGATOR
   MUSIC_PUBLISHER
-  OTHER
+  REFERRER
 }
 
 enum WhiteLabelSignupModel {
