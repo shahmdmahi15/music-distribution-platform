@@ -1141,39 +1141,53 @@ export function AdminWhiteLabelDetailsDialog({
                       {whiteLabel.businessType === "RECORD_LABEL" && (
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Primary Genre</span>
-                            <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.primaryGenre || "N/A"}</span>
+                            <span className="text-muted-foreground text-[10px] block">Label Category</span>
+                            <span className="font-bold text-foreground capitalize">
+                              {(whiteLabel.onboardingDetails.labelType || "independent").replace(/_/g, " ")}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Master Rights</span>
-                            <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.masterRightsOwned ? "100% Owned" : "Exclusive License"}</span>
+                            <span className="text-muted-foreground text-[10px] block">Primary Genre</span>
+                            <span className="font-bold text-foreground">
+                              {whiteLabel.onboardingDetails.primaryGenre || "Multi-Genre / All Genres"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Artist Royalty Split</span>
+                            <span className="font-bold text-foreground">
+                              {whiteLabel.onboardingDetails.masterRoyaltySplitStandard || "70/30 (Artist 70% / Label 30%)"}
+                            </span>
                           </div>
                           <div>
                             <span className="text-muted-foreground text-[10px] block">ISRC Prefix</span>
-                            <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.isrcPrefix || "Platform Delegated"}</span>
+                            <span className="font-bold text-foreground font-mono">
+                              {whiteLabel.onboardingDetails.isrcRegistrantCode || whiteLabel.onboardingDetails.isrcPrefix || "Platform Delegated"}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Accounting Cycle</span>
-                            <span className="font-bold text-foreground capitalize">{whiteLabel.onboardingDetails.splitAccountingFrequency || "Monthly"}</span>
+                            <span className="text-muted-foreground text-[10px] block">Spatial Audio / Atmos</span>
+                            <span className="font-bold text-foreground">
+                              {whiteLabel.onboardingDetails.dolbyAtmosReady !== false ? "ADM BWF WAV Ready" : "Standard Stereo WAV"}
+                            </span>
                           </div>
-                          {whiteLabel.onboardingDetails.recoupmentModel && (
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Recoupment Model</span>
-                              <span className="font-bold text-foreground capitalize text-[11px]">{whiteLabel.onboardingDetails.recoupmentModel.replace(/_/g, " ")}</span>
-                            </div>
-                          )}
-                          {whiteLabel.onboardingDetails.artistRosterSize && (
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Active Roster</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.artistRosterSize} artists</span>
-                            </div>
-                          )}
-                          {whiteLabel.onboardingDetails.aAndRFocus && (
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground text-[10px] block">A&R Strategic Direction</span>
-                              <span className="text-foreground text-[11px] font-medium">{whiteLabel.onboardingDetails.aAndRFocus}</span>
-                            </div>
-                          )}
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Server Routing</span>
+                            <span className="font-bold text-foreground font-mono">
+                              {whiteLabel.elasticIpv4 ? `Elastic IP (${whiteLabel.elasticIpv4})` : "Cloudflare Managed"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Launch Timeline</span>
+                            <span className="font-bold text-foreground">
+                              {whiteLabel.onboardingDetails.estimatedLaunchTimeline || "Immediate"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Primary Language</span>
+                            <span className="font-bold text-foreground">
+                              {whiteLabel.primaryCatalogLanguage || "English"}
+                            </span>
+                          </div>
                         </div>
                       )}
 
@@ -1181,35 +1195,40 @@ export function AdminWhiteLabelDetailsDialog({
                         <div className="space-y-2.5 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Multi-Tenant Model</span>
-                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.multiTenantModel || "hybrid").replace(/_/g, " ")}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Ingestion Standard</span>
-                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.ingestionStandard || "DDEX ERN 4.3"}</span>
-                            </div>
-                            <div>
                               <span className="text-muted-foreground text-[10px] block">Managed Sub-Labels</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.subLabelsCount || 0} sub-labels</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.subLabelsCount ?? 5} sub-labels</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">QC Target SLA</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.qcTurnaroundHours || 12}h turnaround</span>
+                              <span className="text-muted-foreground text-[10px] block">Independent Creators</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.independentArtistsRepresented ?? 40} artists</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Ingestion Protocol</span>
+                              <span className="font-bold text-foreground font-mono">
+                                {(whiteLabel.onboardingDetails.ingestionProtocol || whiteLabel.onboardingDetails.ingestionStandard || "DDEX_ERN_4_3").replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">QC & Anti-Fraud</span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails.antiFraudInspectionRequired !== false ? "Active Fingerprinting" : "Standard"}
+                              </span>
                             </div>
                           </div>
 
-                          {whiteLabel.onboardingDetails.antiFraudProtocols && (
-                            <div className="pt-2 border-t border-border/40">
-                              <span className="text-muted-foreground text-[10px] block mb-1">Anti-Fraud Protocols Active:</span>
-                              <div className="flex flex-wrap gap-1">
-                                {whiteLabel.onboardingDetails.antiFraudProtocols.map((p: string) => (
-                                  <Badge key={p} variant="secondary" className="text-[9px] font-mono">
-                                    {p.replace(/_/g, " ")}
-                                  </Badge>
-                                ))}
+                          {whiteLabel.onboardingDetails.directDspAgreements &&
+                            whiteLabel.onboardingDetails.directDspAgreements.length > 0 && (
+                              <div className="pt-2 border-t border-border/40">
+                                <span className="text-muted-foreground text-[10px] block mb-1">Direct DSP Delivery Pipelines:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {whiteLabel.onboardingDetails.directDspAgreements.map((p: string) => (
+                                    <Badge key={p} variant="secondary" className="text-[9px] font-mono">
+                                      {p}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
                         </div>
                       )}
 
@@ -1217,67 +1236,67 @@ export function AdminWhiteLabelDetailsDialog({
                         <div className="space-y-2.5 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">CAE / IPI Number</span>
-                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.caeIpiNumber || "Pending"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Catalog Scope</span>
-                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.catalogAdministrationType || "worldwide").replace(/_/g, " ")}</span>
+                              <span className="text-muted-foreground text-[10px] block">Musical Works</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.musicalWorksCount ?? 150} works</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">Songwriters Count</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.songwritersRepresentedCount || 0} writers</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.songwritersRepresentedCount ?? 12} writers</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">CWR Electronic Feeds</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.cwrDeliverySupport ? "Yes (v2.1)" : "Standard"}</span>
+                              <span className="text-muted-foreground text-[10px] block">Primary PRO / CMO</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.primaryProAffiliation || "ASCAP (United States)"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Publisher IPI / CAE</span>
+                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.ipiCaeNumber || whiteLabel.onboardingDetails.caeIpiNumber || "Pending"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">CWR Exchange Feed</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.cwrExchangeEnabled !== false ? "Enabled (CWR v2.1)" : "Standard"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Mechanicals</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.collectsMechanicals !== false ? "MLC / HFA Active" : "Self-Admin"}</span>
                             </div>
                           </div>
-
-                          {whiteLabel.onboardingDetails.proAffiliations && (
-                            <div className="pt-2 border-t border-border/40">
-                              <span className="text-muted-foreground text-[10px] block mb-1">PRO / CMO Affiliations:</span>
-                              <div className="flex flex-wrap gap-1">
-                                {whiteLabel.onboardingDetails.proAffiliations.map((pro: string) => (
-                                  <Badge key={pro} variant="secondary" className="text-[9px] font-bold">
-                                    {pro}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       )}
 
                       {whiteLabel.businessType === "REFERRER" && (
                         <div className="space-y-2.5 text-xs">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Talent Pipeline</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.scoutingPipelineSize || 0} prospects</span>
+                              <span className="text-muted-foreground text-[10px] block">Scout Category</span>
+                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.scoutNetworkCategory || "talent_scout").replace(/_/g, " ")}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Annual Referrals</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.projectedAnnualReferrals ?? 10} partners / yr</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Pipeline Catalog</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.projectedPipelineCatalogSize ?? whiteLabel.onboardingDetails.scoutingPipelineSize ?? 500} tracks</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">Commission Structure</span>
-                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.preferredCommissionStructure || "hybrid").replace(/_/g, " ")}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Talent Scout Status</span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">Verified Scout Network</span>
+                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.preferredCommissionStructure || "lifetime_rev_share").replace(/_/g, " ")}</span>
                             </div>
                           </div>
 
-                          {whiteLabel.onboardingDetails.primaryGenresScouted && (
-                            <div className="pt-2 border-t border-border/40">
-                              <span className="text-muted-foreground text-[10px] block mb-1">Focus Genres Scouted:</span>
-                              <div className="flex flex-wrap gap-1">
-                                {whiteLabel.onboardingDetails.primaryGenresScouted.map((g: string) => (
-                                  <Badge key={g} variant="outline" className="text-[9px]">
-                                    {g}
-                                  </Badge>
-                                ))}
+                          {whiteLabel.onboardingDetails.discoveryChannels &&
+                            whiteLabel.onboardingDetails.discoveryChannels.length > 0 && (
+                              <div className="pt-2 border-t border-border/40">
+                                <span className="text-muted-foreground text-[10px] block mb-1">Talent Discovery Channels:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {whiteLabel.onboardingDetails.discoveryChannels.map((ch: string) => (
+                                    <Badge key={ch} variant="outline" className="text-[9px]">
+                                      {ch}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
                         </div>
                       )}
                     </div>

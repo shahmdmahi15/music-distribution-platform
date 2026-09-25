@@ -122,6 +122,39 @@ const RECORD_LABEL_TYPES = [
   { id: "genre_specialist", label: "Genre Specialist" },
 ];
 
+const GLOBAL_GENRE_OPTIONS = [
+  "Multi-Genre / All Genres",
+  "Pop & Contemporary",
+  "Hip-Hop / R&B",
+  "Electronic / Dance (EDM)",
+  "Rock / Alternative / Indie",
+  "South Asian / Bengali / Folk",
+  "Bollywood / Indian Pop",
+  "Latin / Reggaeton",
+  "Afrobeats / World Music",
+  "Classical / Instrumental / Jazz",
+  "Soundtrack / Score",
+];
+
+const CATALOG_LANGUAGE_OPTIONS = [
+  "English",
+  "Bengali",
+  "Multi-Language",
+  "Hindi / Urdu",
+  "Spanish",
+  "Arabic",
+  "French",
+  "Portuguese",
+  "Instrumental",
+];
+
+const PUBLISHING_COMPANY_TYPES = [
+  { id: "administration", label: "Worldwide Publishing Administration" },
+  { id: "co_publishing", label: "Co-Publishing (50/50 Split)" },
+  { id: "full_service", label: "Full-Service Music Publisher" },
+  { id: "sub_publishing", label: "Regional Sub-Publisher" },
+];
+
 const SPLIT_STANDARDS = [
   "50/50 Profit Share",
   "70/30 (Artist 70% / Label 30%)",
@@ -373,7 +406,7 @@ export function WhiteLabelOnboardingWizard({
       labelType: "independent",
       isrcCountryCode: "US",
       isrcRegistrantCode: "",
-      primaryGenre: "Hip-Hop / R&B",
+      primaryGenre: "Multi-Genre / All Genres",
       masterRoyaltySplitStandard: "70/30 (Artist 70% / Label 30%)",
       physicalDistributionNeeded: false,
       dolbyAtmosReady: true,
@@ -1442,13 +1475,15 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
                       Label Category
                     </Label>
                     <select
-                      value={formData.onboardingDetails?.labelType || "independent"}
+                      value={
+                        formData.onboardingDetails?.labelType || "independent"
+                      }
                       onChange={(e) =>
                         updateOnboardingDetail("labelType", e.target.value)
                       }
@@ -1464,11 +1499,35 @@ export function WhiteLabelOnboardingWizard({
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
+                      Primary Genre Focus
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.primaryGenre ||
+                        GLOBAL_GENRE_OPTIONS[0]
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail("primaryGenre", e.target.value)
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {GLOBAL_GENRE_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
                       ISRC Registrant Prefix (Optional)
                     </Label>
                     <Input
-                      placeholder="e.g. US-XX1"
-                      value={formData.onboardingDetails?.isrcRegistrantCode || ""}
+                      placeholder="e.g. US-XX1 or BD-RM1"
+                      value={
+                        formData.onboardingDetails?.isrcRegistrantCode || ""
+                      }
                       onChange={(e) =>
                         updateOnboardingDetail(
                           "isrcRegistrantCode",
@@ -1480,32 +1539,56 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    Standard Artist Royalty Split Model
-                  </Label>
-                  <select
-                    value={
-                      formData.onboardingDetails?.masterRoyaltySplitStandard ||
-                      SPLIT_STANDARDS[1]
-                    }
-                    onChange={(e) =>
-                      updateOnboardingDetail(
-                        "masterRoyaltySplitStandard",
-                        e.target.value,
-                      )
-                    }
-                    className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
-                  >
-                    {SPLIT_STANDARDS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Standard Artist Royalty Split Model
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.masterRoyaltySplitStandard ||
+                        SPLIT_STANDARDS[1]
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "masterRoyaltySplitStandard",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {SPLIT_STANDARDS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Primary Catalog Language
+                    </Label>
+                    <select
+                      value={formData.primaryCatalogLanguage || "English"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          primaryCatalogLanguage: e.target.value,
+                        }))
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground">
@@ -1562,6 +1645,26 @@ export function WhiteLabelOnboardingWizard({
                     </div>
                     <p className="text-[10px] text-muted-foreground">
                       Import existing ISRC / UPC catalogs automatically.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Sample / Covers?
+                      </span>
+                      <Switch
+                        checked={formData.hasSampleBasedCovers}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            hasSampleBasedCovers: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Catalog includes licensed samples or cover recordings.
                     </p>
                   </div>
                 </div>
@@ -1631,26 +1734,53 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    Automated Ingestion & Batch Protocol
-                  </Label>
-                  <select
-                    value={
-                      formData.onboardingDetails?.ingestionProtocol ||
-                      "DDEX_ERN_4_3"
-                    }
-                    onChange={(e) =>
-                      updateOnboardingDetail("ingestionProtocol", e.target.value)
-                    }
-                    className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
-                  >
-                    {DDEX_PROTOCOLS.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Automated Ingestion & Batch Protocol
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.ingestionProtocol ||
+                        "DDEX_ERN_4_3"
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "ingestionProtocol",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {DDEX_PROTOCOLS.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Primary Catalog Language
+                    </Label>
+                    <select
+                      value={formData.primaryCatalogLanguage || "English"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          primaryCatalogLanguage: e.target.value,
+                        }))
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1747,37 +1877,6 @@ export function WhiteLabelOnboardingWizard({
                     </p>
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    Client Onboarding & Signup Model on WhiteLabel
-                  </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {SIGNUP_MODELS.map((model) => (
-                      <div
-                        key={model.id}
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            userSignupModel: model.id,
-                          }))
-                        }
-                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                          formData.userSignupModel === model.id
-                            ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-semibold text-primary"
-                            : "border-border/60 hover:border-border text-muted-foreground"
-                        }`}
-                      >
-                        <p className="text-xs font-bold text-foreground">
-                          {model.label}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
-                          {model.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1785,7 +1884,32 @@ export function WhiteLabelOnboardingWizard({
             {formData.businessType ===
               WhiteLabelBusinessType.MUSIC_PUBLISHER && (
               <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Publishing Administration Model
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.publishingCompanyType ||
+                        "administration"
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "publishingCompanyType",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {PUBLISHING_COMPANY_TYPES.map((pt) => (
+                        <option key={pt.id} value={pt.id}>
+                          {pt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
                       Registered Musical Works in Catalog
@@ -1828,7 +1952,7 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
                       Primary PRO / CMO Affiliation
@@ -1856,13 +1980,30 @@ export function WhiteLabelOnboardingWizard({
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
-                      Publisher IPI / CAE Number (9 Digits)
+                      Publisher IPI / CAE Number (9–11 Digits)
                     </Label>
                     <Input
                       placeholder="e.g. 00812345678"
                       value={formData.onboardingDetails?.ipiCaeNumber || ""}
                       onChange={(e) =>
                         updateOnboardingDetail("ipiCaeNumber", e.target.value)
+                      }
+                      className="h-9.5 text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      The MLC Member Code (Optional)
+                    </Label>
+                    <Input
+                      placeholder="e.g. MLC-90210"
+                      value={formData.onboardingDetails?.theMlcMemberCode || ""}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "theMlcMemberCode",
+                          e.target.value,
+                        )
                       }
                       className="h-9.5 text-xs font-mono"
                     />
@@ -2036,6 +2177,42 @@ export function WhiteLabelOnboardingWizard({
 
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">
+                    Target Geographic Territories:
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TERRITORY_OPTIONS.map((terr) => {
+                      const currentTerrs =
+                        formData.onboardingDetails?.targetTerritories || [];
+                      const isSelected = currentTerrs.includes(terr);
+                      return (
+                        <Badge
+                          key={terr}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => {
+                            const updated = isSelected
+                              ? currentTerrs.filter((t: string) => t !== terr)
+                              : [...currentTerrs, terr];
+                            updateOnboardingDetail(
+                              "targetTerritories",
+                              updated,
+                            );
+                          }}
+                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {terr}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">
                     Primary Talent Discovery Channels:
                   </Label>
                   <div className="flex flex-wrap gap-1.5">
@@ -2063,6 +2240,38 @@ export function WhiteLabelOnboardingWizard({
                 </div>
               </div>
             )}
+
+            {/* Universal Portal Access / Signup Model for All Business Types */}
+            <div className="space-y-2 pt-3 border-t border-border/50">
+              <Label className="text-xs font-semibold">
+                Client Onboarding & Creator Signup Model on Your WhiteLabel Portal
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {SIGNUP_MODELS.map((model) => (
+                  <div
+                    key={model.id}
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        userSignupModel: model.id,
+                      }))
+                    }
+                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                      formData.userSignupModel === model.id
+                        ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-semibold text-primary"
+                        : "border-border/60 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    <p className="text-xs font-bold text-foreground">
+                      {model.label}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                      {model.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Universal Distribution & Royalty Tools for Labels & Aggregators */}
             {formData.businessType !== WhiteLabelBusinessType.REFERRER && (

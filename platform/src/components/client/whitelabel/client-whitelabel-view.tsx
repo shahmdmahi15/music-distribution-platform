@@ -125,10 +125,17 @@ export function ClientWhiteLabelView({
             hasDirectDeals: whiteLabel.hasDirectDeals,
             currentDistributors: whiteLabel.currentDistributors || [],
             royaltySolutions: whiteLabel.royaltySolutions || [],
-            primaryCatalogLanguage: whiteLabel.primaryCatalogLanguage || "en",
+            primaryCatalogLanguage:
+              whiteLabel.primaryCatalogLanguage === "en"
+                ? "English"
+                : whiteLabel.primaryCatalogLanguage || "English",
             wantsCatalogMigration: whiteLabel.wantsCatalogMigration,
             hasSampleBasedCovers: whiteLabel.hasSampleBasedCovers,
             userSignupModel: whiteLabel.userSignupModel,
+            estimatedLaunchTimeline:
+              whiteLabel.onboardingDetails?.estimatedLaunchTimeline ||
+              "Immediate",
+            onboardingDetails: whiteLabel.onboardingDetails || undefined,
             topArtists:
               whiteLabel.artists && whiteLabel.artists.length > 0
                 ? whiteLabel.artists.map((a) => ({

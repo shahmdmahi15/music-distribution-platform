@@ -431,6 +431,19 @@ export function WhiteLabelApplicationStatusView({
             </div>
 
             <div className="flex items-center gap-2">
+              {onReapply &&
+                (whiteLabel.status === WhiteLabelStatus.PENDING ||
+                  whiteLabel.status === WhiteLabelStatus.REJECTED) && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={onReapply}
+                    className="h-8 text-xs gap-1.5 font-semibold"
+                  >
+                    <FileSignature className="h-3.5 w-3.5" />
+                    Edit Application
+                  </Button>
+                )}
               <Button
                 variant="outline"
                 size="sm"
@@ -1060,7 +1073,7 @@ export function WhiteLabelApplicationStatusView({
                 </span>
                 <p className="font-bold text-foreground text-sm pt-0.5">
                   {whiteLabel.onboardingDetails?.primaryGenre ||
-                    "Hip-Hop / R&B"}
+                    "Multi-Genre / All Genres"}
                 </p>
               </div>
               <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
