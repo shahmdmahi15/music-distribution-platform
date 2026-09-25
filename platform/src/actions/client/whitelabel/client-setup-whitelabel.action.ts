@@ -35,6 +35,14 @@ export interface ClientSetupWhiteLabelInput {
   socialFacebook?: string;
   socialLinkedin?: string;
   socialTiktok?: string;
+  customDomain?: string;
+  bucketName?: string;
+  elasticIpv4?: string;
+  cloudflareZoneId?: string;
+  cloudflareBaseDomain?: string;
+  awsRegion?: string;
+  awsInstanceType?: string;
+  senderEmail?: string;
 }
 
 export async function clientSetupWhiteLabelAction(
@@ -43,6 +51,7 @@ export async function clientSetupWhiteLabelAction(
   success: boolean;
   message: string;
   branding?: WhiteLabelBranding;
+  generatedApiKey?: string | null;
 }> {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get("__Host-SESSION_TOKEN")?.value;
@@ -83,12 +92,17 @@ export async function clientSetupWhiteLabelAction(
     revalidatePath("/whitelabel/setup");
     revalidatePath("/whitelabel/branding");
     revalidatePath("/whitelabel/theme");
+    revalidatePath("/whitelabel/domain");
+    revalidatePath("/whitelabel/sso");
+    revalidatePath("/whitelabel/api-keys");
+    revalidatePath("/whitelabel/webhooks");
     revalidatePath("/whitelabel/users");
     revalidatePath("/");
     return {
       success: true,
       message: data.message || "WhiteLabel setup completed successfully.",
       branding: data.branding,
+      generatedApiKey: data.generatedApiKey || null,
     };
   } catch (error) {
     console.error("[Action.Client.WhiteLabel.Setup] Error:", error);

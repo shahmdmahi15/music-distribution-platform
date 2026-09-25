@@ -117,7 +117,46 @@ const activeNavigations: SimpleNavigationGroup[] = [
   },
 ];
 
-// 2. Simple, clean navigation for Onboarding Clients
+// 2. Focused navigation for Active WhiteLabel Clients who have NOT yet completed the Setup Wizard
+const setupPendingNavigations: SimpleNavigationGroup[] = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Overview",
+        url: "/",
+        icon: House,
+      },
+    ],
+  },
+  {
+    name: "WhiteLabel",
+    items: [
+      {
+        title: "Setup Wizard",
+        url: "/whitelabel/setup",
+        icon: Sparkles,
+      },
+    ],
+  },
+  {
+    name: "Account",
+    items: [
+      {
+        title: "Profile",
+        url: "/profile",
+        icon: UserPen,
+      },
+      {
+        title: "Active Sessions",
+        url: "/sessions",
+        icon: ShieldPlus,
+      },
+    ],
+  },
+];
+
+// 3. Simple, clean navigation for Onboarding Clients
 const onboardingNavigations: SimpleNavigationGroup[] = [
   {
     name: "Platform",
@@ -158,9 +197,17 @@ export function ClientSidebarContent({
     subscription?.whiteLabel?.status === WhiteLabelStatus.ACTIVE &&
     payments.some((p) => p.status === PaymentStatus.COMPLETED);
 
-  const navigations = isApprovedAndPaid
-    ? activeNavigations
-    : onboardingNavigations;
+  const isSetupCompleted = Boolean(
+    subscription?.whiteLabel?.isSetupComplete ||
+      (subscription?.whiteLabel as { isSetupCompleted?: boolean } | undefined)
+        ?.isSetupCompleted,
+  );
+
+  const navigations = !isApprovedAndPaid
+    ? onboardingNavigations
+    : isSetupCompleted
+      ? activeNavigations
+      : setupPendingNavigations;
 
   return (
     <SidebarContent>

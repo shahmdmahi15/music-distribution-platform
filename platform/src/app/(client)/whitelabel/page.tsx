@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,13 @@ export default async function WhiteLabelOverviewPage() {
         </Card>
       </div>
     );
+  }
+
+  if (
+    !brandingResult.branding.isSetupComplete &&
+    !brandingResult.branding.isSetupCompleted
+  ) {
+    redirect("/whitelabel/setup");
   }
 
   const keys = keysResult.keys || [];

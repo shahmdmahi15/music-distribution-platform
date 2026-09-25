@@ -633,20 +633,37 @@ export function WhiteLabelApplicationStatusView({
 
       {/* Active WhiteLabel Live Gateway */}
       {isLive && (
-        <Card className="border-emerald-500/40 bg-emerald-500/5 shadow-sm">
+        <Card
+          className={
+            whiteLabel.isSetupComplete ||
+            (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
+              ? "border-emerald-500/40 bg-emerald-500/5 shadow-sm"
+              : "border-amber-500/50 bg-linear-to-r from-amber-500/10 via-primary/5 to-transparent shadow-sm"
+          }
+        >
           <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
-                  ACTIVE & OPERATIONAL
-                </Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                {whiteLabel.isSetupComplete ||
+                (whiteLabel as { isSetupCompleted?: boolean })
+                  .isSetupCompleted ? (
+                  <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
+                    ACTIVE &amp; OPERATIONAL
+                  </Badge>
+                ) : (
+                  <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-[11px] font-bold">
+                    ACTION REQUIRED • INITIAL SETUP &amp; CLOUD DEPLOYMENT
+                  </Badge>
+                )}
                 <span className="text-xs text-muted-foreground font-mono">
                   Cloudflare Automated DNS Active
                 </span>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                Your WhiteLabel instance is provisioned and ready for your
-                clients.
+                {whiteLabel.isSetupComplete ||
+                (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
+                  ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
+                  : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
               </p>
               {whiteLabel.subdomain && (
                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
@@ -657,25 +674,40 @@ export function WhiteLabelApplicationStatusView({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {whiteLabel.subdomain && (
-                <a
-                  href={`https://${whiteLabel.subdomain}.platform.royalmotionit.com`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-xs font-medium gap-1.5 h-9 px-3 transition-colors"
+              {whiteLabel.isSetupComplete ||
+              (whiteLabel as { isSetupCompleted?: boolean })
+                .isSetupCompleted ? (
+                <>
+                  {whiteLabel.subdomain && (
+                    <a
+                      href={`https://${whiteLabel.customDomain || `${whiteLabel.subdomain}.platform.royalmotionit.com`}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-xs font-medium gap-1.5 h-9 px-3 transition-colors"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Visit Live Portal
+                    </a>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => router.push("/whitelabel")}
+                    className="gap-1.5 text-xs h-9 bg-primary text-primary-foreground font-semibold"
+                  >
+                    Open WhiteLabel Console
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => router.push("/whitelabel/setup")}
+                  className="gap-1.5 text-xs h-10 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-xs"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Visit Live Subdomain
-                </a>
+                  Launch Guided Setup Wizard
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
               )}
-              <Button
-                size="sm"
-                onClick={() => router.push("/whitelabel/domain")}
-                className="gap-1.5 text-xs h-9 bg-primary text-primary-foreground"
-              >
-                Configure Custom Domain
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </CardContent>
         </Card>

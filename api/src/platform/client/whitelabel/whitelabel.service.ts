@@ -1076,10 +1076,83 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         socialFacebook: dto.socialFacebook?.trim() || null,
         socialLinkedin: dto.socialLinkedin?.trim() || null,
         socialTiktok: dto.socialTiktok?.trim() || null,
+        ...(dto.customDomain !== undefined &&
+          dto.customDomain.trim() !== '' && {
+            customDomain: dto.customDomain.trim().toLowerCase(),
+          }),
+        ...(dto.bucketName !== undefined &&
+          dto.bucketName.trim() !== '' && {
+            bucketName: dto.bucketName.trim().toLowerCase(),
+          }),
+        ...(dto.elasticIpv4 !== undefined &&
+          dto.elasticIpv4.trim() !== '' && {
+            elasticIpv4: dto.elasticIpv4.trim(),
+          }),
+        ...(dto.cloudflareZoneId !== undefined &&
+          dto.cloudflareZoneId.trim() !== '' && {
+            cloudflareZoneId: dto.cloudflareZoneId.trim(),
+          }),
+        ...(dto.cloudflareBaseDomain !== undefined &&
+          dto.cloudflareBaseDomain.trim() !== '' && {
+            cloudflareBaseDomain: dto.cloudflareBaseDomain.trim().toLowerCase(),
+          }),
+        ...(dto.awsRegion !== undefined &&
+          dto.awsRegion.trim() !== '' && {
+            awsRegion: dto.awsRegion.trim(),
+          }),
+        ...(dto.awsInstanceType !== undefined &&
+          dto.awsInstanceType.trim() !== '' && {
+            awsInstanceType: dto.awsInstanceType.trim(),
+          }),
+        ...(dto.senderEmail !== undefined &&
+          dto.senderEmail.trim() !== '' && {
+            senderEmail: dto.senderEmail.trim().toLowerCase(),
+          }),
         isSetupComplete: true,
         status: WhiteLabelStatus.ACTIVE,
       },
     });
+
+    // 2b. Auto-generate a Production API Key if the tenant does not have one yet
+    let generatedApiKey: string | null = null;
+    const existingActiveKeyCount =
+      await this.prismaService.whiteLabelApiKey.count({
+        where: { whiteLabelId: wl.id, isActive: true },
+      });
+
+    if (existingActiveKeyCount === 0) {
+      const rawKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
+      const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+      const keyCode = await generateUniqueCode(
+        this.prismaService,
+        'whiteLabelApiKey',
+        CodePrefix.WHITELABEL_API_KEY,
+      );
+
+      const newKey = await this.prismaService.whiteLabelApiKey.create({
+        data: {
+          code: keyCode,
+          name: 'Production Portal Key',
+          keyHash,
+          keyPrefix: `${rawKey.slice(0, 10)}...${rawKey.slice(-4)}`,
+          keyMasked: `${rawKey.slice(0, 10)}****************${rawKey.slice(-4)}`,
+          isActive: true,
+          whiteLabelId: wl.id,
+        },
+      });
+
+      await this.redisService.set(
+        `whitelabel:apikey:${keyHash}`,
+        JSON.stringify({
+          whiteLabelId: wl.id,
+          name: newKey.name,
+          keyId: newKey.id,
+          status: 'ACTIVE',
+        }),
+      );
+
+      generatedApiKey = rawKey;
+    }
 
     // 3. Cache Theme in Redis
     await this.redisService.set(
@@ -1107,7 +1180,11 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       }),
     );
 
-    return await this.getBranding(userId);
+    const brandingRes = await this.getBranding(userId);
+    return {
+      ...brandingRes,
+      generatedApiKey,
+    };
   }
 
   async updateBranding(userId: string, dto: UpdateBrandingDto) {

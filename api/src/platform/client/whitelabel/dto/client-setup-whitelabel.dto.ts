@@ -172,4 +172,37 @@ export class ClientSetupWhiteLabelDto {
   @IsOptional()
   @IsString()
   socialTiktok?: string;
+
+  // Optional Infrastructure & Domain Configuration
+  @IsOptional()
+  @IsString()
+  customDomain?: string;
+
+  @IsOptional()
+  @IsString()
+  bucketName?: string;
+
+  @IsOptional()
+  @IsString()
+  elasticIpv4?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareZoneId?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareBaseDomain?: string;
+
+  @IsOptional()
+  @IsString()
+  awsRegion?: string;
+
+  @IsOptional()
+  @IsString()
+  awsInstanceType?: string;
+
+  @IsOptional()
+  @IsString()
+  senderEmail?: string;
 }

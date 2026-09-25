@@ -47,6 +47,7 @@ import {
   ProvisioningStatus,
 } from "@/types/whitelabel";
 import { clientSetupWhiteLabelAction } from "@/actions/client/whitelabel/client-setup-whitelabel.action";
+import { clientCreateApiKeyAction } from "@/actions/client/whitelabel/client-api-keys.action";
 import {
   clientValidateCloudCredentialsAction,
   clientStartCloudProvisioningAction,
@@ -102,6 +103,23 @@ const RADIUS_OPTIONS = [
   { id: "1.25rem", label: "Pill / Round (1.25rem)" },
 ];
 
+const AWS_IAM_LEAST_PRIVILEGE_POLICY = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RMITWhiteLabelProvisioning",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "s3:*",
+        "ses:*",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}`;
+
 export function ClientWhiteLabelSetupWizard({
   branding,
   user,
@@ -111,7 +129,7 @@ export function ClientWhiteLabelSetupWizard({
 }: ClientWhiteLabelSetupWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   // Form State
   const [name, setName] = useState(branding.name || "");
@@ -164,6 +182,18 @@ export function ClientWhiteLabelSetupWizard({
   const [ownerPasswordConfirm, setOwnerPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Step 6: Production API Key Provisioning
+  const [generatedRawApiKey, setGeneratedRawApiKey] = useState<string | null>(
+    null,
+  );
+  const [currentKeyPrefix, setCurrentKeyPrefix] = useState<string | undefined>(
+    latestKeyPrefix,
+  );
+  const [apiKeyLabel, setApiKeyLabel] = useState("Production Portal Key");
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedIamPolicy, setCopiedIamPolicy] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [launchSuccess, setLaunchSuccess] = useState(false);
   const [copiedSnippet, setCopiedSnippet] = useState(false);
@@ -176,17 +206,45 @@ export function ClientWhiteLabelSetupWizard({
       ? `https://${branding.subdomain}.platform.royalmotionit.com`
       : "https://platform.royalmotionit.com";
 
+  const displayApiKey =
+    generatedRawApiKey ||
+    (currentKeyPrefix
+      ? `${currentKeyPrefix}...`
+      : "<Will auto-generate on activation>");
+
   const envSnippet = `# WhiteLabel Portal (.env)
 # Only 3 environment variables required:
 API_BASE_URL="https://api.royalmotionit.com"
-API_KEY="${latestKeyPrefix ? `${latestKeyPrefix}...` : "<Generate in API Keys tab>"}"
-INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
+API_KEY="${displayApiKey}"
+INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0-9]/g, "_")}_live"`;
 
   const copyEnvSnippet = () => {
     navigator.clipboard.writeText(envSnippet);
     setCopiedSnippet(true);
     toast.success("Hosting environment snippet copied to clipboard");
     setTimeout(() => setCopiedSnippet(false), 2000);
+  };
+
+  const handleGenerateWizardApiKey = async () => {
+    setIsGeneratingKey(true);
+    try {
+      const res = await clientCreateApiKeyAction(
+        apiKeyLabel.trim() || "Production Portal Key",
+      );
+      if (res.success && res.rawKey) {
+        setGeneratedRawApiKey(res.rawKey);
+        setCurrentKeyPrefix(res.key?.prefix || res.rawKey.slice(0, 14));
+        toast.success(
+          "Production API Key generated! Copy and store it securely.",
+        );
+      } else {
+        toast.error(res.message || "Failed to generate API key.");
+      }
+    } catch {
+      toast.error("Error generating API key.");
+    } finally {
+      setIsGeneratingKey(false);
+    }
   };
 
   const handleAutofillOwner = () => {
@@ -202,8 +260,20 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
   );
   const [awsAccessKeyId, setAwsAccessKeyId] = useState("");
   const [awsSecretAccessKey, setAwsSecretAccessKey] = useState("");
-  const [awsRegion, setAwsRegion] = useState("us-east-1");
-  const [instanceType, setInstanceType] = useState("t4g.medium");
+  const [awsRegion, setAwsRegion] = useState("ap-southeast-1");
+  const [instanceType, setInstanceType] = useState(
+    branding.awsInstanceType || "t4g.medium",
+  );
+  const [bucketName, setBucketName] = useState(
+    branding.bucketName ||
+      `rmit-music-${branding.code.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+  );
+  const [senderEmail, setSenderEmail] = useState(
+    branding.supportEmail || `releases@${branding.cloudflareBaseDomain || "yourdomain.com"}`,
+  );
+  const [elasticIpv4, setElasticIpv4] = useState(
+    branding.awsElasticIp || branding.elasticIpv4 || "",
+  );
   const [showAwsSecret, setShowAwsSecret] = useState(false);
 
   const [cloudflareApiToken, setCloudflareApiToken] = useState("");
@@ -324,6 +394,8 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         awsSecretAccessKey: awsSecretAccessKey.trim(),
         awsRegion,
         instanceType,
+        bucketName: bucketName.trim() || undefined,
+        senderEmail: senderEmail.trim() || undefined,
         cloudflareApiToken: cloudflareApiToken.trim(),
         cloudflareZoneId: cloudflareZoneId.trim(),
         cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase(),
@@ -382,6 +454,12 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const computedCustomDomain =
+        deployedDomain ||
+        (cloudflareBaseDomain.trim()
+          ? `${portalSubdomain.trim() || "backstage"}.${cloudflareBaseDomain.trim().toLowerCase()}`
+          : undefined);
+
       const payload = {
         name: name.trim(),
         tagline: tagline.trim() || undefined,
@@ -409,6 +487,14 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         socialTwitter: twitter.trim() || undefined,
         socialSpotify: spotify.trim() || undefined,
         socialYoutube: youtube.trim() || undefined,
+        customDomain: computedCustomDomain,
+        bucketName: bucketName.trim() || undefined,
+        elasticIpv4: elasticIpv4.trim() || undefined,
+        cloudflareZoneId: cloudflareZoneId.trim() || undefined,
+        cloudflareBaseDomain: cloudflareBaseDomain.trim() || undefined,
+        awsRegion: awsRegion || undefined,
+        awsInstanceType: instanceType || undefined,
+        senderEmail: senderEmail.trim() || undefined,
       };
 
       const res = await clientSetupWhiteLabelAction(payload);
@@ -419,16 +505,22 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         return;
       }
 
+      if (res.generatedApiKey) {
+        setGeneratedRawApiKey(res.generatedApiKey);
+      }
+
       setLaunchSuccess(true);
-      toast.success("WhiteLabel setup saved to database and portal activated!");
+      toast.success(
+        "WhiteLabel setup completed! Full WhiteLabel Command Center unlocked.",
+      );
 
       if (onSuccess) {
-        setTimeout(() => onSuccess(), 1500);
+        setTimeout(() => onSuccess(), 1800);
       } else {
         setTimeout(() => {
           router.push("/whitelabel");
           router.refresh();
-        }, 1500);
+        }, 1800);
       }
     } catch (err) {
       toast.error(
@@ -438,29 +530,46 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
     }
   };
 
+  const WIZARD_STEPS = [
+    { num: 1, short: "Identity", title: "Brand Identity & Contacts" },
+    { num: 2, short: "Theme", title: "Visual Theme & Dual Mode" },
+    { num: 3, short: "Access", title: "Registration Policy" },
+    { num: 4, short: "Assets", title: "Brand Assets & SEO" },
+    { num: 5, short: "Owner", title: "WhiteLabel Super Admin" },
+    { num: 6, short: "API Keys", title: "API Keys & Engine Auth" },
+    { num: 7, short: "AWS & Cloudflare", title: "AWS & Cloudflare Deployment" },
+    { num: 8, short: "Launch", title: "Review & Unlock Console" },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-card shadow-sm">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md"
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md shrink-0"
             style={{ backgroundColor: primaryColor }}
           >
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-foreground">
-                WhiteLabel Setup &amp; Onboarding Wizard
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-lg font-extrabold text-foreground">
+                Guided WhiteLabel Production &amp; Cloud Deployment Wizard
               </h1>
-              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">
-                Guided 7 Steps
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] font-bold">
+                8-Step End-to-End Setup
               </Badge>
+              {!branding.isSetupComplete && !branding.isSetupCompleted && (
+                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] font-bold">
+                  Required to Unlock Console
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Configure branding, dual-theme styling, registration policies, and
-              the portal Owner account.
+              Complete this step-by-step guided setup for Brand Identity, Super
+              Admin, Production API Keys, and Automated AWS + Cloudflare
+              Deployment to unlock your full WhiteLabel console.
             </p>
           </div>
         </div>
@@ -477,18 +586,55 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         )}
       </div>
 
-      {/* Progress Stepper */}
-      <div className="space-y-2">
+      {/* Interactive 8-Step Progress Stepper */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+          {WIZARD_STEPS.map((item) => {
+            const isActive = step === item.num;
+            const isCompleted = step > item.num;
+            return (
+              <button
+                key={item.num}
+                type="button"
+                onClick={() => {
+                  if (item.num <= step) setStep(item.num);
+                }}
+                className={`p-2 rounded-xl border text-left transition-all ${
+                  isActive
+                    ? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-2xs"
+                    : isCompleted
+                      ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer"
+                      : "border-border/60 bg-card/50 opacity-70 cursor-default"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    className={`text-[10px] font-mono font-bold ${
+                      isActive
+                        ? "text-primary"
+                        : isCompleted
+                          ? "text-emerald-500"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    0{item.num}
+                  </span>
+                  {isCompleted && (
+                    <Check className="w-3 h-3 text-emerald-500 shrink-0" />
+                  )}
+                </div>
+                <div className="text-[11px] font-bold text-foreground truncate mt-0.5">
+                  {item.short}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">
             Step {step} of {totalSteps}:{" "}
-            {step === 1 && "Brand Identity & Contacts"}
-            {step === 2 && "Visual Theme & Dual Mode"}
-            {step === 3 && "Registration Policy"}
-            {step === 4 && "Brand Assets & SEO"}
-            {step === 5 && "WhiteLabel Super Admin"}
-            {step === 6 && "Cloud Infrastructure & Deployment"}
-            {step === 7 && "Review & Portal Activation"}
+            {WIZARD_STEPS.find((s) => s.num === step)?.title}
           </span>
           <span className="font-mono text-primary font-bold">
             {Math.round((step / totalSteps) * 100)}%
@@ -1255,22 +1401,347 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
             </div>
           )}
 
-          {/* STEP 6: Cloud Infrastructure & Deployment */}
+          {/* STEP 6: Production API Keys & Distribution Engine Authentication */}
           {step === 6 && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Step 6: Production API Keys &amp; Engine Authentication
+                </div>
+                <h2 className="text-xl font-bold text-foreground">
+                  Generate Your Production API Key (`rmit_live_...`)
+                </h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your WhiteLabel portal communicates with the{" "}
+                  <strong>RoyalMotionIT Distribution Engine (`https://api.royalmotionit.com`)</strong>{" "}
+                  using a cryptographically hashed Tenant API Key (`x-api-key`).
+                  Generate your key now or let the wizard auto-generate one upon
+                  activation.
+                </p>
+              </div>
+
+              {/* Interactive API Key Generator Card */}
+              <div className="p-5 rounded-xl border border-border bg-card space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-foreground flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-amber-500" />
+                      <span>Tenant API Key Provisioning</span>
+                      {(generatedRawApiKey || currentKeyPrefix) && (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                          Active Key Ready
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Used by your EC2 instance or self-hosted runtime to fetch
+                      tenant branding, themes, and artist catalog data.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={apiKeyLabel}
+                      onChange={(e) => setApiKeyLabel(e.target.value)}
+                      placeholder="Production Portal Key"
+                      className="h-8 text-xs w-44 font-medium"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleGenerateWizardApiKey}
+                      disabled={isGeneratingKey}
+                      className="h-8 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white gap-1.5 shrink-0"
+                    >
+                      {isGeneratingKey ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <KeyRound className="w-3.5 h-3.5" />
+                          {generatedRawApiKey || currentKeyPrefix
+                            ? "Rotate / New Key"
+                            : "Generate API Key"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {generatedRawApiKey ? (
+                  <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Save Your Raw Production API Key (Shown Only Once!)
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedRawApiKey);
+                          setCopiedKey(true);
+                          toast.success("Raw API Key copied to clipboard!");
+                          setTimeout(() => setCopiedKey(false), 2000);
+                        }}
+                        className="h-7 text-xs gap-1 font-mono"
+                      >
+                        {copiedKey ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy Key
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-background/90 border border-emerald-500/30 font-mono text-xs text-foreground break-all select-all">
+                      {generatedRawApiKey}
+                    </div>
+                  </div>
+                ) : currentKeyPrefix ? (
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-semibold text-foreground">
+                        Active Production Key Detected
+                      </span>
+                      <p className="text-[11px] font-mono text-muted-foreground">
+                        Prefix: {currentKeyPrefix}...
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/40 text-emerald-500 text-[10px]"
+                    >
+                      SHA-256 Indexed in Redis
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs text-muted-foreground">
+                    Click <strong>&quot;Generate API Key&quot;</strong> above to
+                    create your production key now, or proceed and the wizard
+                    will automatically provision one when you click{" "}
+                    <strong>Activate</strong> in Step 8.
+                  </div>
+                )}
+
+                {/* Ready-to-Use .env Preview */}
+                <div className="pt-3 border-t border-border/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">
+                      Generated Portal `.env` Configuration (`api.royalmotionit.com`)
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={copyEnvSnippet}
+                      className="text-xs h-7 gap-1 font-mono"
+                    >
+                      {copiedSnippet ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          Copied .env
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy .env Bundle
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted font-mono text-xs overflow-x-auto text-foreground">
+                    <pre className="text-[11px] leading-relaxed">
+                      {envSnippet}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 7: Guided AWS Console & Cloudflare Dashboard Deployment */}
+          {step === 7 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-semibold">
                   <Cloud className="w-3.5 h-3.5" />
-                  Step 6: Cloud Infrastructure &amp; Deployment
+                  Step 7: Guided AWS Console &amp; Cloudflare Dashboard Setup
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
-                  Deploy Your WhiteLabel Portal
+                  Automated Multi-Cloud Infrastructure &amp; DNS Deployment
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Choose between automated multi-cloud provisioning (AWS EC2 +
-                  Elastic IP + S3 + SES + Cloudflare) or self-hosting via
-                  minimal environment variables.
+                  Follow the step-by-step console instructions below for{" "}
+                  <strong>AWS Console</strong> and{" "}
+                  <strong>Cloudflare Dashboard</strong> to automatically launch
+                  your dedicated EC2 server, S3 Audio Vault, SES Email DKIM, and
+                  Cloudflare SSL routing—or deploy using your pre-active managed
+                  subdomain{" "}
+                  <code className="text-primary font-mono">
+                    https://{branding.subdomain}.platform.royalmotionit.com
+                  </code>
+                  .
                 </p>
+              </div>
+
+              {/* Dual Console Step-by-Step Interactive Walkthrough Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Guide Card 1: AWS Console Step-by-Step */}
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                        <HardDrive className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wide">
+                          Part A: AWS Console Guide
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground">
+                          IAM User + EC2 + S3 Audio Vault + SES Email
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href="https://console.aws.amazon.com/iam/home#/users"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                    >
+                      Open AWS IAM
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside leading-relaxed">
+                    <li>
+                      Sign in to <strong>AWS Console</strong> &rarr;{" "}
+                      <strong>IAM &rarr; Users &rarr; Create user</strong>{" "}
+                      (name: <code className="text-foreground">rmit-whitelabel-deployer</code>).
+                    </li>
+                    <li>
+                      Select <strong>Attach policies directly</strong> and attach:{" "}
+                      <code className="text-foreground font-semibold">AmazonEC2FullAccess</code>,{" "}
+                      <code className="text-foreground font-semibold">AmazonS3FullAccess</code>, and{" "}
+                      <code className="text-foreground font-semibold">AmazonSESFullAccess</code>{" "}
+                      (or copy the JSON policy below).
+                    </li>
+                    <li>
+                      Open the user &rarr;{" "}
+                      <strong>Security credentials &rarr; Create access key</strong>{" "}
+                      &rarr; Select <strong>Application running outside AWS</strong>.
+                    </li>
+                    <li>
+                      Copy the <strong>Access key ID (`AKIA...`)</strong> and{" "}
+                      <strong>Secret access key</strong> into the form below.
+                    </li>
+                  </ol>
+
+                  <div className="pt-1 flex items-center justify-between border-t border-amber-500/20">
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      Least-Privilege IAM JSON Policy
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          AWS_IAM_LEAST_PRIVILEGE_POLICY,
+                        );
+                        setCopiedIamPolicy(true);
+                        toast.success(
+                          "AWS IAM JSON Policy copied to clipboard!",
+                        );
+                        setTimeout(() => setCopiedIamPolicy(false), 2000);
+                      }}
+                      className="h-6 text-[10px] px-2 gap-1 font-mono"
+                    >
+                      {copiedIamPolicy ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-500" />
+                          Copied JSON
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Copy IAM JSON
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Guide Card 2: Cloudflare Dashboard Step-by-Step */}
+                <div className="p-4 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wide">
+                          Part B: Cloudflare Console Guide
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground">
+                          Zone ID + Edit Zone DNS API Token + SSL
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href="https://dash.cloudflare.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline"
+                    >
+                      Open Cloudflare
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside leading-relaxed">
+                    <li>
+                      Your managed subdomain{" "}
+                      <code className="text-primary font-semibold">
+                        {branding.subdomain}.platform.royalmotionit.com
+                      </code>{" "}
+                      is <strong>already active</strong> on RoyalMotionIT DNS!
+                    </li>
+                    <li>
+                      For a custom domain (e.g.{" "}
+                      <code className="text-foreground">backstage.yourdomain.com</code>):
+                      select your domain in <strong>Cloudflare Dashboard</strong>.
+                    </li>
+                    <li>
+                      On the <strong>Overview</strong> page (bottom-right{" "}
+                      <strong>API</strong> section), copy your{" "}
+                      <strong>32-character Zone ID</strong>.
+                    </li>
+                    <li>
+                      Click <strong>Get your API token &rarr; Create Token</strong>{" "}
+                      &rarr; Use template <strong>Edit zone DNS</strong> &rarr;
+                      select your specific zone &rarr; copy your{" "}
+                      <strong>API Token</strong> below.
+                    </li>
+                  </ol>
+
+                  <div className="pt-1 flex items-center justify-between border-t border-sky-500/20 text-[10px] text-muted-foreground">
+                    <span>SSL/TLS Mode Recommendation:</span>
+                    <span className="font-mono font-bold text-foreground">
+                      Full (Strict) + Proxied Orange Cloud
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Deployment Strategy Switcher */}
@@ -1287,16 +1758,16 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xs text-foreground">
                       <Zap className="w-4 h-4 text-amber-500" />
-                      Automated Cloud Provisioning
+                      Automated AWS + Cloudflare Deployment
                     </div>
                     <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">
-                      Recommended
+                      Full Automation
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Zero manual DevOps. Automatically launches an EC2 instance,
-                    allocates an Elastic IP, creates S3 Audio Vault, registers
-                    SES DKIM DNS records, and sets up Cloudflare Edge SSL.
+                    Automatically provisions EC2 Ubuntu 24.04, Elastic IP, S3
+                    Audio Vault with CORS &amp; Glacier lifecycle, SES DKIM
+                    records, and Cloudflare DNS.
                   </p>
                 </button>
 
@@ -1312,16 +1783,17 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xs text-foreground">
                       <Server className="w-4 h-4 text-blue-500" />
-                      Self-Hosted / Manual Bundle
+                      Managed Subdomain (`{branding.subdomain}.platform.royalmotionit.com`) / Self-Host
                     </div>
                     <Badge variant="outline" className="text-[10px]">
-                      Advanced
+                      Instant Ready
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Host on your own VPS, Docker container, or Vercel server.
-                    Requires only 3 environment variables with all database
-                    loading handled dynamically.
+                    Use your pre-provisioned{" "}
+                    <code>{branding.subdomain}.platform.royalmotionit.com</code>{" "}
+                    routing immediately or deploy via the 3-variable `.env`
+                    bundle on any server.
                   </p>
                 </button>
               </div>
@@ -1356,7 +1828,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                       <div className="flex items-center gap-2 pb-2 border-b border-border/60">
                         <Cpu className="w-4 h-4 text-primary" />
                         <span className="text-xs font-bold text-foreground">
-                          AWS &amp; Cloudflare Credentials (Secure Pre-flight)
+                          AWS &amp; Cloudflare Credentials (Secure Pre-Flight &amp; Auto-Provisioning)
                         </span>
                       </div>
 
@@ -1364,7 +1836,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                       <div className="space-y-3">
                         <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                           <HardDrive className="w-3.5 h-3.5 text-amber-500" />
-                          <span>1. AWS Infrastructure Credentials</span>
+                          <span>1. AWS Infrastructure Credentials (EC2, S3, SES)</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
@@ -1432,6 +1904,9 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                               onChange={(e) => setAwsRegion(e.target.value)}
                               className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             >
+                              <option value="ap-southeast-1">
+                                ap-southeast-1 (Asia Pacific, Singapore)
+                              </option>
                               <option value="us-east-1">
                                 us-east-1 (US East, N. Virginia)
                               </option>
@@ -1440,9 +1915,6 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                               </option>
                               <option value="eu-west-1">
                                 eu-west-1 (Europe, Ireland)
-                              </option>
-                              <option value="ap-southeast-1">
-                                ap-southeast-1 (Asia Pacific, Singapore)
                               </option>
                               <option value="ap-south-1">
                                 ap-south-1 (Asia Pacific, Mumbai)
@@ -1478,6 +1950,38 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                                 t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)
                               </option>
                             </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="bucketName"
+                              className="text-xs font-medium"
+                            >
+                              S3 Audio Vault Bucket Name
+                            </Label>
+                            <Input
+                              id="bucketName"
+                              value={bucketName}
+                              onChange={(e) => setBucketName(e.target.value)}
+                              placeholder="rmit-music-royal-music"
+                              className="text-xs h-9 font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="elasticIpv4"
+                              className="text-xs font-medium"
+                            >
+                              Existing Elastic IPv4 (Optional)
+                            </Label>
+                            <Input
+                              id="elasticIpv4"
+                              value={elasticIpv4}
+                              onChange={(e) => setElasticIpv4(e.target.value)}
+                              placeholder="Auto-allocated if left blank"
+                              className="text-xs h-9 font-mono"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1555,7 +2059,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                               onChange={(e) =>
                                 setCloudflareBaseDomain(e.target.value)
                               }
-                              placeholder="royalmotionit.com"
+                              placeholder="royalmusic.com"
                               className="text-xs h-9 font-mono"
                             />
                           </div>
@@ -1641,7 +2145,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                           ) : (
                             <>
                               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                              Pre-flight Validate Credentials
+                              Pre-Flight Validate Credentials
                             </>
                           )}
                         </Button>
@@ -1661,13 +2165,13 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </div>
               )}
 
-              {/* MANUAL SELF-HOSTED SECTION */}
+              {/* MANUAL / MANAGED SUBDOMAIN SECTION */}
               {deploymentMode === "manual" && (
                 <div className="p-4 rounded-xl border border-border bg-card space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                       <KeyRound className="w-4 h-4 text-primary" />
-                      WhiteLabel Hosting Environment (.env)
+                      WhiteLabel Hosting Environment (`.env` for `{branding.subdomain}.platform.royalmotionit.com`)
                     </div>
                     <Button
                       variant="outline"
@@ -1696,38 +2200,42 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   </div>
 
                   <div className="text-[11px] text-muted-foreground leading-normal">
-                    Paste these 3 variables into your WhiteLabel frontend{" "}
-                    <code className="text-foreground">.env</code>. Once
-                    activated, the frontend communicates with the platform
-                    database and unlocks the portal automatically.
+                    Your subdomain{" "}
+                    <code className="text-primary font-mono">
+                      https://{branding.subdomain}.platform.royalmotionit.com
+                    </code>{" "}
+                    is pre-routed. You can also configure custom AWS/Cloudflare
+                    resources at any time after unlocking your console.
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* STEP 7: Review & Portal Activation */}
-          {step === 7 && (
+          {/* STEP 8: Final Production Readiness Verification & Unlock Console */}
+          {step === 8 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Step 7: Launch &amp; Activation
+                  Step 8: Final Readiness &amp; Console Unlock
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
-                  Review &amp; Activate Your WhiteLabel Portal
+                  Review &amp; Unlock Your Full WhiteLabel Command Center
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Review your settings below. Clicking &quot;Save Configuration
-                  &amp; Activate WhiteLabel&quot; will persist all
-                  configurations into the database, create the Owner user, and
-                  unlock your live portal.
+                  Verify your complete configuration below. Clicking{" "}
+                  <strong>&quot;Complete Setup &amp; Unlock WhiteLabel Console&quot;</strong>{" "}
+                  saves your identity, theme, Super Admin account, and cloud
+                  settings, provisions your Production API Key if not yet
+                  generated, and unlocks all 9 management modules in your
+                  sidebar.
                 </p>
               </div>
 
               {/* Summary Box */}
               <div className="p-5 rounded-xl border border-border bg-muted/40 space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                   <div>
                     <span className="text-muted-foreground">Brand Name:</span>
                     <div className="font-semibold text-foreground mt-0.5">
@@ -1738,7 +2246,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                     <span className="text-muted-foreground">
                       Support Email:
                     </span>
-                    <div className="font-semibold text-foreground mt-0.5">
+                    <div className="font-semibold text-foreground mt-0.5 truncate">
                       {supportEmail}
                     </div>
                   </div>
@@ -1751,68 +2259,71 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   <div>
                     <span className="text-muted-foreground">Theme Mode:</span>
                     <div className="font-semibold text-foreground mt-0.5 capitalize">
-                      {themeMode}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Primary Color:
-                    </span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: primaryColor }}
-                      />
-                      <span className="font-mono text-foreground">
-                        {primaryColor}
-                      </span>
+                      {themeMode} ({primaryColor})
                     </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Super Admin:</span>
-                    <div className="font-semibold text-foreground mt-0.5">
+                    <div className="font-semibold text-foreground mt-0.5 truncate">
                       {hasExistingOwner
                         ? "Existing Owner"
                         : ownerEmail || "Configured"}
                     </div>
                   </div>
                   <div>
+                    <span className="text-muted-foreground">API Key Auth:</span>
+                    <div className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                      {generatedRawApiKey || currentKeyPrefix
+                        ? "Provisioned (Active)"
+                        : "Auto-Generate on Save"}
+                    </div>
+                  </div>
+                  <div>
                     <span className="text-muted-foreground">Deployment:</span>
                     <div className="font-semibold text-foreground mt-0.5">
                       {deploymentMode === "automated"
-                        ? "AWS + Cloudflare (Automated)"
-                        : "Self-Hosted Bundle"}
+                        ? "AWS + Cloudflare"
+                        : "Managed Subdomain"}
                     </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">
-                      Infrastructure:
+                      Managed Subdomain:
                     </span>
-                    <div className="font-semibold text-foreground mt-0.5">
-                      {deploymentMode === "automated"
-                        ? `EC2 (${instanceType}) + EIP + S3`
-                        : "Custom Server"}
+                    <div className="font-mono font-semibold text-primary mt-0.5 truncate">
+                      {branding.subdomain}.platform.royalmotionit.com
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-3 border-t border-border/80 text-[11px] text-muted-foreground flex items-center justify-between">
-                  <span>Portal Host Target:</span>
+                  <span>Primary Portal Endpoint:</span>
                   <span className="font-mono text-primary font-semibold">
                     {deployedDomain ? `https://${deployedDomain}` : portalHost}
                   </span>
                 </div>
               </div>
 
+              {generatedRawApiKey && (
+                <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 space-y-1.5">
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <KeyRound className="w-4 h-4" />
+                    Your Production API Key (`x-api-key`):
+                  </div>
+                  <div className="font-mono text-xs text-foreground break-all select-all p-2 rounded bg-background/80 border border-emerald-500/20">
+                    {generatedRawApiKey}
+                  </div>
+                </div>
+              )}
+
               {launchSuccess && (
                 <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
                   <h3 className="text-base font-bold text-foreground">
-                    WhiteLabel Setup Complete &amp; Portal Active!
+                    WhiteLabel Setup Complete &amp; Full Console Unlocked!
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    All configuration has been stored in your platform database.
-                    Redirecting to overview...
+                    Redirecting to your unlocked WhiteLabel Command Center...
                   </p>
                 </div>
               )}
@@ -1852,15 +2363,15 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting || launchSuccess}
                 style={{ backgroundColor: primaryColor }}
-                className="text-xs h-9 text-white font-semibold gap-1.5 shadow-sm hover:opacity-90"
+                className="text-xs h-10 px-5 text-white font-bold gap-1.5 shadow-sm hover:opacity-90"
               >
                 {isSubmitting ? (
-                  "Saving Configuration..."
+                  "Saving & Unlocking Console..."
                 ) : launchSuccess ? (
-                  "Activated!"
+                  "Unlocked! Redirecting..."
                 ) : (
                   <>
-                    Save Configuration &amp; Activate WhiteLabel
+                    Complete Setup &amp; Unlock WhiteLabel Console
                     <Sparkles className="w-3.5 h-3.5" />
                   </>
                 )}

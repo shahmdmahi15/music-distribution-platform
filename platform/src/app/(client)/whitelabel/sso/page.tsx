@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { WhiteLabelSignupModel, WhiteLabelSsoConfig } from "@/types/whitelabel";
 
@@ -49,6 +50,13 @@ export default async function WhiteLabelSsoPage() {
         </Card>
       </div>
     );
+  }
+
+  if (
+    !brandingResult.branding.isSetupComplete &&
+    !brandingResult.branding.isSetupCompleted
+  ) {
+    redirect("/whitelabel/setup");
   }
 
   const defaultSso: WhiteLabelSsoConfig = {
