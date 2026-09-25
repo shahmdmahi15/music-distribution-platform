@@ -529,6 +529,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           userSignupModel: dto.userSignupModel,
           privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
           marketingConsent: dto.marketingConsent ?? false,
+          ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
           subdomain: finalSubdomain,
           elasticIpv4: finalElasticIpv4,
           ...(dto.primaryColor ? { primaryColor: dto.primaryColor } : {}),
@@ -618,6 +619,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         userSignupModel: dto.userSignupModel,
         privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
         marketingConsent: dto.marketingConsent ?? false,
+        ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
         status: WhiteLabelStatus.PENDING,
         subscriptionId: subscription.id,
         artists: {
@@ -931,6 +933,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         contactLastName: wl.contactLastName,
         contactEmail: wl.contactEmail,
         contactLinkedIn: wl.contactLinkedIn,
+        onboardingDetails: wl.onboardingDetails,
         subdomain: wl.subdomain,
         customDomain: wl.customDomain,
         elasticIpv4:

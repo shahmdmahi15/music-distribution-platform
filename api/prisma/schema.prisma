@@ -369,6 +369,7 @@ model WhiteLabel {
   wantsCatalogMigration   Boolean                @default(false)
   hasSampleBasedCovers    Boolean                @default(false)
   userSignupModel         WhiteLabelSignupModel  @default(INVITE_ONLY)
+  onboardingDetails       Json?
 
   // Compliance & Status Lifecycle
   privacyPolicyAccepted   Boolean                @default(true)

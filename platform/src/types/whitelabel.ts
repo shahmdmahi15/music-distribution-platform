@@ -5,6 +5,53 @@ export enum WhiteLabelBusinessType {
   REFERRER = "REFERRER",
 }
 
+// Global Standard Onboarding Details: 1. Record Label
+export interface RecordLabelOnboardingData {
+  labelType?: "independent" | "major_distributed" | "boutique" | "genre_specialist";
+  isrcCountryCode?: string;
+  isrcRegistrantCode?: string;
+  primaryGenre?: string;
+  hasInHouseStudio?: boolean;
+  masterRoyaltySplitStandard?: string;
+  physicalDistributionNeeded?: boolean;
+  dolbyAtmosReady?: boolean;
+}
+
+// Global Standard Onboarding Details: 2. Distributor / Aggregator
+export interface DistributorAggregatorOnboardingData {
+  subLabelsCount?: number;
+  independentArtistsRepresented?: number;
+  ingestionProtocol?: "DDEX_ERN_3_8" | "DDEX_ERN_4_3" | "S3_DIRECT" | "SFTP_BATCH";
+  hasDedicatedQcTeam?: boolean;
+  antiFraudInspectionRequired?: boolean;
+  directDspAgreements?: string[];
+  bulkBarcodePoolNeeded?: boolean;
+}
+
+// Global Standard Onboarding Details: 3. Music Publisher
+export interface MusicPublisherOnboardingData {
+  publishingCompanyType?: "administration" | "co_publishing" | "full_service";
+  primaryProAffiliation?: "ASCAP" | "BMI" | "SESAC" | "PRS" | "GEMA" | "SACEM" | "SOCAN" | "APRA_AMCOS" | "OTHER";
+  ipiCaeNumber?: string;
+  theMlcMemberCode?: string;
+  musicalWorksCount?: number;
+  songwritersRepresentedCount?: number;
+  cwrExchangeEnabled?: boolean;
+  collectsMechanicals?: boolean;
+  syncLicensingCatalogSize?: number;
+}
+
+// Global Standard Onboarding Details: 4. Referrer / Affiliate Partner
+export interface ReferrerOnboardingData {
+  scoutNetworkCategory?: "talent_scout" | "recording_studio" | "music_attorney" | "management_agency" | "industry_influencer";
+  projectedAnnualReferrals?: number;
+  projectedPipelineCatalogSize?: number;
+  targetTerritories?: string[];
+  preferredCommissionStructure?: "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
+  discoveryChannels?: string[];
+  primaryGenresScouted?: string[];
+}
+
 export enum WhiteLabelUserRole {
   OWNER = "OWNER",
   PARTNER = "PARTNER",
@@ -83,6 +130,7 @@ export interface WhiteLabel {
   wantsCatalogMigration: boolean;
   hasSampleBasedCovers: boolean;
   userSignupModel: WhiteLabelSignupModel;
+  onboardingDetails?: Record<string, any> | null;
   privacyPolicyAccepted: boolean;
   marketingConsent: boolean;
   status: WhiteLabelStatus;
@@ -181,6 +229,7 @@ export interface WhiteLabelBranding {
   contactLastName?: string | null;
   contactEmail?: string | null;
   contactLinkedIn?: string | null;
+  onboardingDetails?: Record<string, any> | null;
   subdomain?: string | null;
   customDomain?: string | null;
   elasticIpv4?: string | null;

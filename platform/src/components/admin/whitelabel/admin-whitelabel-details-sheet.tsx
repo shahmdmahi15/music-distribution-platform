@@ -936,7 +936,13 @@ export function AdminWhiteLabelDetailsDialog({
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Top Artists ({whiteLabel.artists?.length || 0})
+                {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
+                  ? `Sub-Labels (${whiteLabel.artists?.length || 0})`
+                  : whiteLabel.businessType === "MUSIC_PUBLISHER"
+                    ? `Songwriters (${whiteLabel.artists?.length || 0})`
+                    : whiteLabel.businessType === "REFERRER"
+                      ? `Pipeline (${whiteLabel.artists?.length || 0})`
+                      : `Top Artists (${whiteLabel.artists?.length || 0})`}
               </button>
               <button
                 onClick={() => setActiveTab("documents")}
@@ -1117,14 +1123,180 @@ export function AdminWhiteLabelDetailsDialog({
                     )}
                   </div>
                 </div>
+
+                {/* Domain Architecture Dossier */}
+                {whiteLabel.onboardingDetails && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-primary" />
+                        Domain Architecture & Onboarding Dossier
+                      </h4>
+                      <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                        {whiteLabel.businessType.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3">
+                      {whiteLabel.businessType === "RECORD_LABEL" && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Primary Genre</span>
+                            <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.primaryGenre || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Master Rights</span>
+                            <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.masterRightsOwned ? "100% Owned" : "Exclusive License"}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">ISRC Prefix</span>
+                            <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.isrcPrefix || "Platform Delegated"}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[10px] block">Accounting Cycle</span>
+                            <span className="font-bold text-foreground capitalize">{whiteLabel.onboardingDetails.splitAccountingFrequency || "Monthly"}</span>
+                          </div>
+                          {whiteLabel.onboardingDetails.recoupmentModel && (
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Recoupment Model</span>
+                              <span className="font-bold text-foreground capitalize text-[11px]">{whiteLabel.onboardingDetails.recoupmentModel.replace(/_/g, " ")}</span>
+                            </div>
+                          )}
+                          {whiteLabel.onboardingDetails.artistRosterSize && (
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Active Roster</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.artistRosterSize} artists</span>
+                            </div>
+                          )}
+                          {whiteLabel.onboardingDetails.aAndRFocus && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground text-[10px] block">A&R Strategic Direction</span>
+                              <span className="text-foreground text-[11px] font-medium">{whiteLabel.onboardingDetails.aAndRFocus}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
+                        <div className="space-y-2.5 text-xs">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Multi-Tenant Model</span>
+                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.multiTenantModel || "hybrid").replace(/_/g, " ")}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Ingestion Standard</span>
+                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.ingestionStandard || "DDEX ERN 4.3"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Managed Sub-Labels</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.subLabelsCount || 0} sub-labels</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">QC Target SLA</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.qcTurnaroundHours || 12}h turnaround</span>
+                            </div>
+                          </div>
+
+                          {whiteLabel.onboardingDetails.antiFraudProtocols && (
+                            <div className="pt-2 border-t border-border/40">
+                              <span className="text-muted-foreground text-[10px] block mb-1">Anti-Fraud Protocols Active:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {whiteLabel.onboardingDetails.antiFraudProtocols.map((p: string) => (
+                                  <Badge key={p} variant="secondary" className="text-[9px] font-mono">
+                                    {p.replace(/_/g, " ")}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {whiteLabel.businessType === "MUSIC_PUBLISHER" && (
+                        <div className="space-y-2.5 text-xs">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">CAE / IPI Number</span>
+                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.caeIpiNumber || "Pending"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Catalog Scope</span>
+                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.catalogAdministrationType || "worldwide").replace(/_/g, " ")}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Songwriters Count</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.songwritersRepresentedCount || 0} writers</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">CWR Electronic Feeds</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.cwrDeliverySupport ? "Yes (v2.1)" : "Standard"}</span>
+                            </div>
+                          </div>
+
+                          {whiteLabel.onboardingDetails.proAffiliations && (
+                            <div className="pt-2 border-t border-border/40">
+                              <span className="text-muted-foreground text-[10px] block mb-1">PRO / CMO Affiliations:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {whiteLabel.onboardingDetails.proAffiliations.map((pro: string) => (
+                                  <Badge key={pro} variant="secondary" className="text-[9px] font-bold">
+                                    {pro}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {whiteLabel.businessType === "REFERRER" && (
+                        <div className="space-y-2.5 text-xs">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Talent Pipeline</span>
+                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.scoutingPipelineSize || 0} prospects</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Commission Structure</span>
+                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.preferredCommissionStructure || "hybrid").replace(/_/g, " ")}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">Talent Scout Status</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">Verified Scout Network</span>
+                            </div>
+                          </div>
+
+                          {whiteLabel.onboardingDetails.primaryGenresScouted && (
+                            <div className="pt-2 border-t border-border/40">
+                              <span className="text-muted-foreground text-[10px] block mb-1">Focus Genres Scouted:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {whiteLabel.onboardingDetails.primaryGenresScouted.map((g: string) => (
+                                  <Badge key={g} variant="outline" className="text-[9px]">
+                                    {g}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* TAB 2: Top Roster Artists */}
+            {/* TAB 2: Top Roster Artists / Entities */}
             {activeTab === "artists" && (
               <div className="space-y-4">
                 <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                  Top Roster Artists Submitted for Verification
+                  {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
+                    ? "Sub-Labels & Ingestion Catalogs Submitted for Verification"
+                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
+                      ? "Songwriters & Musical Works Submitted for Verification"
+                      : whiteLabel.businessType === "REFERRER"
+                        ? "Client & Talent Pipeline Prospects Submitted for Verification"
+                        : "Top Roster Artists Submitted for Verification"}
                 </h4>
                 {whiteLabel.artists && whiteLabel.artists.length > 0 ? (
                   <div className="space-y-3">
@@ -1144,7 +1316,15 @@ export function AdminWhiteLabelDetailsDialog({
                             {artist.code}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs text-muted-foreground pt-1">
+                          {artist.monthlyListeners !== null && artist.monthlyListeners !== undefined && (
+                            <div className="flex items-center gap-1.5">
+                              <Music className="h-3.5 w-3.5 text-primary" />
+                              <span className="font-semibold text-foreground">
+                                {artist.monthlyListeners.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
                           {artist.instagramHandle && (
                             <div className="flex items-center gap-1.5">
                               <Camera className="h-3.5 w-3.5 text-pink-500" />

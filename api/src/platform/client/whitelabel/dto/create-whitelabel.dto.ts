@@ -7,6 +7,7 @@ import {
   IsIP,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -263,4 +264,9 @@ export class CreateWhiteLabelDto {
   @ValidateNested({ each: true })
   @Type(() => CreateTopArtistDto)
   topArtists?: CreateTopArtistDto[];
+
+  // Dynamic Type-Specific Onboarding Payload (Record Label, Aggregator, Publisher, Referrer)
+  @IsOptional()
+  @IsObject()
+  onboardingDetails?: Record<string, any>;
 }

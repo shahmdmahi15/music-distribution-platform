@@ -7,7 +7,6 @@ import {
   Building2,
   Disc3,
   Globe,
-  User,
   DollarSign,
   Music,
   Send,
@@ -26,6 +25,18 @@ import {
   Lock,
   Server,
   Users,
+  FileText,
+  BookOpen,
+  Share2,
+  Award,
+  TrendingUp,
+  Radio,
+  Database,
+  Network,
+  BadgeCheck,
+  Check,
+  Hash,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,28 +68,28 @@ const BUSINESS_TYPES = [
     id: WhiteLabelBusinessType.RECORD_LABEL,
     label: "Record Label",
     description:
-      "Manage multiple artists, releases, contracts, and master rights.",
+      "Manage master rights, artist rosters, release schedules, and recoupment splits.",
     icon: Disc3,
   },
   {
     id: WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     label: "Distributor / Aggregator",
     description:
-      "Distribute music catalogs for third-party labels and independent creators.",
+      "High-volume catalog ingestion, sub-labels, DDEX feeds, and anti-fraud QC.",
     icon: Layers,
   },
   {
     id: WhiteLabelBusinessType.MUSIC_PUBLISHER,
     label: "Music Publisher",
     description:
-      "Administer compositions, publishing royalties, mechanicals, and sync.",
+      "Administer musical works, PRO affiliations, mechanicals, and sync licensing.",
     icon: Building2,
   },
   {
     id: WhiteLabelBusinessType.REFERRER,
     label: "Referrer",
     description:
-      "Referral partner, affiliate network, or scout bringing talent and labels to the platform.",
+      "Talent scout network, A&R pipeline, label referrals, and tiered residual rev-share.",
     icon: Users,
   },
 ];
@@ -102,6 +113,82 @@ const SIGNUP_MODELS = [
     description:
       "Instant access for any user to sign up, verify email, and start distributing immediately.",
   },
+];
+
+const RECORD_LABEL_TYPES = [
+  { id: "independent", label: "Independent Label" },
+  { id: "major_distributed", label: "Major Distributed" },
+  { id: "boutique", label: "Boutique / Imprint" },
+  { id: "genre_specialist", label: "Genre Specialist" },
+];
+
+const SPLIT_STANDARDS = [
+  "50/50 Profit Share",
+  "70/30 (Artist 70% / Label 30%)",
+  "80/20 Standard Indie",
+  "85/15 Net Receipts",
+  "100% Distribution Service Fee",
+];
+
+const DDEX_PROTOCOLS = [
+  { id: "DDEX_ERN_4_3", label: "DDEX ERN 4.3 (Modern XML & Cloud Delivery)" },
+  { id: "DDEX_ERN_3_8", label: "DDEX ERN 3.8.2 (Industry Standard)" },
+  { id: "S3_DIRECT", label: "Amazon S3 Direct Cloud Feed" },
+  { id: "SFTP_BATCH", label: "Automated SFTP Batch Ingestion" },
+];
+
+const DSP_DIRECT_FEEDS = [
+  "Spotify Direct",
+  "Apple Music Direct",
+  "Amazon Music Direct",
+  "YouTube Content ID",
+  "TikTok Sound Library",
+  "Meta / Instagram",
+  "Tidal Direct",
+  "Deezer Direct",
+];
+
+const PUBLISHING_PROS = [
+  "ASCAP (United States)",
+  "BMI (United States)",
+  "SESAC (United States)",
+  "PRS for Music (United Kingdom)",
+  "GEMA (Germany)",
+  "SACEM (France)",
+  "SOCAN (Canada)",
+  "APRA / AMCOS (Australia)",
+  "Other / Unaffiliated",
+];
+
+const SCOUT_CATEGORIES = [
+  { id: "talent_scout", label: "A&R / Independent Talent Scout" },
+  { id: "recording_studio", label: "Recording Studio / Audio Production House" },
+  { id: "music_attorney", label: "Music Attorney / Legal Counsel" },
+  { id: "management_agency", label: "Artist & Producer Management Agency" },
+  { id: "industry_influencer", label: "Industry Creator / Community Leader" },
+];
+
+const COMMISSION_PREFERENCES = [
+  { id: "lifetime_rev_share", label: "Lifetime % Net Revenue Share (Residual)" },
+  { id: "upfront_bounty", label: "Upfront Bounty Per Activated Client" },
+  { id: "hybrid_tiered", label: "Hybrid Tiered Performance (Bounty + Rev Share)" },
+];
+
+const TERRITORY_OPTIONS = [
+  "Global Worldwide",
+  "North America (US & Canada)",
+  "United Kingdom & Europe",
+  "Latin America (LATAM)",
+  "Asia-Pacific & Australasia",
+  "Sub-Saharan Africa & Middle East",
+];
+
+const DISCOVERY_CHANNELS = [
+  "Studio Sessions & Productions",
+  "Live Showcases & Tours",
+  "Digital & Streaming Playlists",
+  "Agency & Legal Client Network",
+  "Direct Referral & Word of Mouth",
 ];
 
 const DISTRIBUTOR_OPTIONS = [
@@ -175,6 +262,7 @@ export interface OnboardingDraftData {
   privacyPolicyAccepted?: boolean;
   marketingConsent?: boolean;
   topArtists?: RosterArtist[];
+  onboardingDetails?: Record<string, any>;
 }
 
 interface OnboardingWizardProps {
@@ -245,7 +333,7 @@ export function WhiteLabelOnboardingWizard({
     wantsCatalogMigration: initialDraft?.wantsCatalogMigration ?? false,
     hasSampleBasedCovers: initialDraft?.hasSampleBasedCovers ?? false,
 
-    // Step 5: Top 3 Artists in Roster
+    // Step 5: Portfolio / Roster Highlights (3 items)
     topArtists: initialDraft?.topArtists || [
       {
         artistName: "",
@@ -278,12 +366,65 @@ export function WhiteLabelOnboardingWizard({
       initialDraft?.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
     privacyPolicyAccepted: initialDraft?.privacyPolicyAccepted ?? true,
     marketingConsent: initialDraft?.marketingConsent ?? false,
+
+    // Dynamic Type-Specific Onboarding Payload
+    onboardingDetails: initialDraft?.onboardingDetails || {
+      // Record Label Fields
+      labelType: "independent",
+      isrcCountryCode: "US",
+      isrcRegistrantCode: "",
+      primaryGenre: "Hip-Hop / R&B",
+      masterRoyaltySplitStandard: "70/30 (Artist 70% / Label 30%)",
+      physicalDistributionNeeded: false,
+      dolbyAtmosReady: true,
+
+      // Distributor / Aggregator Fields
+      subLabelsCount: 5,
+      independentArtistsRepresented: 40,
+      ingestionProtocol: "DDEX_ERN_4_3",
+      hasDedicatedQcTeam: true,
+      antiFraudInspectionRequired: true,
+      directDspAgreements: ["Spotify Direct", "Apple Music Direct"],
+      bulkBarcodePoolNeeded: true,
+
+      // Music Publisher Fields
+      publishingCompanyType: "administration",
+      primaryProAffiliation: "ASCAP (United States)",
+      ipiCaeNumber: "",
+      theMlcMemberCode: "",
+      musicalWorksCount: 150,
+      songwritersRepresentedCount: 12,
+      cwrExchangeEnabled: true,
+      collectsMechanicals: true,
+      syncLicensingCatalogSize: 50,
+
+      // Referrer / Scout Fields
+      scoutNetworkCategory: "talent_scout",
+      projectedAnnualReferrals: 10,
+      projectedPipelineCatalogSize: 500,
+      targetTerritories: ["North America (US & Canada)"],
+      preferredCommissionStructure: "lifetime_rev_share",
+      discoveryChannels: [
+        "Studio Sessions & Productions",
+        "Live Showcases & Tours",
+      ],
+      primaryGenresScouted: ["Hip-Hop / Urban", "Electronic / Dance"],
+    },
   });
+
+  const updateOnboardingDetail = (key: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      onboardingDetails: {
+        ...prev.onboardingDetails,
+        [key]: value,
+      },
+    }));
+  };
 
   // Auto-slugify company name to unique subdomain via Cloudflare check
   const debounceNameRef = useRef<NodeJS.Timeout | null>(null);
   const handleNameChange = (name: string) => {
-    // Immediate clean local slug
     const localSlug = name
       .toLowerCase()
       .trim()
@@ -343,7 +484,6 @@ export function WhiteLabelOnboardingWizard({
       };
     }
 
-    // If matches the existing registered subdomain from the re-editing session, mark available immediately
     const existingRegisteredSub = (
       initialDraft?.desiredSubdomain || initialDraft?.subdomain
     )
@@ -436,6 +576,26 @@ export function WhiteLabelOnboardingWizard({
     });
   };
 
+  const toggleDspFeed = (feed: string) => {
+    const current =
+      formData.onboardingDetails?.directDspAgreements || [];
+    const exists = current.includes(feed);
+    const updated = exists
+      ? current.filter((f: string) => f !== feed)
+      : [...current, feed];
+    updateOnboardingDetail("directDspAgreements", updated);
+  };
+
+  const toggleDiscoveryChannel = (ch: string) => {
+    const current =
+      formData.onboardingDetails?.discoveryChannels || [];
+    const exists = current.includes(ch);
+    const updated = exists
+      ? current.filter((c: string) => c !== ch)
+      : [...current, ch];
+    updateOnboardingDetail("discoveryChannels", updated);
+  };
+
   const handleArtistChange = (
     index: number,
     field: string,
@@ -490,16 +650,29 @@ export function WhiteLabelOnboardingWizard({
       }
     }
     if (step === 5) {
-      const firstArtist = formData.topArtists[0];
-      if (!firstArtist.artistName.trim()) {
-        toast.error("Please provide details for at least 1 top roster artist.");
+      const firstItem = formData.topArtists[0];
+      if (!firstItem.artistName.trim()) {
+        if (formData.businessType === WhiteLabelBusinessType.RECORD_LABEL) {
+          toast.error("Please provide at least 1 top signed roster artist name.");
+        } else if (
+          formData.businessType ===
+          WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+        ) {
+          toast.error("Please provide at least 1 representative sub-label or catalog brand.");
+        } else if (
+          formData.businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
+        ) {
+          toast.error("Please provide at least 1 key songwriter or top composition title.");
+        } else {
+          toast.error("Please provide at least 1 prospective referral client or partner target.");
+        }
         return false;
       }
     }
     if (step === 6) {
       if (!formData.privacyPolicyAccepted) {
         toast.error(
-          "You must accept the Privacy Policy to submit your application.",
+          "You must accept the terms & certifications to submit your application.",
         );
         return false;
       }
@@ -531,6 +704,7 @@ export function WhiteLabelOnboardingWizard({
       const res = await clientApplyWhiteLabelAction({
         ...formData,
         topArtists: validArtists,
+        onboardingDetails: formData.onboardingDetails,
       });
 
       if (res.success) {
@@ -554,12 +728,27 @@ export function WhiteLabelOnboardingWizard({
     }
   };
 
+  const getStep5Title = () => {
+    switch (formData.businessType) {
+      case WhiteLabelBusinessType.RECORD_LABEL:
+        return "Signed Artists";
+      case WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR:
+        return "Sub-Labels";
+      case WhiteLabelBusinessType.MUSIC_PUBLISHER:
+        return "Top Works";
+      case WhiteLabelBusinessType.REFERRER:
+        return "Prospects";
+      default:
+        return "Portfolio";
+    }
+  };
+
   const stepsList = [
     { num: 1, title: "Entity Profile" },
     { num: 2, title: "Branding & URL" },
     { num: 3, title: "Key Contact" },
     { num: 4, title: "Operations" },
-    { num: 5, title: "Top Artists" },
+    { num: 5, title: getStep5Title() },
     { num: 6, title: "Review & Submit" },
   ];
 
@@ -581,7 +770,7 @@ export function WhiteLabelOnboardingWizard({
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Disc3 className="h-4 w-4 text-primary animate-spin-slow" />
             <span className="font-semibold text-foreground">
-              RoyalMotionIT Onboarding
+              RoyalMotionIT Enterprise Onboarding
             </span>
           </div>
         )}
@@ -598,23 +787,24 @@ export function WhiteLabelOnboardingWizard({
       <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs space-y-3">
         <div className="grid grid-cols-6 gap-1 text-center">
           {stepsList.map((s) => (
-            <button
+            <div
               key={s.num}
-              type="button"
               onClick={() => {
                 if (s.num < currentStep) setCurrentStep(s.num);
               }}
-              disabled={s.num > currentStep}
-              className={`text-[11px] font-semibold truncate transition-colors ${
-                currentStep === s.num
+              className={`cursor-pointer transition-all ${
+                s.num === currentStep
                   ? "text-primary font-bold"
-                  : currentStep > s.num
-                    ? "text-foreground hover:text-primary cursor-pointer"
-                    : "text-muted-foreground/50 cursor-not-allowed"
+                  : s.num < currentStep
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground opacity-60"
               }`}
             >
-              {s.num}. {s.title}
-            </button>
+              <span className="text-[10px] uppercase font-mono block">
+                Step {s.num}
+              </span>
+              <span className="text-xs truncate block">{s.title}</span>
+            </div>
           ))}
         </div>
         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
@@ -631,19 +821,22 @@ export function WhiteLabelOnboardingWizard({
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <Building2 className="h-4 w-4" />
-              Step 1 of 6: Business Entity
+              Step 1 of 6: Business Entity & Identity
             </div>
             <CardTitle className="text-xl font-bold">
               Business & Corporate Profile
             </CardTitle>
             <CardDescription className="text-xs">
-              Tell us about your organization and legal business entity.
+              Select your business model according to global music industry
+              standards.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {/* Business Type Cards */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold">Business Type</Label>
+              <Label className="text-xs font-semibold">
+                Select Your Business Type
+              </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {BUSINESS_TYPES.map((type) => {
                   const Icon = type.icon;
@@ -659,7 +852,7 @@ export function WhiteLabelOnboardingWizard({
                       }
                       className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
                         isSelected
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xs"
                           : "border-border/60 bg-card hover:border-border"
                       }`}
                     >
@@ -673,9 +866,14 @@ export function WhiteLabelOnboardingWizard({
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="space-y-0.5 min-w-0">
-                        <p className="font-bold text-xs text-foreground">
-                          {type.label}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-xs text-foreground">
+                            {type.label}
+                          </p>
+                          {isSelected && (
+                            <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                          )}
+                        </div>
                         <p className="text-[11px] text-muted-foreground line-clamp-2">
                           {type.description}
                         </p>
@@ -694,10 +892,20 @@ export function WhiteLabelOnboardingWizard({
                 </Label>
                 <Input
                   id="companyName"
-                  placeholder="e.g. Royal Motion Records"
+                  placeholder={
+                    formData.businessType === WhiteLabelBusinessType.RECORD_LABEL
+                      ? "e.g. Royal Motion Records"
+                      : formData.businessType ===
+                          WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                        ? "e.g. Velocity Media Ingestion Group"
+                        : formData.businessType ===
+                            WhiteLabelBusinessType.MUSIC_PUBLISHER
+                          ? "e.g. Sovereign Song Rights Publishing"
+                          : "e.g. Metro Talent Scout Agency"
+                  }
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-semibold"
                 />
               </div>
 
@@ -706,11 +914,11 @@ export function WhiteLabelOnboardingWizard({
                   htmlFor="companyWebsite"
                   className="text-xs font-semibold"
                 >
-                  Company Website
+                  Official Website
                 </Label>
                 <Input
                   id="companyWebsite"
-                  placeholder="https://yourlabel.com"
+                  placeholder="https://yourbrand.com"
                   value={formData.companyWebsite}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -726,11 +934,11 @@ export function WhiteLabelOnboardingWizard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="country" className="text-xs font-semibold">
-                  Country / Region of Operation
+                  Primary Country / Jurisdiction
                 </Label>
                 <Input
                   id="country"
-                  placeholder="e.g. United States, United Kingdom, Germany"
+                  placeholder="e.g. United States, United Kingdom, Canada, France"
                   value={formData.country}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -747,7 +955,7 @@ export function WhiteLabelOnboardingWizard({
                   htmlFor="yearsInBusiness"
                   className="text-xs font-semibold"
                 >
-                  Years in the Music Business
+                  Years in Music Industry
                 </Label>
                 <Input
                   id="yearsInBusiness"
@@ -761,7 +969,7 @@ export function WhiteLabelOnboardingWizard({
                       yearsInBusiness: Number(e.target.value) || 0,
                     }))
                   }
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-mono"
                 />
               </div>
             </div>
@@ -799,7 +1007,7 @@ export function WhiteLabelOnboardingWizard({
                   </Label>
                   <Input
                     id="incorporationDoc"
-                    placeholder="https://drive.google.com/... or cloud document link"
+                    placeholder="https://drive.google.com/... or verified document link"
                     value={formData.incorporationDocUrl}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -807,7 +1015,7 @@ export function WhiteLabelOnboardingWizard({
                         incorporationDocUrl: e.target.value,
                       }))
                     }
-                    className="h-9 text-xs"
+                    className="h-9 text-xs font-mono"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     You can also upload verification documents directly to your
@@ -815,6 +1023,30 @@ export function WhiteLabelOnboardingWizard({
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Business Type Contextual Meta Badge Card */}
+            <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3 text-xs">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold text-foreground">
+                  Configured for{" "}
+                  {BUSINESS_TYPES.find((t) => t.id === formData.businessType)
+                    ?.label || "Your Entity"}
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {formData.businessType === WhiteLabelBusinessType.RECORD_LABEL &&
+                    "Your platform will activate Master rights ledgers, ISRC allocations, artist roster dashboards, and automated producer split recoupment."}
+                  {formData.businessType ===
+                    WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                    "Your platform will activate DDEX ERN batch delivery, multi-tenant sub-labels, automated anti-fraud screening, and tiered commission accounting."}
+                  {formData.businessType ===
+                    WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                    "Your platform will activate Common Works Registration (CWR), PRO/CMO writer administration, mechanical royalty ledgers, and sync licensing."}
+                  {formData.businessType === WhiteLabelBusinessType.REFERRER &&
+                    "Your platform will activate custom referral links, live affiliate conversion analytics, tiered client residual tracking, and white-glove onboarding passes."}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -849,34 +1081,41 @@ export function WhiteLabelOnboardingWizard({
                 </Label>
                 <Badge
                   variant="outline"
-                  className="text-[10px] bg-muted font-mono text-muted-foreground"
+                  className="text-[10px] font-mono text-muted-foreground"
                 >
-                  Auto-Slugified • Immutable
+                  Auto-Verified DNS
                 </Badge>
               </div>
-              <div className="flex items-center rounded-lg border border-border bg-muted/40 overflow-hidden">
-                <Input
+
+              <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
+                <input
                   id="subdomain"
-                  readOnly
-                  disabled
-                  value={
-                    formData.desiredSubdomain ||
-                    "Auto-generating from brand name..."
-                  }
-                  className="border-0 focus-visible:ring-0 h-10 text-xs font-mono font-semibold bg-transparent cursor-not-allowed text-foreground opacity-90"
+                  type="text"
+                  placeholder="yourbrand"
+                  value={formData.desiredSubdomain}
+                  onChange={(e) => {
+                    const clean = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-]/g, "")
+                      .slice(0, 30);
+                    setFormData((prev) => ({
+                      ...prev,
+                      desiredSubdomain: clean,
+                    }));
+                  }}
+                  className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0"
                 />
-                <span className="text-xs font-mono text-muted-foreground px-3 bg-muted/70 border-l border-border h-10 flex items-center shrink-0">
+                <span className="px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/40 border-l border-border shrink-0 select-none">
                   .platform.royalmotionit.com
                 </span>
               </div>
 
-              {/* Real-time Status Badge */}
               {formData.desiredSubdomain && (
-                <div className="pt-1 flex items-center gap-2 text-xs">
+                <div className="pt-1">
                   {subdomainStatus.checking ? (
                     <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                      <Sparkles className="h-3.5 w-3.5 animate-spin text-primary" />
-                      Verifying uniqueness in Cloudflare DNS...
+                      <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
+                      Checking Cloudflare availability...
                     </span>
                   ) : subdomainStatus.available ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
@@ -894,8 +1133,7 @@ export function WhiteLabelOnboardingWizard({
               )}
               <p className="text-[10px] text-muted-foreground pt-1">
                 Your subdomain is automatically slugified from your brand name
-                and verified unique in Cloudflare DNS. It cannot be altered once
-                registered.
+                and verified unique in Cloudflare DNS.
               </p>
             </div>
 
@@ -928,8 +1166,7 @@ export function WhiteLabelOnboardingWizard({
               <p className="text-[10px] text-muted-foreground">
                 If your cloud server is already running, enter its Elastic IPv4.
                 Cloudflare DNS will automatically create an A-record routing
-                your platform subdomain directly to this address. (You can also
-                configure this later in Domain settings).
+                your platform subdomain directly to this address.
               </p>
             </div>
 
@@ -982,10 +1219,10 @@ export function WhiteLabelOnboardingWizard({
                         estimatedLaunchTimeline: t,
                       }))
                     }
-                    className={`p-2.5 rounded-xl border text-center font-medium transition-all ${
+                    className={`py-2 px-3 rounded-lg border text-center font-medium transition-all ${
                       formData.estimatedLaunchTimeline === t
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/30 font-bold text-foreground"
-                        : "border-border/60 hover:border-border text-muted-foreground"
+                        ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                        : "border-border/60 text-muted-foreground hover:border-border"
                     }`}
                   >
                     {t}
@@ -1002,15 +1239,15 @@ export function WhiteLabelOnboardingWizard({
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
-              <User className="h-4 w-4" />
-              Step 3 of 6: Representative
+              <Users className="h-4 w-4" />
+              Step 3 of 6: Executive Representative
             </div>
             <CardTitle className="text-xl font-bold">
-              Key Contact & Authorized Representative
+              Account Administrator & Executive Contact
             </CardTitle>
             <CardDescription className="text-xs">
-              Provide the primary administrative contact for partnership
-              agreements and billing notices.
+              Who will be managing contracts, DSP legal notices, and royalty
+              statements?
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1032,7 +1269,7 @@ export function WhiteLabelOnboardingWizard({
                       contactFirstName: e.target.value,
                     }))
                   }
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-medium"
                 />
               </div>
 
@@ -1053,7 +1290,7 @@ export function WhiteLabelOnboardingWizard({
                       contactLastName: e.target.value,
                     }))
                   }
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-medium"
                 />
               </div>
             </div>
@@ -1067,7 +1304,7 @@ export function WhiteLabelOnboardingWizard({
                 <Input
                   id="contactEmail"
                   type="email"
-                  placeholder="john@yourlabel.com"
+                  placeholder="john@yourbrand.com"
                   value={formData.contactEmail}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -1075,7 +1312,7 @@ export function WhiteLabelOnboardingWizard({
                       contactEmail: e.target.value,
                     }))
                   }
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-mono"
                 />
               </div>
 
@@ -1096,7 +1333,7 @@ export function WhiteLabelOnboardingWizard({
                       contactLinkedIn: e.target.value,
                     }))
                   }
-                  className="h-9.5 text-xs"
+                  className="h-9.5 text-xs font-mono"
                 />
               </div>
             </div>
@@ -1104,237 +1341,812 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 4: Catalog Operations */}
+      {/* STEP 4: DYNAMIC OPERATIONS BY BUSINESS TYPE */}
       {currentStep === 4 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <Music className="h-4 w-4" />
-              Step 4 of 6: Operations
+              Step 4 of 6: Operational Infrastructure
             </div>
             <CardTitle className="text-xl font-bold">
-              Catalog & Distribution Operations
+              {formData.businessType === WhiteLabelBusinessType.RECORD_LABEL &&
+                "Master Catalog & Release Operations"}
+              {formData.businessType ===
+                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                "Aggregator Ingestion & Sub-Tenant Operations"}
+              {formData.businessType ===
+                WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                "Publishing Works & Rights Administration"}
+              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
+                "Scout Network & Pipeline Operations"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Tell us about your distribution volume, revenue, and existing
-              systems.
+              Configure telemetry according to global music industry operations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Tracks in Master Catalog
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.catalogTrackCount}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      catalogTrackCount: Number(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-9.5 text-xs font-semibold"
-                />
-              </div>
+            {/* 1. RECORD LABEL VIEW */}
+            {formData.businessType === WhiteLabelBusinessType.RECORD_LABEL && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Tracks in Master Catalog
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.catalogTrackCount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          catalogTrackCount: Number(e.target.value) || 0,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Estimated Monthly Releases
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.monthlyTrackDelivery}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      monthlyTrackDelivery: Number(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-9.5 text-xs font-semibold"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Estimated Monthly Releases
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.monthlyTrackDelivery}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          monthlyTrackDelivery: Number(e.target.value) || 0,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Avg Monthly Revenue ($ USD)
-                </Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    min={0}
-                    value={formData.monthlyRevenueUsd}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Avg Monthly Master Revenue ($ USD)
+                    </Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={formData.monthlyRevenueUsd}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            monthlyRevenueUsd: Number(e.target.value) || 0,
+                          }))
+                        }
+                        className="h-9.5 pl-8 text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Label Category
+                    </Label>
+                    <select
+                      value={formData.onboardingDetails?.labelType || "independent"}
+                      onChange={(e) =>
+                        updateOnboardingDetail("labelType", e.target.value)
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {RECORD_LABEL_TYPES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      ISRC Registrant Prefix (Optional)
+                    </Label>
+                    <Input
+                      placeholder="e.g. US-XX1"
+                      value={formData.onboardingDetails?.isrcRegistrantCode || ""}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "isrcRegistrantCode",
+                          e.target.value.toUpperCase(),
+                        )
+                      }
+                      className="h-9.5 text-xs font-mono uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Standard Artist Royalty Split Model
+                  </Label>
+                  <select
+                    value={
+                      formData.onboardingDetails?.masterRoyaltySplitStandard ||
+                      SPLIT_STANDARDS[1]
+                    }
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        monthlyRevenueUsd: Number(e.target.value) || 0,
-                      }))
+                      updateOnboardingDetail(
+                        "masterRoyaltySplitStandard",
+                        e.target.value,
+                      )
                     }
-                    className="h-9.5 pl-8 text-xs font-semibold"
-                  />
+                    className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                  >
+                    {SPLIT_STANDARDS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Direct Deals?
+                      </span>
+                      <Switch
+                        checked={formData.hasDirectDeals}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            hasDirectDeals: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Direct contract feeds with Spotify, Apple, YouTube.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Dolby Atmos?
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails?.dolbyAtmosReady ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail("dolbyAtmosReady", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Spatial Audio ADM BWF WAV audio delivery.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Catalog Migration?
+                      </span>
+                      <Switch
+                        checked={formData.wantsCatalogMigration}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            wantsCatalogMigration: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Import existing ISRC / UPC catalogs automatically.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">
-                    Direct Deals?
-                  </span>
-                  <Switch
-                    checked={formData.hasDirectDeals}
-                    onCheckedChange={(checked) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        hasDirectDeals: checked,
-                      }))
-                    }
-                  />
+            {/* 2. DISTRIBUTOR / AGGREGATOR VIEW */}
+            {formData.businessType ===
+              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Sub-Labels Represented
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={formData.onboardingDetails?.subLabelsCount ?? 5}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "subLabelsCount",
+                          Number(e.target.value) || 1,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Independent Creators Represented
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        formData.onboardingDetails
+                          ?.independentArtistsRepresented ?? 50
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "independentArtistsRepresented",
+                          Number(e.target.value) || 1,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Monthly Ingestion Capacity (Tracks)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={100}
+                      value={formData.monthlyTrackDelivery || 500}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          monthlyTrackDelivery: Number(e.target.value) || 500,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Direct contracts with Spotify, Apple, YouTube, etc.
-                </p>
-              </div>
 
-              <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">
-                    Catalog Migration?
-                  </span>
-                  <Switch
-                    checked={formData.wantsCatalogMigration}
-                    onCheckedChange={(checked) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        wantsCatalogMigration: checked,
-                      }))
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Automated Ingestion & Batch Protocol
+                  </Label>
+                  <select
+                    value={
+                      formData.onboardingDetails?.ingestionProtocol ||
+                      "DDEX_ERN_4_3"
                     }
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Migrate existing ISRC / UPC catalogs to your instance.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">
-                    Sample Covers?
-                  </span>
-                  <Switch
-                    checked={formData.hasSampleBasedCovers}
-                    onCheckedChange={(checked) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        hasSampleBasedCovers: checked,
-                      }))
+                    onChange={(e) =>
+                      updateOnboardingDetail("ingestionProtocol", e.target.value)
                     }
-                  />
+                    className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                  >
+                    {DDEX_PROTOCOLS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Catalog contains sample-based works or cover versions.
-                </p>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">
+                    Direct DSP Delivery Pipelines Active:
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DSP_DIRECT_FEEDS.map((feed) => {
+                      const isSelected = (
+                        formData.onboardingDetails?.directDspAgreements || []
+                      ).includes(feed);
+                      return (
+                        <Badge
+                          key={feed}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => toggleDspFeed(feed)}
+                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {feed}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Dedicated QC Team?
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails?.hasDedicatedQcTeam ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail("hasDedicatedQcTeam", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      In-house review staff for artwork & audio quality.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Anti-Fraud Screening
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails
+                            ?.antiFraudInspectionRequired ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail(
+                            "antiFraudInspectionRequired",
+                            checked,
+                          )
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Automated artificial streaming detection & audio fingerprinting.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Barcode Pool Needed
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails?.bulkBarcodePoolNeeded ??
+                          true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail(
+                            "bulkBarcodePoolNeeded",
+                            checked,
+                          )
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Automated UPC/EAN allocation for sub-labels.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Client Onboarding & Signup Model on WhiteLabel
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {SIGNUP_MODELS.map((model) => (
+                      <div
+                        key={model.id}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            userSignupModel: model.id,
+                          }))
+                        }
+                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                          formData.userSignupModel === model.id
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-semibold text-primary"
+                            : "border-border/60 hover:border-border text-muted-foreground"
+                        }`}
+                      >
+                        <p className="text-xs font-bold text-foreground">
+                          {model.label}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                          {model.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Primary Catalog Language
-              </Label>
-              <Input
-                placeholder="e.g. English, Spanish, French, Hindi"
-                value={formData.primaryCatalogLanguage}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    primaryCatalogLanguage: e.target.value,
-                  }))
-                }
-                className="h-9.5 text-xs"
-              />
-            </div>
+            {/* 3. MUSIC PUBLISHER VIEW */}
+            {formData.businessType ===
+              WhiteLabelBusinessType.MUSIC_PUBLISHER && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Registered Musical Works in Catalog
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        formData.onboardingDetails?.musicalWorksCount ?? 150
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "musicalWorksCount",
+                          Number(e.target.value) || 1,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
 
-            {/* Current Distributors */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">
-                Current or Past Distribution Partners:
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {DISTRIBUTOR_OPTIONS.map((dist) => {
-                  const isSelected =
-                    formData.currentDistributors.includes(dist);
-                  return (
-                    <Badge
-                      key={dist}
-                      variant={isSelected ? "default" : "outline"}
-                      onClick={() => toggleDistributor(dist)}
-                      className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Songwriters & Composers Represented
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        formData.onboardingDetails
+                          ?.songwritersRepresentedCount ?? 15
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "songwritersRepresentedCount",
+                          Number(e.target.value) || 1,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Primary PRO / CMO Affiliation
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.primaryProAffiliation ||
+                        PUBLISHING_PROS[0]
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "primaryProAffiliation",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
                     >
-                      {isSelected ? "✓ " : "+ "}
-                      {dist}
-                    </Badge>
-                  );
-                })}
-              </div>
-            </div>
+                      {PUBLISHING_PROS.map((pro) => (
+                        <option key={pro} value={pro}>
+                          {pro}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-            {/* Royalty Solutions */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">
-                Existing Royalty Solutions:
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {ROYALTY_OPTIONS.map((sol) => {
-                  const isSelected = formData.royaltySolutions.includes(sol);
-                  return (
-                    <Badge
-                      key={sol}
-                      variant={isSelected ? "default" : "outline"}
-                      onClick={() => toggleRoyalty(sol)}
-                      className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      {isSelected ? "✓ " : "+ "}
-                      {sol}
-                    </Badge>
-                  );
-                })}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Publisher IPI / CAE Number (9 Digits)
+                    </Label>
+                    <Input
+                      placeholder="e.g. 00812345678"
+                      value={formData.onboardingDetails?.ipiCaeNumber || ""}
+                      onChange={(e) =>
+                        updateOnboardingDetail("ipiCaeNumber", e.target.value)
+                      }
+                      className="h-9.5 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        CWR Integration
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails?.cwrExchangeEnabled ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail("cwrExchangeEnabled", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Common Works Registration format export for global PROs.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Mechanicals
+                      </span>
+                      <Switch
+                        checked={
+                          formData.onboardingDetails?.collectsMechanicals ??
+                          true
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail("collectsMechanicals", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Direct collection from The MLC, Harry Fox Agency, and MCPS.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Sync Pitch Vault
+                      </span>
+                      <Switch
+                        checked={
+                          (formData.onboardingDetails
+                            ?.syncLicensingCatalogSize ?? 50) > 0
+                        }
+                        onCheckedChange={(checked) =>
+                          updateOnboardingDetail(
+                            "syncLicensingCatalogSize",
+                            checked ? 50 : 0,
+                          )
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Metadata tagging for film, TV, and gaming sync licensing.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* 4. REFERRER / SCOUT VIEW */}
+            {formData.businessType === WhiteLabelBusinessType.REFERRER && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Scout Network Practice Category
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails?.scoutNetworkCategory ||
+                        "talent_scout"
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "scoutNetworkCategory",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {SCOUT_CATEGORIES.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Projected Annual Partner Referrals
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        formData.onboardingDetails?.projectedAnnualReferrals ??
+                        15
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "projectedAnnualReferrals",
+                          Number(e.target.value) || 1,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Estimated Pipeline Aggregate Tracks
+                    </Label>
+                    <Input
+                      type="number"
+                      min={50}
+                      value={
+                        formData.onboardingDetails
+                          ?.projectedPipelineCatalogSize ?? 1000
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "projectedPipelineCatalogSize",
+                          Number(e.target.value) || 50,
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Preferred Commission Incentive Model
+                    </Label>
+                    <select
+                      value={
+                        formData.onboardingDetails
+                          ?.preferredCommissionStructure || "lifetime_rev_share"
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "preferredCommissionStructure",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
+                    >
+                      {COMMISSION_PREFERENCES.map((pref) => (
+                        <option key={pref.id} value={pref.id}>
+                          {pref.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">
+                    Primary Talent Discovery Channels:
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DISCOVERY_CHANNELS.map((ch) => {
+                      const isSelected = (
+                        formData.onboardingDetails?.discoveryChannels || []
+                      ).includes(ch);
+                      return (
+                        <Badge
+                          key={ch}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => toggleDiscoveryChannel(ch)}
+                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {ch}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Universal Distribution & Royalty Tools for Labels & Aggregators */}
+            {formData.businessType !== WhiteLabelBusinessType.REFERRER && (
+              <div className="space-y-4 pt-3 border-t border-border/50">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">
+                    Current or Past Distribution Partners:
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DISTRIBUTOR_OPTIONS.map((dist) => {
+                      const isSelected =
+                        formData.currentDistributors.includes(dist);
+                      return (
+                        <Badge
+                          key={dist}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => toggleDistributor(dist)}
+                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {dist}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">
+                    Existing Royalty Accounting Software:
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ROYALTY_OPTIONS.map((sol) => {
+                      const isSelected =
+                        formData.royaltySolutions.includes(sol);
+                      return (
+                        <Badge
+                          key={sol}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => toggleRoyalty(sol)}
+                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {sol}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* STEP 5: Top 3 Artists */}
+      {/* STEP 5: DYNAMIC PORTFOLIO / ROSTER HIGHLIGHTS */}
       {currentStep === 5 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <Headphones className="h-4 w-4" />
-              Step 5 of 6: Top Roster Artists
+              Step 5 of 6: Portfolio &amp; Roster Highlights
             </div>
             <CardTitle className="text-xl font-bold">
-              Top Roster Showcase
+              {formData.businessType === WhiteLabelBusinessType.RECORD_LABEL &&
+                "Top Signed Roster Artists"}
+              {formData.businessType ===
+                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                "Representative Sub-Labels & Catalogs"}
+              {formData.businessType ===
+                WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                "Key Songwriters & Top Compositions"}
+              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
+                "Pipeline Referral Prospects & Target Clients"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Provide 1 to 3 key artists so our team can prepare direct DSP
-              artist mapping.
+              {formData.businessType === WhiteLabelBusinessType.RECORD_LABEL &&
+                "Provide 1 to 3 key artists so our team can verify streaming DSP profile mappings."}
+              {formData.businessType ===
+                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                "Highlight 1 to 3 flagship sub-labels or catalog brands your aggregator will distribute."}
+              {formData.businessType ===
+                WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                "List 1 to 3 key songwriters or compositions in your publishing administration."}
+              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
+                "Provide 1 to 3 flagship prospect partners or labels in your active onboarding pipeline."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            {formData.topArtists.map((artist: RosterArtist, idx: number) => (
+          <CardContent className="space-y-4">
+            {formData.topArtists.map((item: RosterArtist, idx: number) => (
               <div
                 key={idx}
                 className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-3"
@@ -1347,11 +2159,24 @@ export function WhiteLabelOnboardingWizard({
                     >
                       {idx + 1} of 3
                     </Badge>
-                    <span>Top Artist #{idx + 1}</span>
+                    <span>
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL &&
+                        `Signed Artist #${idx + 1}`}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                        `Sub-Label Partner #${idx + 1}`}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                        `Songwriter / Work #${idx + 1}`}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.REFERRER &&
+                        `Pipeline Prospect #${idx + 1}`}
+                    </span>
                   </div>
                   {idx === 0 && (
                     <span className="text-[10px] text-destructive font-semibold">
-                      * At least 1 artist required
+                      * At least 1 entry required
                     </span>
                   )}
                 </div>
@@ -1359,26 +2184,85 @@ export function WhiteLabelOnboardingWizard({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold">
-                      Artist / Band Name
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL &&
+                        "Artist / Band Name"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                        "Sub-Label / Brand Name"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                        "Songwriter / Composer Name"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.REFERRER &&
+                        "Prospect Entity / Artist Name"}
                     </Label>
                     <Input
-                      placeholder="e.g. Nova Eclipse"
-                      value={artist.artistName}
+                      placeholder={
+                        formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL
+                          ? "e.g. Nova Eclipse"
+                          : formData.businessType ===
+                              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                            ? "e.g. Hyperion Electronic Records"
+                            : formData.businessType ===
+                                WhiteLabelBusinessType.MUSIC_PUBLISHER
+                              ? "e.g. Marcus Vance"
+                              : "e.g. Zenith Wave Studios"
+                      }
+                      value={item.artistName}
                       onChange={(e) =>
                         handleArtistChange(idx, "artistName", e.target.value)
                       }
-                      className="h-8.5 text-xs"
+                      className="h-8.5 text-xs font-medium"
                     />
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
-                      <Camera className="h-3 w-3 text-pink-500" />
-                      Instagram Handle
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL && (
+                        <>
+                          <Camera className="h-3 w-3 text-pink-500" />
+                          Instagram Handle
+                        </>
+                      )}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
+                        <>
+                          <Globe className="h-3 w-3 text-blue-500" />
+                          Sub-Label Country / Territory
+                        </>
+                      )}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.MUSIC_PUBLISHER && (
+                        <>
+                          <Building2 className="h-3 w-3 text-indigo-500" />
+                          Writer PRO Affiliation
+                        </>
+                      )}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.REFERRER && (
+                        <>
+                          <Network className="h-3 w-3 text-emerald-500" />
+                          Current Distribution Status
+                        </>
+                      )}
                     </Label>
                     <Input
-                      placeholder="@artistname"
-                      value={artist.instagramHandle}
+                      placeholder={
+                        formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL
+                          ? "@artisthandle"
+                          : formData.businessType ===
+                              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                            ? "e.g. United Kingdom"
+                            : formData.businessType ===
+                                WhiteLabelBusinessType.MUSIC_PUBLISHER
+                              ? "e.g. ASCAP or BMI"
+                              : "e.g. Self-releasing or DistroKid"
+                      }
+                      value={item.instagramHandle}
                       onChange={(e) =>
                         handleArtistChange(
                           idx,
@@ -1386,7 +2270,7 @@ export function WhiteLabelOnboardingWizard({
                           e.target.value,
                         )
                       }
-                      className="h-8.5 text-xs"
+                      className="h-8.5 text-xs font-mono"
                     />
                   </div>
                 </div>
@@ -1395,11 +2279,33 @@ export function WhiteLabelOnboardingWizard({
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
                       <ExternalLink className="h-3 w-3 text-emerald-500" />
-                      Spotify Artist Profile URL
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL &&
+                        "Spotify Profile Link"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                        "Sub-Label Website or Catalog Link"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                        "Top Composition Title / ISWC Code"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.REFERRER &&
+                        "Music / Portfolio Link"}
                     </Label>
                     <Input
-                      placeholder="https://open.spotify.com/artist/..."
-                      value={artist.spotifyProfileUrl}
+                      placeholder={
+                        formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL
+                          ? "https://open.spotify.com/artist/..."
+                          : formData.businessType ===
+                              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                            ? "https://hyperionrecords.com"
+                            : formData.businessType ===
+                                WhiteLabelBusinessType.MUSIC_PUBLISHER
+                              ? "e.g. Midnight Horizon (ISWC: T-034523829-1)"
+                              : "https://soundcloud.com/prospect"
+                      }
+                      value={item.spotifyProfileUrl}
                       onChange={(e) =>
                         handleArtistChange(
                           idx,
@@ -1407,18 +2313,40 @@ export function WhiteLabelOnboardingWizard({
                           e.target.value,
                         )
                       }
-                      className="h-8.5 text-xs"
+                      className="h-8.5 text-xs font-mono"
                     />
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
                       <Video className="h-3 w-3 text-rose-500" />
-                      YouTube Channel URL
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL &&
+                        "YouTube Channel URL"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                        "Primary Genre Focus"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                        "Publisher Ownership Split (%)"}
+                      {formData.businessType ===
+                        WhiteLabelBusinessType.REFERRER &&
+                        "Prospect Category (Label / Artist)"}
                     </Label>
                     <Input
-                      placeholder="https://youtube.com/@channel"
-                      value={artist.youtubeChannelUrl}
+                      placeholder={
+                        formData.businessType ===
+                        WhiteLabelBusinessType.RECORD_LABEL
+                          ? "https://youtube.com/@artist"
+                          : formData.businessType ===
+                              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                            ? "e.g. Electronic / Dance"
+                            : formData.businessType ===
+                                WhiteLabelBusinessType.MUSIC_PUBLISHER
+                              ? "e.g. 50% Publisher / 50% Writer"
+                              : "e.g. Independent Record Label"
+                      }
+                      value={item.youtubeChannelUrl}
                       onChange={(e) =>
                         handleArtistChange(
                           idx,
@@ -1436,79 +2364,48 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 6: Review Summary & Compliance */}
+      {/* STEP 6: DYNAMIC REVIEW & COMPLIANCE */}
       {currentStep === 6 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <ShieldCheck className="h-4 w-4" />
-              Step 6 of 6: Review & Finalize
+              Step 6 of 6: Review Application &amp; Legal Terms
             </div>
             <CardTitle className="text-xl font-bold">
-              Review Application & Terms
+              Review Application &amp; Confirm Terms
             </CardTitle>
             <CardDescription className="text-xs">
-              Verify your information before submission to our platform
-              onboarding desk.
+              Confirm your operational profile and accept the distribution
+              platform agreements.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Signup Model */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">
-                How will users sign up to your WhiteLabel platform?
-              </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {SIGNUP_MODELS.map((model) => {
-                  const isSelected = formData.userSignupModel === model.id;
-                  return (
-                    <div
-                      key={model.id}
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          userSignupModel: model.id,
-                        }))
-                      }
-                      className={`p-3 rounded-xl border cursor-pointer transition-all space-y-0.5 ${
-                        isSelected
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                          : "border-border/60 bg-card hover:border-border"
-                      }`}
-                    >
-                      <p className="font-bold text-xs text-foreground">
-                        {model.label}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {model.description}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Application Summary Dossier */}
+            {/* Dynamic Application Summary Dossier */}
             <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   Application Dossier Summary
                 </h4>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  Ready for Review
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
+                >
+                  Ready for Submission
                 </Badge>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Company
+                    Organization
                   </span>
                   <strong className="text-foreground">
                     {formData.name || "N/A"}
                   </strong>
                 </div>
+
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
                     Reserved Subdomain
@@ -1519,9 +2416,10 @@ export function WhiteLabelOnboardingWizard({
                       : "Pending"}
                   </strong>
                 </div>
+
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Business Model
+                    Business Entity
                   </span>
                   <strong className="text-foreground">
                     {BUSINESS_TYPES.find(
@@ -1529,34 +2427,87 @@ export function WhiteLabelOnboardingWizard({
                     )?.label || formData.businessType}
                   </strong>
                 </div>
+
+                {/* Specific Metric 1 */}
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Catalog Tracks
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.RECORD_LABEL && "Master Catalog"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                      "Sub-Labels Represented"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                      "Musical Works"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.REFERRER &&
+                      "Network Category"}
                   </span>
                   <strong className="text-foreground">
-                    {formData.catalogTrackCount} tracks
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.RECORD_LABEL &&
+                      `${formData.catalogTrackCount} tracks`}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                      `${formData.onboardingDetails?.subLabelsCount || 5} labels`}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                      `${formData.onboardingDetails?.musicalWorksCount || 150} works`}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.REFERRER &&
+                      (formData.onboardingDetails?.scoutNetworkCategory?.replace(
+                        /_/g,
+                        " ",
+                      ) || "Talent Scout")}
                   </strong>
                 </div>
+
+                {/* Specific Metric 2 */}
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Monthly Ingestion
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.RECORD_LABEL && "Monthly Releases"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                      "Ingestion Protocol"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                      "Primary PRO"}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.REFERRER &&
+                      "Projected Pipeline"}
                   </span>
                   <strong className="text-foreground">
-                    {formData.monthlyTrackDelivery} tracks / mo
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.RECORD_LABEL &&
+                      `${formData.monthlyTrackDelivery} tracks / mo`}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                      (formData.onboardingDetails?.ingestionProtocol ||
+                        "DDEX ERN 4.3")}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                      (formData.onboardingDetails?.primaryProAffiliation?.split(
+                        " ",
+                      )[0] || "ASCAP")}
+                    {formData.businessType ===
+                      WhiteLabelBusinessType.REFERRER &&
+                      `${formData.onboardingDetails?.projectedAnnualReferrals || 15} referrals / yr`}
                   </strong>
                 </div>
+
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Primary Contact
+                    Primary Representative
                   </span>
-                  <strong className="text-foreground">
+                  <strong className="text-foreground truncate block">
                     {formData.contactFirstName} {formData.contactLastName}
                   </strong>
                 </div>
               </div>
             </div>
 
-            {/* Privacy Policy & Terms */}
+            {/* Dynamic Compliance & Terms Agreement */}
             <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3 text-xs">
               <div className="flex items-start gap-2.5">
                 <Checkbox
@@ -1574,8 +2525,17 @@ export function WhiteLabelOnboardingWizard({
                   htmlFor="privacyPolicy"
                   className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                 >
-                  I certify that the catalog sizing, contact, and legal
-                  information provided is accurate. I agree to the{" "}
+                  {formData.businessType ===
+                    WhiteLabelBusinessType.RECORD_LABEL &&
+                    "I certify that our organization holds master sound recording rights or exclusive digital distribution rights for all submitted catalogs. I agree to the "}
+                  {formData.businessType ===
+                    WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
+                    "I certify that all represented sub-labels have executed valid digital distribution licenses and our ingestion pipeline strictly complies with anti-fraud streaming policies. I agree to the "}
+                  {formData.businessType ===
+                    WhiteLabelBusinessType.MUSIC_PUBLISHER &&
+                    "I certify that our publishing administration holds valid composition rights and accurate PRO/CMO writer splits. I agree to the "}
+                  {formData.businessType === WhiteLabelBusinessType.REFERRER &&
+                    "I certify that all referral partner representations, discovery channels, and affiliate terms comply with the Partner Code of Conduct. I agree to the "}
                   <span className="text-primary underline">
                     RoyalMotionIT Distribution Agreement
                   </span>{" "}
@@ -1602,7 +2562,8 @@ export function WhiteLabelOnboardingWizard({
                   className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                 >
                   I consent to receiving direct onboarding communications, DSP
-                  pipeline status alerts, and agreement drafting notices.
+                  pipeline telemetry alerts, and agreement drafting notices from
+                  the enterprise onboarding desk.
                 </label>
               </div>
             </div>

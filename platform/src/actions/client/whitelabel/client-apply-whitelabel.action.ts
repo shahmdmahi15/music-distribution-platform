@@ -32,6 +32,7 @@ export interface ApplyWhiteLabelPayload {
   userSignupModel?: string;
   privacyPolicyAccepted?: boolean;
   marketingConsent?: boolean;
+  onboardingDetails?: Record<string, any>;
   topArtists?: {
     artistName: string;
     instagramHandle?: string;

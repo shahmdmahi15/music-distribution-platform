@@ -99,6 +99,13 @@ export interface WhiteLabelTenant {
   isSetupComplete?: boolean;
   hasOwner?: boolean;
   brandingConfigured?: boolean;
+  onboardingDetails?: Record<string, any>;
+  features?: {
+    businessType?: WhiteLabelBusinessType | string;
+    modules?: string[];
+    limits?: Record<string, any>;
+    capabilities?: Record<string, any>;
+  };
 }
 
 export interface SessionItem {
