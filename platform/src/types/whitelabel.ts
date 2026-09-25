@@ -207,6 +207,8 @@ export interface WhiteLabel {
   senderEmail?: string | null;
   cloudflareZoneId?: string | null;
   cloudflareBaseDomain?: string | null;
+  isSetupComplete?: boolean;
+  isSetupCompleted?: boolean;
 
   artists?: WhiteLabelTopArtist[];
   documents?: WhiteLabelDocument[];
@@ -268,6 +270,7 @@ export interface WhiteLabelBranding {
   provisionedAt?: string | null;
   provisioningError?: string | null;
   isSetupComplete?: boolean;
+  isSetupCompleted?: boolean;
   hasOwner?: boolean;
   ownerCount?: number;
   themeRadius?: string;
