@@ -28,14 +28,14 @@ export function ClientSidebarHeader({
   }`;
 
   return (
-    <SidebarHeader className="border-b border-sidebar-border/60 pb-3">
+    <SidebarHeader className="h-16 shrink-0 justify-center border-b border-border/60 px-3 py-0">
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
             render={<Link href="/" />}
             size="lg"
             tooltip={statusTooltip}
-            className="group/logo hover:bg-sidebar-accent/60 transition-all rounded-xl p-2"
+            className="group/logo hover:bg-sidebar-accent/60 transition-all rounded-xl px-2 py-1.5"
           >
             <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 group-hover/logo:scale-105 transition-transform">
               {isApproved ? (

@@ -97,7 +97,7 @@ export function DashboardHeader({
   const rootLabel = isAdmin ? "Admin" : "Dashboard";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md transition-[width,height] ease-linear">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-4 backdrop-blur-md transition-[width,height] ease-linear">
       {/* Left side: Sidebar trigger & Breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0">
         <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-accent/60 transition-colors" />

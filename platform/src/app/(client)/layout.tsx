@@ -26,15 +26,18 @@ export default async function ClientLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <SidebarProvider defaultOpen={defaultOpen}>
+    <div className="flex h-svh w-full overflow-hidden bg-background">
+      <SidebarProvider
+        defaultOpen={defaultOpen}
+        className="h-svh overflow-hidden"
+      >
         <ClientSidebar
           user={me.user}
           subscription={subscription.subscription}
         />
-        <SidebarInset className="flex flex-col min-h-screen overflow-hidden">
+        <SidebarInset className="flex flex-col h-svh flex-1 min-w-0 overflow-hidden">
           <DashboardHeader user={me.user} isAdmin={false} />
-          <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+          <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
             {/* Subtle background ambient mesh */}
             <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none -z-10" />
             <div className="absolute bottom-10 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none -z-10" />
