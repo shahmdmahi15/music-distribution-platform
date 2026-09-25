@@ -13,9 +13,7 @@ import {
   ExternalLink,
   FileCheck2,
   Globe,
-  Headphones,
   Camera,
-  Lock,
   Mail,
   Music,
   RefreshCw,
@@ -32,23 +30,25 @@ import {
   Play,
   Calendar,
   AlertTriangle,
-  User,
   Upload,
   Trash2,
   Download,
   File,
   Palette,
   Save,
-  Phone,
   Share2,
   Image as ImageIcon,
   FileSignature,
+  Server,
+  Edit3,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -64,9 +64,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   WhiteLabel,
+  WhiteLabelBusinessType,
+  WhiteLabelSignupModel,
   WhiteLabelStatus,
   WhiteLabelDocument,
 } from "@/types/whitelabel";
@@ -85,6 +86,8 @@ import { adminUnsuspendWhiteLabelAction } from "@/actions/admin/whitelabel/admin
 import { adminUpdateBrandingAction } from "@/actions/admin/whitelabel/admin-update-branding.action";
 import { adminUploadBrandingAssetAction } from "@/actions/admin/whitelabel/admin-upload-branding-asset.action";
 import { adminDeleteBrandingAssetAction } from "@/actions/admin/whitelabel/admin-delete-branding-asset.action";
+import { adminUpdateWhiteLabelApplicationAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-application.action";
+import { adminSyncWhiteLabelDnsAction } from "@/actions/admin/whitelabel/admin-sync-whitelabel-dns.action";
 
 const paymentMethodLabels: Record<string, string> = {
   HAND_TO_HAND: "Hand-to-Hand (Cash / Direct)",
@@ -100,6 +103,57 @@ const adminDocTypeLabels: Record<string, string> = {
   TAX_DOCUMENT: "Tax Document (W8/W9)",
   OTHER: "Other Agreement",
 };
+
+const GLOBAL_GENRE_OPTIONS = [
+  "Multi-Genre / All Genres",
+  "Pop / Contemporary",
+  "South Asian / Bangla / Desi",
+  "Hip-Hop / R&B",
+  "Electronic / Dance / EDM",
+  "Rock / Alternative / Indie",
+  "World / Regional / Folk",
+  "Classical / Instrumental",
+  "Gospel / Devotional / Islamic",
+  "Latin / Reggaeton / Urbano",
+  "Afrobeats / African",
+  "Jazz / Blues / Soul",
+];
+
+const CATALOG_LANGUAGE_OPTIONS = [
+  "English",
+  "Bengali / Bangla",
+  "Hindi / Urdu",
+  "Spanish",
+  "Arabic",
+  "Portuguese",
+  "French",
+  "Multi-Language / Global",
+];
+
+const LIFECYCLE_STEPS = [
+  { status: WhiteLabelStatus.PENDING, label: "1. Submitted", short: "Pending" },
+  {
+    status: WhiteLabelStatus.UNDER_REVIEW,
+    label: "2. Under Review",
+    short: "Review",
+  },
+  {
+    status: WhiteLabelStatus.PROCESSING,
+    label: "3. Processing",
+    short: "Processing",
+  },
+  {
+    status: WhiteLabelStatus.CONTRACTED,
+    label: "4. Contracted",
+    short: "Contracted",
+  },
+  { status: WhiteLabelStatus.PAID, label: "5. Paid", short: "Paid" },
+  {
+    status: WhiteLabelStatus.ACTIVE,
+    label: "6. Active Live",
+    short: "Active",
+  },
+];
 
 export interface AdminWhiteLabelDetailsDialogProps {
   whiteLabel: WhiteLabel | null;
@@ -119,7 +173,12 @@ export function AdminWhiteLabelDetailsDialog({
 }: AdminWhiteLabelDetailsDialogProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "artists" | "documents" | "payments" | "branding"
+    | "overview"
+    | "edit_dossier"
+    | "artists"
+    | "documents"
+    | "payments"
+    | "branding"
   >("overview");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -165,8 +224,9 @@ export function AdminWhiteLabelDetailsDialog({
   const [docTitle, setDocTitle] = useState("");
   const [previewingDocId, setPreviewingDocId] = useState<string | null>(null);
 
-  // Activate state
+  // Activate & DNS Sync state
   const [activateLoading, setActivateLoading] = useState(false);
+  const [dnsSyncLoading, setDnsSyncLoading] = useState(false);
 
   // Admin Branding Manager State
   const [brandingSaving, setBrandingSaving] = useState(false);
@@ -193,6 +253,179 @@ export function AdminWhiteLabelDetailsDialog({
     socialTiktok: whiteLabel?.socialTiktok || "",
   });
 
+  // Admin Full Application & Dossier Editor State
+  const [dossierSaving, setDossierSaving] = useState(false);
+  const [dossierForm, setDossierForm] = useState({
+    name: whiteLabel?.name || "",
+    businessType:
+      whiteLabel?.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+    companyWebsite: whiteLabel?.companyWebsite || "",
+    country: whiteLabel?.country || "",
+    yearsInBusiness: whiteLabel?.yearsInBusiness ?? 1,
+    isIncorporated: Boolean(whiteLabel?.isIncorporated),
+    incorporationDocUrl: whiteLabel?.incorporationDocUrl || "",
+    contactFirstName: whiteLabel?.contactFirstName || "",
+    contactLastName: whiteLabel?.contactLastName || "",
+    contactEmail: whiteLabel?.contactEmail || "",
+    contactLinkedIn: whiteLabel?.contactLinkedIn || "",
+    catalogTrackCount: whiteLabel?.catalogTrackCount ?? 0,
+    monthlyTrackDelivery: whiteLabel?.monthlyTrackDelivery ?? 0,
+    monthlyRevenueUsd: Number(whiteLabel?.monthlyRevenueUsd || 0),
+    primaryCatalogLanguage: whiteLabel?.primaryCatalogLanguage || "English",
+    userSignupModel:
+      whiteLabel?.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
+    subdomain: whiteLabel?.subdomain || "",
+    customDomain: whiteLabel?.customDomain || "",
+    elasticIpv4: whiteLabel?.elasticIpv4 || "",
+    hasDirectDeals: Boolean(whiteLabel?.hasDirectDeals),
+    wantsCatalogMigration: Boolean(whiteLabel?.wantsCatalogMigration),
+    hasSampleBasedCovers: Boolean(whiteLabel?.hasSampleBasedCovers),
+    // Onboarding Details
+    primaryGenre:
+      whiteLabel?.onboardingDetails?.primaryGenre ||
+      "Multi-Genre / All Genres",
+    labelType: whiteLabel?.onboardingDetails?.labelType || "independent",
+    masterRoyaltySplitStandard:
+      whiteLabel?.onboardingDetails?.masterRoyaltySplitStandard ||
+      "70/30 (Artist 70% / Label 30%)",
+    isrcRegistrantCode:
+      whiteLabel?.onboardingDetails?.isrcRegistrantCode ||
+      whiteLabel?.onboardingDetails?.isrcPrefix ||
+      "",
+    dolbyAtmosReady:
+      whiteLabel?.onboardingDetails?.dolbyAtmosReady !== false,
+    estimatedLaunchTimeline:
+      whiteLabel?.onboardingDetails?.estimatedLaunchTimeline ||
+      "Immediate (1 - 2 Weeks)",
+    subLabelsCount: whiteLabel?.onboardingDetails?.subLabelsCount ?? 5,
+    independentArtistsRepresented:
+      whiteLabel?.onboardingDetails?.independentArtistsRepresented ?? 40,
+    ingestionProtocol:
+      whiteLabel?.onboardingDetails?.ingestionProtocol || "DDEX_ERN_4_3",
+    antiFraudInspectionRequired:
+      whiteLabel?.onboardingDetails?.antiFraudInspectionRequired !== false,
+    publishingCompanyType:
+      whiteLabel?.onboardingDetails?.publishingCompanyType || "co_publishing",
+    primaryProAffiliation:
+      whiteLabel?.onboardingDetails?.primaryProAffiliation ||
+      "ASCAP (United States)",
+    ipiCaeNumber: whiteLabel?.onboardingDetails?.ipiCaeNumber || "",
+    theMlcMemberCode: whiteLabel?.onboardingDetails?.theMlcMemberCode || "",
+    musicalWorksCount: whiteLabel?.onboardingDetails?.musicalWorksCount ?? 150,
+    songwritersRepresentedCount:
+      whiteLabel?.onboardingDetails?.songwritersRepresentedCount ?? 12,
+    cwrExchangeEnabled:
+      whiteLabel?.onboardingDetails?.cwrExchangeEnabled !== false,
+    scoutNetworkCategory:
+      whiteLabel?.onboardingDetails?.scoutNetworkCategory || "talent_scout",
+    projectedAnnualReferrals:
+      whiteLabel?.onboardingDetails?.projectedAnnualReferrals ?? 10,
+    projectedPipelineCatalogSize:
+      whiteLabel?.onboardingDetails?.projectedPipelineCatalogSize ?? 500,
+    preferredCommissionStructure:
+      whiteLabel?.onboardingDetails?.preferredCommissionStructure ||
+      "lifetime_rev_share",
+  });
+
+  // Synchronize forms whenever selected WhiteLabel changes or updates
+  const [prevSyncKey, setPrevSyncKey] = useState<string>("");
+  const currentSyncKey = whiteLabel
+    ? `${whiteLabel.id}-${whiteLabel.updatedAt}-${whiteLabel.status}`
+    : "";
+  if (whiteLabel && currentSyncKey !== prevSyncKey) {
+    setPrevSyncKey(currentSyncKey);
+    setBrandingForm({
+      name: whiteLabel.name || "",
+      subdomain: whiteLabel.subdomain || "",
+      customDomain: whiteLabel.customDomain || "",
+      tagline: whiteLabel.tagline || "",
+      description: whiteLabel.description || "",
+      primaryColor: whiteLabel.primaryColor || "#6366f1",
+      accentColor: whiteLabel.accentColor || "#ec4899",
+      supportEmail: whiteLabel.supportEmail || "",
+      supportPhone: whiteLabel.supportPhone || "",
+      copyrightText: whiteLabel.copyrightText || "",
+      socialInstagram: whiteLabel.socialInstagram || "",
+      socialTwitter: whiteLabel.socialTwitter || "",
+      socialYoutube: whiteLabel.socialYoutube || "",
+      socialSpotify: whiteLabel.socialSpotify || "",
+      socialFacebook: whiteLabel.socialFacebook || "",
+      socialLinkedin: whiteLabel.socialLinkedin || "",
+      socialTiktok: whiteLabel.socialTiktok || "",
+    });
+    setDossierForm({
+      name: whiteLabel.name || "",
+      businessType:
+        whiteLabel.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+      companyWebsite: whiteLabel.companyWebsite || "",
+      country: whiteLabel.country || "",
+      yearsInBusiness: whiteLabel.yearsInBusiness ?? 1,
+      isIncorporated: Boolean(whiteLabel.isIncorporated),
+      incorporationDocUrl: whiteLabel.incorporationDocUrl || "",
+      contactFirstName: whiteLabel.contactFirstName || "",
+      contactLastName: whiteLabel.contactLastName || "",
+      contactEmail: whiteLabel.contactEmail || "",
+      contactLinkedIn: whiteLabel.contactLinkedIn || "",
+      catalogTrackCount: whiteLabel.catalogTrackCount ?? 0,
+      monthlyTrackDelivery: whiteLabel.monthlyTrackDelivery ?? 0,
+      monthlyRevenueUsd: Number(whiteLabel.monthlyRevenueUsd || 0),
+      primaryCatalogLanguage: whiteLabel.primaryCatalogLanguage || "English",
+      userSignupModel:
+        whiteLabel.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
+      subdomain: whiteLabel.subdomain || "",
+      customDomain: whiteLabel.customDomain || "",
+      elasticIpv4: whiteLabel.elasticIpv4 || "",
+      hasDirectDeals: Boolean(whiteLabel.hasDirectDeals),
+      wantsCatalogMigration: Boolean(whiteLabel.wantsCatalogMigration),
+      hasSampleBasedCovers: Boolean(whiteLabel.hasSampleBasedCovers),
+      primaryGenre:
+        whiteLabel.onboardingDetails?.primaryGenre ||
+        "Multi-Genre / All Genres",
+      labelType: whiteLabel.onboardingDetails?.labelType || "independent",
+      masterRoyaltySplitStandard:
+        whiteLabel.onboardingDetails?.masterRoyaltySplitStandard ||
+        "70/30 (Artist 70% / Label 30%)",
+      isrcRegistrantCode:
+        whiteLabel.onboardingDetails?.isrcRegistrantCode ||
+        whiteLabel.onboardingDetails?.isrcPrefix ||
+        "",
+      dolbyAtmosReady:
+        whiteLabel.onboardingDetails?.dolbyAtmosReady !== false,
+      estimatedLaunchTimeline:
+        whiteLabel.onboardingDetails?.estimatedLaunchTimeline ||
+        "Immediate (1 - 2 Weeks)",
+      subLabelsCount: whiteLabel.onboardingDetails?.subLabelsCount ?? 5,
+      independentArtistsRepresented:
+        whiteLabel.onboardingDetails?.independentArtistsRepresented ?? 40,
+      ingestionProtocol:
+        whiteLabel.onboardingDetails?.ingestionProtocol || "DDEX_ERN_4_3",
+      antiFraudInspectionRequired:
+        whiteLabel.onboardingDetails?.antiFraudInspectionRequired !== false,
+      publishingCompanyType:
+        whiteLabel.onboardingDetails?.publishingCompanyType || "co_publishing",
+      primaryProAffiliation:
+        whiteLabel.onboardingDetails?.primaryProAffiliation ||
+        "ASCAP (United States)",
+      ipiCaeNumber: whiteLabel.onboardingDetails?.ipiCaeNumber || "",
+      theMlcMemberCode: whiteLabel.onboardingDetails?.theMlcMemberCode || "",
+      musicalWorksCount:
+        whiteLabel.onboardingDetails?.musicalWorksCount ?? 150,
+      songwritersRepresentedCount:
+        whiteLabel.onboardingDetails?.songwritersRepresentedCount ?? 12,
+      cwrExchangeEnabled:
+        whiteLabel.onboardingDetails?.cwrExchangeEnabled !== false,
+      scoutNetworkCategory:
+        whiteLabel.onboardingDetails?.scoutNetworkCategory || "talent_scout",
+      projectedAnnualReferrals:
+        whiteLabel.onboardingDetails?.projectedAnnualReferrals ?? 10,
+      projectedPipelineCatalogSize:
+        whiteLabel.onboardingDetails?.projectedPipelineCatalogSize ?? 500,
+      preferredCommissionStructure:
+        whiteLabel.onboardingDetails?.preferredCommissionStructure ||
+        "lifetime_rev_share",
+    });
+  }
+
   if (!whiteLabel) return null;
 
   const copyToClipboard = (text: string, label: string) => {
@@ -201,6 +434,68 @@ export function AdminWhiteLabelDetailsDialog({
     toast.success(`Copied ${label} to clipboard!`);
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  // Compliance & Enterprise Readiness Scorecard calculation
+  const paymentsList =
+    whiteLabel.subscription?.payments || whiteLabel.payments || [];
+  const hasCompletedPayment = paymentsList.some(
+    (p) => p.status === "COMPLETED",
+  );
+  const totalPaidUsd = paymentsList
+    .filter((p) => p.status === "COMPLETED")
+    .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  const readinessChecks = [
+    {
+      label: "Corporate Identity & KYB",
+      passed: Boolean(
+        whiteLabel.name && whiteLabel.country && whiteLabel.contactEmail,
+      ),
+      detail: whiteLabel.isIncorporated
+        ? "Incorporated Entity"
+        : "Sole Prop / Unincorporated",
+    },
+    {
+      label: "Catalog & Roster Verification",
+      passed: Boolean(
+        (whiteLabel.artists && whiteLabel.artists.length > 0) ||
+          whiteLabel.catalogTrackCount > 0,
+      ),
+      detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
+    },
+    {
+      label: "Subdomain & Routing Architecture",
+      passed: Boolean(whiteLabel.subdomain),
+      detail: whiteLabel.subdomain
+        ? `${whiteLabel.subdomain}.rmitdistribution.com`
+        : "Missing Subdomain",
+    },
+    {
+      label: "Executed Legal Contract PDF",
+      passed: Boolean(whiteLabel.contractKey),
+      detail: whiteLabel.contractFileName || "Pending PDF Upload",
+    },
+    {
+      label: "Subscription Payment Ledger",
+      passed: hasCompletedPayment,
+      detail: hasCompletedPayment
+        ? `$${totalPaidUsd.toLocaleString()} USD Verified`
+        : "Awaiting Payment Record",
+    },
+    {
+      label: "Tenant Portal Live Activation",
+      passed: whiteLabel.status === WhiteLabelStatus.ACTIVE,
+      detail:
+        whiteLabel.status === WhiteLabelStatus.ACTIVE
+          ? "Live & Provisioned"
+          : `Current: ${whiteLabel.status}`,
+    },
+  ];
+
+  const readinessScore = Math.round(
+    (readinessChecks.filter((c) => c.passed).length / readinessChecks.length) *
+      100,
+  );
 
   const handleUpdateStatus = async (
     newStatus: string,
@@ -451,7 +746,7 @@ export function AdminWhiteLabelDetailsDialog({
   const applyPackagePreset = (preset: string) => {
     setSelectedPreset(preset);
     const now = new Date();
-    let ends = new Date(now);
+    const ends = new Date(now);
     let amount = paymentForm.amount;
     let discount = paymentForm.discount;
 
@@ -492,7 +787,6 @@ export function AdminWhiteLabelDetailsDialog({
         discount = 1376;
         break;
       case "CUSTOM":
-        // Keep current dates and values for fully custom entry
         break;
     }
 
@@ -520,6 +814,97 @@ export function AdminWhiteLabelDetailsDialog({
       toast.error("Failed to activate WhiteLabel.");
     } finally {
       setActivateLoading(false);
+    }
+  };
+
+  const handleSyncCloudflareDns = async () => {
+    setDnsSyncLoading(true);
+    try {
+      const res = await adminSyncWhiteLabelDnsAction(whiteLabel.id);
+      if (res.success) {
+        toast.success(res.message);
+        router.refresh();
+        if (onRefresh) onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to synchronize Cloudflare DNS.");
+    } finally {
+      setDnsSyncLoading(false);
+    }
+  };
+
+  const handleSaveDossier = async () => {
+    setDossierSaving(true);
+    try {
+      const res = await adminUpdateWhiteLabelApplicationAction(whiteLabel.id, {
+        name: dossierForm.name,
+        businessType: dossierForm.businessType,
+        companyWebsite: dossierForm.companyWebsite,
+        country: dossierForm.country,
+        yearsInBusiness: Number(dossierForm.yearsInBusiness) || 0,
+        isIncorporated: Boolean(dossierForm.isIncorporated),
+        incorporationDocUrl: dossierForm.incorporationDocUrl,
+        contactFirstName: dossierForm.contactFirstName,
+        contactLastName: dossierForm.contactLastName,
+        contactEmail: dossierForm.contactEmail,
+        contactLinkedIn: dossierForm.contactLinkedIn,
+        catalogTrackCount: Number(dossierForm.catalogTrackCount) || 0,
+        monthlyTrackDelivery: Number(dossierForm.monthlyTrackDelivery) || 0,
+        monthlyRevenueUsd: Number(dossierForm.monthlyRevenueUsd) || 0,
+        primaryCatalogLanguage: dossierForm.primaryCatalogLanguage,
+        userSignupModel: dossierForm.userSignupModel,
+        subdomain: dossierForm.subdomain,
+        customDomain: dossierForm.customDomain,
+        elasticIpv4: dossierForm.elasticIpv4,
+        hasDirectDeals: Boolean(dossierForm.hasDirectDeals),
+        wantsCatalogMigration: Boolean(dossierForm.wantsCatalogMigration),
+        hasSampleBasedCovers: Boolean(dossierForm.hasSampleBasedCovers),
+        onboardingDetails: {
+          ...(whiteLabel.onboardingDetails || {}),
+          primaryGenre: dossierForm.primaryGenre,
+          labelType: dossierForm.labelType,
+          masterRoyaltySplitStandard: dossierForm.masterRoyaltySplitStandard,
+          isrcRegistrantCode: dossierForm.isrcRegistrantCode,
+          isrcPrefix: dossierForm.isrcRegistrantCode,
+          dolbyAtmosReady: dossierForm.dolbyAtmosReady,
+          estimatedLaunchTimeline: dossierForm.estimatedLaunchTimeline,
+          subLabelsCount: Number(dossierForm.subLabelsCount) || 0,
+          independentArtistsRepresented:
+            Number(dossierForm.independentArtistsRepresented) || 0,
+          ingestionProtocol: dossierForm.ingestionProtocol,
+          antiFraudInspectionRequired: dossierForm.antiFraudInspectionRequired,
+          publishingCompanyType: dossierForm.publishingCompanyType,
+          primaryProAffiliation: dossierForm.primaryProAffiliation,
+          ipiCaeNumber: dossierForm.ipiCaeNumber,
+          theMlcMemberCode: dossierForm.theMlcMemberCode,
+          musicalWorksCount: Number(dossierForm.musicalWorksCount) || 0,
+          songwritersRepresentedCount:
+            Number(dossierForm.songwritersRepresentedCount) || 0,
+          cwrExchangeEnabled: dossierForm.cwrExchangeEnabled,
+          scoutNetworkCategory: dossierForm.scoutNetworkCategory,
+          projectedAnnualReferrals:
+            Number(dossierForm.projectedAnnualReferrals) || 0,
+          projectedPipelineCatalogSize:
+            Number(dossierForm.projectedPipelineCatalogSize) || 0,
+          preferredCommissionStructure:
+            dossierForm.preferredCommissionStructure,
+        },
+      });
+
+      if (res.success) {
+        toast.success(res.message);
+        router.refresh();
+        if (onRefresh) onRefresh();
+        setActiveTab("overview");
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to update application dossier.");
+    } finally {
+      setDossierSaving(false);
     }
   };
 
@@ -606,60 +991,128 @@ export function AdminWhiteLabelDetailsDialog({
       "bg-destructive/10 text-destructive border-destructive/30",
   };
 
+  const activeLifecycleIndex = LIFECYCLE_STEPS.findIndex(
+    (s) => s.status === whiteLabel.status,
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full sm:max-w-4xl lg:max-w-5xl max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-2xl glass-panel border border-border/80 shadow-2xl">
+        <DialogContent className="w-full sm:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl glass-panel border border-border/80 shadow-2xl">
           {/* Header Banner */}
-          <div className="p-6 pb-4 border-b border-border/60 bg-muted/20 space-y-4 shrink-0">
+          <div className="p-5 sm:p-6 pb-3 border-b border-border/60 bg-muted/20 space-y-3.5 shrink-0">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <DialogTitle className="text-xl font-bold truncate">
-                    {whiteLabel.name}
-                  </DialogTitle>
-                  <Badge
-                    variant="outline"
-                    className="font-mono text-xs px-2 py-0.5 font-bold border-primary/40 bg-primary/10 text-primary"
+              <div className="flex items-center gap-3 min-w-0">
+                {whiteLabel.logoUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={whiteLabel.logoUrl}
+                    alt={whiteLabel.name}
+                    className="h-11 w-11 rounded-xl object-contain border border-border/70 bg-background p-1 shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="h-11 w-11 rounded-xl shrink-0 flex items-center justify-center text-white font-extrabold text-base shadow-sm"
+                    style={{
+                      background: `linear-gradient(135deg, ${whiteLabel.primaryColor || "#6366f1"}, ${whiteLabel.accentColor || "#ec4899"})`,
+                    }}
                   >
-                    {whiteLabel.code}
-                  </Badge>
-                  <button
-                    onClick={() => copyToClipboard(whiteLabel.code, "Code")}
-                    className="text-muted-foreground hover:text-foreground"
-                    title="Copy Code"
-                  >
-                    {copiedField === "Code" ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
+                    {whiteLabel.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <DialogTitle className="text-xl font-extrabold truncate">
+                      {whiteLabel.name}
+                    </DialogTitle>
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-xs px-2 py-0.5 font-bold border-primary/40 bg-primary/10 text-primary"
+                    >
+                      {whiteLabel.code}
+                    </Badge>
+                    <button
+                      onClick={() => copyToClipboard(whiteLabel.code, "Code")}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Copy Code"
+                    >
+                      {copiedField === "Code" ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    >
+                      KYB Readiness: {readinessScore}%
+                    </Badge>
+                  </div>
+
+                  <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-foreground/80">
+                      {whiteLabel.businessType.replace(/_/g, " ")}
+                    </span>
+                    {whiteLabel.country && <span>• {whiteLabel.country}</span>}
+                    {whiteLabel.subdomain && (
+                      <span className="font-mono text-primary">
+                        • {whiteLabel.subdomain}.rmitdistribution.com
+                      </span>
                     )}
-                  </button>
+                    <span>• Applied {formatDate(whiteLabel.createdAt)}</span>
+                  </DialogDescription>
                 </div>
-                <DialogDescription className="text-xs text-muted-foreground flex items-center gap-2">
-                  <span>{whiteLabel.businessType.replace("_", " ")}</span>
-                  {whiteLabel.country && <span>• {whiteLabel.country}</span>}
-                </DialogDescription>
               </div>
 
               <Badge
                 variant="outline"
-                className={`text-xs px-2.5 py-1 font-semibold capitalize shrink-0 ${
+                className={`text-xs px-3 py-1 font-bold capitalize shrink-0 ${
                   statusBadges[whiteLabel.status] || "border-border"
                 }`}
               >
-                {String(whiteLabel.status).replace("_", " ").toLowerCase()}
+                {String(whiteLabel.status).replace(/_/g, " ").toLowerCase()}
               </Badge>
+            </div>
+
+            {/* Interactive 6-Stage Sequential Lifecycle Pipeline Stepper */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-0.5">
+              {LIFECYCLE_STEPS.map((step, idx) => {
+                const isCompleted =
+                  whiteLabel.status === WhiteLabelStatus.ACTIVE ||
+                  (activeLifecycleIndex !== -1 && idx < activeLifecycleIndex);
+                const isCurrent = step.status === whiteLabel.status;
+                return (
+                  <div
+                    key={step.status}
+                    className={`px-2.5 py-1.5 rounded-lg border text-[10px] flex items-center justify-between gap-1 ${
+                      isCurrent
+                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                        : isCompleted
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                          : "border-border/50 bg-background/50 text-muted-foreground"
+                    }`}
+                  >
+                    <span className="truncate">{step.label}</span>
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                    ) : isCurrent ? (
+                      <span className="h-2 w-2 rounded-full bg-primary animate-ping shrink-0" />
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Rejection Alert Banner if status is REJECTED */}
             {whiteLabel.status === WhiteLabelStatus.REJECTED && (
-              <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 space-y-1.5">
+              <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-xs">
                   <AlertTriangle className="h-4 w-4" />
                   <span>Application Declined</span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-background/80 border border-border/50 text-foreground font-mono text-[11px] leading-relaxed">
+                <div className="p-2 rounded-lg bg-background/80 border border-border/50 text-foreground font-mono text-[11px] leading-relaxed">
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold mb-0.5">
                     Decline Reason Note (Visible to Client):
                   </span>
@@ -670,254 +1123,285 @@ export function AdminWhiteLabelDetailsDialog({
             )}
 
             {/* Strict Sequential Action Buttons Bar */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              {/* Step 1: PENDING -> UNDER_REVIEW or REJECTED */}
-              {whiteLabel.status === WhiteLabelStatus.PENDING && (
-                <>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Step 1: PENDING -> UNDER_REVIEW or REJECTED */}
+                {whiteLabel.status === WhiteLabelStatus.PENDING && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)
+                      }
+                      disabled={statusLoading}
+                      className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Begin KYB Review
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDeclineReason("");
+                        setShowDeclineModal(true);
+                      }}
+                      disabled={statusLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                    >
+                      Decline Application
+                    </Button>
+                  </>
+                )}
+
+                {/* Step 2: UNDER_REVIEW -> PROCESSING or REJECTED */}
+                {whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        handleUpdateStatus(WhiteLabelStatus.PROCESSING)
+                      }
+                      disabled={statusLoading}
+                      className="h-8 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Approve KYB & Mark Processing
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDeclineReason("");
+                        setShowDeclineModal(true);
+                      }}
+                      disabled={statusLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                    >
+                      Decline Application
+                    </Button>
+                  </>
+                )}
+
+                {/* Step 3: PROCESSING -> CONTRACTED */}
+                {whiteLabel.status === WhiteLabelStatus.PROCESSING && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowContractModal(true)}
+                      className="h-8 text-xs font-bold gap-1.5 bg-purple-600 hover:bg-purple-500 text-white shadow-sm"
+                    >
+                      <FileSignature className="h-3.5 w-3.5" />
+                      Upload Signed Contract PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDeclineReason("");
+                        setShowDeclineModal(true);
+                      }}
+                      disabled={statusLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                    >
+                      Decline Application
+                    </Button>
+                  </>
+                )}
+
+                {/* Step 4: CONTRACTED -> PAID */}
+                {whiteLabel.status === WhiteLabelStatus.CONTRACTED && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Record Offline / Wire Payment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewContract}
+                      disabled={contractPreviewLoading}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {contractPreviewLoading
+                        ? "Loading..."
+                        : "Preview Contract"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowContractModal(true)}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      Replace Contract
+                    </Button>
+                  </>
+                )}
+
+                {/* Step 5: PAID -> ACTIVE */}
+                {whiteLabel.status === WhiteLabelStatus.PAID && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={handleActivate}
+                      disabled={activateLoading}
+                      className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                    >
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      {activateLoading
+                        ? "Provisioning Cloudflare DNS..."
+                        : "Activate WhiteLabel (Cloudflare Auto-DNS)"}
+                    </Button>
+                    {whiteLabel.contractKey && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviewContract}
+                        disabled={contractPreviewLoading}
+                        className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Preview Contract
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Add Payment
+                    </Button>
+                  </>
+                )}
+
+                {/* Step 6: ACTIVE -> SUSPENDED */}
+                {whiteLabel.status === WhiteLabelStatus.ACTIVE && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSuspendModal(true)}
+                      className="h-8 text-xs font-semibold gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      Suspend Instance
+                    </Button>
+                    {whiteLabel.contractKey && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviewContract}
+                        disabled={contractPreviewLoading}
+                        className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Preview Contract
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Extend Subscription
+                    </Button>
+                  </>
+                )}
+
+                {/* SUSPENDED -> ACTIVE */}
+                {whiteLabel.status === WhiteLabelStatus.SUSPENDED && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={handleUnsuspend}
+                      disabled={suspendLoading}
+                      className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Unsuspend & Restore Portal
+                    </Button>
+                    {whiteLabel.contractKey && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviewContract}
+                        disabled={contractPreviewLoading}
+                        className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Preview Contract
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {/* REJECTED -> UNDER_REVIEW */}
+                {whiteLabel.status === WhiteLabelStatus.REJECTED && (
                   <Button
                     size="sm"
                     onClick={() =>
                       handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)
                     }
                     disabled={statusLoading}
-                    className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                    className="h-8 text-xs font-semibold gap-1.5 bg-muted text-foreground border border-border/70"
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Begin Review
+                    Re-open Application for Review
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setDeclineReason("");
-                      setShowDeclineModal(true);
-                    }}
-                    disabled={statusLoading}
-                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
-                  >
-                    Decline Application
-                  </Button>
-                </>
-              )}
+                )}
+              </div>
 
-              {/* Step 2: UNDER_REVIEW -> PROCESSING or REJECTED */}
-              {whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      handleUpdateStatus(WhiteLabelStatus.PROCESSING)
-                    }
-                    disabled={statusLoading}
-                    className="h-8 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Complete Review & Mark Processing
-                  </Button>
+              {/* Right Quick Utility Buttons */}
+              <div className="flex items-center gap-1.5">
+                {whiteLabel.subdomain && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setDeclineReason("");
-                      setShowDeclineModal(true);
-                    }}
-                    disabled={statusLoading}
-                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
+                    onClick={handleSyncCloudflareDns}
+                    disabled={dnsSyncLoading}
+                    className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    title="Provision or Re-sync Cloudflare Subdomain DNS"
                   >
-                    Decline Application
+                    <Globe
+                      className={`h-3.5 w-3.5 ${dnsSyncLoading ? "animate-spin" : ""}`}
+                    />
+                    {dnsSyncLoading ? "Syncing DNS..." : "Sync DNS"}
                   </Button>
-                </>
-              )}
+                )}
 
-              {/* Step 3: PROCESSING -> CONTRACTED */}
-              {whiteLabel.status === WhiteLabelStatus.PROCESSING && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowContractModal(true)}
-                    className="h-8 text-xs font-bold gap-1.5 bg-purple-600 hover:bg-purple-500 text-white shadow-sm"
-                  >
-                    <FileSignature className="h-3.5 w-3.5" />
-                    Upload Signed Contract PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setDeclineReason("");
-                      setShowDeclineModal(true);
-                    }}
-                    disabled={statusLoading}
-                    className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
-                  >
-                    Decline Application
-                  </Button>
-                </>
-              )}
-
-              {/* Step 4: CONTRACTED -> PAID */}
-              {whiteLabel.status === WhiteLabelStatus.CONTRACTED && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                  >
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Record Hand-to-Hand / Offline Payment
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePreviewContract}
-                    disabled={contractPreviewLoading}
-                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {contractPreviewLoading
-                      ? "Loading..."
-                      : "Preview Signed Contract"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowContractModal(true)}
-                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    Replace Contract PDF
-                  </Button>
-                </>
-              )}
-
-              {/* Step 5: PAID -> ACTIVE */}
-              {whiteLabel.status === WhiteLabelStatus.PAID && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={handleActivate}
-                    disabled={activateLoading}
-                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                  >
-                    <Play className="h-3.5 w-3.5 fill-current" />
-                    {activateLoading
-                      ? "Provisioning Cloudflare DNS..."
-                      : "Activate WhiteLabel (Cloudflare Auto-DNS)"}
-                  </Button>
-                  {whiteLabel.contractKey && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviewContract}
-                      disabled={contractPreviewLoading}
-                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Preview Contract
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                  >
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Add Additional Payment
-                  </Button>
-                </>
-              )}
-
-              {/* Step 6: ACTIVE -> SUSPENDED */}
-              {whiteLabel.status === WhiteLabelStatus.ACTIVE && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSuspendModal(true)}
-                    className="h-8 text-xs font-semibold gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
-                  >
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    Suspend WhiteLabel
-                  </Button>
-                  {whiteLabel.contractKey && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviewContract}
-                      disabled={contractPreviewLoading}
-                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Preview Contract
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                  >
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Extend Subscription / Payment
-                  </Button>
-                </>
-              )}
-
-              {/* SUSPENDED -> ACTIVE */}
-              {whiteLabel.status === WhiteLabelStatus.SUSPENDED && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={handleUnsuspend}
-                    disabled={suspendLoading}
-                    className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Unsuspend / Reactivate
-                  </Button>
-                  {whiteLabel.contractKey && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviewContract}
-                      disabled={contractPreviewLoading}
-                      className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Preview Contract
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {/* REJECTED -> UNDER_REVIEW */}
-              {whiteLabel.status === WhiteLabelStatus.REJECTED && (
                 <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() =>
-                    handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)
-                  }
-                  disabled={statusLoading}
-                  className="h-8 text-xs font-semibold gap-1.5 bg-muted text-foreground border border-border/70"
+                  onClick={() => setActiveTab("edit_dossier")}
+                  className="h-8 text-xs font-semibold gap-1.5 border-border/80"
                 >
-                  Re-open Application for Review
+                  <Edit3 className="h-3.5 w-3.5 text-primary" />
+                  Edit Dossier
                 </Button>
-              )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDocModal(true)}
-                className="h-8 text-xs font-semibold gap-1.5 border-border/80"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                Upload Other Document
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDocModal(true)}
+                  className="h-8 text-xs font-semibold gap-1.5 border-border/80"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload Doc
+                </Button>
+              </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-border/40 text-xs pt-2 overflow-x-auto">
+            <div className="flex border-b border-border/40 text-xs pt-1 overflow-x-auto no-scrollbar gap-1">
               <button
                 onClick={() => setActiveTab("overview")}
                 className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
@@ -926,7 +1410,18 @@ export function AdminWhiteLabelDetailsDialog({
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Profile & Operations
+                Profile & Dossier
+              </button>
+              <button
+                onClick={() => setActiveTab("edit_dossier")}
+                className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 flex items-center gap-1 ${
+                  activeTab === "edit_dossier"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Edit3 className="h-3 w-3" />
+                Edit Dossier & Operations
               </button>
               <button
                 onClick={() => setActiveTab("artists")}
@@ -952,7 +1447,10 @@ export function AdminWhiteLabelDetailsDialog({
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Documents & Agreements ({whiteLabel.documents?.length || 0})
+                Legal & Agreements (
+                {(whiteLabel.documents?.length || 0) +
+                  (whiteLabel.contractKey ? 1 : 0)}
+                )
               </button>
               <button
                 onClick={() => setActiveTab("payments")}
@@ -962,7 +1460,7 @@ export function AdminWhiteLabelDetailsDialog({
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Subscription & Payments
+                Billing & Ledger ({paymentsList.length})
               </button>
               <button
                 onClick={() => setActiveTab("branding")}
@@ -972,57 +1470,149 @@ export function AdminWhiteLabelDetailsDialog({
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Identity & Branding
+                Branding & Cloud DNS
               </button>
             </div>
           </div>
 
           {/* Body Content */}
           <div className="p-6 space-y-6 flex-1 overflow-y-auto custom-scrollbar text-xs">
-            {/* TAB 1: Profile & Operations */}
+            {/* TAB 1: Profile & Operations Dossier */}
             {activeTab === "overview" && (
               <div className="space-y-6">
-                {/* Contact Person */}
-                <div className="space-y-2">
-                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                    Primary Decision Maker & Contact
-                  </h4>
-                  <div className="p-4 rounded-xl border border-border/60 bg-muted/20 grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-muted-foreground text-[11px] block">
-                        Full Name
-                      </span>
-                      <p className="font-semibold text-foreground">
-                        {whiteLabel.contactFirstName}{" "}
-                        {whiteLabel.contactLastName}
-                      </p>
-                    </div>
+                {/* Automated KYB & Readiness Scorecard */}
+                <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckSquare className="h-3.5 w-3.5 text-primary" />
+                      Enterprise KYB & Activation Readiness Checklist
+                    </h4>
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] font-bold border-primary/40 bg-primary/10 text-primary"
+                    >
+                      {readinessScore}% Complete
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {readinessChecks.map((check) => (
+                      <div
+                        key={check.label}
+                        className={`p-2.5 rounded-lg border flex items-start gap-2 ${
+                          check.passed
+                            ? "border-emerald-500/30 bg-emerald-500/5"
+                            : "border-amber-500/30 bg-amber-500/5"
+                        }`}
+                      >
+                        <CheckCircle2
+                          className={`h-4 w-4 shrink-0 mt-0.5 ${
+                            check.passed
+                              ? "text-emerald-500"
+                              : "text-amber-500 opacity-60"
+                          }`}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground text-[11px] truncate">
+                            {check.label}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {check.detail}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                    <div>
-                      <span className="text-muted-foreground text-[11px] block">
-                        Work Email
-                      </span>
-                      <p className="font-mono text-foreground">
-                        {whiteLabel.contactEmail}
-                      </p>
-                    </div>
-
-                    {whiteLabel.contactLinkedIn && (
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground text-[11px] block">
-                          LinkedIn Profile
+                {/* Primary Contact & Corporate Registration */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl border border-border/60 bg-card space-y-2.5">
+                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                      Primary Decision Maker & Contact
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Full Name
+                        </span>
+                        <p className="font-bold text-foreground">
+                          {whiteLabel.contactFirstName}{" "}
+                          {whiteLabel.contactLastName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Work Email
                         </span>
                         <a
-                          href={whiteLabel.contactLinkedIn}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary hover:underline flex items-center gap-1 font-mono text-[11px]"
+                          href={`mailto:${whiteLabel.contactEmail}`}
+                          className="font-mono text-primary hover:underline break-all"
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          {whiteLabel.contactLinkedIn}
+                          {whiteLabel.contactEmail}
                         </a>
                       </div>
-                    )}
+                      {whiteLabel.contactLinkedIn && (
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground text-[10px] block">
+                            LinkedIn Executive Profile
+                          </span>
+                          <a
+                            href={whiteLabel.contactLinkedIn}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1 font-mono text-[11px]"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {whiteLabel.contactLinkedIn}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-border/60 bg-card space-y-2.5">
+                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                      Corporate Entity & Domain Routing
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Country & Tenure
+                        </span>
+                        <p className="font-bold text-foreground">
+                          {whiteLabel.country || "Global"} •{" "}
+                          {whiteLabel.yearsInBusiness || 1} yr(s)
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Legal Incorporation
+                        </span>
+                        <p className="font-bold text-foreground">
+                          {whiteLabel.isIncorporated
+                            ? "Incorporated Entity"
+                            : "Sole Proprietorship"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Managed Subdomain
+                        </span>
+                        <p className="font-mono font-bold text-primary truncate">
+                          {whiteLabel.subdomain
+                            ? `${whiteLabel.subdomain}.rmitdistribution.com`
+                            : "Not Set"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          Dedicated Elastic IPv4
+                        </span>
+                        <p className="font-mono font-bold text-foreground">
+                          {whiteLabel.elasticIpv4 || "Cloudflare Shared Proxy"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1031,7 +1621,7 @@ export function AdminWhiteLabelDetailsDialog({
                   <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
                     Catalog & Financial Telemetry
                   </h4>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
                       <span className="text-muted-foreground text-[10px] block">
                         Catalog Tracks
@@ -1046,7 +1636,7 @@ export function AdminWhiteLabelDetailsDialog({
                         Monthly Delivery
                       </span>
                       <p className="font-bold text-base text-foreground">
-                        {whiteLabel.monthlyTrackDelivery.toLocaleString()}
+                        {whiteLabel.monthlyTrackDelivery.toLocaleString()} / mo
                       </p>
                     </div>
 
@@ -1054,73 +1644,22 @@ export function AdminWhiteLabelDetailsDialog({
                       <span className="text-muted-foreground text-[10px] block">
                         Monthly Revenue
                       </span>
-                      <p className="font-bold text-base text-foreground">
+                      <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
                         $
                         {Number(
                           whiteLabel.monthlyRevenueUsd || 0,
                         ).toLocaleString()}
                       </p>
                     </div>
-                  </div>
-                </div>
 
-                {/* Operations & Compliance Flags */}
-                <div className="space-y-2">
-                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                    Operations, Direct Deals & Agreements
-                  </h4>
-                  <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
-                      <div>
-                        <span className="text-muted-foreground block">
-                          Direct Deals:
-                        </span>
-                        <span className="font-bold text-foreground">
-                          {whiteLabel.hasDirectDeals ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block">
-                          Catalog Migration:
-                        </span>
-                        <span className="font-bold text-foreground">
-                          {whiteLabel.wantsCatalogMigration ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block">
-                          Sample Covers:
-                        </span>
-                        <span className="font-bold text-foreground">
-                          {whiteLabel.hasSampleBasedCovers ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block">
-                          Signup Model:
-                        </span>
-                        <span className="font-bold text-foreground">
-                          {whiteLabel.userSignupModel}
-                        </span>
-                      </div>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                      <span className="text-muted-foreground text-[10px] block">
+                        Portal Signup Model
+                      </span>
+                      <p className="font-bold text-sm text-foreground">
+                        {whiteLabel.userSignupModel.replace(/_/g, " ")}
+                      </p>
                     </div>
-
-                    {whiteLabel.incorporationDocUrl && (
-                      <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                        <span className="text-muted-foreground">
-                          Incorporation Document:
-                        </span>
-                        <a
-                          href={whiteLabel.incorporationDocUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary hover:underline font-semibold flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          View Attachment
-                        </a>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1132,7 +1671,10 @@ export function AdminWhiteLabelDetailsDialog({
                         <Layers className="h-3.5 w-3.5 text-primary" />
                         Domain Architecture & Onboarding Dossier
                       </h4>
-                      <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono border-primary/30 text-primary"
+                      >
                         {whiteLabel.businessType.replace(/_/g, " ")}
                       </Badge>
                     </div>
@@ -1141,49 +1683,80 @@ export function AdminWhiteLabelDetailsDialog({
                       {whiteLabel.businessType === "RECORD_LABEL" && (
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Label Category</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Label Category
+                            </span>
                             <span className="font-bold text-foreground capitalize">
-                              {(whiteLabel.onboardingDetails.labelType || "independent").replace(/_/g, " ")}
+                              {(
+                                whiteLabel.onboardingDetails.labelType ||
+                                "independent"
+                              ).replace(/_/g, " ")}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Primary Genre</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Primary Genre
+                            </span>
                             <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.primaryGenre || "Multi-Genre / All Genres"}
+                              {whiteLabel.onboardingDetails.primaryGenre ||
+                                "Multi-Genre / All Genres"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Artist Royalty Split</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Artist Royalty Split
+                            </span>
                             <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.masterRoyaltySplitStandard || "70/30 (Artist 70% / Label 30%)"}
+                              {whiteLabel.onboardingDetails
+                                .masterRoyaltySplitStandard ||
+                                "70/30 (Artist 70% / Label 30%)"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">ISRC Prefix</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              ISRC Prefix
+                            </span>
                             <span className="font-bold text-foreground font-mono">
-                              {whiteLabel.onboardingDetails.isrcRegistrantCode || whiteLabel.onboardingDetails.isrcPrefix || "Platform Delegated"}
+                              {whiteLabel.onboardingDetails
+                                .isrcRegistrantCode ||
+                                whiteLabel.onboardingDetails.isrcPrefix ||
+                                "Platform Delegated"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Spatial Audio / Atmos</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Spatial Audio / Atmos
+                            </span>
                             <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.dolbyAtmosReady !== false ? "ADM BWF WAV Ready" : "Standard Stereo WAV"}
+                              {whiteLabel.onboardingDetails.dolbyAtmosReady !==
+                              false
+                                ? "ADM BWF WAV Ready"
+                                : "Standard Stereo WAV"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Server Routing</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Server Routing
+                            </span>
                             <span className="font-bold text-foreground font-mono">
-                              {whiteLabel.elasticIpv4 ? `Elastic IP (${whiteLabel.elasticIpv4})` : "Cloudflare Managed"}
+                              {whiteLabel.elasticIpv4
+                                ? `Elastic IP (${whiteLabel.elasticIpv4})`
+                                : "Cloudflare Managed"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Launch Timeline</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Launch Timeline
+                            </span>
                             <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.estimatedLaunchTimeline || "Immediate"}
+                              {whiteLabel.onboardingDetails
+                                .estimatedLaunchTimeline || "Immediate"}
                             </span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[10px] block">Primary Language</span>
+                            <span className="text-muted-foreground text-[10px] block">
+                              Primary Language
+                            </span>
                             <span className="font-bold text-foreground">
                               {whiteLabel.primaryCatalogLanguage || "English"}
                             </span>
@@ -1195,40 +1768,51 @@ export function AdminWhiteLabelDetailsDialog({
                         <div className="space-y-2.5 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Managed Sub-Labels</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.subLabelsCount ?? 5} sub-labels</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Independent Creators</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.independentArtistsRepresented ?? 40} artists</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Ingestion Protocol</span>
-                              <span className="font-bold text-foreground font-mono">
-                                {(whiteLabel.onboardingDetails.ingestionProtocol || whiteLabel.onboardingDetails.ingestionStandard || "DDEX_ERN_4_3").replace(/_/g, " ")}
+                              <span className="text-muted-foreground text-[10px] block">
+                                Managed Sub-Labels
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails.subLabelsCount ??
+                                  5}{" "}
+                                sub-labels
                               </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">QC & Anti-Fraud</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Independent Creators
+                              </span>
                               <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails.antiFraudInspectionRequired !== false ? "Active Fingerprinting" : "Standard"}
+                                {whiteLabel.onboardingDetails
+                                  .independentArtistsRepresented ?? 40}{" "}
+                                artists
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Ingestion Protocol
+                              </span>
+                              <span className="font-bold text-foreground font-mono">
+                                {(
+                                  whiteLabel.onboardingDetails
+                                    .ingestionProtocol ||
+                                  whiteLabel.onboardingDetails
+                                    .ingestionStandard ||
+                                  "DDEX_ERN_4_3"
+                                ).replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                QC & Anti-Fraud
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .antiFraudInspectionRequired !== false
+                                  ? "Active Fingerprinting"
+                                  : "Standard"}
                               </span>
                             </div>
                           </div>
-
-                          {whiteLabel.onboardingDetails.directDspAgreements &&
-                            whiteLabel.onboardingDetails.directDspAgreements.length > 0 && (
-                              <div className="pt-2 border-t border-border/40">
-                                <span className="text-muted-foreground text-[10px] block mb-1">Direct DSP Delivery Pipelines:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {whiteLabel.onboardingDetails.directDspAgreements.map((p: string) => (
-                                    <Badge key={p} variant="secondary" className="text-[9px] font-mono">
-                                      {p}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                         </div>
                       )}
 
@@ -1236,28 +1820,44 @@ export function AdminWhiteLabelDetailsDialog({
                         <div className="space-y-2.5 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Musical Works</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.musicalWorksCount ?? 150} works</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Musical Works
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .musicalWorksCount ?? 150}{" "}
+                                works
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Songwriters Count</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.songwritersRepresentedCount ?? 12} writers</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Songwriters Count
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .songwritersRepresentedCount ?? 12}{" "}
+                                writers
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Primary PRO / CMO</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.primaryProAffiliation || "ASCAP (United States)"}</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Primary PRO / CMO
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .primaryProAffiliation ||
+                                  "ASCAP (United States)"}
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Publisher IPI / CAE</span>
-                              <span className="font-bold text-foreground font-mono">{whiteLabel.onboardingDetails.ipiCaeNumber || whiteLabel.onboardingDetails.caeIpiNumber || "Pending"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">CWR Exchange Feed</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.cwrExchangeEnabled !== false ? "Enabled (CWR v2.1)" : "Standard"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">Mechanicals</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.collectsMechanicals !== false ? "MLC / HFA Active" : "Self-Admin"}</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Publisher IPI / CAE
+                              </span>
+                              <span className="font-bold text-foreground font-mono">
+                                {whiteLabel.onboardingDetails.ipiCaeNumber ||
+                                  whiteLabel.onboardingDetails.caeIpiNumber ||
+                                  "Pending"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1267,36 +1867,49 @@ export function AdminWhiteLabelDetailsDialog({
                         <div className="space-y-2.5 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Scout Category</span>
-                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.scoutNetworkCategory || "talent_scout").replace(/_/g, " ")}</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Scout Category
+                              </span>
+                              <span className="font-bold text-foreground capitalize">
+                                {(
+                                  whiteLabel.onboardingDetails
+                                    .scoutNetworkCategory || "talent_scout"
+                                ).replace(/_/g, " ")}
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Annual Referrals</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.projectedAnnualReferrals ?? 10} partners / yr</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Annual Referrals
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .projectedAnnualReferrals ?? 10}{" "}
+                                partners / yr
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Pipeline Catalog</span>
-                              <span className="font-bold text-foreground">{whiteLabel.onboardingDetails.projectedPipelineCatalogSize ?? whiteLabel.onboardingDetails.scoutingPipelineSize ?? 500} tracks</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Pipeline Catalog
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails
+                                  .projectedPipelineCatalogSize ?? 500}{" "}
+                                tracks
+                              </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground text-[10px] block">Commission Structure</span>
-                              <span className="font-bold text-foreground capitalize">{(whiteLabel.onboardingDetails.preferredCommissionStructure || "lifetime_rev_share").replace(/_/g, " ")}</span>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Commission Structure
+                              </span>
+                              <span className="font-bold text-foreground capitalize">
+                                {(
+                                  whiteLabel.onboardingDetails
+                                    .preferredCommissionStructure ||
+                                  "lifetime_rev_share"
+                                ).replace(/_/g, " ")}
+                              </span>
                             </div>
                           </div>
-
-                          {whiteLabel.onboardingDetails.discoveryChannels &&
-                            whiteLabel.onboardingDetails.discoveryChannels.length > 0 && (
-                              <div className="pt-2 border-t border-border/40">
-                                <span className="text-muted-foreground text-[10px] block mb-1">Talent Discovery Channels:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {whiteLabel.onboardingDetails.discoveryChannels.map((ch: string) => (
-                                    <Badge key={ch} variant="outline" className="text-[9px]">
-                                      {ch}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                         </div>
                       )}
                     </div>
@@ -1305,7 +1918,415 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
             )}
 
-            {/* TAB 2: Top Roster Artists / Entities */}
+            {/* TAB 2: Edit Dossier & Operations (Full Admin Override Editor) */}
+            {activeTab === "edit_dossier" && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-primary/30 bg-primary/5">
+                  <div>
+                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Edit3 className="h-4 w-4 text-primary" />
+                      Admin Dossier & Operations Override Editor
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Directly modify corporate details, catalog metrics,
+                      primary genre, routing infrastructure, and compliance
+                      flags.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDossier}
+                    disabled={dossierSaving}
+                    className="h-8 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {dossierSaving ? "Saving Changes..." : "Save All Changes"}
+                  </Button>
+                </div>
+
+                {/* Section 1: Corporate & Contact */}
+                <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
+                  <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                    1. Corporate Entity & Representative
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Company / Label Name
+                      </Label>
+                      <Input
+                        value={dossierForm.name}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Business Model
+                      </Label>
+                      <Select
+                        value={dossierForm.businessType}
+                        onValueChange={(val) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            businessType: val as WhiteLabelBusinessType,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="RECORD_LABEL">
+                            Record Label
+                          </SelectItem>
+                          <SelectItem value="DISTRIBUTOR_AGGREGATOR">
+                            Distributor / Aggregator
+                          </SelectItem>
+                          <SelectItem value="MUSIC_PUBLISHER">
+                            Music Publisher
+                          </SelectItem>
+                          <SelectItem value="REFERRER">
+                            Referrer / Scout
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Country</Label>
+                      <Input
+                        value={dossierForm.country}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            country: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Contact First Name
+                      </Label>
+                      <Input
+                        value={dossierForm.contactFirstName}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            contactFirstName: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Contact Last Name
+                      </Label>
+                      <Input
+                        value={dossierForm.contactLastName}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            contactLastName: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Work Email
+                      </Label>
+                      <Input
+                        value={dossierForm.contactEmail}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            contactEmail: e.target.value,
+                          }))
+                        }
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: Catalog, Genre & Portal Signup */}
+                <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
+                  <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                    2. Catalog Telemetry, Genre & Portal Architecture
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Primary Genre Focus
+                      </Label>
+                      <Select
+                        value={dossierForm.primaryGenre}
+                        onValueChange={(val) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            primaryGenre: val || "Multi-Genre / All Genres",
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GLOBAL_GENRE_OPTIONS.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Primary Catalog Language
+                      </Label>
+                      <Select
+                        value={dossierForm.primaryCatalogLanguage}
+                        onValueChange={(val) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            primaryCatalogLanguage: val || "English",
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
+                            <SelectItem key={lang} value={lang}>
+                              {lang}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Creator Signup Model
+                      </Label>
+                      <Select
+                        value={dossierForm.userSignupModel}
+                        onValueChange={(val) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            userSignupModel: val as WhiteLabelSignupModel,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="INVITE_ONLY">
+                            Invite Only
+                          </SelectItem>
+                          <SelectItem value="ADMIN_APPROVAL">
+                            Admin Approval
+                          </SelectItem>
+                          <SelectItem value="OPEN_REGISTRATION">
+                            Open Registration
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Total Catalog Tracks
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={dossierForm.catalogTrackCount}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            catalogTrackCount: Number(e.target.value) || 0,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Monthly Release Velocity
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={dossierForm.monthlyTrackDelivery}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            monthlyTrackDelivery: Number(e.target.value) || 0,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Monthly Revenue ($ USD)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={dossierForm.monthlyRevenueUsd}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            monthlyRevenueUsd: Number(e.target.value) || 0,
+                          }))
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Domain, Elastic IP & Compliance Switches */}
+                <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
+                  <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                    3. Network Routing & Compliance Switches
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Managed Subdomain
+                      </Label>
+                      <Input
+                        value={dossierForm.subdomain}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            subdomain: e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9-]/g, ""),
+                          }))
+                        }
+                        placeholder="labelname"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Custom Domain (Optional)
+                      </Label>
+                      <Input
+                        value={dossierForm.customDomain}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            customDomain: e.target.value.toLowerCase().trim(),
+                          }))
+                        }
+                        placeholder="portal.label.com"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        Dedicated Elastic IPv4 (Optional)
+                      </Label>
+                      <Input
+                        value={dossierForm.elasticIpv4}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            elasticIpv4: e.target.value.trim(),
+                          }))
+                        }
+                        placeholder="e.g. 52.220.193.225"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">
+                      <span className="text-[11px] font-medium">
+                        Incorporated
+                      </span>
+                      <Switch
+                        checked={dossierForm.isIncorporated}
+                        onCheckedChange={(v) =>
+                          setDossierForm((p) => ({ ...p, isIncorporated: v }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">
+                      <span className="text-[11px] font-medium">
+                        Direct Deals
+                      </span>
+                      <Switch
+                        checked={dossierForm.hasDirectDeals}
+                        onCheckedChange={(v) =>
+                          setDossierForm((p) => ({ ...p, hasDirectDeals: v }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">
+                      <span className="text-[11px] font-medium">
+                        Catalog Migration
+                      </span>
+                      <Switch
+                        checked={dossierForm.wantsCatalogMigration}
+                        onCheckedChange={(v) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            wantsCatalogMigration: v,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">
+                      <span className="text-[11px] font-medium">
+                        Sample / Covers
+                      </span>
+                      <Switch
+                        checked={dossierForm.hasSampleBasedCovers}
+                        onCheckedChange={(v) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            hasSampleBasedCovers: v,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: Top Roster Artists / Entities */}
             {activeTab === "artists" && (
               <div className="space-y-4">
                 <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
@@ -1336,14 +2357,16 @@ export function AdminWhiteLabelDetailsDialog({
                           </Badge>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs text-muted-foreground pt-1">
-                          {artist.monthlyListeners !== null && artist.monthlyListeners !== undefined && (
-                            <div className="flex items-center gap-1.5">
-                              <Music className="h-3.5 w-3.5 text-primary" />
-                              <span className="font-semibold text-foreground">
-                                {artist.monthlyListeners.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
+                          {artist.monthlyListeners !== null &&
+                            artist.monthlyListeners !== undefined && (
+                              <div className="flex items-center gap-1.5">
+                                <Music className="h-3.5 w-3.5 text-primary" />
+                                <span className="font-semibold text-foreground">
+                                  {artist.monthlyListeners.toLocaleString()}{" "}
+                                  listeners
+                                </span>
+                              </div>
+                            )}
                           {artist.instagramHandle && (
                             <div className="flex items-center gap-1.5">
                               <Camera className="h-3.5 w-3.5 text-pink-500" />
@@ -1384,12 +2407,63 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
             )}
 
-            {/* TAB 3: Documents & Signed Agreements */}
+            {/* TAB 4: Documents & Signed Agreements */}
             {activeTab === "documents" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                {/* Primary Executed Contract Card */}
+                <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <FileSignature className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                        Primary Executed Partnership Contract
+                      </h5>
+                    </div>
+                    {whiteLabel.contractKey ? (
+                      <p className="text-xs text-muted-foreground">
+                        Uploaded:{" "}
+                        <strong className="text-foreground">
+                          {whiteLabel.contractFileName || "contract.pdf"}
+                        </strong>{" "}
+                        {whiteLabel.contractUploadedAt &&
+                          `on ${formatDate(whiteLabel.contractUploadedAt)}`}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        No primary executed contract PDF uploaded yet.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {whiteLabel.contractKey && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviewContract}
+                        disabled={contractPreviewLoading}
+                        className="h-7 text-xs gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Preview PDF
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={() => setShowContractModal(true)}
+                      className="h-7 text-xs gap-1 bg-purple-600 hover:bg-purple-500 text-white"
+                    >
+                      <Upload className="h-3 w-3" />
+                      {whiteLabel.contractKey
+                        ? "Replace Contract"
+                        : "Upload Contract PDF"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
                   <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                    S3 Stored Legal Agreements & Documents
+                    S3 Stored Legal Agreements & Supplementary Documents
                   </h4>
                   <Button
                     size="sm"
@@ -1397,7 +2471,7 @@ export function AdminWhiteLabelDetailsDialog({
                     className="h-7 text-xs gap-1"
                   >
                     <Upload className="h-3 w-3" />
-                    Upload Agreement
+                    Upload Document
                   </Button>
                 </div>
 
@@ -1469,23 +2543,23 @@ export function AdminWhiteLabelDetailsDialog({
                   <div className="p-8 text-center border border-dashed rounded-xl space-y-2 text-muted-foreground">
                     <File className="h-8 w-8 mx-auto opacity-50" />
                     <p className="text-xs font-semibold">
-                      No agreements uploaded yet
+                      No supplementary documents uploaded yet
                     </p>
                     <p className="text-[11px]">
                       Upload signed distribution contracts, incorporation
-                      documents, or tax forms.
+                      documents, or tax forms (W8/W9).
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* TAB 4: Subscription & Payments */}
+            {/* TAB 5: Subscription & Payments */}
             {activeTab === "payments" && (
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                    Subscription & Recorded Payments
+                    Subscription & Recorded Payments Ledger
                   </h4>
                   <Button
                     size="sm"
@@ -1499,7 +2573,7 @@ export function AdminWhiteLabelDetailsDialog({
 
                 {/* Subscription Details Card */}
                 <div className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
                       <span className="text-muted-foreground text-[10px] uppercase font-semibold block">
                         Subscription Code
@@ -1519,10 +2593,6 @@ export function AdminWhiteLabelDetailsDialog({
                           ? `${whiteLabel.subscription.subscriber.firstName} ${whiteLabel.subscription.subscriber.lastName}`
                           : `${whiteLabel.contactFirstName} ${whiteLabel.contactLastName}`}
                       </p>
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {whiteLabel.subscription?.subscriber?.code ||
-                          whiteLabel.contactEmail}
-                      </span>
                     </div>
 
                     <div>
@@ -1530,13 +2600,16 @@ export function AdminWhiteLabelDetailsDialog({
                         Total Recorded Payments
                       </span>
                       <p className="font-bold text-base text-foreground">
-                        {
-                          (
-                            whiteLabel.subscription?.payments ||
-                            whiteLabel.payments ||
-                            []
-                          ).length
-                        }
+                        {paymentsList.length}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-semibold block">
+                        Verified Lifetime Value (LTV)
+                      </span>
+                      <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                        ${totalPaidUsd.toLocaleString()} USD
                       </p>
                     </div>
                   </div>
@@ -1547,17 +2620,9 @@ export function AdminWhiteLabelDetailsDialog({
                   <h5 className="font-bold text-foreground text-xs">
                     Payment Ledger & Receipts
                   </h5>
-                  {(
-                    whiteLabel.subscription?.payments ||
-                    whiteLabel.payments ||
-                    []
-                  ).length > 0 ? (
+                  {paymentsList.length > 0 ? (
                     <div className="space-y-2.5">
-                      {(
-                        whiteLabel.subscription?.payments ||
-                        whiteLabel.payments ||
-                        []
-                      ).map((pay, idx) => (
+                      {paymentsList.map((pay: any, idx: number) => (
                         <div
                           key={pay.id || idx}
                           className="p-3.5 rounded-xl border border-border/60 bg-card space-y-2 shadow-xs"
@@ -1652,7 +2717,7 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
             )}
 
-            {/* TAB 5: Identity & Branding */}
+            {/* TAB 6: Identity, Branding & Cloud DNS */}
             {activeTab === "branding" && (
               <div className="space-y-6">
                 {/* Branding Actions Bar */}
@@ -1660,22 +2725,36 @@ export function AdminWhiteLabelDetailsDialog({
                   <div>
                     <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-2">
                       <Palette className="h-4 w-4 text-primary" />
-                      WhiteLabel Brand Configuration
+                      WhiteLabel Brand & Cloud DNS Configuration
                     </h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Configure custom domains, brand palette, and visual
-                      identity assets for this tenant.
+                      Configure custom domains, Cloudflare Auto-DNS routing, and
+                      visual identity assets for this tenant.
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveBranding}
-                    disabled={brandingSaving}
-                    className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    {brandingSaving ? "Saving..." : "Save Branding"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {brandingForm.subdomain && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSyncCloudflareDns}
+                        disabled={dnsSyncLoading}
+                        className="text-xs font-semibold gap-1.5"
+                      >
+                        <Globe className="h-3.5 w-3.5 text-primary" />
+                        {dnsSyncLoading ? "Syncing DNS..." : "Sync Cloudflare DNS"}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={handleSaveBranding}
+                      disabled={brandingSaving}
+                      className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-sm"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {brandingSaving ? "Saving..." : "Save Branding"}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Visual Asset Uploaders */}
@@ -1867,7 +2946,7 @@ export function AdminWhiteLabelDetailsDialog({
                   </div>
                 </div>
 
-                {/* Subdomain & Custom Domain (Stacked to avoid collision) */}
+                {/* Subdomain & Custom Domain */}
                 <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
                   <h5 className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-primary" />
@@ -2053,101 +3132,10 @@ export function AdminWhiteLabelDetailsDialog({
                               supportPhone: e.target.value,
                             }))
                           }
-                          placeholder="+1 555-019-2834"
+                          placeholder="+880 18 588 92007"
                           className="h-8 text-xs"
                         />
                       </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">
-                        Copyright Text
-                      </Label>
-                      <Input
-                        value={brandingForm.copyrightText}
-                        onChange={(e) =>
-                          setBrandingForm((prev) => ({
-                            ...prev,
-                            copyrightText: e.target.value,
-                          }))
-                        }
-                        placeholder="© 2026 Record Label. All rights reserved."
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Profiles */}
-                <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
-                  <h5 className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <Share2 className="h-3.5 w-3.5 text-primary" />
-                    Social Ecosystem Handles
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">
-                        Instagram URL
-                      </Label>
-                      <Input
-                        value={brandingForm.socialInstagram}
-                        onChange={(e) =>
-                          setBrandingForm((prev) => ({
-                            ...prev,
-                            socialInstagram: e.target.value,
-                          }))
-                        }
-                        placeholder="https://instagram.com/..."
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">
-                        X / Twitter URL
-                      </Label>
-                      <Input
-                        value={brandingForm.socialTwitter}
-                        onChange={(e) =>
-                          setBrandingForm((prev) => ({
-                            ...prev,
-                            socialTwitter: e.target.value,
-                          }))
-                        }
-                        placeholder="https://x.com/..."
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">
-                        YouTube URL
-                      </Label>
-                      <Input
-                        value={brandingForm.socialYoutube}
-                        onChange={(e) =>
-                          setBrandingForm((prev) => ({
-                            ...prev,
-                            socialYoutube: e.target.value,
-                          }))
-                        }
-                        placeholder="https://youtube.com/..."
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">
-                        Spotify URL
-                      </Label>
-                      <Input
-                        value={brandingForm.socialSpotify}
-                        onChange={(e) =>
-                          setBrandingForm((prev) => ({
-                            ...prev,
-                            socialSpotify: e.target.value,
-                          }))
-                        }
-                        placeholder="https://open.spotify.com/..."
-                        className="h-8 text-xs"
-                      />
                     </div>
                   </div>
                 </div>
@@ -2167,7 +3155,7 @@ export function AdminWhiteLabelDetailsDialog({
             </DialogTitle>
             <DialogDescription className="text-xs">
               Record a bank transfer, direct deposit, or offline cash payment to
-              activate this WhiteLabel.
+              activate or extend this WhiteLabel subscription.
             </DialogDescription>
           </DialogHeader>
 
@@ -2400,13 +3388,8 @@ export function AdminWhiteLabelDetailsDialog({
                     setContractFile(e.target.files[0]);
                   }
                 }}
-                className="h-9 text-xs"
+                className="h-9 text-xs cursor-pointer"
               />
-              <p className="text-[11px] text-muted-foreground">
-                Only PDF files are accepted. Once uploaded, the WhiteLabel will
-                advance to <strong>CONTRACTED</strong> status, unlocking preview
-                for both parties and payment registration.
-              </p>
             </div>
           </div>
 
@@ -2414,7 +3397,10 @@ export function AdminWhiteLabelDetailsDialog({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowContractModal(false)}
+              onClick={() => {
+                setShowContractModal(false);
+                setContractFile(null);
+              }}
               className="text-xs"
             >
               Cancel
@@ -2425,40 +3411,84 @@ export function AdminWhiteLabelDetailsDialog({
               disabled={contractLoading || !contractFile}
               className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white"
             >
-              {contractLoading
-                ? "Uploading to S3..."
-                : "Upload Contract & Advance Status"}
+              {contractLoading ? "Uploading PDF..." : "Upload & Save Contract"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Suspend Confirmation Modal */}
-      <Dialog open={showSuspendModal} onOpenChange={setShowSuspendModal}>
-        <DialogContent className="sm:max-w-[440px] z-[60]">
+      {/* Decline Application Reason Modal */}
+      <Dialog open={showDeclineModal} onOpenChange={setShowDeclineModal}>
+        <DialogContent className="sm:max-w-[460px] z-[60]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
-              <ShieldAlert className="h-5 w-5 text-destructive" />
-              Suspend WhiteLabel
+            <DialogTitle className="text-lg font-bold text-rose-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Decline WhiteLabel Application
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Suspending this WhiteLabel will immediately lock the client portal
-              and restrict menu access until reactivated.
+              Provide a clear explanation for why this application is being
+              declined. This note will be displayed to the applicant so they can
+              amend and resubmit.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2 text-xs">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Suspension Reason / Internal Notes
-              </Label>
-              <Input
-                placeholder="e.g. Agreement breach, non-payment, or catalog audit"
-                value={suspendReason}
-                onChange={(e) => setSuspendReason(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
+          <div className="space-y-3 py-2">
+            <Label className="text-xs font-semibold">
+              Decline Reason Note <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              placeholder="e.g. Please provide valid corporate registration documents and verifiable links to your primary roster catalog..."
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              className="text-xs min-h-[100px]"
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeclineModal(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmDecline}
+              disabled={statusLoading || !declineReason.trim()}
+              className="text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              {statusLoading ? "Declining..." : "Confirm Decline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend WhiteLabel Modal */}
+      <Dialog open={showSuspendModal} onOpenChange={setShowSuspendModal}>
+        <DialogContent className="sm:max-w-[460px] z-[60]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-destructive flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5" />
+              Suspend WhiteLabel Tenant Instance
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Suspending this WhiteLabel will restrict tenant portal access
+              until unsuspended.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label className="text-xs font-semibold">
+              Suspension Reason Note
+            </Label>
+            <Textarea
+              placeholder="e.g. Subscription invoice past due or DMCA compliance review..."
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              className="text-xs min-h-[90px]"
+            />
           </div>
 
           <DialogFooter className="gap-2">
@@ -2474,7 +3504,7 @@ export function AdminWhiteLabelDetailsDialog({
               size="sm"
               onClick={handleSuspend}
               disabled={suspendLoading}
-              className="text-xs font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="text-xs font-bold bg-destructive text-destructive-foreground"
             >
               {suspendLoading ? "Suspending..." : "Confirm Suspension"}
             </Button>
@@ -2482,59 +3512,33 @@ export function AdminWhiteLabelDetailsDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Upload Document / Agreement Modal */}
+      {/* Upload Supplementary Document Modal */}
       <Dialog open={showDocModal} onOpenChange={setShowDocModal}>
-        <DialogContent className="sm:max-w-[480px] z-[60]">
+        <DialogContent className="sm:max-w-[460px] z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
-              Upload Agreement to S3 Storage
+              Upload Legal or KYB Document
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Upload signed PDF contracts, distribution agreements, or
-              incorporation documents.
+              Store signed agreements, incorporation certificates, or tax forms
+              in the S3 vault.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
+          <div className="space-y-3.5 py-2 text-xs">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Document File (PDF / DOC){" "}
-                <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setDocFile(e.target.files[0]);
-                    if (!docTitle) setDocTitle(e.target.files[0].name);
-                  }
-                }}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Document Title</Label>
-              <Input
-                placeholder="e.g. Master Distribution Agreement 2026"
-                value={docTitle}
-                onChange={(e) => setDocTitle(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Document Type</Label>
+              <Label className="text-xs font-semibold">Document Category</Label>
               <Select
                 value={docType}
-                onValueChange={(val) => val && setDocType(val)}
+                onValueChange={(v) => v && setDocType(v)}
               >
-                <SelectTrigger className="h-9 text-xs w-full">
-                  <SelectValue placeholder="Select type">
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue>
                     {(val) =>
-                      adminDocTypeLabels[val as string] || val || "Select type"
+                      adminDocTypeLabels[val as string] ||
+                      val ||
+                      "Select Document Type"
                     }
                   </SelectValue>
                 </SelectTrigger>
@@ -2555,6 +3559,34 @@ export function AdminWhiteLabelDetailsDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Document Title (Optional)
+              </Label>
+              <Input
+                placeholder="e.g. 2026 Master Distribution Addendum"
+                value={docTitle}
+                onChange={(e) => setDocTitle(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Document File <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="file"
+                accept=".pdf,image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setDocFile(e.target.files[0]);
+                  }
+                }}
+                className="h-9 text-xs cursor-pointer"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -2572,69 +3604,7 @@ export function AdminWhiteLabelDetailsDialog({
               disabled={docLoading || !docFile}
               className="text-xs font-bold bg-primary text-primary-foreground"
             >
-              {docLoading ? "Uploading to S3..." : "Upload Document"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Decline Application Modal */}
-      <Dialog open={showDeclineModal} onOpenChange={setShowDeclineModal}>
-        <DialogContent className="sm:max-w-[480px] z-[60]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-              Decline Application
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Provide a clear, detailed reason for declining this application.
-              This note will be directly displayed on the client&apos;s console
-              so they know what issues to rectify or additional documents to
-              provide.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
-                <span>
-                  Reason Note for Client{" "}
-                  <span className="text-destructive">*</span>
-                </span>
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  Displayed on client portal
-                </span>
-              </Label>
-              <Textarea
-                placeholder="e.g. Catalog verification documents were unclear. Please upload official incorporation papers and direct distribution agreements in your portal."
-                value={declineReason}
-                onChange={(e) => setDeclineReason(e.target.value)}
-                rows={4}
-                className="text-xs resize-none"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                The client will be able to review this rejection explanation and
-                submit requested documentation or revisions.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDeclineModal(false)}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleConfirmDecline}
-              disabled={statusLoading || !declineReason.trim()}
-              className="text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white"
-            >
-              {statusLoading ? "Declining..." : "Confirm & Decline Application"}
+              {docLoading ? "Uploading..." : "Upload to S3 Vault"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2642,5 +3612,3 @@ export function AdminWhiteLabelDetailsDialog({
     </>
   );
 }
-
-export const AdminWhiteLabelDetailsSheet = AdminWhiteLabelDetailsDialog;

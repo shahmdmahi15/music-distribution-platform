@@ -16,6 +16,7 @@ import { AdminWhiteLabelQueryDto } from './dto/admin-whitelabel-query.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateWhiteLabelStatusDto } from './dto/update-status.dto';
 import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
+import { AdminUpdateApplicationDto } from './dto/admin-update-application.dto';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
 import { Roles } from 'src/platform/decorator/roles.decorator';
 import {
@@ -49,6 +50,21 @@ export class AdminWhitelabelController {
     @Body() dto: UpdateWhiteLabelStatusDto,
   ) {
     return await this.adminWhitelabelService.updateStatus(id, dto);
+  }
+
+  @Patch(':id/application')
+  @Roles(...WHITELABEL_REVIEW_ROLES)
+  async updateApplication(
+    @Param('id') id: string,
+    @Body() dto: AdminUpdateApplicationDto,
+  ) {
+    return await this.adminWhitelabelService.updateApplication(id, dto);
+  }
+
+  @Post(':id/sync-dns')
+  @Roles(...WHITELABEL_REVIEW_ROLES)
+  async syncCloudflareDns(@Param('id') id: string) {
+    return await this.adminWhitelabelService.syncCloudflareDns(id);
   }
 
   @Post(':id/contract')

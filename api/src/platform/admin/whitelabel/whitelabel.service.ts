@@ -19,6 +19,7 @@ import {
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
 import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
+import { AdminUpdateApplicationDto } from './dto/admin-update-application.dto';
 import {
   PaymentStatus,
   Prisma,
@@ -35,7 +36,7 @@ export class AdminWhitelabelService {
 
   async getWhiteLabels(query: AdminWhiteLabelQueryDto) {
     const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 50));
     const skip = (page - 1) * limit;
 
     const where: Prisma.WhiteLabelWhereInput = {};
@@ -53,6 +54,8 @@ export class AdminWhitelabelService {
       where.OR = [
         { name: { contains: term, mode: 'insensitive' } },
         { code: { contains: term, mode: 'insensitive' } },
+        { subdomain: { contains: term, mode: 'insensitive' } },
+        { customDomain: { contains: term, mode: 'insensitive' } },
         { contactFirstName: { contains: term, mode: 'insensitive' } },
         { contactLastName: { contains: term, mode: 'insensitive' } },
         { contactEmail: { contains: term, mode: 'insensitive' } },
@@ -110,6 +113,11 @@ export class AdminWhitelabelService {
     const statusCount = (status: WhiteLabelStatus) =>
       statusGroups.find((group) => group.status === status)?._count._all ?? 0;
 
+    const globalTotalCount = statusGroups.reduce(
+      (acc, group) => acc + (group._count?._all ?? 0),
+      0,
+    );
+
     const itemsWithUrls = await Promise.all(
       items.map(async (wl) => {
         if (!wl.documents || wl.documents.length === 0) return wl;
@@ -142,7 +150,7 @@ export class AdminWhitelabelService {
         totalPages: Math.ceil(total / limit) || 1,
       },
       counts: {
-        all: total,
+        all: globalTotalCount,
         pending: statusCount(WhiteLabelStatus.PENDING),
         underReview: statusCount(WhiteLabelStatus.UNDER_REVIEW),
         processing: statusCount(WhiteLabelStatus.PROCESSING),
@@ -372,10 +380,12 @@ export class AdminWhitelabelService {
     const currentStatus = whiteLabel.status as string;
     if (
       currentStatus !== WhiteLabelStatus.PROCESSING &&
-      currentStatus !== WhiteLabelStatus.CONTRACTED
+      currentStatus !== WhiteLabelStatus.CONTRACTED &&
+      currentStatus !== WhiteLabelStatus.PAID &&
+      currentStatus !== WhiteLabelStatus.ACTIVE
     ) {
       throw new BadRequestException(
-        `Cannot upload contract in current state "${currentStatus}". WhiteLabel must be in PROCESSING or CONTRACTED state.`,
+        `Cannot upload contract in current state "${currentStatus}". WhiteLabel must be in PROCESSING, CONTRACTED, PAID, or ACTIVE state.`,
       );
     }
 
@@ -387,7 +397,12 @@ export class AdminWhitelabelService {
       { cacheControl: IMMUTABLE_CACHE_CONTROL },
     );
 
-    // Save contract metadata and advance status to CONTRACTED
+    const nextStatus =
+      currentStatus === WhiteLabelStatus.PROCESSING
+        ? WhiteLabelStatus.CONTRACTED
+        : whiteLabel.status;
+
+    // Save contract metadata and advance status to CONTRACTED if previously PROCESSING
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
       data: {
@@ -396,7 +411,7 @@ export class AdminWhitelabelService {
         contractFileSize: file.size,
         contractUploadedAt: new Date(),
         contractUploadedBy: adminEmail || 'Administrator',
-        status: WhiteLabelStatus.CONTRACTED,
+        status: nextStatus,
         reviewedAt: new Date(),
       },
     });
@@ -405,7 +420,10 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: `Signed contract "${file.originalname}" uploaded successfully. WhiteLabel status transitioned to CONTRACTED.`,
+      message:
+        currentStatus === WhiteLabelStatus.PROCESSING
+          ? `Signed contract "${file.originalname}" uploaded successfully. WhiteLabel status transitioned to CONTRACTED.`
+          : `Signed contract "${file.originalname}" updated successfully.`,
       contractUrl: previewUrl,
       whiteLabel: updated,
     };
@@ -464,10 +482,12 @@ export class AdminWhitelabelService {
     if (
       currentStatus !== WhiteLabelStatus.CONTRACTED &&
       currentStatus !== WhiteLabelStatus.PAID &&
-      currentStatus !== WhiteLabelStatus.PROCESSING
+      currentStatus !== WhiteLabelStatus.PROCESSING &&
+      currentStatus !== WhiteLabelStatus.ACTIVE &&
+      currentStatus !== WhiteLabelStatus.SUSPENDED
     ) {
       throw new BadRequestException(
-        `Cannot record payment in current state "${currentStatus}". WhiteLabel must be in CONTRACTED state first.`,
+        `Cannot record payment in current state "${currentStatus}". WhiteLabel must be in CONTRACTED, PAID, or ACTIVE state.`,
       );
     }
 
@@ -494,11 +514,16 @@ export class AdminWhitelabelService {
       },
     );
 
-    // Advance WhiteLabel status to PAID
+    const nextStatus =
+      currentStatus === WhiteLabelStatus.PROCESSING ||
+      currentStatus === WhiteLabelStatus.CONTRACTED
+        ? WhiteLabelStatus.PAID
+        : whiteLabel.status;
+
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
       data: {
-        status: WhiteLabelStatus.PAID,
+        status: nextStatus,
         reviewedAt: new Date(),
       },
     });
@@ -506,7 +531,9 @@ export class AdminWhitelabelService {
     return {
       success: true,
       message:
-        'Payment recorded successfully. WhiteLabel status transitioned to PAID.',
+        nextStatus !== whiteLabel.status
+          ? 'Payment recorded successfully. WhiteLabel status transitioned to PAID.'
+          : 'Subscription payment recorded and ledger extended successfully.',
       payment,
       whiteLabel: updated,
     };
@@ -981,6 +1008,168 @@ export class AdminWhitelabelService {
       success: true,
       message: `${assetType} removed successfully.`,
       branding: updated,
+    };
+  }
+
+  async updateApplication(id: string, dto: AdminUpdateApplicationDto) {
+    const existing = await this.prismaService.whiteLabel.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    if (dto.subdomain && dto.subdomain !== existing.subdomain) {
+      const conflict = await this.prismaService.whiteLabel.findFirst({
+        where: {
+          subdomain: dto.subdomain.toLowerCase().trim(),
+          id: { not: id },
+        },
+      });
+      if (conflict) {
+        throw new ConflictException(
+          `Subdomain "${dto.subdomain}" is already claimed by another WhiteLabel.`,
+        );
+      }
+    }
+
+    if (dto.customDomain && dto.customDomain !== existing.customDomain) {
+      const conflict = await this.prismaService.whiteLabel.findFirst({
+        where: {
+          customDomain: dto.customDomain.toLowerCase().trim(),
+          id: { not: id },
+        },
+      });
+      if (conflict) {
+        throw new ConflictException(
+          `Custom domain "${dto.customDomain}" is already registered.`,
+        );
+      }
+    }
+
+    const mergedOnboardingDetails = dto.onboardingDetails
+      ? {
+          ...((existing.onboardingDetails as Record<string, any>) || {}),
+          ...dto.onboardingDetails,
+        }
+      : undefined;
+
+    const updated = await this.prismaService.whiteLabel.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name.trim() }),
+        ...(dto.businessType !== undefined && {
+          businessType: dto.businessType,
+        }),
+        ...(dto.companyWebsite !== undefined && {
+          companyWebsite: dto.companyWebsite.trim() || null,
+        }),
+        ...(dto.country !== undefined && {
+          country: dto.country.trim() || null,
+        }),
+        ...(dto.yearsInBusiness !== undefined && {
+          yearsInBusiness: Number(dto.yearsInBusiness),
+        }),
+        ...(dto.isIncorporated !== undefined && {
+          isIncorporated: Boolean(dto.isIncorporated),
+        }),
+        ...(dto.incorporationDocUrl !== undefined && {
+          incorporationDocUrl: dto.incorporationDocUrl.trim() || null,
+        }),
+        ...(dto.contactFirstName !== undefined && {
+          contactFirstName: dto.contactFirstName.trim(),
+        }),
+        ...(dto.contactLastName !== undefined && {
+          contactLastName: dto.contactLastName.trim(),
+        }),
+        ...(dto.contactEmail !== undefined && {
+          contactEmail: dto.contactEmail.trim(),
+        }),
+        ...(dto.contactLinkedIn !== undefined && {
+          contactLinkedIn: dto.contactLinkedIn.trim() || null,
+        }),
+        ...(dto.catalogTrackCount !== undefined && {
+          catalogTrackCount: Number(dto.catalogTrackCount),
+        }),
+        ...(dto.monthlyTrackDelivery !== undefined && {
+          monthlyTrackDelivery: Number(dto.monthlyTrackDelivery),
+        }),
+        ...(dto.monthlyRevenueUsd !== undefined && {
+          monthlyRevenueUsd: Number(dto.monthlyRevenueUsd),
+        }),
+        ...(dto.primaryCatalogLanguage !== undefined && {
+          primaryCatalogLanguage: dto.primaryCatalogLanguage.trim(),
+        }),
+        ...(dto.hasDirectDeals !== undefined && {
+          hasDirectDeals: Boolean(dto.hasDirectDeals),
+        }),
+        ...(dto.wantsCatalogMigration !== undefined && {
+          wantsCatalogMigration: Boolean(dto.wantsCatalogMigration),
+        }),
+        ...(dto.hasSampleBasedCovers !== undefined && {
+          hasSampleBasedCovers: Boolean(dto.hasSampleBasedCovers),
+        }),
+        ...(dto.userSignupModel !== undefined && {
+          userSignupModel: dto.userSignupModel,
+        }),
+        ...(dto.subdomain !== undefined && {
+          subdomain: dto.subdomain.toLowerCase().trim() || null,
+        }),
+        ...(dto.customDomain !== undefined && {
+          customDomain: dto.customDomain.toLowerCase().trim() || null,
+        }),
+        ...(dto.elasticIpv4 !== undefined && {
+          elasticIpv4: dto.elasticIpv4.trim() || null,
+        }),
+        ...(dto.statusReason !== undefined && {
+          statusReason: dto.statusReason.trim() || null,
+        }),
+        ...(mergedOnboardingDetails !== undefined && {
+          onboardingDetails: mergedOnboardingDetails,
+        }),
+        reviewedAt: new Date(),
+      },
+      include: {
+        artists: {
+          orderBy: { orderIndex: 'asc' },
+        },
+        documents: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'WhiteLabel application & operations dossier updated successfully.',
+      whiteLabel: updated,
+    };
+  }
+
+  async syncCloudflareDns(id: string) {
+    const existing = await this.prismaService.whiteLabel.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    if (!existing.subdomain) {
+      throw new BadRequestException(
+        'No subdomain is configured for this WhiteLabel instance. Configure a subdomain first before syncing DNS.',
+      );
+    }
+
+    const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
+      existing.subdomain,
+    );
+
+    return {
+      success: true,
+      message: `Cloudflare DNS synced for "${existing.subdomain}.rmitdistribution.com": ${dnsResult.message}`,
+      subdomain: existing.subdomain,
+      fqdn: `${existing.subdomain}.rmitdistribution.com`,
+      dnsResult,
     };
   }
 }
