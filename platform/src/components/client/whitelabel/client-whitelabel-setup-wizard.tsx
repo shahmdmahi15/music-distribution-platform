@@ -237,9 +237,9 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
           "royalties:read",
         ],
       });
-      if (res.success && res.rawKey) {
-        setGeneratedRawApiKey(res.rawKey);
-        setCurrentKeyPrefix(res.key?.prefix || res.rawKey.slice(0, 14));
+      if (res.success && res.secretKey) {
+        setGeneratedRawApiKey(res.secretKey);
+        setCurrentKeyPrefix(res.key?.prefix || res.secretKey.slice(0, 14));
         toast.success(
           "Production API Key generated! Copy and store it securely.",
         );
