@@ -1123,11 +1123,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     if (existingActiveKeyCount === 0) {
       const rawKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
       const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
-      const keyCode = await generateUniqueCode(
-        this.prismaService,
-        'whiteLabelApiKey',
-        CodePrefix.WHITELABEL_API_KEY,
-      );
+      const keyCode = `RMIT-KEY-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
       const newKey = await this.prismaService.whiteLabelApiKey.create({
         data: {
