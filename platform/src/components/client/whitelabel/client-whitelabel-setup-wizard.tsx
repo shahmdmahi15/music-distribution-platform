@@ -228,9 +228,15 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
   const handleGenerateWizardApiKey = async () => {
     setIsGeneratingKey(true);
     try {
-      const res = await clientCreateApiKeyAction(
-        apiKeyLabel.trim() || "Production Portal Key",
-      );
+      const res = await clientCreateApiKeyAction({
+        name: apiKeyLabel.trim() || "Production Portal Key",
+        scopes: [
+          "tenant:read",
+          "releases:write",
+          "users:manage",
+          "royalties:read",
+        ],
+      });
       if (res.success && res.rawKey) {
         setGeneratedRawApiKey(res.rawKey);
         setCurrentKeyPrefix(res.key?.prefix || res.rawKey.slice(0, 14));
