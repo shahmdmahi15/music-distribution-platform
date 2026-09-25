@@ -40,5 +40,7 @@ api.interceptors.request.use(async (config) => {
     config.headers["User-Agent"] = "NextJS-Server-Side";
   }
 
+  config.headers["x-api-key"] = env.API_KEY;
+
   return config;
 });

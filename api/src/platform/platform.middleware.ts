@@ -55,6 +55,9 @@ export class PlatformMiddleware implements NestMiddleware {
     }
 
     if (!isDirectMatch && !isHashMatch) {
+      console.warn(
+        `[PlatformMiddleware] API Key mismatch! Received (len ${incomingTrimmed.length}): "${incomingTrimmed.slice(0, 10)}...", Expected (len ${targetTrimmed.length}): "${targetTrimmed.slice(0, 10)}..."`,
+      );
       throw new UnauthorizedException('Invalid API Key');
     }
 
