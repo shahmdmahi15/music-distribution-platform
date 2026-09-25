@@ -14,10 +14,22 @@ export class PrismaService
 
   constructor(configService: ConfigService<EnvironmentVariables, true>) {
     const databaseUrl = configService.get('DATABASE_URL', { infer: true });
-    const isRds = databaseUrl.includes('rds.amazonaws.com') || databaseUrl.includes('sslmode=');
+    const isRds =
+      databaseUrl.includes('rds.amazonaws.com') ||
+      databaseUrl.includes('sslmode=');
+
+    // pg-connection-string parses sslmode=prefer / require as verify-full ({}),
+    // which overrides pool.ssl and rejects AWS RDS's internal CA with:
+    // "self-signed certificate in certificate chain" (TlsConnectionError / P1011).
+    // Stripping sslmode parameter allows { rejectUnauthorized: false } to take effect.
+    const cleanConnectionString = isRds
+      ? databaseUrl
+          .replace(/([?&])sslmode=[^&]+(&|$)/, '$1')
+          .replace(/[?&]$/, '')
+      : databaseUrl;
 
     const pool = new Pool({
-      connectionString: databaseUrl,
+      connectionString: cleanConnectionString,
       ...(isRds ? { ssl: { rejectUnauthorized: false } } : {}),
     });
 

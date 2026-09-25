@@ -46,17 +46,21 @@ export async function registerAction(input: RegisterInput): Promise<{
       message: res.data.message,
     };
   } catch (error) {
+    let message = "Internal Server Action Error";
     if (axios.isAxiosError(error)) {
-      console.error("[Action.Auth.Me]:", {
+      console.error("[Action.Auth.Register]:", {
         status: error.response?.status,
         data: error.response?.data,
       });
+      if (typeof error.response?.data?.message === "string") {
+        message = error.response.data.message;
+      }
     } else {
       console.error("[Action.Auth.Register] Error: ", error);
     }
     return {
       success: false,
-      message: "Internal Server Action Error",
+      message,
     };
   }
 }
