@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { MFA_CHALLENGE_COOKIE, MFA_CHALLENGE_TTL_MS } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
 import axios from "axios";
+import { Role } from "@/types/user";
 
 export async function loginAction(input: LoginInput): Promise<{
   success: boolean;
@@ -73,8 +74,7 @@ export async function loginAction(input: LoginInput): Promise<{
     });
 
     const userRole = res.data.user?.role;
-    const redirectUrl =
-      userRole === "CLIENT" ? "/" : "/admin/whitelabels";
+    const redirectUrl = userRole === Role.CLIENT ? "/" : "/admin/whitelabels";
 
     return {
       success: res.data.success,

@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsIP,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -30,40 +31,28 @@ export class CreateTopArtistDto {
   artistName!: string;
 
   @IsOptional()
-  @IsString({ message: 'Instagram handle must be a string.' })
-  @MaxLength(128)
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @IsString()
+  @MaxLength(64)
   instagramHandle?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(512)
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @MaxLength(256)
   spotifyProfileUrl?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(512)
-  @Transform(({ value }: TransformFnParams) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @MaxLength(256)
   youtubeChannelUrl?: string;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Type(() => Number)
   monthlyListeners?: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(10)
-  @Type(() => Number)
   orderIndex?: number;
 }
 
@@ -84,6 +73,39 @@ export class CreateWhiteLabelDto {
       'Business type must be RECORD_LABEL, DISTRIBUTOR_AGGREGATOR, MUSIC_PUBLISHER, or OTHER.',
   })
   businessType!: WhiteLabelBusinessType;
+
+  // Desired Subdomain (e.g. brand.platform.royalmotionit.com)
+  @IsOptional()
+  @IsString({ message: 'Subdomain must be a string.' })
+  @MaxLength(63, { message: 'Subdomain must not exceed 63 characters.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  desiredSubdomain?: string;
+
+  // Elastic IPv4 Address for hosted server routing
+  @IsOptional()
+  @IsString()
+  @IsIP(4, { message: 'Must be a valid IPv4 address (e.g. 54.210.12.34)' })
+  elasticIpv4?: string;
+
+  // Primary Brand Color
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  primaryColor?: string;
+
+  // Estimated Launch Timeline
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  estimatedLaunchTimeline?: string;
+
+  // Primary Genre Focus
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  primaryGenre?: string;
 
   // Company Website
   @IsOptional()
@@ -219,7 +241,7 @@ export class CreateWhiteLabelDto {
   @IsOptional()
   @IsEnum(WhiteLabelSignupModel, {
     message:
-      'Signup model must be OPEN_PUBLIC, INVITE_ONLY, VETTED_APPLICATION, or MANUAL_APPROVAL.',
+      'Signup model must be INVITE_ONLY, ADMIN_APPROVAL, or OPEN_REGISTRATION.',
   })
   userSignupModel?: WhiteLabelSignupModel;
 

@@ -1,26 +1,23 @@
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/sidebar/admin-sidebar";
 import { DashboardHeader } from "@/components/common/dashboard-header";
 import { meAction } from "@/actions/auth/me.action";
 import { redirect } from "next/navigation";
 import { Role } from "@/types/user";
+import { cookies } from "next/headers";
 
 /** Roles admitted to the admin realm. Mirrors the API's admin middleware. */
-const ADMIN_ROLES: Role[] = [
-  Role.OWNER,
-  Role.ADMIN,
-  Role.MANAGER,
-  Role.STAFF,
-];
+const ADMIN_ROLES: Role[] = [Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF];
 
 export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const sidebarCookie = cookieStore.get("sidebar_state");
+  const defaultOpen = sidebarCookie ? sidebarCookie.value === "true" : true;
+
   const res = await meAction();
 
   if (!res.success || !res.user) {
@@ -35,7 +32,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={defaultOpen}>
         <AdminSidebar user={res.user} />
         <SidebarInset className="flex flex-col min-h-screen overflow-hidden">
           <DashboardHeader user={res.user} isAdmin={true} />

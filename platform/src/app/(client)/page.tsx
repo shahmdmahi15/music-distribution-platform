@@ -14,7 +14,7 @@ export default async function ClientRootPage() {
   }
 
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8">
+    <div className="w-full max-w-7xl mx-auto min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">
       <ClientWhiteLabelView
         user={me.user}
         subscription={subRes.subscription || null}

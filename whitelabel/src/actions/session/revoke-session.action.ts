@@ -81,7 +81,8 @@ export async function revokeOtherSessionsAction(): Promise<{
     if (axios.isAxiosError(error)) {
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to revoke other sessions.",
+        message:
+          error.response?.data?.message || "Failed to revoke other sessions.",
       };
     }
     return {

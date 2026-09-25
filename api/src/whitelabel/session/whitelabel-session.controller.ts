@@ -16,9 +16,7 @@ import { CurrentSession } from 'src/platform/decorator/current-session-decorator
 @Controller('session')
 @UseGuards(WhitelabelSessionGuard)
 export class WhitelabelSessionController {
-  constructor(
-    private readonly sessionService: WhitelabelSessionService,
-  ) {}
+  constructor(private readonly sessionService: WhitelabelSessionService) {}
 
   @Get('list')
   async list(

@@ -194,7 +194,9 @@ export function AdminSessionList({
   const [inspectSession, setInspectSession] = useState<Session | null>(null);
 
   // Revoke state
-  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(
+    null,
+  );
   const [isRevokingSingle, setIsRevokingSingle] = useState(false);
   const [showRevokeAllDialog, setShowRevokeAllDialog] = useState(false);
   const [isRevokingAllOthers, setIsRevokingAllOthers] = useState(false);
@@ -356,7 +358,9 @@ export function AdminSessionList({
       }),
     ];
 
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([rows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -436,7 +440,11 @@ export function AdminSessionList({
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                  >
                     <Download className="h-3.5 w-3.5" />
                     <span>Export</span>
                   </Button>
@@ -547,7 +555,10 @@ export function AdminSessionList({
 
           {/* Sort Selector */}
           <div className="w-[170px] shrink-0">
-            <Select value={sortBy} onValueChange={(val) => setSortBy(val || "accessedAt:desc")}>
+            <Select
+              value={sortBy}
+              onValueChange={(val) => setSortBy(val || "accessedAt:desc")}
+            >
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
                 <div className="flex items-center gap-1.5 truncate">
                   <ArrowUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -578,7 +589,8 @@ export function AdminSessionList({
               No sessions found
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              No recorded sessions matched your active status filter or search criteria.
+              No recorded sessions matched your active status filter or search
+              criteria.
             </p>
           </CardContent>
         </Card>
@@ -677,7 +689,9 @@ export function AdminSessionList({
                       <div className="flex items-center gap-1.5 font-mono text-foreground font-semibold">
                         <span>{session.ipAddress || "127.0.0.1"}</span>
                         <button
-                          onClick={() => handleCopyIp(session.ipAddress || "127.0.0.1")}
+                          onClick={() =>
+                            handleCopyIp(session.ipAddress || "127.0.0.1")
+                          }
                           className="text-muted-foreground hover:text-foreground"
                           title="Copy IP"
                         >
@@ -788,7 +802,9 @@ export function AdminSessionList({
                   return (
                     <TableRow
                       key={session.id}
-                      className={isCurrent ? "bg-emerald-500/5 font-medium" : ""}
+                      className={
+                        isCurrent ? "bg-emerald-500/5 font-medium" : ""
+                      }
                     >
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2.5">
@@ -891,7 +907,10 @@ export function AdminSessionList({
 
       {/* Inspector Details Dialog */}
       {inspectSession && (
-        <Dialog open={Boolean(inspectSession)} onOpenChange={() => setInspectSession(null)}>
+        <Dialog
+          open={Boolean(inspectSession)}
+          onOpenChange={() => setInspectSession(null)}
+        >
           <DialogContent className="sm:max-w-[540px]">
             <DialogHeader>
               <div className="flex items-center gap-2 text-primary mb-1">
@@ -901,7 +920,8 @@ export function AdminSessionList({
                 </DialogTitle>
               </div>
               <DialogDescription className="text-xs">
-                Detailed technical telemetry recorded for this authenticated session.
+                Detailed technical telemetry recorded for this authenticated
+                session.
               </DialogDescription>
             </DialogHeader>
 
@@ -909,32 +929,42 @@ export function AdminSessionList({
               <div className="grid grid-cols-2 gap-2.5">
                 {inspectSession.code && (
                   <div className="p-2.5 rounded-xl border border-primary/20 bg-primary/5">
-                    <span className="text-muted-foreground block text-[11px]">Session Code</span>
+                    <span className="text-muted-foreground block text-[11px]">
+                      Session Code
+                    </span>
                     <code className="font-mono font-bold text-primary truncate block">
                       {inspectSession.code}
                     </code>
                   </div>
                 )}
                 <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30">
-                  <span className="text-muted-foreground block text-[11px]">Session ID</span>
+                  <span className="text-muted-foreground block text-[11px]">
+                    Session ID
+                  </span>
                   <code className="font-mono font-bold text-foreground truncate block">
                     {inspectSession.id}
                   </code>
                 </div>
                 <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30">
-                  <span className="text-muted-foreground block text-[11px]">IP Address</span>
+                  <span className="text-muted-foreground block text-[11px]">
+                    IP Address
+                  </span>
                   <span className="font-mono font-bold text-foreground block">
                     {inspectSession.ipAddress || "127.0.0.1"}
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30">
-                  <span className="text-muted-foreground block text-[11px]">Created</span>
+                  <span className="text-muted-foreground block text-[11px]">
+                    Created
+                  </span>
                   <span className="font-semibold text-foreground block">
                     {formatDate(inspectSession.createdAt)}
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30">
-                  <span className="text-muted-foreground block text-[11px]">Expires</span>
+                  <span className="text-muted-foreground block text-[11px]">
+                    Expires
+                  </span>
                   <span className="font-semibold text-foreground block">
                     {formatDate(inspectSession.expiresAt)}
                   </span>
@@ -942,7 +972,9 @@ export function AdminSessionList({
               </div>
 
               <div className="space-y-1.5">
-                <span className="font-semibold text-foreground text-xs">Raw User-Agent Header</span>
+                <span className="font-semibold text-foreground text-xs">
+                  Raw User-Agent Header
+                </span>
                 <pre className="p-3 rounded-xl border border-border/60 bg-muted/50 text-[11px] font-mono whitespace-pre-wrap wrap-break-words text-foreground/90 max-h-36 overflow-y-auto">
                   {inspectSession.userAgent || "No user agent provided"}
                 </pre>
@@ -966,7 +998,8 @@ export function AdminSessionList({
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-xs">
-              This will immediately terminate the selected session and require the user on that device to log in again.
+              This will immediately terminate the selected session and require
+              the user on that device to log in again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
@@ -1005,11 +1038,16 @@ export function AdminSessionList({
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-xs">
-              You are about to terminate all {otherActiveSessionsCount} other active sessions. You will remain logged in on this current browser device only.
+              You are about to terminate all {otherActiveSessionsCount} other
+              active sessions. You will remain logged in on this current browser
+              device only.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel disabled={isRevokingAllOthers} className="text-xs">
+            <AlertDialogCancel
+              disabled={isRevokingAllOthers}
+              className="text-xs"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

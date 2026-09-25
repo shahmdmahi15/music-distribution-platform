@@ -10,10 +10,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
-import {
-  generateUniqueCode,
-  CodePrefix,
-} from 'src/lib/prisma/code-generator';
+import { generateUniqueCode, CodePrefix } from 'src/lib/prisma/code-generator';
 import {
   WhiteLabelUser,
   WhiteLabelUserRole,

@@ -52,7 +52,9 @@ function Button({
   const computedNativeButton =
     nativeButton !== undefined
       ? nativeButton
-      : isCustomRender && React.isValidElement(props.render) && props.render.type !== "button"
+      : isCustomRender &&
+          React.isValidElement(props.render) &&
+          props.render.type !== "button"
         ? false
         : undefined;
 

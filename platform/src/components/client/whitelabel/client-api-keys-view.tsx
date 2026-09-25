@@ -8,8 +8,6 @@ import {
   Copy,
   Check,
   Trash2,
-  Shield,
-  Clock,
   Terminal,
   AlertTriangle,
   Code,
@@ -18,7 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -44,17 +48,20 @@ const AVAILABLE_SCOPES = [
   {
     id: "*",
     name: "Full WhiteLabel Permission (Unrestricted)",
-    description: "Full read & write access to catalog, artists, authentication, branding, and analytics.",
+    description:
+      "Full read & write access to catalog, artists, authentication, branding, and analytics.",
   },
 ];
 
-export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewProps) {
+export function ClientApiKeysView({
+  initialKeys,
+  branding,
+}: ClientApiKeysViewProps) {
   const [keys, setKeys] = useState<WhiteLabelApiKey[]>(initialKeys);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["*"]);
   const [generating, setGenerating] = useState(false);
-
 
   // One-time key reveal dialog
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
@@ -62,7 +69,9 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
 
   const toggleScope = (scopeId: string) => {
     setSelectedScopes((prev) =>
-      prev.includes(scopeId) ? prev.filter((s) => s !== scopeId) : [...prev, scopeId],
+      prev.includes(scopeId)
+        ? prev.filter((s) => s !== scopeId)
+        : [...prev, scopeId],
     );
   };
 
@@ -122,44 +131,51 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <WhiteLabelSubNav
         tenantName={branding.name}
+        tenantCode={branding.code}
         subdomain={branding.subdomain}
         customDomain={branding.customDomain}
       />
 
-      <div className="space-y-6">
-        {/* Top Header Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary" />
-              API Keys & Developer Tokens
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Securely automate release uploads, royalty processing, and catalog queries via REST API.
-            </p>
-          </div>
+      {/* Top Actions & Notification Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/70 bg-card shadow-xs">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-primary" />
+            <span>API Keys &amp; Developer Tokens</span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Securely authenticate your self-hosted WhiteLabel bundle and
+            automate catalog queries via REST API.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             size="sm"
             onClick={() => setGenerateOpen(true)}
-            className="text-xs font-semibold gap-1.5"
+            className="text-xs font-semibold gap-1.5 h-9"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             <span>Generate New Key</span>
           </Button>
         </div>
+      </div>
 
+      <div className="space-y-6">
         {/* Keys Table / Empty State */}
         <Card className="border-border/70 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-semibold">Active API Keys</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Active API Keys
+                </CardTitle>
                 <CardDescription className="text-xs">
-                  All keys authorized to interact with your WhiteLabel tenant endpoints.
+                  All keys authorized to interact with your WhiteLabel tenant
+                  endpoints.
                 </CardDescription>
               </div>
               <Badge variant="outline" className="font-mono text-xs">
@@ -171,9 +187,13 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
             {keys.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-border/70 rounded-xl">
                 <KeyRound className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <div className="text-xs font-bold text-foreground">No API Keys Generated</div>
+                <div className="text-xs font-bold text-foreground">
+                  No API Keys Generated
+                </div>
                 <p className="text-[11px] text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
-                  Create an API key to allow external scripts, distribution connectors, or internal microservices to query your WhiteLabel catalog.
+                  Create an API key to allow external scripts, distribution
+                  connectors, or internal microservices to query your WhiteLabel
+                  catalog.
                 </p>
                 <Button
                   size="sm"
@@ -193,7 +213,9 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground">{k.name}</span>
+                        <span className="text-xs font-bold text-foreground">
+                          {k.name}
+                        </span>
                         <Badge
                           variant="outline"
                           className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] font-semibold"
@@ -205,7 +227,10 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
                         <span className="font-mono text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
                           {k.prefix}
                         </span>
-                        <span className="text-[11px] text-muted-foreground" suppressHydrationWarning>
+                        <span
+                          className="text-[11px] text-muted-foreground"
+                          suppressHydrationWarning
+                        >
                           Created {new Date(k.createdAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -251,20 +276,27 @@ export function ClientApiKeysView({ initialKeys, branding }: ClientApiKeysViewPr
               </CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Every API key grants <strong>Full Tenant Permission</strong> to your WhiteLabel instance. Paste your generated key into your WhiteLabel frontend <span className="font-mono text-foreground">.env</span> file to automatically fetch branding, theme customizer colors, domains, and authentication policies.
+              Every API key grants <strong>Full Tenant Permission</strong> to
+              your WhiteLabel instance. Paste your generated key into your
+              WhiteLabel frontend{" "}
+              <span className="font-mono text-foreground">.env</span> file to
+              automatically fetch branding, theme customizer colors, domains,
+              and authentication policies.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="p-3 rounded-xl bg-muted/80 border border-border/80 font-mono text-xs overflow-x-auto text-foreground">
               <pre className="text-[11px] leading-relaxed">
-{`# WhiteLabel Portal (.env)
-NEXT_PUBLIC_APP_URL="http://localhost:3001"
+                {`# WhiteLabel Portal (.env) - Only 3 variables needed!
 API_BASE_URL="http://localhost:5000"
-API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace('...', 'xxxxxxxx') : 'rmit_live_your_generated_key_here'}"`}
+API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace("...", "xxxxxxxx") : "rmit_live_your_generated_key_here"}"
+INTERNAL_API_SECRET="your_32_character_internal_api_secret"`}
               </pre>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              When your WhiteLabel portal starts, it uses this API key to securely retrieve your complete configuration from the backend API.
+              When your WhiteLabel portal starts, it uses this API key to
+              securely retrieve your complete configuration from the backend
+              API.
             </p>
           </CardContent>
         </Card>
@@ -274,10 +306,14 @@ API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace('...', 'xxxxxxxx') : 'rmit_l
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">API Authentication Quickstart</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                API Authentication Quickstart
+              </CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Pass your API key in the <span className="font-mono text-foreground">x-api-key</span> header with every request.
+              Pass your API key in the{" "}
+              <span className="font-mono text-foreground">x-api-key</span>{" "}
+              header with every request.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -289,20 +325,24 @@ API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace('...', 'xxxxxxxx') : 'rmit_l
         </Card>
       </div>
 
-
       {/* Generate API Key Modal Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold">Generate New API Key</DialogTitle>
+            <DialogTitle className="text-base font-bold">
+              Generate New API Key
+            </DialogTitle>
             <DialogDescription className="text-xs">
-              Assign a descriptive name and choose permission scopes for this credential.
+              Assign a descriptive name and choose permission scopes for this
+              credential.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Key Name / Identifier</Label>
+              <Label className="text-xs font-medium">
+                Key Name / Identifier
+              </Label>
               <Input
                 value={keyName}
                 onChange={(e) => setKeyName(e.target.value)}
@@ -380,7 +420,8 @@ API_KEY="${keys[0]?.prefix ? keys[0].prefix.replace('...', 'xxxxxxxx') : 'rmit_l
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs">
-              Make sure to copy your API key right now. For security purposes, you will not be able to view this full secret key again.
+              Make sure to copy your API key right now. For security purposes,
+              you will not be able to view this full secret key again.
             </DialogDescription>
           </DialogHeader>
 

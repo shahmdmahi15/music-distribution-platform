@@ -48,7 +48,6 @@ export function TenantProvider({
   );
 }
 
-
 export function useTenant() {
   const context = useContext(TenantContext);
   return context.tenant;

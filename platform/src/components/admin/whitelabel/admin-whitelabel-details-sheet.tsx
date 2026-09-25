@@ -65,7 +65,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { WhiteLabel, WhiteLabelStatus, WhiteLabelDocument } from "@/types/whitelabel";
+import {
+  WhiteLabel,
+  WhiteLabelStatus,
+  WhiteLabelDocument,
+} from "@/types/whitelabel";
 import { formatDate } from "@/lib/utils";
 import { adminUpdateWhiteLabelStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-status.action";
 import { adminRecordPaymentAction } from "@/actions/admin/whitelabel/admin-record-payment.action";
@@ -74,12 +78,28 @@ import { adminUploadContractAction } from "@/actions/admin/whitelabel/admin-uplo
 import { adminGetContractPreviewAction } from "@/actions/admin/whitelabel/admin-get-contract-preview.action";
 import { adminUploadDocumentAction } from "@/actions/admin/whitelabel/admin-upload-document.action";
 import { adminDeleteDocumentAction } from "@/actions/admin/whitelabel/admin-delete-document.action";
+import { adminGetDocumentPreviewAction } from "@/actions/admin/whitelabel/admin-get-document-preview.action";
 import { adminDeletePaymentAction } from "@/actions/admin/whitelabel/admin-delete-payment.action";
 import { adminSuspendWhiteLabelAction } from "@/actions/admin/whitelabel/admin-suspend-whitelabel.action";
 import { adminUnsuspendWhiteLabelAction } from "@/actions/admin/whitelabel/admin-unsuspend-whitelabel.action";
 import { adminUpdateBrandingAction } from "@/actions/admin/whitelabel/admin-update-branding.action";
 import { adminUploadBrandingAssetAction } from "@/actions/admin/whitelabel/admin-upload-branding-asset.action";
 import { adminDeleteBrandingAssetAction } from "@/actions/admin/whitelabel/admin-delete-branding-asset.action";
+
+const paymentMethodLabels: Record<string, string> = {
+  HAND_TO_HAND: "Hand-to-Hand (Cash / Direct)",
+  BANK_TRANSFER: "Direct Bank Wire / ACH",
+  CASH: "In-Person Cash",
+  INVOICE: "Corporate Invoice / PO",
+};
+
+const adminDocTypeLabels: Record<string, string> = {
+  SIGNED_AGREEMENT: "Signed Agreement",
+  DISTRIBUTION_CONTRACT: "Distribution Contract",
+  INCORPORATION_DOC: "Incorporation Document",
+  TAX_DOCUMENT: "Tax Document (W8/W9)",
+  OTHER: "Other Agreement",
+};
 
 export interface AdminWhiteLabelDetailsDialogProps {
   whiteLabel: WhiteLabel | null;
@@ -88,7 +108,8 @@ export interface AdminWhiteLabelDetailsDialogProps {
   onRefresh?: () => void;
 }
 
-export type AdminWhiteLabelDetailsSheetProps = AdminWhiteLabelDetailsDialogProps;
+export type AdminWhiteLabelDetailsSheetProps =
+  AdminWhiteLabelDetailsDialogProps;
 
 export function AdminWhiteLabelDetailsDialog({
   whiteLabel,
@@ -97,12 +118,16 @@ export function AdminWhiteLabelDetailsDialog({
   onRefresh,
 }: AdminWhiteLabelDetailsDialogProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "artists" | "documents" | "payments" | "branding">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "artists" | "documents" | "payments" | "branding"
+  >("overview");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Status Update state
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusReason, setStatusReason] = useState("");
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
 
   // Suspend Modal State
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -138,13 +163,16 @@ export function AdminWhiteLabelDetailsDialog({
   const [docFile, setDocFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<string>("SIGNED_AGREEMENT");
   const [docTitle, setDocTitle] = useState("");
+  const [previewingDocId, setPreviewingDocId] = useState<string | null>(null);
 
   // Activate state
   const [activateLoading, setActivateLoading] = useState(false);
 
   // Admin Branding Manager State
   const [brandingSaving, setBrandingSaving] = useState(false);
-  const [brandingUploading, setBrandingUploading] = useState<string | null>(null);
+  const [brandingUploading, setBrandingUploading] = useState<string | null>(
+    null,
+  );
   const [brandingForm, setBrandingForm] = useState({
     name: whiteLabel?.name || "",
     subdomain: whiteLabel?.subdomain || "",
@@ -174,12 +202,18 @@ export function AdminWhiteLabelDetailsDialog({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleUpdateStatus = async (newStatus: string) => {
+  const handleUpdateStatus = async (
+    newStatus: string,
+    reasonOverride?: string,
+  ) => {
     setStatusLoading(true);
     try {
       const res = await adminUpdateWhiteLabelStatusAction(whiteLabel.id, {
         status: newStatus,
-        statusReason: statusReason || undefined,
+        statusReason:
+          reasonOverride !== undefined
+            ? reasonOverride
+            : statusReason || undefined,
       });
 
       if (res.success) {
@@ -194,6 +228,16 @@ export function AdminWhiteLabelDetailsDialog({
     } finally {
       setStatusLoading(false);
     }
+  };
+
+  const handleConfirmDecline = async () => {
+    if (!declineReason.trim()) {
+      toast.error("A reason note is required when declining an application.");
+      return;
+    }
+    await handleUpdateStatus(WhiteLabelStatus.REJECTED, declineReason.trim());
+    setShowDeclineModal(false);
+    setDeclineReason("");
   };
 
   const handleUploadContract = async () => {
@@ -312,6 +356,27 @@ export function AdminWhiteLabelDetailsDialog({
     }
   };
 
+  const handlePreviewDocument = async (doc: WhiteLabelDocument) => {
+    if (doc.fileUrl) {
+      window.open(doc.fileUrl, "_blank");
+      return;
+    }
+
+    setPreviewingDocId(doc.id);
+    try {
+      const res = await adminGetDocumentPreviewAction(doc.id);
+      if (res.success && res.fileUrl) {
+        window.open(res.fileUrl, "_blank");
+      } else {
+        toast.error(res.message || "Failed to load document preview.");
+      }
+    } catch {
+      toast.error("Failed to load document preview.");
+    } finally {
+      setPreviewingDocId(null);
+    }
+  };
+
   const handleDeleteDocument = async (docId: string) => {
     try {
       const res = await adminDeleteDocumentAction(docId);
@@ -345,7 +410,10 @@ export function AdminWhiteLabelDetailsDialog({
   const handleSuspend = async () => {
     setSuspendLoading(true);
     try {
-      const res = await adminSuspendWhiteLabelAction(whiteLabel.id, suspendReason);
+      const res = await adminSuspendWhiteLabelAction(
+        whiteLabel.id,
+        suspendReason,
+      );
       if (res.success) {
         toast.success(res.message);
         setShowSuspendModal(false);
@@ -503,7 +571,10 @@ export function AdminWhiteLabelDetailsDialog({
 
   const handleAdminDeleteAsset = async (assetType: string) => {
     try {
-      const res = await adminDeleteBrandingAssetAction(whiteLabel.id, assetType);
+      const res = await adminDeleteBrandingAssetAction(
+        whiteLabel.id,
+        assetType,
+      );
       if (res.success) {
         toast.success(res.message);
         router.refresh();
@@ -517,15 +588,22 @@ export function AdminWhiteLabelDetailsDialog({
   };
 
   const statusBadges: Record<string, string> = {
-    [WhiteLabelStatus.PENDING]: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    [WhiteLabelStatus.UNDER_REVIEW]: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    [WhiteLabelStatus.PROCESSING]: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
-    [WhiteLabelStatus.CONTRACTED]: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
-    [WhiteLabelStatus.PAID]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    [WhiteLabelStatus.APPROVED]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    [WhiteLabelStatus.ACTIVE]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    [WhiteLabelStatus.REJECTED]: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-    [WhiteLabelStatus.SUSPENDED]: "bg-destructive/10 text-destructive border-destructive/30",
+    [WhiteLabelStatus.PENDING]:
+      "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    [WhiteLabelStatus.UNDER_REVIEW]:
+      "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    [WhiteLabelStatus.PROCESSING]:
+      "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+    [WhiteLabelStatus.CONTRACTED]:
+      "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    [WhiteLabelStatus.PAID]:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    [WhiteLabelStatus.ACTIVE]:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    [WhiteLabelStatus.REJECTED]:
+      "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+    [WhiteLabelStatus.SUSPENDED]:
+      "bg-destructive/10 text-destructive border-destructive/30",
   };
 
   return (
@@ -574,6 +652,23 @@ export function AdminWhiteLabelDetailsDialog({
               </Badge>
             </div>
 
+            {/* Rejection Alert Banner if status is REJECTED */}
+            {whiteLabel.status === WhiteLabelStatus.REJECTED && (
+              <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 space-y-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Application Declined</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-background/80 border border-border/50 text-foreground font-mono text-[11px] leading-relaxed">
+                  <span className="text-muted-foreground block text-[10px] uppercase font-bold mb-0.5">
+                    Decline Reason Note (Visible to Client):
+                  </span>
+                  {whiteLabel.statusReason ||
+                    "No specific decline reason was provided."}
+                </div>
+              </div>
+            )}
+
             {/* Strict Sequential Action Buttons Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {/* Step 1: PENDING -> UNDER_REVIEW or REJECTED */}
@@ -581,7 +676,9 @@ export function AdminWhiteLabelDetailsDialog({
                 <>
                   <Button
                     size="sm"
-                    onClick={() => handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)}
+                    onClick={() =>
+                      handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)
+                    }
                     disabled={statusLoading}
                     className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
                   >
@@ -591,7 +688,10 @@ export function AdminWhiteLabelDetailsDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    onClick={() => {
+                      setDeclineReason("");
+                      setShowDeclineModal(true);
+                    }}
                     disabled={statusLoading}
                     className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
                   >
@@ -605,7 +705,9 @@ export function AdminWhiteLabelDetailsDialog({
                 <>
                   <Button
                     size="sm"
-                    onClick={() => handleUpdateStatus(WhiteLabelStatus.PROCESSING)}
+                    onClick={() =>
+                      handleUpdateStatus(WhiteLabelStatus.PROCESSING)
+                    }
                     disabled={statusLoading}
                     className="h-8 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm"
                   >
@@ -615,7 +717,10 @@ export function AdminWhiteLabelDetailsDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    onClick={() => {
+                      setDeclineReason("");
+                      setShowDeclineModal(true);
+                    }}
                     disabled={statusLoading}
                     className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
                   >
@@ -638,7 +743,10 @@ export function AdminWhiteLabelDetailsDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleUpdateStatus(WhiteLabelStatus.REJECTED)}
+                    onClick={() => {
+                      setDeclineReason("");
+                      setShowDeclineModal(true);
+                    }}
                     disabled={statusLoading}
                     className="h-8 text-xs font-semibold gap-1.5 text-rose-500 border-rose-500/30 hover:bg-rose-500/10"
                   >
@@ -666,7 +774,9 @@ export function AdminWhiteLabelDetailsDialog({
                     className="h-8 text-xs font-semibold gap-1.5 border-border/80"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    {contractPreviewLoading ? "Loading..." : "Preview Signed Contract"}
+                    {contractPreviewLoading
+                      ? "Loading..."
+                      : "Preview Signed Contract"}
                   </Button>
                   <Button
                     variant="outline"
@@ -690,7 +800,9 @@ export function AdminWhiteLabelDetailsDialog({
                     className="h-8 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
                   >
                     <Play className="h-3.5 w-3.5 fill-current" />
-                    {activateLoading ? "Provisioning Cloudflare DNS..." : "Activate WhiteLabel (Cloudflare Auto-DNS)"}
+                    {activateLoading
+                      ? "Provisioning Cloudflare DNS..."
+                      : "Activate WhiteLabel (Cloudflare Auto-DNS)"}
                   </Button>
                   {whiteLabel.contractKey && (
                     <Button
@@ -716,8 +828,8 @@ export function AdminWhiteLabelDetailsDialog({
                 </>
               )}
 
-              {/* Step 6: ACTIVE / APPROVED -> SUSPENDED */}
-              {(whiteLabel.status === WhiteLabelStatus.ACTIVE || whiteLabel.status === WhiteLabelStatus.APPROVED) && (
+              {/* Step 6: ACTIVE -> SUSPENDED */}
+              {whiteLabel.status === WhiteLabelStatus.ACTIVE && (
                 <>
                   <Button
                     variant="outline"
@@ -783,7 +895,9 @@ export function AdminWhiteLabelDetailsDialog({
               {whiteLabel.status === WhiteLabelStatus.REJECTED && (
                 <Button
                   size="sm"
-                  onClick={() => handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)}
+                  onClick={() =>
+                    handleUpdateStatus(WhiteLabelStatus.UNDER_REVIEW)
+                  }
                   disabled={statusLoading}
                   className="h-8 text-xs font-semibold gap-1.5 bg-muted text-foreground border border-border/70"
                 >
@@ -800,31 +914,6 @@ export function AdminWhiteLabelDetailsDialog({
                 <Upload className="h-3.5 w-3.5" />
                 Upload Other Document
               </Button>
-
-              {/* Status Switcher Select */}
-              <div className="flex items-center gap-1.5 ml-auto">
-                <Select
-                  value={whiteLabel.status}
-                  onValueChange={(val) => {
-                    if (val) handleUpdateStatus(val);
-                  }}
-                  disabled={statusLoading}
-                >
-                  <SelectTrigger className="h-8 text-xs w-[145px]">
-                    <SelectValue placeholder="Update Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={WhiteLabelStatus.PENDING}>Pending</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.UNDER_REVIEW}>Under Review</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.PROCESSING}>Processing</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.CONTRACTED}>Contracted</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.PAID}>Paid</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.ACTIVE}>Active</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.REJECTED}>Rejected</SelectItem>
-                    <SelectItem value={WhiteLabelStatus.SUSPENDED}>Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* Navigation Tabs */}
@@ -894,20 +983,29 @@ export function AdminWhiteLabelDetailsDialog({
                   </h4>
                   <div className="p-4 rounded-xl border border-border/60 bg-muted/20 grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-muted-foreground text-[11px] block">Full Name</span>
+                      <span className="text-muted-foreground text-[11px] block">
+                        Full Name
+                      </span>
                       <p className="font-semibold text-foreground">
-                        {whiteLabel.contactFirstName} {whiteLabel.contactLastName}
+                        {whiteLabel.contactFirstName}{" "}
+                        {whiteLabel.contactLastName}
                       </p>
                     </div>
 
                     <div>
-                      <span className="text-muted-foreground text-[11px] block">Work Email</span>
-                      <p className="font-mono text-foreground">{whiteLabel.contactEmail}</p>
+                      <span className="text-muted-foreground text-[11px] block">
+                        Work Email
+                      </span>
+                      <p className="font-mono text-foreground">
+                        {whiteLabel.contactEmail}
+                      </p>
                     </div>
 
                     {whiteLabel.contactLinkedIn && (
                       <div className="col-span-2">
-                        <span className="text-muted-foreground text-[11px] block">LinkedIn Profile</span>
+                        <span className="text-muted-foreground text-[11px] block">
+                          LinkedIn Profile
+                        </span>
                         <a
                           href={whiteLabel.contactLinkedIn}
                           target="_blank"
@@ -929,23 +1027,32 @@ export function AdminWhiteLabelDetailsDialog({
                   </h4>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">Catalog Tracks</span>
+                      <span className="text-muted-foreground text-[10px] block">
+                        Catalog Tracks
+                      </span>
                       <p className="font-bold text-base text-foreground">
                         {whiteLabel.catalogTrackCount.toLocaleString()}
                       </p>
                     </div>
 
                     <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">Monthly Delivery</span>
+                      <span className="text-muted-foreground text-[10px] block">
+                        Monthly Delivery
+                      </span>
                       <p className="font-bold text-base text-foreground">
                         {whiteLabel.monthlyTrackDelivery.toLocaleString()}
                       </p>
                     </div>
 
                     <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">Monthly Revenue</span>
+                      <span className="text-muted-foreground text-[10px] block">
+                        Monthly Revenue
+                      </span>
                       <p className="font-bold text-base text-foreground">
-                        ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
+                        $
+                        {Number(
+                          whiteLabel.monthlyRevenueUsd || 0,
+                        ).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -959,25 +1066,33 @@ export function AdminWhiteLabelDetailsDialog({
                   <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
                       <div>
-                        <span className="text-muted-foreground block">Direct Deals:</span>
+                        <span className="text-muted-foreground block">
+                          Direct Deals:
+                        </span>
                         <span className="font-bold text-foreground">
                           {whiteLabel.hasDirectDeals ? "Yes" : "No"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block">Catalog Migration:</span>
+                        <span className="text-muted-foreground block">
+                          Catalog Migration:
+                        </span>
                         <span className="font-bold text-foreground">
                           {whiteLabel.wantsCatalogMigration ? "Yes" : "No"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block">Sample Covers:</span>
+                        <span className="text-muted-foreground block">
+                          Sample Covers:
+                        </span>
                         <span className="font-bold text-foreground">
                           {whiteLabel.hasSampleBasedCovers ? "Yes" : "No"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block">Signup Model:</span>
+                        <span className="text-muted-foreground block">
+                          Signup Model:
+                        </span>
                         <span className="font-bold text-foreground">
                           {whiteLabel.userSignupModel}
                         </span>
@@ -986,7 +1101,9 @@ export function AdminWhiteLabelDetailsDialog({
 
                     {whiteLabel.incorporationDocUrl && (
                       <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                        <span className="text-muted-foreground">Incorporation Document:</span>
+                        <span className="text-muted-foreground">
+                          Incorporation Document:
+                        </span>
                         <a
                           href={whiteLabel.incorporationDocUrl}
                           target="_blank"
@@ -1020,7 +1137,10 @@ export function AdminWhiteLabelDetailsDialog({
                           <span className="font-bold text-sm text-foreground">
                             {artist.artistName}
                           </span>
-                          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] px-1.5 py-0"
+                          >
                             {artist.code}
                           </Badge>
                         </div>
@@ -1058,7 +1178,9 @@ export function AdminWhiteLabelDetailsDialog({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">No roster artists provided.</p>
+                  <p className="text-muted-foreground">
+                    No roster artists provided.
+                  </p>
                 )}
               </div>
             )}
@@ -1096,7 +1218,10 @@ export function AdminWhiteLabelDetailsDialog({
                               <p className="font-semibold text-foreground text-xs truncate">
                                 {doc.name}
                               </p>
-                              <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0">
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[9px] px-1.5 py-0"
+                              >
                                 {doc.code}
                               </Badge>
                             </div>
@@ -1105,7 +1230,9 @@ export function AdminWhiteLabelDetailsDialog({
                                 {doc.type.replace(/_/g, " ").toLowerCase()}
                               </span>
                               {doc.fileSizeBytes && (
-                                <span>• {(doc.fileSizeBytes / 1024).toFixed(1)} KB</span>
+                                <span>
+                                  • {(doc.fileSizeBytes / 1024).toFixed(1)} KB
+                                </span>
                               )}
                               <span>• {formatDate(doc.createdAt)}</span>
                             </div>
@@ -1113,17 +1240,19 @@ export function AdminWhiteLabelDetailsDialog({
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {doc.fileUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1"
-                              render={<a href={doc.fileUrl} target="_blank" rel="noreferrer" />}
-                            >
-                              <Download className="h-3 w-3" />
-                              View PDF
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5"
+                            onClick={() => handlePreviewDocument(doc)}
+                            disabled={previewingDocId === doc.id}
+                            title="Preview Document"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {previewingDocId === doc.id
+                              ? "Opening..."
+                              : "Preview"}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1140,9 +1269,12 @@ export function AdminWhiteLabelDetailsDialog({
                 ) : (
                   <div className="p-8 text-center border border-dashed rounded-xl space-y-2 text-muted-foreground">
                     <File className="h-8 w-8 mx-auto opacity-50" />
-                    <p className="text-xs font-semibold">No agreements uploaded yet</p>
+                    <p className="text-xs font-semibold">
+                      No agreements uploaded yet
+                    </p>
                     <p className="text-[11px]">
-                      Upload signed distribution contracts, incorporation documents, or tax forms.
+                      Upload signed distribution contracts, incorporation
+                      documents, or tax forms.
                     </p>
                   </div>
                 )}
@@ -1174,7 +1306,8 @@ export function AdminWhiteLabelDetailsDialog({
                         Subscription Code
                       </span>
                       <code className="font-mono font-bold text-foreground text-xs">
-                        {whiteLabel.subscription?.code || whiteLabel.subscriptionId}
+                        {whiteLabel.subscription?.code ||
+                          whiteLabel.subscriptionId}
                       </code>
                     </div>
 
@@ -1188,7 +1321,8 @@ export function AdminWhiteLabelDetailsDialog({
                           : `${whiteLabel.contactFirstName} ${whiteLabel.contactLastName}`}
                       </p>
                       <span className="font-mono text-[10px] text-muted-foreground">
-                        {whiteLabel.subscription?.subscriber?.code || whiteLabel.contactEmail}
+                        {whiteLabel.subscription?.subscriber?.code ||
+                          whiteLabel.contactEmail}
                       </span>
                     </div>
 
@@ -1197,7 +1331,13 @@ export function AdminWhiteLabelDetailsDialog({
                         Total Recorded Payments
                       </span>
                       <p className="font-bold text-base text-foreground">
-                        {(whiteLabel.subscription?.payments || whiteLabel.payments || []).length}
+                        {
+                          (
+                            whiteLabel.subscription?.payments ||
+                            whiteLabel.payments ||
+                            []
+                          ).length
+                        }
                       </p>
                     </div>
                   </div>
@@ -1205,10 +1345,20 @@ export function AdminWhiteLabelDetailsDialog({
 
                 {/* Recorded Payments List */}
                 <div className="space-y-3">
-                  <h5 className="font-bold text-foreground text-xs">Payment Ledger & Receipts</h5>
-                  {((whiteLabel.subscription?.payments || whiteLabel.payments || []).length > 0) ? (
+                  <h5 className="font-bold text-foreground text-xs">
+                    Payment Ledger & Receipts
+                  </h5>
+                  {(
+                    whiteLabel.subscription?.payments ||
+                    whiteLabel.payments ||
+                    []
+                  ).length > 0 ? (
                     <div className="space-y-2.5">
-                      {(whiteLabel.subscription?.payments || whiteLabel.payments || []).map((pay, idx) => (
+                      {(
+                        whiteLabel.subscription?.payments ||
+                        whiteLabel.payments ||
+                        []
+                      ).map((pay, idx) => (
                         <div
                           key={pay.id || idx}
                           className="p-3.5 rounded-xl border border-border/60 bg-card space-y-2 shadow-xs"
@@ -1225,7 +1375,10 @@ export function AdminWhiteLabelDetailsDialog({
                                 ${(pay.amount || 0).toLocaleString()} USD
                               </span>
                               {pay.discount > 0 && (
-                                <Badge variant="secondary" className="text-[10px] text-muted-foreground">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] text-muted-foreground"
+                                >
                                   ${pay.discount} discount
                                 </Badge>
                               )}
@@ -1257,19 +1410,25 @@ export function AdminWhiteLabelDetailsDialog({
 
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-muted-foreground pt-1 border-t border-border/40">
                             <div>
-                              <span className="block text-[10px] text-muted-foreground">Start Date:</span>
+                              <span className="block text-[10px] text-muted-foreground">
+                                Start Date:
+                              </span>
                               <span className="font-medium text-foreground">
                                 {formatDate(pay.startsAt)}
                               </span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-muted-foreground">Expiration / Ends:</span>
+                              <span className="block text-[10px] text-muted-foreground">
+                                Expiration / Ends:
+                              </span>
                               <span className="font-medium text-foreground">
                                 {formatDate(pay.endsAt)}
                               </span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-muted-foreground">Recorded On:</span>
+                              <span className="block text-[10px] text-muted-foreground">
+                                Recorded On:
+                              </span>
                               <span className="font-medium text-foreground">
                                 {formatDate(pay.createdAt)}
                               </span>
@@ -1281,9 +1440,12 @@ export function AdminWhiteLabelDetailsDialog({
                   ) : (
                     <div className="p-8 text-center border border-dashed rounded-xl space-y-2 text-muted-foreground">
                       <CreditCard className="h-8 w-8 mx-auto opacity-50" />
-                      <p className="text-xs font-semibold">No payments recorded yet</p>
+                      <p className="text-xs font-semibold">
+                        No payments recorded yet
+                      </p>
                       <p className="text-[11px]">
-                        Click &quot;Record Payment&quot; above to log an offline wire transfer or subscription transaction.
+                        Click &quot;Record Payment&quot; above to log an offline
+                        wire transfer or subscription transaction.
                       </p>
                     </div>
                   )}
@@ -1302,7 +1464,8 @@ export function AdminWhiteLabelDetailsDialog({
                       WhiteLabel Brand Configuration
                     </h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Configure custom domains, brand palette, and visual identity assets for this tenant.
+                      Configure custom domains, brand palette, and visual
+                      identity assets for this tenant.
                     </p>
                   </div>
                   <Button
@@ -1343,7 +1506,9 @@ export function AdminWhiteLabelDetailsDialog({
                           className="max-h-14 max-w-[120px] object-contain"
                         />
                       ) : (
-                        <p className="text-[10px] text-muted-foreground">No logo</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          No logo
+                        </p>
                       )}
                     </div>
                     <label className="block w-full cursor-pointer">
@@ -1356,7 +1521,9 @@ export function AdminWhiteLabelDetailsDialog({
                       />
                       <div className="h-7 w-full rounded-md border border-border/80 hover:bg-muted/40 flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-colors">
                         <Upload className="h-3 w-3 text-primary" />
-                        {brandingUploading === "logo" ? "Uploading..." : "Upload Logo"}
+                        {brandingUploading === "logo"
+                          ? "Uploading..."
+                          : "Upload Logo"}
                       </div>
                     </label>
                   </div>
@@ -1386,7 +1553,9 @@ export function AdminWhiteLabelDetailsDialog({
                           className="max-h-14 max-w-[120px] object-contain"
                         />
                       ) : (
-                        <p className="text-[10px] text-zinc-500">No dark logo</p>
+                        <p className="text-[10px] text-zinc-500">
+                          No dark logo
+                        </p>
                       )}
                     </div>
                     <label className="block w-full cursor-pointer">
@@ -1399,7 +1568,9 @@ export function AdminWhiteLabelDetailsDialog({
                       />
                       <div className="h-7 w-full rounded-md border border-border/80 hover:bg-muted/40 flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-colors">
                         <Upload className="h-3 w-3 text-primary" />
-                        {brandingUploading === "logoDark" ? "Uploading..." : "Upload Dark Logo"}
+                        {brandingUploading === "logoDark"
+                          ? "Uploading..."
+                          : "Upload Dark Logo"}
                       </div>
                     </label>
                   </div>
@@ -1423,7 +1594,11 @@ export function AdminWhiteLabelDetailsDialog({
                     <div className="h-16 rounded-lg border border-border/80 bg-muted/20 flex items-center justify-center p-2">
                       {whiteLabel.faviconUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={whiteLabel.faviconUrl} alt="Favicon" className="h-6 w-6 object-contain" />
+                        <img
+                          src={whiteLabel.faviconUrl}
+                          alt="Favicon"
+                          className="h-6 w-6 object-contain"
+                        />
                       ) : (
                         <Globe className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -1438,7 +1613,9 @@ export function AdminWhiteLabelDetailsDialog({
                       />
                       <div className="h-7 w-full rounded-md border border-border/80 hover:bg-muted/40 flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-colors">
                         <Upload className="h-3 w-3 text-primary" />
-                        {brandingUploading === "favicon" ? "Uploading..." : "Upload Favicon"}
+                        {brandingUploading === "favicon"
+                          ? "Uploading..."
+                          : "Upload Favicon"}
                       </div>
                     </label>
                   </div>
@@ -1462,9 +1639,15 @@ export function AdminWhiteLabelDetailsDialog({
                     <div className="h-16 rounded-lg border border-border/80 bg-muted/20 flex items-center justify-center relative overflow-hidden">
                       {whiteLabel.bannerUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={whiteLabel.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                        <img
+                          src={whiteLabel.bannerUrl}
+                          alt="Banner"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <p className="text-[10px] text-muted-foreground">Default gradient</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Default gradient
+                        </p>
                       )}
                     </div>
                     <label className="block w-full cursor-pointer">
@@ -1477,7 +1660,9 @@ export function AdminWhiteLabelDetailsDialog({
                       />
                       <div className="h-7 w-full rounded-md border border-border/80 hover:bg-muted/40 flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-colors">
                         <Upload className="h-3 w-3 text-primary" />
-                        {brandingUploading === "banner" ? "Uploading..." : "Upload Banner"}
+                        {brandingUploading === "banner"
+                          ? "Uploading..."
+                          : "Upload Banner"}
                       </div>
                     </label>
                   </div>
@@ -1491,7 +1676,9 @@ export function AdminWhiteLabelDetailsDialog({
                   </h5>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Managed Subdomain</Label>
+                    <Label className="text-xs font-semibold">
+                      Managed Subdomain
+                    </Label>
                     <div className="flex items-center">
                       <Input
                         placeholder="labelhandle"
@@ -1499,7 +1686,9 @@ export function AdminWhiteLabelDetailsDialog({
                         onChange={(e) =>
                           setBrandingForm((prev) => ({
                             ...prev,
-                            subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                            subdomain: e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9-]/g, ""),
                           }))
                         }
                         className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
@@ -1511,7 +1700,9 @@ export function AdminWhiteLabelDetailsDialog({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Custom FQDN Domain</Label>
+                    <Label className="text-xs font-semibold">
+                      Custom FQDN Domain
+                    </Label>
                     <Input
                       placeholder="music.mylabel.com"
                       value={brandingForm.customDomain}
@@ -1534,7 +1725,9 @@ export function AdminWhiteLabelDetailsDialog({
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Primary Color</Label>
+                      <Label className="text-xs font-semibold">
+                        Primary Color
+                      </Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -1561,7 +1754,9 @@ export function AdminWhiteLabelDetailsDialog({
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Accent Color</Label>
+                      <Label className="text-xs font-semibold">
+                        Accent Color
+                      </Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -1597,20 +1792,34 @@ export function AdminWhiteLabelDetailsDialog({
                   </h5>
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Tagline / Slogan</Label>
+                      <Label className="text-xs font-semibold">
+                        Tagline / Slogan
+                      </Label>
                       <Input
                         value={brandingForm.tagline}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, tagline: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            tagline: e.target.value,
+                          }))
+                        }
                         placeholder="e.g. Independent Sound Platform"
                         className="h-8 text-xs"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Description / Bio</Label>
+                      <Label className="text-xs font-semibold">
+                        Description / Bio
+                      </Label>
                       <Textarea
                         value={brandingForm.description}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, description: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
                         placeholder="Brand mission and catalog bio..."
                         className="text-xs min-h-[70px]"
                       />
@@ -1618,19 +1827,33 @@ export function AdminWhiteLabelDetailsDialog({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Support Email</Label>
+                        <Label className="text-xs font-semibold">
+                          Support Email
+                        </Label>
                         <Input
                           value={brandingForm.supportEmail}
-                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, supportEmail: e.target.value }))}
+                          onChange={(e) =>
+                            setBrandingForm((prev) => ({
+                              ...prev,
+                              supportEmail: e.target.value,
+                            }))
+                          }
                           placeholder="support@label.com"
                           className="h-8 text-xs"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Support Phone</Label>
+                        <Label className="text-xs font-semibold">
+                          Support Phone
+                        </Label>
                         <Input
                           value={brandingForm.supportPhone}
-                          onChange={(e) => setBrandingForm((prev) => ({ ...prev, supportPhone: e.target.value }))}
+                          onChange={(e) =>
+                            setBrandingForm((prev) => ({
+                              ...prev,
+                              supportPhone: e.target.value,
+                            }))
+                          }
                           placeholder="+1 555-019-2834"
                           className="h-8 text-xs"
                         />
@@ -1638,10 +1861,17 @@ export function AdminWhiteLabelDetailsDialog({
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">Copyright Text</Label>
+                      <Label className="text-xs font-semibold">
+                        Copyright Text
+                      </Label>
                       <Input
                         value={brandingForm.copyrightText}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, copyrightText: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            copyrightText: e.target.value,
+                          }))
+                        }
                         placeholder="© 2026 Record Label. All rights reserved."
                         className="h-8 text-xs"
                       />
@@ -1657,37 +1887,65 @@ export function AdminWhiteLabelDetailsDialog({
                   </h5>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">Instagram URL</Label>
+                      <Label className="text-[11px] font-semibold">
+                        Instagram URL
+                      </Label>
                       <Input
                         value={brandingForm.socialInstagram}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, socialInstagram: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            socialInstagram: e.target.value,
+                          }))
+                        }
                         placeholder="https://instagram.com/..."
                         className="h-8 text-xs"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">X / Twitter URL</Label>
+                      <Label className="text-[11px] font-semibold">
+                        X / Twitter URL
+                      </Label>
                       <Input
                         value={brandingForm.socialTwitter}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, socialTwitter: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            socialTwitter: e.target.value,
+                          }))
+                        }
                         placeholder="https://x.com/..."
                         className="h-8 text-xs"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">YouTube URL</Label>
+                      <Label className="text-[11px] font-semibold">
+                        YouTube URL
+                      </Label>
                       <Input
                         value={brandingForm.socialYoutube}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, socialYoutube: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            socialYoutube: e.target.value,
+                          }))
+                        }
                         placeholder="https://youtube.com/..."
                         className="h-8 text-xs"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold">Spotify URL</Label>
+                      <Label className="text-[11px] font-semibold">
+                        Spotify URL
+                      </Label>
                       <Input
                         value={brandingForm.socialSpotify}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, socialSpotify: e.target.value }))}
+                        onChange={(e) =>
+                          setBrandingForm((prev) => ({
+                            ...prev,
+                            socialSpotify: e.target.value,
+                          }))
+                        }
                         placeholder="https://open.spotify.com/..."
                         className="h-8 text-xs"
                       />
@@ -1709,14 +1967,17 @@ export function AdminWhiteLabelDetailsDialog({
               Record Offline / Manual Payment
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Record a bank transfer, direct deposit, or offline cash payment to activate this WhiteLabel.
+              Record a bank transfer, direct deposit, or offline cash payment to
+              activate this WhiteLabel.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
             {/* Package Preset Quick Selector */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Billing Plan Package Preset</Label>
+              <Label className="text-xs font-semibold">
+                Billing Plan Package Preset
+              </Label>
               <div className="grid grid-cols-4 gap-1.5">
                 {[
                   { id: "14_DAY_TRIAL", label: "14d Trial ($0)" },
@@ -1764,7 +2025,9 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Discount ($ USD)</Label>
+                <Label className="text-xs font-semibold">
+                  Discount ($ USD)
+                </Label>
                 <Input
                   type="number"
                   min={0}
@@ -1797,7 +2060,9 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">End Date (Expiration)</Label>
+                <Label className="text-xs font-semibold">
+                  End Date (Expiration)
+                </Label>
                 <Input
                   type="date"
                   value={paymentForm.endsAt}
@@ -1820,24 +2085,41 @@ export function AdminWhiteLabelDetailsDialog({
                   value={paymentForm.paymentMethod}
                   onValueChange={(val) => {
                     if (val) {
-                      setPaymentForm((prev) => ({ ...prev, paymentMethod: val }));
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        paymentMethod: val,
+                      }));
                     }
                   }}
                 >
                   <SelectTrigger className="h-9 text-xs w-full">
-                    <SelectValue placeholder="Select method" />
+                    <SelectValue placeholder="Select method">
+                      {(val) =>
+                        paymentMethodLabels[val as string] ||
+                        val ||
+                        "Select method"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="HAND_TO_HAND">Hand-to-Hand (Cash / Direct)</SelectItem>
-                    <SelectItem value="BANK_TRANSFER">Direct Bank Wire / ACH</SelectItem>
+                    <SelectItem value="HAND_TO_HAND">
+                      Hand-to-Hand (Cash / Direct)
+                    </SelectItem>
+                    <SelectItem value="BANK_TRANSFER">
+                      Direct Bank Wire / ACH
+                    </SelectItem>
                     <SelectItem value="CASH">In-Person Cash</SelectItem>
-                    <SelectItem value="INVOICE">Corporate Invoice / PO</SelectItem>
+                    <SelectItem value="INVOICE">
+                      Corporate Invoice / PO
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Receipt / Reference ID</Label>
+                <Label className="text-xs font-semibold">
+                  Receipt / Reference ID
+                </Label>
                 <Input
                   placeholder="e.g. REC-2026-081 or Wire Ref"
                   value={paymentForm.receiptReference}
@@ -1853,7 +2135,9 @@ export function AdminWhiteLabelDetailsDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Admin Notes / Receipt Details</Label>
+              <Label className="text-xs font-semibold">
+                Admin Notes / Receipt Details
+              </Label>
               <Input
                 placeholder="e.g. Received $1,200 hand-to-hand signed by representative"
                 value={paymentForm.adminNotes}
@@ -1898,14 +2182,16 @@ export function AdminWhiteLabelDetailsDialog({
               Upload Executed Contract Agreement
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Upload the signed mutual partnership agreement PDF between RoyalMotionIT and {whiteLabel.name}.
+              Upload the signed mutual partnership agreement PDF between
+              RoyalMotionIT and {whiteLabel.name}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
-                Signed Contract PDF File <span className="text-destructive">*</span>
+                Signed Contract PDF File{" "}
+                <span className="text-destructive">*</span>
               </Label>
               <Input
                 type="file"
@@ -1918,7 +2204,9 @@ export function AdminWhiteLabelDetailsDialog({
                 className="h-9 text-xs"
               />
               <p className="text-[11px] text-muted-foreground">
-                Only PDF files are accepted. Once uploaded, the WhiteLabel will advance to <strong>CONTRACTED</strong> status, unlocking preview for both parties and payment registration.
+                Only PDF files are accepted. Once uploaded, the WhiteLabel will
+                advance to <strong>CONTRACTED</strong> status, unlocking preview
+                for both parties and payment registration.
               </p>
             </div>
           </div>
@@ -1938,7 +2226,9 @@ export function AdminWhiteLabelDetailsDialog({
               disabled={contractLoading || !contractFile}
               className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white"
             >
-              {contractLoading ? "Uploading to S3..." : "Upload Contract & Advance Status"}
+              {contractLoading
+                ? "Uploading to S3..."
+                : "Upload Contract & Advance Status"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1953,13 +2243,16 @@ export function AdminWhiteLabelDetailsDialog({
               Suspend WhiteLabel
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Suspending this WhiteLabel will immediately lock the client portal and restrict menu access until reactivated.
+              Suspending this WhiteLabel will immediately lock the client portal
+              and restrict menu access until reactivated.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Suspension Reason / Internal Notes</Label>
+              <Label className="text-xs font-semibold">
+                Suspension Reason / Internal Notes
+              </Label>
               <Input
                 placeholder="e.g. Agreement breach, non-payment, or catalog audit"
                 value={suspendReason}
@@ -1999,14 +2292,16 @@ export function AdminWhiteLabelDetailsDialog({
               Upload Agreement to S3 Storage
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Upload signed PDF contracts, distribution agreements, or incorporation documents.
+              Upload signed PDF contracts, distribution agreements, or
+              incorporation documents.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
-                Document File (PDF / DOC) <span className="text-destructive">*</span>
+                Document File (PDF / DOC){" "}
+                <span className="text-destructive">*</span>
               </Label>
               <Input
                 type="file"
@@ -2033,15 +2328,30 @@ export function AdminWhiteLabelDetailsDialog({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Document Type</Label>
-              <Select value={docType} onValueChange={(val) => val && setDocType(val)}>
+              <Select
+                value={docType}
+                onValueChange={(val) => val && setDocType(val)}
+              >
                 <SelectTrigger className="h-9 text-xs w-full">
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder="Select type">
+                    {(val) =>
+                      adminDocTypeLabels[val as string] || val || "Select type"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SIGNED_AGREEMENT">Signed Agreement</SelectItem>
-                  <SelectItem value="DISTRIBUTION_CONTRACT">Distribution Contract</SelectItem>
-                  <SelectItem value="INCORPORATION_DOC">Incorporation Document</SelectItem>
-                  <SelectItem value="TAX_DOCUMENT">Tax Document (W8/W9)</SelectItem>
+                  <SelectItem value="SIGNED_AGREEMENT">
+                    Signed Agreement
+                  </SelectItem>
+                  <SelectItem value="DISTRIBUTION_CONTRACT">
+                    Distribution Contract
+                  </SelectItem>
+                  <SelectItem value="INCORPORATION_DOC">
+                    Incorporation Document
+                  </SelectItem>
+                  <SelectItem value="TAX_DOCUMENT">
+                    Tax Document (W8/W9)
+                  </SelectItem>
                   <SelectItem value="OTHER">Other Agreement</SelectItem>
                 </SelectContent>
               </Select>
@@ -2064,6 +2374,68 @@ export function AdminWhiteLabelDetailsDialog({
               className="text-xs font-bold bg-primary text-primary-foreground"
             >
               {docLoading ? "Uploading to S3..." : "Upload Document"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Decline Application Modal */}
+      <Dialog open={showDeclineModal} onOpenChange={setShowDeclineModal}>
+        <DialogContent className="sm:max-w-[480px] z-[60]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+              Decline Application
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Provide a clear, detailed reason for declining this application.
+              This note will be directly displayed on the client&apos;s console
+              so they know what issues to rectify or additional documents to
+              provide.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center justify-between">
+                <span>
+                  Reason Note for Client{" "}
+                  <span className="text-destructive">*</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Displayed on client portal
+                </span>
+              </Label>
+              <Textarea
+                placeholder="e.g. Catalog verification documents were unclear. Please upload official incorporation papers and direct distribution agreements in your portal."
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                rows={4}
+                className="text-xs resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                The client will be able to review this rejection explanation and
+                submit requested documentation or revisions.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeclineModal(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmDecline}
+              disabled={statusLoading || !declineReason.trim()}
+              className="text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white"
+            >
+              {statusLoading ? "Declining..." : "Confirm & Decline Application"}
             </Button>
           </DialogFooter>
         </DialogContent>

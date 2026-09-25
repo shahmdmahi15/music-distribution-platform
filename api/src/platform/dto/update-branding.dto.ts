@@ -1,8 +1,8 @@
 import {
   IsHexColor,
+  IsNumber,
   IsOptional,
   IsString,
-  Matches,
   MaxLength,
 } from 'class-validator';
 
@@ -21,6 +21,30 @@ export class UpdateBrandingDto {
   @IsString()
   @MaxLength(1000)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  companyWebsite?: string;
+
+  @IsOptional()
+  @IsNumber()
+  yearsInBusiness?: number;
+
+  @IsOptional()
+  @IsString()
+  contactFirstName?: string;
+
+  @IsOptional()
+  @IsString()
+  contactLastName?: string;
+
+  @IsOptional()
+  @IsString()
+  contactEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  contactLinkedIn?: string;
 
   @IsOptional()
   @IsString()

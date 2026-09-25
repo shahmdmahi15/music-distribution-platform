@@ -55,7 +55,10 @@ export async function adminUploadBrandingAssetAction(
       assetType: data.assetType,
     };
   } catch (error) {
-    console.error("[Action.Admin.WhiteLabel.UploadBrandingAsset] Error:", error);
+    console.error(
+      "[Action.Admin.WhiteLabel.UploadBrandingAsset] Error:",
+      error,
+    );
     return {
       success: false,
       message: "An error occurred while uploading image.",

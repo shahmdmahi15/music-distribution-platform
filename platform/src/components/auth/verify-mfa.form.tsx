@@ -76,24 +76,23 @@ export function VerifyMfaForm() {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
-          <KeyRound className="h-6 w-6" />
+    <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1 text-center">
+        <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary mb-1">
+          <KeyRound className="h-4.5 w-4.5" />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight">
           MFA Verification
         </CardTitle>
-        <CardDescription>
-          Enter the verification code from your authenticator app to complete
-          sign in
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Enter the 6-digit code from your authenticator app.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="verify-mfa-form"
                 onSubmit={(e) => {
@@ -102,7 +101,7 @@ export function VerifyMfaForm() {
                   form.handleSubmit();
                 }}
               >
-                <FieldGroup className="gap-4">
+                <FieldGroup className="gap-3">
                   {/* Code Field */}
                   <form.Field name="code">
                     {(field) => {
@@ -112,7 +111,7 @@ export function VerifyMfaForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium"
                           >
                             Verification Code
                           </FieldLabel>
@@ -123,11 +122,11 @@ export function VerifyMfaForm() {
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             aria-invalid={isInvalid}
-                            placeholder="Enter 6-digit code"
+                            placeholder="000000"
                             autoComplete="one-time-code"
                             type="text"
                             disabled={isSubmitting}
-                            className="text-center tracking-widest font-mono text-lg"
+                            className="text-center tracking-widest font-mono text-base h-9 sm:h-10"
                           />
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
@@ -140,16 +139,16 @@ export function VerifyMfaForm() {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="verify-mfa-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm active:scale-[0.98] font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Verifying...
                   </>
                 ) : (
@@ -157,7 +156,7 @@ export function VerifyMfaForm() {
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="text-center text-[11px] text-muted-foreground">
                 <Link
                   href="/auth/login"
                   className="text-primary hover:underline font-medium"

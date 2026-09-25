@@ -4,7 +4,9 @@ import { env } from "@/env";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-export async function clientUploadBrandingAssetAction(formData: FormData): Promise<{
+export async function clientUploadBrandingAssetAction(
+  formData: FormData,
+): Promise<{
   success: boolean;
   message: string;
   assetUrl?: string;
@@ -51,7 +53,10 @@ export async function clientUploadBrandingAssetAction(formData: FormData): Promi
       assetType: data.assetType,
     };
   } catch (error) {
-    console.error("[Action.Client.WhiteLabel.UploadBrandingAsset] Error:", error);
+    console.error(
+      "[Action.Client.WhiteLabel.UploadBrandingAsset] Error:",
+      error,
+    );
     return {
       success: false,
       message: "An error occurred while uploading image.",

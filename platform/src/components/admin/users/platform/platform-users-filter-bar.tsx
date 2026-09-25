@@ -239,10 +239,7 @@ export function PlatformUsersFilterBar({
       {/* Row 1: Search Form + Main Action Buttons */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Search Input */}
-        <form
-          onSubmit={handleSearchSubmit}
-          className="relative flex-1 min-w-0"
-        >
+        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
@@ -269,7 +266,11 @@ export function PlatformUsersFilterBar({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                >
                   <Download className="h-3.5 w-3.5" />
                   <span>Export</span>
                 </Button>
@@ -422,7 +423,9 @@ export function PlatformUsersFilterBar({
             >
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
                 <SelectValue placeholder="All Statuses">
-                  {(val) => statusLabels[val as string] || val || "All Statuses"}
+                  {(val) =>
+                    statusLabels[val as string] || val || "All Statuses"
+                  }
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -431,8 +434,12 @@ export function PlatformUsersFilterBar({
                 <SelectItem value="LOCKED">Locked Accounts</SelectItem>
                 <SelectItem value="VERIFIED">Email Verified</SelectItem>
                 <SelectItem value="UNVERIFIED">Unverified</SelectItem>
-                <SelectItem value="TWO_FACTOR_ENABLED">2FA Protected</SelectItem>
-                <SelectItem value="TWO_FACTOR_DISABLED">2FA Disabled</SelectItem>
+                <SelectItem value="TWO_FACTOR_ENABLED">
+                  2FA Protected
+                </SelectItem>
+                <SelectItem value="TWO_FACTOR_DISABLED">
+                  2FA Disabled
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -442,7 +449,9 @@ export function PlatformUsersFilterBar({
             <Select
               value={`${currentSortBy}:${currentSortOrder}`}
               onValueChange={(val) => {
-                const [sortBy, sortOrder] = (val || "createdAt:desc").split(":");
+                const [sortBy, sortOrder] = (val || "createdAt:desc").split(
+                  ":",
+                );
                 updateFilters({ sortBy, sortOrder });
               }}
             >
@@ -457,7 +466,9 @@ export function PlatformUsersFilterBar({
               <SelectContent>
                 <SelectItem value="createdAt:desc">Newest First</SelectItem>
                 <SelectItem value="createdAt:asc">Oldest First</SelectItem>
-                <SelectItem value="lastLoginAt:desc">Recently Active</SelectItem>
+                <SelectItem value="lastLoginAt:desc">
+                  Recently Active
+                </SelectItem>
                 <SelectItem value="firstName:asc">Name (A-Z)</SelectItem>
                 <SelectItem value="email:asc">Email (A-Z)</SelectItem>
                 <SelectItem value="role:asc">Role Hierarchy</SelectItem>

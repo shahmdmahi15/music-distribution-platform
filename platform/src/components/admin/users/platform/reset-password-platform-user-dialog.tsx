@@ -21,13 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  KeyRound,
-  Eye,
-  EyeOff,
-  Sparkles,
-  ShieldAlert,
-} from "lucide-react";
+import { KeyRound, Eye, EyeOff, Sparkles, ShieldAlert } from "lucide-react";
 import {
   AdminResetPasswordPlatformUserInput,
   adminResetPasswordPlatformUserSchema,
@@ -120,14 +114,16 @@ export function ResetPasswordPlatformUserDialog({
             <DialogTitle className="text-xl">Reset User Password</DialogTitle>
           </div>
           <DialogDescription>
-            Set a new secure password for {user.firstName} {user.lastName} ({user.email}).
+            Set a new secure password for {user.firstName} {user.lastName} (
+            {user.email}).
           </DialogDescription>
         </DialogHeader>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-start gap-3 text-xs text-amber-700 dark:text-amber-300 my-1">
           <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
           <span>
-            Resetting the password will immediately invalidate all active login sessions across devices for security.
+            Resetting the password will immediately invalidate all active login
+            sessions across devices for security.
           </span>
         </div>
 

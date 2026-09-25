@@ -50,7 +50,10 @@ export async function adminDeleteBrandingAssetAction(
       message: data.message || "Image removed successfully.",
     };
   } catch (error) {
-    console.error("[Action.Admin.WhiteLabel.DeleteBrandingAsset] Error:", error);
+    console.error(
+      "[Action.Admin.WhiteLabel.DeleteBrandingAsset] Error:",
+      error,
+    );
     return {
       success: false,
       message: "An error occurred while removing image.",

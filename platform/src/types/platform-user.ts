@@ -80,7 +80,12 @@ export interface PlatformUserDetail extends PlatformUserItem {
     id: string;
     code?: string;
     suspendedAt: string | null;
-    whiteLabel: { id: string; code?: string; name: string; createdAt: string } | null;
+    whiteLabel: {
+      id: string;
+      code?: string;
+      name: string;
+      createdAt: string;
+    } | null;
     payments: Array<{
       id: string;
       code?: string;

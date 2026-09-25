@@ -1,21 +1,14 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant, useCurrentUser } from "./tenant-theme-provider";
+import { TenantLogo } from "./tenant-logo";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { WhiteLabelUserRole } from "@/types/user";
-import {
-  Music,
-  Shield,
-  Users,
-  Smartphone,
-  LogOut,
-  Moon,
-  Sun,
-  Layers,
-} from "lucide-react";
+import { Music, Users, Smartphone, LogOut, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -41,8 +34,7 @@ export function Navbar() {
       const res = await logoutAction();
       if (res.success) {
         toast.success("Signed out successfully");
-        router.push("/auth/login");
-        router.refresh();
+        window.location.href = "/auth/login";
       } else {
         toast.error(res.message);
       }
@@ -71,26 +63,15 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         {/* Brand / Logo */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight">
-            {tenant?.logoUrl ? (
-              <img
-                src={tenant.logoUrl}
-                alt={tenant.name}
-                className="h-8 w-auto object-contain rounded"
-              />
-            ) : (
-              <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                style={{
-                  backgroundColor:
-                    tenant?.theme?.primaryColor || tenant?.primaryColor || "#6366f1",
-                }}
-              >
-                <Music className="w-5 h-5" />
-              </div>
-            )}
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 font-bold text-lg tracking-tight"
+          >
+            <TenantLogo
+              tenant={tenant}
+              className="h-8 w-auto object-contain rounded"
+            />
             <span className="font-semibold hidden sm:inline-block">
-
               {tenant?.name || "Music Portal"}
             </span>
           </Link>

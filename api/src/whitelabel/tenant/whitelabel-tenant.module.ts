@@ -3,12 +3,12 @@ import { WhitelabelTenantController } from './whitelabel-tenant.controller';
 import { WhitelabelTenantService } from './whitelabel-tenant.service';
 import { StorageModule } from 'src/lib/storage/storage.module';
 import { RedisModule } from 'src/lib/redis/redis.module';
+import { PrismaModule } from 'src/lib/prisma/prisma.module';
 
 @Module({
-  imports: [StorageModule, RedisModule],
+  imports: [StorageModule, RedisModule, PrismaModule],
   controllers: [WhitelabelTenantController],
   providers: [WhitelabelTenantService],
   exports: [WhitelabelTenantService],
 })
 export class WhitelabelTenantModule {}
-

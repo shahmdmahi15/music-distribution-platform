@@ -13,9 +13,15 @@ export async function meAction(sessionToken?: string): Promise<{
   tenant?: WhiteLabelTenant;
 }> {
   try {
-    const cookieStore = await cookies();
-    const token =
-      sessionToken ?? cookieStore.get(WL_SESSION_COOKIE)?.value;
+    let token = sessionToken;
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get(WL_SESSION_COOKIE)?.value;
+      } catch {
+        // cookies() from next/headers is not supported in proxy/middleware runtime
+      }
+    }
 
     if (!token) {
       return {

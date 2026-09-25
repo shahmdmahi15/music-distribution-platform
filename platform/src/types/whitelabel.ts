@@ -15,11 +15,9 @@ export enum WhiteLabelUserRole {
 }
 
 export enum WhiteLabelSignupModel {
-
-  OPEN_PUBLIC = "OPEN_PUBLIC",
   INVITE_ONLY = "INVITE_ONLY",
-  VETTED_APPLICATION = "VETTED_APPLICATION",
-  MANUAL_APPROVAL = "MANUAL_APPROVAL",
+  ADMIN_APPROVAL = "ADMIN_APPROVAL",
+  OPEN_REGISTRATION = "OPEN_REGISTRATION",
 }
 
 export enum WhiteLabelStatus {
@@ -29,7 +27,6 @@ export enum WhiteLabelStatus {
   REJECTED = "REJECTED",
   CONTRACTED = "CONTRACTED",
   PAID = "PAID",
-  APPROVED = "APPROVED",
   ACTIVE = "ACTIVE",
   SUSPENDED = "SUSPENDED",
 }
@@ -135,6 +132,7 @@ export interface WhiteLabel {
   // Identity & Branding
   subdomain?: string | null;
   customDomain?: string | null;
+  elasticIpv4?: string | null;
   tagline?: string | null;
   description?: string | null;
   logoUrl?: string | null;
@@ -154,6 +152,14 @@ export interface WhiteLabel {
   socialLinkedin?: string | null;
   socialTiktok?: string | null;
 
+  // Dedicated Cloud & Infrastructure Credentials
+  awsRegion?: string | null;
+  awsAccessKeyId?: string | null;
+  bucketName?: string | null;
+  senderEmail?: string | null;
+  cloudflareZoneId?: string | null;
+  cloudflareBaseDomain?: string | null;
+
   artists?: WhiteLabelTopArtist[];
   documents?: WhiteLabelDocument[];
   createdAt: string;
@@ -165,8 +171,19 @@ export interface WhiteLabelBranding {
   code: string;
   name: string;
   status: WhiteLabelStatus;
+  businessType?: WhiteLabelBusinessType | null;
+  companyWebsite?: string | null;
+  country?: string | null;
+  yearsInBusiness?: number | null;
+  isIncorporated?: boolean | null;
+  incorporationDocUrl?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+  contactEmail?: string | null;
+  contactLinkedIn?: string | null;
   subdomain?: string | null;
   customDomain?: string | null;
+  elasticIpv4?: string | null;
   tagline?: string | null;
   description?: string | null;
   logoUrl?: string | null;
@@ -185,6 +202,31 @@ export interface WhiteLabelBranding {
   socialFacebook?: string | null;
   socialLinkedin?: string | null;
   socialTiktok?: string | null;
+  cloudflareZoneId?: string | null;
+  cloudflareBaseDomain?: string | null;
+  hasCloudflareCredentials?: boolean;
+  expectedCustomDomain?: string | null;
+  awsInstanceId?: string | null;
+  awsElasticIp?: string | null;
+  awsInstanceType?: string | null;
+  awsInstanceState?: string | null;
+  s3BucketArn?: string | null;
+  bucketName?: string | null;
+  sesIdentityStatus?: string | null;
+  provisioningStatus?: ProvisioningStatus | null;
+  provisioningProgress?: number;
+  provisioningStep?: string | null;
+  provisionedAt?: string | null;
+  provisioningError?: string | null;
+  isSetupComplete?: boolean;
+  hasOwner?: boolean;
+  ownerCount?: number;
+  themeRadius?: string;
+  themeFont?: string;
+  themeMode?: string;
+  cardStyle?: string;
+  navbarStyle?: string;
+  userSignupModel?: WhiteLabelSignupModel;
 }
 
 export interface WhiteLabelTheme {
@@ -200,8 +242,18 @@ export interface WhiteLabelTheme {
 export interface WhiteLabelDomainStatus {
   verified: boolean;
   lastCheckedAt?: string | null;
-  sslStatus: "ACTIVE" | "PROVISIONING" | "NOT_CONFIGURED" | "PENDING_VERIFICATION" | "FAILED";
-  dnsStatus: "CONNECTED" | "PENDING_SETUP" | "PENDING_VERIFICATION" | "VERIFIED";
+  sslStatus:
+    | "ACTIVE"
+    | "PROVISIONING"
+    | "NOT_CONFIGURED"
+    | "PENDING_VERIFICATION"
+    | "FAILED";
+  dnsStatus:
+    | "CONNECTED"
+    | "PENDING_SETUP"
+    | "PENDING_VERIFICATION"
+    | "VERIFIED"
+    | "ACTIVE";
   diagnostic?: string;
 }
 
@@ -209,6 +261,7 @@ export interface WhiteLabelDomainConfig {
   subdomain?: string | null;
   platformSubdomainFqdn?: string | null;
   customDomain?: string | null;
+  elasticIpv4?: string | null;
   domainVerificationToken?: string | null;
   cnameHost: string;
   cnameTarget?: string;
@@ -217,6 +270,99 @@ export interface WhiteLabelDomainConfig {
   verified?: boolean;
   verifiedAt?: string | null;
   sslStatus?: string;
+  status?: WhiteLabelDomainStatus;
+  hasCloudflareCredentials?: boolean;
+  cloudflareBaseDomain?: string | null;
+  expectedCustomDomain?: string | null;
+  cloudflareZoneId?: string | null;
+  health?: DomainHealthReport | null;
+}
+
+export interface SubdomainHealthReport {
+  status: 'VERIFIED' | 'FAILED' | 'PENDING' | 'NOT_CONFIGURED';
+  subdomain: string;
+  fqdn: string;
+  isElasticIp: boolean;
+  elasticIpv4?: string | null;
+  expectedTarget: string;
+  actualTarget?: string | null;
+  recordType: 'A' | 'CNAME';
+  proxied?: boolean;
+  message: string;
+}
+
+export interface DomainHealthStep {
+  status: 'VERIFIED' | 'FAILED' | 'PENDING' | 'NOT_CONFIGURED';
+  title: string;
+  message: string;
+  details?: {
+    zoneId?: string;
+    zoneName?: string;
+    zoneStatus?: string;
+    hasDnsEditPermission?: boolean;
+    nameServers?: string[];
+    [key: string]: any;
+  };
+}
+
+export interface DomainHealthReport {
+  lastCheckedAt: string;
+  allConnected: boolean;
+  subdomain: SubdomainHealthReport;
+  step1: DomainHealthStep;
+  step2: DomainHealthStep & {
+    heldDomain?: string;
+    verificationToken?: string;
+    txtRecord?: {
+      host: string;
+      fqdn: string;
+      value: string;
+    };
+  };
+  step3: DomainHealthStep & {
+    cnameHost?: string;
+    cnameFqdn?: string;
+    target?: string;
+    proxied?: boolean;
+  };
+}
+
+export interface CloudflareInterconnectionResult {
+  success: boolean;
+  step: string;
+  message: string;
+  details?: {
+    zoneId?: string;
+    zoneName?: string;
+    zoneStatus?: string;
+    configuredBaseDomain?: string;
+    targetCustomDomain?: string;
+    hasDnsEditPermission?: boolean;
+    nameServers?: string[];
+  };
+}
+
+export interface DomainHoldResult {
+  success: boolean;
+  heldDomain?: string;
+  domainVerified?: boolean;
+  message: string;
+  verificationToken?: string;
+  txtRecord?: {
+    name: string;
+    fqdn: string;
+    value: string;
+  };
+}
+
+export interface DomainCnameResult {
+  success: boolean;
+  cnameHost?: string;
+  cnameFqdn?: string;
+  cnameTarget?: string;
+  proxied?: boolean;
+  recordId?: string;
+  message: string;
   status?: WhiteLabelDomainStatus;
 }
 
@@ -230,6 +376,22 @@ export interface WhiteLabelSsoConfig {
   githubClientSecretMasked: string;
   enforce2fa: boolean;
   sessionTimeoutHours: number;
+
+  // Dedicated Cloud & Infrastructure Credentials
+  awsRegion?: string;
+  awsAccessKeyId?: string;
+  awsSecretAccessKeyMasked?: string;
+  hasAwsSecretAccessKey?: boolean;
+  bucketName?: string;
+  senderEmail?: string;
+  databaseUrlMasked?: string;
+  hasDatabaseUrl?: boolean;
+  redisUrlMasked?: string;
+  hasRedisUrl?: boolean;
+  cloudflareApiTokenMasked?: string;
+  hasCloudflareApiToken?: boolean;
+  cloudflareZoneId?: string;
+  cloudflareBaseDomain?: string;
 }
 
 export interface WhiteLabelApiKey {
@@ -261,4 +423,42 @@ export interface WhiteLabelWebhookLog {
   responseSummary: string;
 }
 
+export enum ProvisioningStatus {
+  NOT_STARTED = "NOT_STARTED",
+  CREDENTIALS_VALIDATED = "CREDENTIALS_VALIDATED",
+  STORAGE_PROVISIONED = "STORAGE_PROVISIONED",
+  SES_CONFIGURED = "SES_CONFIGURED",
+  EC2_LAUNCHING = "EC2_LAUNCHING",
+  DNS_CONFIGURED = "DNS_CONFIGURED",
+  DEPLOYING_APPLICATION = "DEPLOYING_APPLICATION",
+  ACTIVE = "ACTIVE",
+  FAILED = "FAILED",
+}
+
+export interface ProvisioningLogEntry {
+  timestamp: string;
+  step: string;
+  message: string;
+  status: "INFO" | "SUCCESS" | "WARN" | "ERROR";
+}
+
+export interface WhiteLabelProvisioningTelemetry {
+  id: string;
+  code: string;
+  name: string;
+  customDomain?: string | null;
+  awsInstanceId?: string | null;
+  awsElasticIp?: string | null;
+  awsInstanceType?: string | null;
+  awsInstanceState?: string | null;
+  s3CorsConfigured?: boolean;
+  bucketName?: string | null;
+  sesIdentityStatus?: string | null;
+  provisioningStatus: ProvisioningStatus;
+  provisioningProgress: number;
+  provisioningStep?: string | null;
+  provisioningLogs?: ProvisioningLogEntry[] | null;
+  provisionedAt?: string | null;
+  provisioningError?: string | null;
+}
 

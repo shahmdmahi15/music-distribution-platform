@@ -90,8 +90,12 @@ export function AdminSidebarFooter({ user }: { user: User }) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold text-foreground">{name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{email}</span>
+                    <span className="truncate font-semibold text-foreground">
+                      {name}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {email}
+                    </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
@@ -114,7 +118,9 @@ export function AdminSidebarFooter({ user }: { user: User }) {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate font-bold text-foreground">{name}</span>
+                        <span className="truncate font-bold text-foreground">
+                          {name}
+                        </span>
                         {code && (
                           <Badge
                             variant="outline"
@@ -124,7 +130,9 @@ export function AdminSidebarFooter({ user }: { user: User }) {
                           </Badge>
                         )}
                       </div>
-                      <span className="truncate text-xs text-muted-foreground">{email}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {email}
+                      </span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
@@ -134,8 +142,13 @@ export function AdminSidebarFooter({ user }: { user: User }) {
 
               <DropdownMenuGroup>
                 <div className="px-2 py-1.5 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-medium">Role</span>
-                  <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider py-0 px-2">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Role
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] font-bold uppercase tracking-wider py-0 px-2"
+                  >
                     {role}
                   </Badge>
                 </div>
@@ -144,11 +157,17 @@ export function AdminSidebarFooter({ user }: { user: User }) {
               <DropdownMenuSeparator />
 
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => router.push("/admin/profile")} className="cursor-pointer text-xs">
+                <DropdownMenuItem
+                  onClick={() => router.push("/admin/profile")}
+                  className="cursor-pointer text-xs"
+                >
                   <UserPen className="h-3.5 w-3.5" />
                   Profile & Security
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/sessions")} className="cursor-pointer text-xs">
+                <DropdownMenuItem
+                  onClick={() => router.push("/admin/sessions")}
+                  className="cursor-pointer text-xs"
+                >
                   <ShieldPlus className="h-3.5 w-3.5" />
                   Active Sessions
                 </DropdownMenuItem>
@@ -180,7 +199,8 @@ export function AdminSidebarFooter({ user }: { user: User }) {
             </AlertDialogMedia>
             <AlertDialogTitle>Ready to log out?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will end your current session. You can log back in at any time.
+              This action will end your current session. You can log back in at
+              any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

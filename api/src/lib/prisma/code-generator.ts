@@ -49,14 +49,40 @@ export async function generateUniqueCode(
   modelName: CodeModel,
   prefix: CodePrefix,
 ): Promise<string> {
-  const result = await prisma.$queryRaw<{ nextval: bigint }[]>`
-    SELECT nextval(${CODE_SEQUENCES[modelName]}::regclass) AS nextval
-  `;
+  const seqName = CODE_SEQUENCES[modelName];
+  try {
+    const result = await prisma.$queryRaw<{ nextval: bigint }[]>`
+      SELECT nextval(${seqName}::regclass) AS nextval
+    `;
 
-  const next = result[0]?.nextval;
-  if (next === undefined) {
-    throw new Error(`Sequence for ${modelName} returned no value`);
+    const next = result[0]?.nextval;
+    if (next === undefined) {
+      throw new Error(`Sequence for ${modelName} returned no value`);
+    }
+
+    return `${prefix}${String(next).padStart(7, '0')}`;
+  } catch (error: any) {
+    // 42P01: relation does not exist / TableDoesNotExist
+    const isMissingRelation =
+      error?.code === '42P01' ||
+      error?.meta?.cause?.originalCode === '42P01' ||
+      String(error?.message || '').includes('does not exist');
+
+    if (isMissingRelation) {
+      await prisma.$executeRawUnsafe(
+        `CREATE SEQUENCE IF NOT EXISTS "${seqName}" START 1;`,
+      );
+
+      const retryResult = await prisma.$queryRaw<{ nextval: bigint }[]>`
+        SELECT nextval(${seqName}::regclass) AS nextval
+      `;
+
+      const next = retryResult[0]?.nextval;
+      if (next !== undefined) {
+        return `${prefix}${String(next).padStart(7, '0')}`;
+      }
+    }
+
+    throw error;
   }
-
-  return `${prefix}${String(next).padStart(7, '0')}`;
 }

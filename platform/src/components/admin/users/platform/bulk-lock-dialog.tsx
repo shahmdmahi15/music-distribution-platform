@@ -88,7 +88,8 @@ export function BulkLockDialog({
             </DialogTitle>
           </div>
           <DialogDescription>
-            Locking will instantly terminate active sessions for all {userIds.length} selected user(s) and prevent them from signing in.
+            Locking will instantly terminate active sessions for all{" "}
+            {userIds.length} selected user(s) and prevent them from signing in.
           </DialogDescription>
         </DialogHeader>
 
@@ -96,7 +97,8 @@ export function BulkLockDialog({
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 flex items-start gap-3 text-xs text-rose-700 dark:text-rose-300">
             <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
             <span>
-              Your own account and other owner accounts (if you are not an owner) are automatically protected from bulk locking.
+              Your own account and other owner accounts (if you are not an
+              owner) are automatically protected from bulk locking.
             </span>
           </div>
 
@@ -121,7 +123,9 @@ export function BulkLockDialog({
                 <SelectItem value="1440">24 Hours (1 Day)</SelectItem>
                 <SelectItem value="10080">7 Days (1 Week)</SelectItem>
                 <SelectItem value="43200">30 Days (1 Month)</SelectItem>
-                <SelectItem value="permanent">Indefinite / Permanent</SelectItem>
+                <SelectItem value="permanent">
+                  Indefinite / Permanent
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

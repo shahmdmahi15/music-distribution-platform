@@ -7,7 +7,10 @@ import {
   PlatformUsersStats as StatsType,
 } from "@/types/platform-user";
 import { Role } from "@/types/user";
-import { PlatformUsersStats, PlatformUsersRoleBadges } from "./platform-users-stats";
+import {
+  PlatformUsersStats,
+  PlatformUsersRoleBadges,
+} from "./platform-users-stats";
 import { PlatformUsersFilterBar } from "./platform-users-filter-bar";
 import { PlatformUsersTable } from "./platform-users-table";
 import { CreatePlatformUserDialog } from "./create-platform-user-dialog";

@@ -52,7 +52,8 @@ export async function adminActivateWhiteLabelAction(id: string): Promise<{
       });
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to activate WhiteLabel.",
+        message:
+          error.response?.data?.message || "Failed to activate WhiteLabel.",
       };
     }
     return {

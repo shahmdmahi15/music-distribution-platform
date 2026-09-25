@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import {
-  generateUniqueCode,
-  CodePrefix,
-} from 'src/lib/prisma/code-generator';
+import { generateUniqueCode, CodePrefix } from 'src/lib/prisma/code-generator';
 import {
   AdminWhiteLabelQueryDto,
   SortOrder,
@@ -69,7 +66,8 @@ export class AdminWhitelabelService {
     ).split(':');
 
     const orderBy: Prisma.WhiteLabelOrderByWithRelationInput = {
-      [field]: order === SortOrder.ASC ? Prisma.SortOrder.asc : Prisma.SortOrder.desc,
+      [field]:
+        order === SortOrder.ASC ? Prisma.SortOrder.asc : Prisma.SortOrder.desc,
     };
 
     const [items, total, statusGroups] = await Promise.all([
@@ -112,10 +110,31 @@ export class AdminWhitelabelService {
     const statusCount = (status: WhiteLabelStatus) =>
       statusGroups.find((group) => group.status === status)?._count._all ?? 0;
 
+    const itemsWithUrls = await Promise.all(
+      items.map(async (wl) => {
+        if (!wl.documents || wl.documents.length === 0) return wl;
+        const docsWithUrls = await Promise.all(
+          wl.documents.map(async (doc) => ({
+            ...doc,
+            fileUrl: doc.fileKey
+              ? await this.storageService.getPresignedUrl(
+                  doc.fileKey,
+                  3600 * 24,
+                )
+              : null,
+          })),
+        );
+        return {
+          ...wl,
+          documents: docsWithUrls,
+        };
+      }),
+    );
+
     return {
       success: true,
       message: 'WhiteLabels fetched successfully.',
-      items,
+      items: itemsWithUrls,
       pagination: {
         total,
         page,
@@ -126,8 +145,12 @@ export class AdminWhitelabelService {
         all: total,
         pending: statusCount(WhiteLabelStatus.PENDING),
         underReview: statusCount(WhiteLabelStatus.UNDER_REVIEW),
-        approved: statusCount(WhiteLabelStatus.APPROVED),
+        processing: statusCount(WhiteLabelStatus.PROCESSING),
+        contracted: statusCount(WhiteLabelStatus.CONTRACTED),
+        paid: statusCount(WhiteLabelStatus.PAID),
+        active: statusCount(WhiteLabelStatus.ACTIVE),
         rejected: statusCount(WhiteLabelStatus.REJECTED),
+        suspended: statusCount(WhiteLabelStatus.SUSPENDED),
       },
     };
   }
@@ -191,6 +214,18 @@ export class AdminWhitelabelService {
       throw new NotFoundException('WhiteLabel not found.');
     }
 
+    if (whiteLabel.documents && whiteLabel.documents.length > 0) {
+      const docsWithUrls = await Promise.all(
+        whiteLabel.documents.map(async (doc) => ({
+          ...doc,
+          fileUrl: doc.fileKey
+            ? await this.storageService.getPresignedUrl(doc.fileKey, 3600 * 24)
+            : null,
+        })),
+      );
+      (whiteLabel as any).documents = docsWithUrls;
+    }
+
     return {
       success: true,
       message: 'WhiteLabel details fetched successfully.',
@@ -205,17 +240,13 @@ export class AdminWhitelabelService {
     UNDER_REVIEW: ['PROCESSING', 'REJECTED'],
     PROCESSING: ['CONTRACTED', 'REJECTED'],
     CONTRACTED: ['PAID', 'REJECTED'],
-    PAID: ['ACTIVE', 'APPROVED'],
-    APPROVED: ['ACTIVE', 'SUSPENDED'],
+    PAID: ['ACTIVE'],
     ACTIVE: ['SUSPENDED'],
     SUSPENDED: ['ACTIVE'],
-    REJECTED: ['PENDING'],
+    REJECTED: ['PENDING', 'UNDER_REVIEW'],
   };
 
-  async updateStatus(
-    id: string,
-    dto: UpdateWhiteLabelStatusDto,
-  ) {
+  async updateStatus(id: string, dto: UpdateWhiteLabelStatusDto) {
     const existing = await this.prismaService.whiteLabel.findUnique({
       where: { id },
       include: {
@@ -237,10 +268,21 @@ export class AdminWhitelabelService {
     const currentStatus = existing.status as string;
     const targetStatus = dto.status as string;
 
-    const allowed = AdminWhitelabelService.VALID_STATUS_TRANSITIONS[currentStatus] || [];
+    const allowed =
+      AdminWhitelabelService.VALID_STATUS_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(targetStatus)) {
       throw new BadRequestException(
         `Invalid status transition from "${currentStatus}" to "${targetStatus}". The lifecycle must strictly follow: PENDING -> UNDER_REVIEW -> PROCESSING / REJECTED -> CONTRACTED -> PAID -> ACTIVE -> SUSPENDED.`,
+      );
+    }
+
+    // Guard: Declining requires a non-empty reason note to be communicated to the client
+    if (
+      targetStatus === 'REJECTED' &&
+      (!dto.statusReason || !dto.statusReason.trim())
+    ) {
+      throw new BadRequestException(
+        'A reason note is required when declining an application so the client understands why it was rejected.',
       );
     }
 
@@ -254,7 +296,8 @@ export class AdminWhitelabelService {
     // Guard: Advancing to PAID requires at least one completed payment record
     if (targetStatus === 'PAID') {
       const hasPayment =
-        existing.subscription?.payments && existing.subscription.payments.length > 0;
+        existing.subscription?.payments &&
+        existing.subscription.payments.length > 0;
       if (!hasPayment) {
         throw new BadRequestException(
           'Cannot advance to PAID before a payment record is registered in the system.',
@@ -264,9 +307,10 @@ export class AdminWhitelabelService {
 
     // Guard: Advancing to ACTIVE provisions Cloudflare DNS
     let cloudflareMessage = '';
-    if (targetStatus === 'ACTIVE' || targetStatus === 'APPROVED') {
+    if (targetStatus === 'ACTIVE') {
       const hasPayment =
-        existing.subscription?.payments && existing.subscription.payments.length > 0;
+        existing.subscription?.payments &&
+        existing.subscription.payments.length > 0;
       if (!hasPayment) {
         throw new BadRequestException(
           'Cannot activate WhiteLabel before payment is recorded and verified.',
@@ -274,7 +318,9 @@ export class AdminWhitelabelService {
       }
 
       if (existing.subdomain) {
-        const dnsResult = await this.cloudflareDnsService.provisionSubdomain(existing.subdomain);
+        const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
+          existing.subdomain,
+        );
         cloudflareMessage = ` (${dnsResult.message})`;
       }
     }
@@ -285,7 +331,7 @@ export class AdminWhitelabelService {
         status: dto.status,
         statusReason: dto.statusReason || null,
         reviewedAt: new Date(),
-        ...((dto.status === WhiteLabelStatus.ACTIVE || dto.status === WhiteLabelStatus.APPROVED) && {
+        ...(dto.status === WhiteLabelStatus.ACTIVE && {
           approvedAt: new Date(),
         }),
       },
@@ -318,7 +364,9 @@ export class AdminWhitelabelService {
     }
 
     if (file.mimetype !== 'application/pdf') {
-      throw new BadRequestException('Contract file must be a valid PDF document.');
+      throw new BadRequestException(
+        'Contract file must be a valid PDF document.',
+      );
     }
 
     const currentStatus = whiteLabel.status as string;
@@ -382,7 +430,9 @@ export class AdminWhitelabelService {
     }
 
     if (!whiteLabel.contractKey) {
-      throw new NotFoundException('No signed contract agreement has been uploaded for this WhiteLabel.');
+      throw new NotFoundException(
+        'No signed contract agreement has been uploaded for this WhiteLabel.',
+      );
     }
 
     const contractUrl = await this.storageService.getPresignedUrl(
@@ -427,20 +477,22 @@ export class AdminWhitelabelService {
       CodePrefix.PLATFORM_PAYMENT,
     );
 
-    const payment = await this.prismaService.platformSubscriptionPayment.create({
-      data: {
-        code: paymentCode,
-        amount: dto.amount,
-        discount: dto.discount ?? 0,
-        startsAt: new Date(dto.startsAt),
-        endsAt: new Date(dto.endsAt),
-        status: dto.status || PaymentStatus.COMPLETED,
-        paymentMethod: dto.paymentMethod || 'HAND_TO_HAND',
-        receiptReference: dto.receiptReference || null,
-        adminNotes: dto.adminNotes || null,
-        subscriptionId: whiteLabel.subscriptionId,
+    const payment = await this.prismaService.platformSubscriptionPayment.create(
+      {
+        data: {
+          code: paymentCode,
+          amount: dto.amount,
+          discount: dto.discount ?? 0,
+          startsAt: new Date(dto.startsAt),
+          endsAt: new Date(dto.endsAt),
+          status: dto.status || PaymentStatus.COMPLETED,
+          paymentMethod: dto.paymentMethod || 'HAND_TO_HAND',
+          receiptReference: dto.receiptReference || null,
+          adminNotes: dto.adminNotes || null,
+          subscriptionId: whiteLabel.subscriptionId,
+        },
       },
-    });
+    );
 
     // Advance WhiteLabel status to PAID
     const updated = await this.prismaService.whiteLabel.update({
@@ -453,7 +505,8 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: 'Payment recorded successfully. WhiteLabel status transitioned to PAID.',
+      message:
+        'Payment recorded successfully. WhiteLabel status transitioned to PAID.',
       payment,
       whiteLabel: updated,
     };
@@ -480,16 +533,16 @@ export class AdminWhitelabelService {
     }
 
     const currentStatus = whiteLabel.status as string;
-    if (
-      currentStatus !== WhiteLabelStatus.PAID &&
-      currentStatus !== WhiteLabelStatus.APPROVED
-    ) {
+    if (currentStatus !== WhiteLabelStatus.PAID) {
       throw new BadRequestException(
         `Cannot activate WhiteLabel in current state "${currentStatus}". WhiteLabel must be in PAID state with verified payment before activation.`,
       );
     }
 
-    if (!whiteLabel.subscription.payments || whiteLabel.subscription.payments.length === 0) {
+    if (
+      !whiteLabel.subscription.payments ||
+      whiteLabel.subscription.payments.length === 0
+    ) {
       throw new BadRequestException(
         'Cannot activate WhiteLabel without a recorded payment. Please record payment first.',
       );
@@ -498,7 +551,9 @@ export class AdminWhitelabelService {
     // Automate Cloudflare DNS provisioning for platform subdomain
     let cloudflareMessage = '';
     if (whiteLabel.subdomain) {
-      const dnsRes = await this.cloudflareDnsService.provisionSubdomain(whiteLabel.subdomain);
+      const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
+        whiteLabel.subdomain,
+      );
       cloudflareMessage = ` (${dnsRes.message})`;
     }
 
@@ -652,6 +707,33 @@ export class AdminWhitelabelService {
     return {
       success: true,
       documents: docsWithUrls,
+    };
+  }
+
+  async getDocumentPreview(documentId: string) {
+    const doc = await this.prismaService.whiteLabelDocument.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    if (!doc.fileKey) {
+      throw new BadRequestException('Document has no valid file key stored.');
+    }
+
+    const fileUrl = await this.storageService.getPresignedUrl(
+      doc.fileKey,
+      3600 * 24,
+    );
+
+    return {
+      success: true,
+      fileUrl,
+      name: doc.name,
+      mimeType: doc.mimeType,
+      fileSizeBytes: doc.fileSizeBytes,
     };
   }
 

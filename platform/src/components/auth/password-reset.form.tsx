@@ -25,7 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Lock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -81,21 +81,24 @@ export function PasswordResetForm({ token }: { token: string }) {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight">
-          Create new password
+    <Card className="glass-card shadow-2xl border-border/80 relative overflow-hidden bg-card/90 backdrop-blur-xl">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/25 text-primary mb-0.5 shadow-sm">
+          <Lock className="h-4.5 w-4.5" />
+        </div>
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight">
+          Set new password
         </CardTitle>
-        <CardDescription>
-          Enter your new password below to reset your password and secure your
-          account
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Create a strong, unique password to secure your account.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="password-reset-form"
                 onSubmit={(e) => {
@@ -104,7 +107,7 @@ export function PasswordResetForm({ token }: { token: string }) {
                   form.handleSubmit();
                 }}
               >
-                <FieldGroup className="gap-4">
+                <FieldGroup className="gap-2.5 sm:gap-3">
                   {/* Token Field (Hidden) */}
                   <form.Field name="token">
                     {(field) => {
@@ -144,11 +147,12 @@ export function PasswordResetForm({ token }: { token: string }) {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
                             New Password
                           </FieldLabel>
                           <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                             <Input
                               id={field.name}
                               name={field.name}
@@ -162,21 +166,21 @@ export function PasswordResetForm({ token }: { token: string }) {
                               autoComplete="new-password"
                               type={showPassword ? "text" : "password"}
                               disabled={isSubmitting}
-                              className="pr-10"
+                              className="pl-9 pr-9 h-8.5 sm:h-9 text-xs sm:text-sm"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
                               disabled={isSubmitting}
                               aria-label={
                                 showPassword ? "Hide password" : "Show password"
                               }
                             >
                               {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-3.5 w-3.5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3.5 w-3.5" />
                               )}
                             </button>
                           </div>
@@ -197,11 +201,12 @@ export function PasswordResetForm({ token }: { token: string }) {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
                             Confirm New Password
                           </FieldLabel>
                           <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                             <Input
                               id={field.name}
                               name={field.name}
@@ -215,14 +220,14 @@ export function PasswordResetForm({ token }: { token: string }) {
                               autoComplete="new-password"
                               type={showConfirmPassword ? "text" : "password"}
                               disabled={isSubmitting}
-                              className="pr-10"
+                              className="pl-9 pr-9 h-8.5 sm:h-9 text-xs sm:text-sm"
                             />
                             <button
                               type="button"
                               onClick={() =>
                                 setShowConfirmPassword(!showConfirmPassword)
                               }
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
                               disabled={isSubmitting}
                               aria-label={
                                 showConfirmPassword
@@ -231,9 +236,9 @@ export function PasswordResetForm({ token }: { token: string }) {
                               }
                             >
                               {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-3.5 w-3.5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3.5 w-3.5" />
                               )}
                             </button>
                           </div>
@@ -248,28 +253,29 @@ export function PasswordResetForm({ token }: { token: string }) {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="password-reset-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm active:scale-[0.98] font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Resetting Password...
                   </>
                 ) : (
-                  "Reset Password"
+                  "Update & Secure Password"
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="text-center text-xs text-muted-foreground">
                 <Link
                   href="/auth/login"
-                  className="text-primary hover:underline font-medium"
+                  className="text-primary hover:underline font-medium inline-flex items-center gap-1.5 text-[11px]"
                 >
+                  <ArrowLeft className="h-3 w-3" />
                   Back to Sign In
                 </Link>
               </div>

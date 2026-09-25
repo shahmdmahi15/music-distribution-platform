@@ -9,8 +9,21 @@ interface PageProps {
   searchParams: Promise<{
     search?: string;
     role?: Role;
-    status?: "ALL" | "ACTIVE" | "LOCKED" | "VERIFIED" | "UNVERIFIED" | "TWO_FACTOR_ENABLED" | "TWO_FACTOR_DISABLED";
-    sortBy?: "createdAt" | "updatedAt" | "lastLoginAt" | "email" | "firstName" | "role";
+    status?:
+      | "ALL"
+      | "ACTIVE"
+      | "LOCKED"
+      | "VERIFIED"
+      | "UNVERIFIED"
+      | "TWO_FACTOR_ENABLED"
+      | "TWO_FACTOR_DISABLED";
+    sortBy?:
+      | "createdAt"
+      | "updatedAt"
+      | "lastLoginAt"
+      | "email"
+      | "firstName"
+      | "role";
     sortOrder?: "asc" | "desc";
     page?: string;
     limit?: string;
@@ -46,7 +59,8 @@ export default async function AdminPlatformUsersPage({
             </h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Manage administrative operators, system staff, and direct client accounts.
+            Manage administrative operators, system staff, and direct client
+            accounts.
           </p>
         </div>
 
@@ -54,7 +68,8 @@ export default async function AdminPlatformUsersPage({
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Error Loading Platform Users</AlertTitle>
           <AlertDescription>
-            {usersRes.message || "Failed to load platform users. Please try again later."}
+            {usersRes.message ||
+              "Failed to load platform users. Please try again later."}
           </AlertDescription>
         </Alert>
       </div>
@@ -97,7 +112,9 @@ export default async function AdminPlatformUsersPage({
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          View, create, search, and manage platform administrator and client accounts. Enforce security policies, manage credentials, and control access permissions.
+          View, create, search, and manage platform administrator and client
+          accounts. Enforce security policies, manage credentials, and control
+          access permissions.
         </p>
       </div>
 

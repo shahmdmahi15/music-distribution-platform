@@ -5,7 +5,9 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { WhiteLabelBranding } from "@/types/whitelabel";
 
-export async function clientUpdateBrandingAction(dto: Partial<WhiteLabelBranding>): Promise<{
+export async function clientUpdateBrandingAction(
+  dto: Partial<WhiteLabelBranding>,
+): Promise<{
   success: boolean;
   message: string;
   branding?: WhiteLabelBranding;

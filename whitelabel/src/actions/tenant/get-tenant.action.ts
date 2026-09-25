@@ -29,7 +29,6 @@ export async function getTenantAction(): Promise<{
     apiKeyProvided: !!rawKey && rawKey.length > 5,
     maskedKey,
     apiBaseUrl: env.API_BASE_URL,
-    subdomainConfigured: env.DEFAULT_WHITELABEL_SUBDOMAIN || undefined,
   };
 
   try {

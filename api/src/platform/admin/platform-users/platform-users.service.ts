@@ -10,10 +10,7 @@ import * as argon2 from 'argon2';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
-import {
-  generateUniqueCode,
-  CodePrefix,
-} from 'src/lib/prisma/code-generator';
+import { generateUniqueCode, CodePrefix } from 'src/lib/prisma/code-generator';
 import { PlatformUserRole } from 'src/generated/prisma/enums';
 import { PlatformUser, Prisma } from 'src/generated/prisma/client';
 import {
@@ -226,7 +223,9 @@ export class PlatformUsersService {
         }),
       ]);
 
-    const sumWhere = (predicate: (row: (typeof verificationFlags)[number]) => boolean) =>
+    const sumWhere = (
+      predicate: (row: (typeof verificationFlags)[number]) => boolean,
+    ) =>
       verificationFlags
         .filter(predicate)
         .reduce((total, row) => total + row._count._all, 0);

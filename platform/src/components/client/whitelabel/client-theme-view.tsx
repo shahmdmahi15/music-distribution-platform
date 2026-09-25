@@ -13,18 +13,24 @@ import {
   Sun,
   Moon,
   Laptop,
-  Layers,
   Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { WhiteLabelTheme, WhiteLabelBranding } from "@/types/whitelabel";
 import { clientUpdateThemeAction } from "@/actions/client/whitelabel/client-theme.action";
 import { WhiteLabelSubNav } from "./whitelabel-subnav";
+import { cn } from "@/lib/utils";
 
 interface ClientThemeViewProps {
   initialTheme: WhiteLabelTheme;
@@ -47,9 +53,20 @@ const FONT_OPTIONS = [
   { id: "Geist", label: "Geist (Minimalist Precision)" },
 ];
 
-export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps) {
+export function ClientThemeView({
+  initialTheme,
+  branding,
+}: ClientThemeViewProps) {
   const [theme, setTheme] = useState<WhiteLabelTheme>(initialTheme);
   const [saving, setSaving] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"light" | "dark">(
+    initialTheme.mode === "light" ? "light" : "dark",
+  );
+
+  const activeLogoUrl =
+    previewMode === "dark"
+      ? branding.logoDarkUrl || branding.logoUrl
+      : branding.logoUrl || branding.logoDarkUrl;
 
   const handleSave = async () => {
     setSaving(true);
@@ -76,12 +93,50 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
   const radiusNumber = parseFloat(theme.radius) || 0.5;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <WhiteLabelSubNav
         tenantName={branding.name}
+        tenantCode={branding.code}
         subdomain={branding.subdomain}
         customDomain={branding.customDomain}
       />
+
+      {/* Top Actions & Notification Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/70 bg-card shadow-xs">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Palette className="h-4 w-4 text-primary" />
+            <span>Theme Customizer &amp; Styling</span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Customize your brand color palettes, typography, UI radius, and
+            light/dark modes.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            disabled={saving}
+            className="text-xs gap-1.5 h-9"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Reset</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSave}
+            disabled={saving}
+            className="text-xs font-semibold gap-1.5 h-9"
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>{saving ? "Saving Changes..." : "Save Changes"}</span>
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Controls Column (7 cols) */}
@@ -92,22 +147,30 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Palette className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base font-semibold">Color Themes & Palettes</CardTitle>
+                  <CardTitle className="text-base font-semibold">
+                    Color Themes & Palettes
+                  </CardTitle>
                 </div>
-                <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wider">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-medium uppercase tracking-wider"
+                >
                   Presets
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Pick a harmonious curated color palette or enter custom hex codes for your portal.
+                Pick a harmonious curated color palette or enter custom hex
+                codes for your portal.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {PRESET_PALETTES.map((preset) => {
                   const isSelected =
-                    theme.primaryColor.toLowerCase() === preset.primary.toLowerCase() &&
-                    theme.accentColor.toLowerCase() === preset.accent.toLowerCase();
+                    theme.primaryColor.toLowerCase() ===
+                      preset.primary.toLowerCase() &&
+                    theme.accentColor.toLowerCase() ===
+                      preset.accent.toLowerCase();
                   return (
                     <button
                       type="button"
@@ -149,20 +212,28 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
               {/* Custom Hex Inputs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Primary Brand Color</Label>
+                  <Label className="text-xs font-medium">
+                    Primary Brand Color
+                  </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={theme.primaryColor}
                       onChange={(e) =>
-                        setTheme((prev) => ({ ...prev, primaryColor: e.target.value }))
+                        setTheme((prev) => ({
+                          ...prev,
+                          primaryColor: e.target.value,
+                        }))
                       }
                       className="h-9 w-9 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
                     />
                     <Input
                       value={theme.primaryColor}
                       onChange={(e) =>
-                        setTheme((prev) => ({ ...prev, primaryColor: e.target.value }))
+                        setTheme((prev) => ({
+                          ...prev,
+                          primaryColor: e.target.value,
+                        }))
                       }
                       className="text-xs font-mono uppercase"
                       placeholder="#6366f1"
@@ -171,20 +242,28 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Accent / Highlight Color</Label>
+                  <Label className="text-xs font-medium">
+                    Accent / Highlight Color
+                  </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={theme.accentColor}
                       onChange={(e) =>
-                        setTheme((prev) => ({ ...prev, accentColor: e.target.value }))
+                        setTheme((prev) => ({
+                          ...prev,
+                          accentColor: e.target.value,
+                        }))
                       }
                       className="h-9 w-9 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
                     />
                     <Input
                       value={theme.accentColor}
                       onChange={(e) =>
-                        setTheme((prev) => ({ ...prev, accentColor: e.target.value }))
+                        setTheme((prev) => ({
+                          ...prev,
+                          accentColor: e.target.value,
+                        }))
                       }
                       className="text-xs font-mono uppercase"
                       placeholder="#ec4899"
@@ -200,24 +279,33 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Sliders className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base font-semibold">Border Radius & Geometry</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Border Radius & Geometry
+                </CardTitle>
               </div>
               <CardDescription className="text-xs">
-                Control the curvature of cards, inputs, buttons, and modal dialogs across your portal.
+                Control the curvature of cards, inputs, buttons, and modal
+                dialogs across your portal.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between text-xs font-medium">
                 <span className="text-muted-foreground">Curvature Scale</span>
-                <span className="font-mono text-primary font-bold">{theme.radius}</span>
+                <span className="font-mono text-primary font-bold">
+                  {theme.radius}
+                </span>
               </div>
               <Slider
                 value={[radiusNumber * 16]}
                 min={0}
                 max={20}
                 step={2}
-                onValueChange={(vals: any) => {
-                  const val = Array.isArray(vals) ? vals[0] : typeof vals === "number" ? vals : 8;
+                onValueChange={(vals: number | readonly number[]) => {
+                  const val = Array.isArray(vals)
+                    ? vals[0]
+                    : typeof vals === "number"
+                      ? vals
+                      : 8;
                   const rem = (val / 16).toFixed(2);
                   setTheme((prev) => ({ ...prev, radius: `${rem}rem` }));
                 }}
@@ -237,10 +325,13 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Type className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base font-semibold">Typography & Surface</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  Typography & Surface
+                </CardTitle>
               </div>
               <CardDescription className="text-xs">
-                Select your portal's typographic voice and visual backdrop elevation.
+                Select your portal&apos;s typographic voice and visual backdrop
+                elevation.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -251,7 +342,9 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => setTheme((prev) => ({ ...prev, fontFamily: f.id }))}
+                      onClick={() =>
+                        setTheme((prev) => ({ ...prev, fontFamily: f.id }))
+                      }
                       className={`px-3 py-2.5 rounded-lg border text-left text-xs transition-all ${
                         theme.fontFamily === f.id
                           ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/20"
@@ -279,9 +372,15 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                         <button
                           key={m.id}
                           type="button"
-                          onClick={() =>
-                            setTheme((prev) => ({ ...prev, mode: m.id as any }))
-                          }
+                          onClick={() => {
+                            setTheme((prev) => ({
+                              ...prev,
+                              mode: m.id as "light" | "dark" | "system",
+                            }));
+                            if (m.id === "light" || m.id === "dark") {
+                              setPreviewMode(m.id);
+                            }
+                          }}
                           className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs transition-all ${
                             isSel
                               ? "border-primary bg-primary/10 text-primary font-semibold"
@@ -298,16 +397,22 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Card Finish</Label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {[
-                      { id: "modern", label: "Glass" },
+                      { id: "modern", label: "Modern" },
+                      { id: "glass", label: "Glass" },
+                      { id: "flat", label: "Flat" },
                       { id: "bordered", label: "Bordered" },
                     ].map((c) => (
                       <button
                         key={c.id}
                         type="button"
                         onClick={() =>
-                          setTheme((prev) => ({ ...prev, cardStyle: c.id as any }))
+                          setTheme((prev) => ({
+                            ...prev,
+                            cardStyle: c.id as
+                              "modern" | "glass" | "flat" | "bordered",
+                          }))
                         }
                         className={`py-2 rounded-lg border text-xs text-center transition-all ${
                           theme.cardStyle === c.id
@@ -320,34 +425,40 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                     ))}
                   </div>
                 </div>
+
+                <div className="space-y-1.5 sm:col-span-2 pt-2 border-t border-border/60">
+                  <Label className="text-xs font-medium">
+                    Navigation Bar Style
+                  </Label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: "glass", label: "Glassmorphism" },
+                      { id: "solid", label: "Solid Color" },
+                      { id: "floating", label: "Floating Nav" },
+                    ].map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() =>
+                          setTheme((prev) => ({
+                            ...prev,
+                            navbarStyle: n.id as "solid" | "glass" | "floating",
+                          }))
+                        }
+                        className={`py-2 rounded-lg border text-xs text-center transition-all ${
+                          theme.navbarStyle === n.id
+                            ? "border-primary bg-primary/10 text-primary font-semibold"
+                            : "border-border hover:bg-muted/40 text-muted-foreground"
+                        }`}
+                      >
+                        {n.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Action Footer */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              disabled={saving}
-              className="text-xs gap-1.5"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Reset</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving}
-              className="text-xs gap-1.5 font-semibold"
-            >
-              <Save className="h-3.5 w-3.5" />
-              <span>{saving ? "Saving Changes..." : "Publish Theme"}</span>
-            </Button>
-          </div>
         </div>
 
         {/* Live Preview Column (5 cols) */}
@@ -358,74 +469,180 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Eye className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-sm font-semibold">Live Portal Mockup</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      Live Portal Mockup
+                    </CardTitle>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] font-mono"
-                    style={{ borderColor: theme.primaryColor, color: theme.primaryColor }}
-                  >
-                    Interactive
-                  </Badge>
+                  <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border/60 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode("light")}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 transition-all",
+                        previewMode === "light"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      title="Preview in Light Theme"
+                    >
+                      <Sun className="h-2.5 w-2.5" />
+                      <span>Light</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode("dark")}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1 transition-all",
+                        previewMode === "dark"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      title="Preview in Dark Theme"
+                    >
+                      <Moon className="h-2.5 w-2.5" />
+                      <span>Dark</span>
+                    </button>
+                  </div>
                 </div>
                 <CardDescription className="text-xs">
-                  Real-time preview of how your WhiteLabel portal will look to your artists and partners.
+                  Real-time preview of your brand logos, colors, and curvature in{" "}
+                  <strong className="text-foreground capitalize">{previewMode} Mode</strong>.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
-                {/* Mock Portal Container */}
+                {/* Mock Portal Container with Browser Chrome */}
                 <div
-                  className="p-4 rounded-xl border transition-all duration-200"
+                  className="rounded-xl border shadow-sm transition-all duration-200 overflow-hidden"
                   style={{
-                    backgroundColor: theme.mode === "light" ? "#ffffff" : "#090d16",
+                    backgroundColor:
+                      previewMode === "light" ? "#ffffff" : "#090d16",
                     borderColor: `${theme.primaryColor}33`,
                     borderRadius: theme.radius,
                   }}
                 >
-                  {/* Mock Navbar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-border/40">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-6 w-6 rounded-md flex items-center justify-center font-bold text-white text-[11px] shadow-sm"
-                        style={{
-                          backgroundColor: theme.primaryColor,
-                          borderRadius: theme.radius,
-                        }}
-                      >
-                        {branding.name?.slice(0, 1) || "W"}
-                      </div>
-                      <span className="text-xs font-bold text-foreground">
-                        {branding.name || "My Music Label"}
+                  {/* Browser Chrome Header with Favicon */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b border-border/40 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-rose-500/70" />
+                      <div className="w-2 h-2 rounded-full bg-amber-500/70" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500/70" />
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-background/80 border border-border/40 text-[10px] font-mono text-foreground truncate max-w-[200px]">
+                      {branding.faviconUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={branding.faviconUrl}
+                          alt="Favicon"
+                          className="h-2.5 w-2.5 object-contain"
+                        />
+                      ) : (
+                        <div
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: theme.primaryColor }}
+                        />
+                      )}
+                      <span className="truncate">
+                        {branding.customDomain ||
+                          (branding.subdomain
+                            ? `${branding.subdomain}.yourmusicportal.com`
+                            : "portal.yourbrand.com")}
                       </span>
                     </div>
-                    <div
-                      className="px-2 py-0.5 text-[10px] font-medium rounded-full"
-                      style={{
-                        backgroundColor: `${theme.accentColor}20`,
-                        color: theme.accentColor,
-                      }}
-                    >
-                      Portal
-                    </div>
+                    <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                      {previewMode}
+                    </span>
                   </div>
 
-                  {/* Mock Dashboard Widget */}
-                  <div className="mt-4 space-y-3">
+                  <div className="p-3.5 space-y-3">
+                    {/* Mock Hero Banner if uploaded */}
+                    {branding.bannerUrl && (
+                      <div
+                        className="h-14 w-full rounded-md overflow-hidden border border-border/30 relative"
+                        style={{ borderRadius: `calc(${theme.radius} * 0.75)` }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */ }
+                        <img
+                          src={branding.bannerUrl}
+                          alt="Hero Banner"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Mock Navbar with Dual-Theme Brand Logo */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-border/30">
+                      <div className="flex items-center gap-2">
+                        {activeLogoUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={activeLogoUrl}
+                            alt={branding.name || "Brand Logo"}
+                            className="h-6 w-auto max-h-6 object-contain rounded"
+                          />
+                        ) : (
+                          <div
+                            className="h-6 w-6 rounded-md flex items-center justify-center font-bold text-white text-[10px] shadow-xs"
+                            style={{
+                              backgroundColor: theme.primaryColor,
+                              borderRadius: `calc(${theme.radius} * 0.75)`,
+                            }}
+                          >
+                            {branding.name?.slice(0, 1) || "W"}
+                          </div>
+                        )}
+                        <span
+                          className="text-xs font-bold truncate max-w-[130px]"
+                          style={{
+                            color:
+                              previewMode === "light" ? "#0f172a" : "#f8fafc",
+                          }}
+                        >
+                          {branding.name || "My Music Label"}
+                        </span>
+                      </div>
+                      <div
+                        className="px-2 py-0.5 text-[9px] font-medium rounded-full"
+                        style={{
+                          backgroundColor: `${theme.accentColor}20`,
+                          color: theme.accentColor,
+                        }}
+                      >
+                        Portal
+                      </div>
+                    </div>
+
+                    {/* Mock Dashboard Widget */}
                     <div
                       className="p-3 border transition-all"
                       style={{
-                        backgroundColor: theme.mode === "light" ? "#f8fafc" : "#111827",
-                        borderRadius: theme.radius,
+                        backgroundColor:
+                          previewMode === "light" ? "#f8fafc" : "#111827",
+                        borderRadius: `calc(${theme.radius} * 0.75)`,
                         borderColor: `${theme.primaryColor}22`,
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground font-medium">
+                        <span
+                          className="text-[10px] font-medium"
+                          style={{
+                            color:
+                              previewMode === "light" ? "#64748b" : "#94a3b8",
+                          }}
+                        >
                           Monthly Streams
                         </span>
-                        <Sparkles className="h-3 w-3" style={{ color: theme.accentColor }} />
+                        <Sparkles
+                          className="h-3 w-3"
+                          style={{ color: theme.accentColor }}
+                        />
                       </div>
-                      <div className="text-lg font-bold mt-1 text-foreground">
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{
+                          color:
+                            previewMode === "light" ? "#0f172a" : "#f8fafc",
+                        }}
+                      >
                         2,840,192
                       </div>
                       <div
@@ -437,24 +654,24 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                     </div>
 
                     {/* Mock Buttons */}
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-0.5">
                       <button
                         type="button"
-                        className="flex-1 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:opacity-95"
+                        className="flex-1 py-1 text-[11px] font-semibold text-white shadow-xs transition-all hover:opacity-95"
                         style={{
                           backgroundColor: theme.primaryColor,
-                          borderRadius: theme.radius,
+                          borderRadius: `calc(${theme.radius} * 0.75)`,
                         }}
                       >
                         Upload Release
                       </button>
                       <button
                         type="button"
-                        className="px-3 py-1.5 text-xs font-semibold border transition-all"
+                        className="px-2.5 py-1 text-[11px] font-semibold border transition-all"
                         style={{
                           borderColor: `${theme.accentColor}66`,
                           color: theme.accentColor,
-                          borderRadius: theme.radius,
+                          borderRadius: `calc(${theme.radius} * 0.75)`,
                         }}
                       >
                         Analytics
@@ -462,46 +679,96 @@ export function ClientThemeView({ initialTheme, branding }: ClientThemeViewProps
                     </div>
 
                     {/* Mock Input */}
-                    <div className="pt-2">
+                    <div className="pt-0.5">
                       <div
-                        className="w-full px-2.5 py-1.5 text-[11px] border text-muted-foreground"
+                        className="w-full px-2.5 py-1 text-[10px] border truncate"
                         style={{
-                          borderRadius: theme.radius,
-                          backgroundColor: theme.mode === "light" ? "#f1f5f9" : "#1e293b",
-                          borderColor: "rgba(255,255,255,0.1)",
+                          borderRadius: `calc(${theme.radius} * 0.75)`,
+                          backgroundColor:
+                            previewMode === "light" ? "#f1f5f9" : "#1e293b",
+                          borderColor:
+                            previewMode === "light"
+                              ? "#e2e8f0"
+                              : "rgba(255,255,255,0.1)",
+                          color:
+                            previewMode === "light" ? "#64748b" : "#94a3b8",
                         }}
                       >
-                        search catalog...
+                        Search catalog &amp; artists...
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Color Scheme Summary */}
-                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border/50 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: theme.primaryColor }}
-                    />
-                    <span className="font-mono text-[11px] text-foreground">
-                      {theme.primaryColor}
+                {/* Dual-Theme Asset Status & Color Summary */}
+                <div className="space-y-2 p-2.5 rounded-lg bg-muted/40 border border-border/50 text-xs">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Active Logo Asset:</span>
+                    <span className="font-semibold text-foreground">
+                      {previewMode === "dark"
+                        ? branding.logoDarkUrl
+                          ? "Dark Mode Logo (Uploaded)"
+                          : branding.logoUrl
+                            ? "Primary Logo (Light fallback)"
+                            : "Brand Initials (No logo)"
+                        : branding.logoUrl
+                          ? "Primary Light Logo (Uploaded)"
+                          : branding.logoDarkUrl
+                            ? "Dark Logo (Fallback)"
+                            : "Brand Initials (No logo)"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: theme.accentColor }}
-                    />
-                    <span className="font-mono text-[11px] text-foreground">
-                      {theme.accentColor}
-                    </span>
+
+                  <div className="flex items-center justify-between pt-1.5 border-t border-border/40 text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="h-3 w-3 rounded-full shadow-inner"
+                        style={{ backgroundColor: theme.primaryColor }}
+                      />
+                      <span className="font-mono text-[10px]">
+                        {theme.primaryColor}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="h-3 w-3 rounded-full shadow-inner"
+                        style={{ backgroundColor: theme.accentColor }}
+                      />
+                      <span className="font-mono text-[10px]">
+                        {theme.accentColor}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
+
+      {/* Action Footer */}
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+          disabled={saving}
+          className="text-xs gap-1.5 h-9"
+        >
+          <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>Reset</span>
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleSave}
+          disabled={saving}
+          className="text-xs gap-1.5 font-semibold h-9"
+        >
+          <Save className="h-3.5 w-3.5" />
+          <span>{saving ? "Saving Changes..." : "Save Changes"}</span>
+        </Button>
       </div>
     </div>
   );

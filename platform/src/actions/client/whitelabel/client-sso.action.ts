@@ -50,6 +50,10 @@ export async function clientUpdateSsoAction(
   dto: Partial<WhiteLabelSsoConfig> & {
     googleClientSecret?: string;
     githubClientSecret?: string;
+    awsSecretAccessKey?: string;
+    databaseUrl?: string;
+    redisUrl?: string;
+    cloudflareApiToken?: string;
   },
 ): Promise<{
   success: boolean;
@@ -95,6 +99,54 @@ export async function clientUpdateSsoAction(
     return {
       success: false,
       message: "An error occurred while updating SSO credentials.",
+    };
+  }
+}
+
+export async function clientTestCredentialsAction(
+  type: "aws_s3" | "aws_ses" | "database" | "redis" | "cloudflare",
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+
+  if (!sessionToken) {
+    return { success: false, message: "Session token not found." };
+  }
+
+  try {
+    const response = await fetch(
+      `${env.API_BASE_URL}/platform/client/whitelabel/credentials/test`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          "x-api-key": env.API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type }),
+      },
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || `Test failed for ${type}.`,
+      };
+    }
+
+    return {
+      success: data.success ?? true,
+      message: data.message || `Test completed successfully for ${type}.`,
+    };
+  } catch (error) {
+    console.error("[Action.Client.WhiteLabel.TestCredentials] Error:", error);
+    return {
+      success: false,
+      message: "An error occurred while verifying credentials.",
     };
   }
 }

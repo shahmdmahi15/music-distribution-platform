@@ -7,7 +7,7 @@ import axios from "axios";
 export async function registerAction(input: RegisterInput): Promise<{
   success: boolean;
   message: string;
-  user?: any;
+  user?: unknown;
 }> {
   try {
     const validate = await registerSchema.safeParseAsync(input);
@@ -38,7 +38,8 @@ export async function registerAction(input: RegisterInput): Promise<{
       return {
         success: false,
         message:
-          error.response?.data?.message || "Registration could not be completed.",
+          error.response?.data?.message ||
+          "Registration could not be completed.",
       };
     }
     console.error("[Whitelabel.RegisterAction]:", error);

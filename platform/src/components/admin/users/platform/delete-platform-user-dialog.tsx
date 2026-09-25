@@ -41,7 +41,9 @@ export function DeletePlatformUserDialog({
 
   const handleDelete = async () => {
     if (isSelf) {
-      toast.error("You cannot delete your own account from the user management panel.");
+      toast.error(
+        "You cannot delete your own account from the user management panel.",
+      );
       return;
     }
 
@@ -72,10 +74,14 @@ export function DeletePlatformUserDialog({
         <AlertDialogHeader>
           <div className="flex items-center gap-2 text-destructive mb-1">
             <Trash2 className="h-5 w-5" />
-            <AlertDialogTitle className="text-xl">Delete Platform User</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl">
+              Delete Platform User
+            </AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            This action is permanent and cannot be undone. All active sessions, linked OAuth accounts, and associations for this user will be deleted.
+            This action is permanent and cannot be undone. All active sessions,
+            linked OAuth accounts, and associations for this user will be
+            deleted.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -86,13 +92,17 @@ export function DeletePlatformUserDialog({
               <p className="font-semibold">
                 You are about to delete: {user.firstName} {user.lastName}
               </p>
-              <p className="text-muted-foreground mt-0.5">Email: {user.email}</p>
+              <p className="text-muted-foreground mt-0.5">
+                Email: {user.email}
+              </p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              Type <span className="font-mono text-destructive">{user.email}</span> to confirm:
+              Type{" "}
+              <span className="font-mono text-destructive">{user.email}</span>{" "}
+              to confirm:
             </label>
             <Input
               value={confirmText}

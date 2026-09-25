@@ -8,7 +8,6 @@ import {
   Clock,
   Disc3,
   Eye,
-  Play,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -26,7 +25,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
 import { AdminWhiteLabelDetailsDialog } from "./admin-whitelabel-details-sheet";
-import { adminActivateWhiteLabelAction } from "@/actions/admin/whitelabel/admin-activate-whitelabel.action";
 
 interface AdminWhiteLabelsTableProps {
   initialData: {
@@ -41,19 +39,34 @@ interface AdminWhiteLabelsTableProps {
       all: number;
       pending: number;
       underReview: number;
-      approved: number;
+      processing?: number;
+      contracted?: number;
+      paid?: number;
+      active: number;
       rejected: number;
+      suspended?: number;
     };
   };
 }
 
-export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProps) {
+export function AdminWhiteLabelsTable({
+  initialData,
+}: AdminWhiteLabelsTableProps) {
   const router = useRouter();
   const [items, setItems] = useState<WhiteLabel[]>(initialData.items || []);
-  const [counts, setCounts] = useState(initialData.counts || { all: 0, pending: 0, underReview: 0, approved: 0, rejected: 0 });
+  const [counts, setCounts] = useState(
+    initialData.counts || {
+      all: 0,
+      pending: 0,
+      underReview: 0,
+      active: 0,
+      rejected: 0,
+    },
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedWhiteLabel, setSelectedWhiteLabel] = useState<WhiteLabel | null>(null);
+  const [selectedWhiteLabel, setSelectedWhiteLabel] =
+    useState<WhiteLabel | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [prevInitialData, setPrevInitialData] = useState(initialData);
@@ -65,7 +78,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
         all: 0,
         pending: 0,
         underReview: 0,
-        approved: 0,
+        active: 0,
         rejected: 0,
       },
     );
@@ -86,21 +99,6 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
     }, 600);
   };
 
-  const handleQuickActivate = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    try {
-      const res = await adminActivateWhiteLabelAction(id);
-      if (res.success) {
-        toast.success(res.message);
-        router.refresh();
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error("Failed to activate WhiteLabel.");
-    }
-  };
-
   const filteredItems = items.filter((item) => {
     if (statusFilter !== "all" && item.status !== statusFilter) {
       return false;
@@ -118,12 +116,23 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
     return true;
   });
 
-  const statusBadges = {
-    [WhiteLabelStatus.PENDING]: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    [WhiteLabelStatus.UNDER_REVIEW]: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    [WhiteLabelStatus.APPROVED]: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    [WhiteLabelStatus.REJECTED]: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-    [WhiteLabelStatus.SUSPENDED]: "bg-destructive/10 text-destructive border-destructive/30",
+  const statusBadges: Record<WhiteLabelStatus, string> = {
+    [WhiteLabelStatus.PENDING]:
+      "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    [WhiteLabelStatus.UNDER_REVIEW]:
+      "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    [WhiteLabelStatus.PROCESSING]:
+      "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+    [WhiteLabelStatus.CONTRACTED]:
+      "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    [WhiteLabelStatus.PAID]:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    [WhiteLabelStatus.ACTIVE]:
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    [WhiteLabelStatus.REJECTED]:
+      "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+    [WhiteLabelStatus.SUSPENDED]:
+      "bg-destructive/10 text-destructive border-destructive/30",
   };
 
   return (
@@ -146,7 +155,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
               <div className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 {counts.all}
               </div>
-              <span className="text-[10px] text-muted-foreground">All time applications</span>
+              <span className="text-[10px] text-muted-foreground">
+                All time applications
+              </span>
             </div>
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
               <Disc3 className="h-5 w-5" />
@@ -207,9 +218,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
         </Card>
 
         <Card
-          onClick={() => setStatusFilter(WhiteLabelStatus.APPROVED)}
+          onClick={() => setStatusFilter(WhiteLabelStatus.ACTIVE)}
           className={`glass-card cursor-pointer border-border/80 transition-all ${
-            statusFilter === WhiteLabelStatus.APPROVED
+            statusFilter === WhiteLabelStatus.ACTIVE
               ? "ring-2 ring-emerald-500/40 shadow-sm"
               : "hover:border-border"
           }`}
@@ -220,7 +231,7 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                 Active Partners
               </span>
               <div className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                {counts.approved}
+                {counts.active}
               </div>
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                 Live distribution tenants
@@ -254,7 +265,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
             disabled={isRefreshing}
             className="h-9 text-xs gap-1.5 rounded-lg"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -271,7 +284,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
           All ({counts.all})
         </Button>
         <Button
-          variant={statusFilter === WhiteLabelStatus.PENDING ? "default" : "outline"}
+          variant={
+            statusFilter === WhiteLabelStatus.PENDING ? "default" : "outline"
+          }
           size="sm"
           onClick={() => setStatusFilter(WhiteLabelStatus.PENDING)}
           className={`h-7 text-xs rounded-full px-3 ${
@@ -283,7 +298,11 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
           Pending ({counts.pending})
         </Button>
         <Button
-          variant={statusFilter === WhiteLabelStatus.UNDER_REVIEW ? "default" : "outline"}
+          variant={
+            statusFilter === WhiteLabelStatus.UNDER_REVIEW
+              ? "default"
+              : "outline"
+          }
           size="sm"
           onClick={() => setStatusFilter(WhiteLabelStatus.UNDER_REVIEW)}
           className={`h-7 text-xs rounded-full px-3 ${
@@ -295,19 +314,76 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
           Under Review ({counts.underReview})
         </Button>
         <Button
-          variant={statusFilter === WhiteLabelStatus.APPROVED ? "default" : "outline"}
+          variant={
+            statusFilter === WhiteLabelStatus.PROCESSING ? "default" : "outline"
+          }
           size="sm"
-          onClick={() => setStatusFilter(WhiteLabelStatus.APPROVED)}
+          onClick={() => setStatusFilter(WhiteLabelStatus.PROCESSING)}
           className={`h-7 text-xs rounded-full px-3 ${
-            statusFilter === WhiteLabelStatus.APPROVED
+            statusFilter === WhiteLabelStatus.PROCESSING
+              ? "bg-indigo-600 text-white"
+              : "text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
+          }`}
+        >
+          Processing (
+          {counts.processing ??
+            items.filter((x) => x.status === WhiteLabelStatus.PROCESSING)
+              .length}
+          )
+        </Button>
+        <Button
+          variant={
+            statusFilter === WhiteLabelStatus.CONTRACTED ? "default" : "outline"
+          }
+          size="sm"
+          onClick={() => setStatusFilter(WhiteLabelStatus.CONTRACTED)}
+          className={`h-7 text-xs rounded-full px-3 ${
+            statusFilter === WhiteLabelStatus.CONTRACTED
+              ? "bg-purple-600 text-white"
+              : "text-purple-600 dark:text-purple-400 border-purple-500/30"
+          }`}
+        >
+          Contracted (
+          {counts.contracted ??
+            items.filter((x) => x.status === WhiteLabelStatus.CONTRACTED)
+              .length}
+          )
+        </Button>
+        <Button
+          variant={
+            statusFilter === WhiteLabelStatus.PAID ? "default" : "outline"
+          }
+          size="sm"
+          onClick={() => setStatusFilter(WhiteLabelStatus.PAID)}
+          className={`h-7 text-xs rounded-full px-3 ${
+            statusFilter === WhiteLabelStatus.PAID
               ? "bg-emerald-600 text-white"
               : "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
           }`}
         >
-          Approved ({counts.approved})
+          Paid (
+          {counts.paid ??
+            items.filter((x) => x.status === WhiteLabelStatus.PAID).length}
+          )
         </Button>
         <Button
-          variant={statusFilter === WhiteLabelStatus.REJECTED ? "default" : "outline"}
+          variant={
+            statusFilter === WhiteLabelStatus.ACTIVE ? "default" : "outline"
+          }
+          size="sm"
+          onClick={() => setStatusFilter(WhiteLabelStatus.ACTIVE)}
+          className={`h-7 text-xs rounded-full px-3 ${
+            statusFilter === WhiteLabelStatus.ACTIVE
+              ? "bg-emerald-600 text-white"
+              : "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+          }`}
+        >
+          Active ({counts.active})
+        </Button>
+        <Button
+          variant={
+            statusFilter === WhiteLabelStatus.REJECTED ? "default" : "outline"
+          }
           size="sm"
           onClick={() => setStatusFilter(WhiteLabelStatus.REJECTED)}
           className={`h-7 text-xs rounded-full px-3 ${
@@ -317,6 +393,23 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
           }`}
         >
           Rejected ({counts.rejected})
+        </Button>
+        <Button
+          variant={
+            statusFilter === WhiteLabelStatus.SUSPENDED ? "default" : "outline"
+          }
+          size="sm"
+          onClick={() => setStatusFilter(WhiteLabelStatus.SUSPENDED)}
+          className={`h-7 text-xs rounded-full px-3 ${
+            statusFilter === WhiteLabelStatus.SUSPENDED
+              ? "bg-destructive text-white"
+              : "text-destructive border-destructive/30"
+          }`}
+        >
+          Suspended (
+          {counts.suspended ??
+            items.filter((x) => x.status === WhiteLabelStatus.SUSPENDED).length}
+          )
         </Button>
       </div>
 
@@ -331,7 +424,8 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
               No WhiteLabel applications found
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              No applications match your active search filter or status selection.
+              No applications match your active search filter or status
+              selection.
             </p>
           </CardContent>
         </Card>
@@ -346,7 +440,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                   <TableHead className="font-bold">Business Type</TableHead>
                   <TableHead className="font-bold">Catalog & Revenue</TableHead>
                   <TableHead className="font-bold">Status</TableHead>
-                  <TableHead className="text-right font-bold">Actions</TableHead>
+                  <TableHead className="text-right font-bold">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -372,7 +468,9 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                         </div>
                         <div className="text-[11px] text-muted-foreground flex items-center gap-2">
                           {wl.country && <span>{wl.country}</span>}
-                          {wl.companyWebsite && <span>• {wl.companyWebsite}</span>}
+                          {wl.companyWebsite && (
+                            <span>• {wl.companyWebsite}</span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -391,7 +489,10 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
 
                     {/* Business Type */}
                     <TableCell>
-                      <Badge variant="secondary" className="text-[11px] font-medium py-0 px-2 rounded-md">
+                      <Badge
+                        variant="secondary"
+                        className="text-[11px] font-medium py-0 px-2 rounded-md"
+                      >
                         {wl.businessType.replace("_", " ")}
                       </Badge>
                     </TableCell>
@@ -403,7 +504,8 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                           {wl.catalogTrackCount.toLocaleString()} tracks
                         </span>
                         <p className="text-[11px] text-muted-foreground">
-                          ${Number(wl.monthlyRevenueUsd || 0).toLocaleString()} / mo
+                          ${Number(wl.monthlyRevenueUsd || 0).toLocaleString()}{" "}
+                          / mo
                         </p>
                       </div>
                     </TableCell>
@@ -419,13 +521,18 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            wl.status === WhiteLabelStatus.APPROVED
+                            wl.status === WhiteLabelStatus.ACTIVE ||
+                            wl.status === WhiteLabelStatus.PAID
                               ? "bg-emerald-500"
                               : wl.status === WhiteLabelStatus.PENDING
                                 ? "bg-amber-500"
                                 : wl.status === WhiteLabelStatus.UNDER_REVIEW
                                   ? "bg-blue-500"
-                                  : "bg-rose-500"
+                                  : wl.status === WhiteLabelStatus.PROCESSING
+                                    ? "bg-indigo-500"
+                                    : wl.status === WhiteLabelStatus.CONTRACTED
+                                      ? "bg-purple-500"
+                                      : "bg-rose-500"
                           }`}
                         />
                         {String(wl.status).replace("_", " ").toLowerCase()}
@@ -434,26 +541,18 @@ export function AdminWhiteLabelsTable({ initialData }: AdminWhiteLabelsTableProp
 
                     {/* Actions */}
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        {wl.status !== WhiteLabelStatus.APPROVED && (
-                          <Button
-                            size="sm"
-                            onClick={(e) => handleQuickActivate(e, wl.id)}
-                            className="h-7 text-xs font-semibold gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
-                          >
-                            <Play className="h-3 w-3 fill-current" />
-                            Activate
-                          </Button>
-                        )}
-
+                      <div
+                        className="flex items-center justify-end"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant="outline"
+                          size="sm"
                           onClick={() => setSelectedWhiteLabel(wl)}
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg"
-                          title="Inspect application"
+                          className="h-7 text-xs font-semibold gap-1.5 border-border/80 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all shadow-2xs"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="h-3.5 w-3.5 text-primary" />
+                          View
                         </Button>
                       </div>
                     </TableCell>

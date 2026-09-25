@@ -4,7 +4,9 @@ import { env } from "@/env";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-export async function clientDeleteBrandingAssetAction(assetType: string): Promise<{
+export async function clientDeleteBrandingAssetAction(
+  assetType: string,
+): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -46,7 +48,10 @@ export async function clientDeleteBrandingAssetAction(assetType: string): Promis
       message: data.message || "Image removed successfully.",
     };
   } catch (error) {
-    console.error("[Action.Client.WhiteLabel.DeleteBrandingAsset] Error:", error);
+    console.error(
+      "[Action.Client.WhiteLabel.DeleteBrandingAsset] Error:",
+      error,
+    );
     return {
       success: false,
       message: "An error occurred while removing image.",

@@ -28,9 +28,13 @@ export async function adminUpdateWhiteLabelStatusAction(
       };
     }
 
-    const res = await api.patch(`/platform/admin/whitelabels/${id}/status`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await api.patch(
+      `/platform/admin/whitelabels/${id}/status`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     if (res.data.error) {
       return {

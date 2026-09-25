@@ -1,11 +1,4 @@
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type, Transform, TransformFnParams } from 'class-transformer';
 import { PlatformUserRole } from 'src/generated/prisma/enums';
 
@@ -55,7 +48,8 @@ export class GetPlatformUsersDto {
 
   @IsOptional()
   @IsEnum(UserSortBy, {
-    message: 'sortBy must be one of createdAt, updatedAt, lastLoginAt, email, firstName, role.',
+    message:
+      'sortBy must be one of createdAt, updatedAt, lastLoginAt, email, firstName, role.',
   })
   sortBy?: UserSortBy = UserSortBy.CREATED_AT;
 

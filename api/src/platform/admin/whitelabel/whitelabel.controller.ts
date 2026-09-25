@@ -59,7 +59,11 @@ export class AdminWhitelabelController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('email') adminEmail?: string,
   ) {
-    return await this.adminWhitelabelService.uploadContract(id, file, adminEmail);
+    return await this.adminWhitelabelService.uploadContract(
+      id,
+      file,
+      adminEmail,
+    );
   }
 
   @Get(':id/contract/preview')
@@ -70,10 +74,7 @@ export class AdminWhitelabelController {
 
   @Post(':id/record-payment')
   @Roles(...OWNER_ADMIN_ROLES)
-  async recordPayment(
-    @Param('id') id: string,
-    @Body() dto: RecordPaymentDto,
-  ) {
+  async recordPayment(@Param('id') id: string, @Body() dto: RecordPaymentDto) {
     return await this.adminWhitelabelService.recordPayment(id, dto);
   }
 
@@ -121,6 +122,12 @@ export class AdminWhitelabelController {
   @Roles(...ADMIN_ROLES)
   async getDocuments(@Param('id') whiteLabelId: string) {
     return await this.adminWhitelabelService.getDocuments(whiteLabelId);
+  }
+
+  @Get('documents/:docId/preview')
+  @Roles(...ADMIN_ROLES)
+  async getDocumentPreview(@Param('docId') docId: string) {
+    return await this.adminWhitelabelService.getDocumentPreview(docId);
   }
 
   @Delete('documents/:docId')

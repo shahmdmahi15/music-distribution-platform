@@ -13,7 +13,7 @@ import axios from "axios";
 export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
   success: boolean;
   message: string;
-  user?: any;
+  user?: unknown;
 }> {
   try {
     const validate = await verifyMfaSchema.safeParseAsync(input);
@@ -68,8 +68,7 @@ export async function verifyMfaAction(input: VerifyMfaInput): Promise<{
       console.error("[Whitelabel.VerifyMfaAction]:", error.response?.data);
       return {
         success: false,
-        message:
-          error.response?.data?.message || "MFA validation failed.",
+        message: error.response?.data?.message || "MFA validation failed.",
       };
     }
     console.error("[Whitelabel.VerifyMfaAction]:", error);

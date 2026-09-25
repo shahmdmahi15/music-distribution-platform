@@ -70,7 +70,8 @@ export function PlatformUsersPagination({
       {/* Left: Total records & Page size */}
       <div className="flex flex-wrap items-center gap-3">
         <span>
-          Showing <span className="font-medium text-foreground">{startItem}</span> to{" "}
+          Showing{" "}
+          <span className="font-medium text-foreground">{startItem}</span> to{" "}
           <span className="font-medium text-foreground">{endItem}</span> of{" "}
           <span className="font-medium text-foreground">{total}</span> users
         </span>

@@ -34,8 +34,7 @@ export async function requestPasswordResetAction(
     if (axios.isAxiosError(error)) {
       return {
         success: false,
-        message:
-          error.response?.data?.message || "Failed to process request.",
+        message: error.response?.data?.message || "Failed to process request.",
       };
     }
     return {

@@ -81,6 +81,7 @@ export function ClientSidebarFooter({ user }: { user: User }) {
               render={
                 <SidebarMenuButton
                   size="lg"
+                  tooltip={`${name} (${email})`}
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
@@ -90,8 +91,12 @@ export function ClientSidebarFooter({ user }: { user: User }) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold text-foreground">{name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{email}</span>
+                    <span className="truncate font-semibold text-foreground">
+                      {name}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {email}
+                    </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
@@ -114,7 +119,9 @@ export function ClientSidebarFooter({ user }: { user: User }) {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate font-bold text-foreground">{name}</span>
+                        <span className="truncate font-bold text-foreground">
+                          {name}
+                        </span>
                         {code && (
                           <Badge
                             variant="outline"
@@ -124,7 +131,9 @@ export function ClientSidebarFooter({ user }: { user: User }) {
                           </Badge>
                         )}
                       </div>
-                      <span className="truncate text-xs text-muted-foreground">{email}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {email}
+                      </span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
@@ -133,13 +142,44 @@ export function ClientSidebarFooter({ user }: { user: User }) {
               <DropdownMenuSeparator />
 
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => router.push("/profile")} className="cursor-pointer text-xs">
+                <div className="px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Access Tier
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] font-bold uppercase tracking-wider py-0 px-2"
+                  >
+                    Client Partner
+                  </Badge>
+                </div>
+              </DropdownMenuGroup>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => router.push("/profile")}
+                  className="cursor-pointer text-xs"
+                >
                   <UserPen className="h-3.5 w-3.5" />
                   Profile & Account
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/sessions")} className="cursor-pointer text-xs">
+                <DropdownMenuItem
+                  onClick={() => router.push("/sessions")}
+                  className="cursor-pointer text-xs"
+                >
                   <ShieldPlus className="h-3.5 w-3.5" />
                   Active Sessions
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = `mailto:partner-desk@royalmotionit.com?subject=Assistance Request from ${name} [${code || "Client"}]`;
+                  }}
+                  className="cursor-pointer text-xs"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Contact Partner Desk
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 
@@ -169,7 +209,8 @@ export function ClientSidebarFooter({ user }: { user: User }) {
             </AlertDialogMedia>
             <AlertDialogTitle>Ready to log out?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will end your current session. You can log back in at any time.
+              This action will end your current session. You can log back in at
+              any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

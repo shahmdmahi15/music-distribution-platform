@@ -73,22 +73,20 @@ export class WhitelabelMiddleware implements NestMiddleware {
         include: { whiteLabel: true },
       });
 
-      if (
-        dbKey &&
-        dbKey.whiteLabel &&
-        dbKey.whiteLabel.status === WhiteLabelStatus.APPROVED
-      ) {
+      if (dbKey && dbKey.whiteLabel) {
         whiteLabel = dbKey.whiteLabel;
-        // Re-index into Redis for O(1) performance
-        await this.redisService.set(
-          `whitelabel:apikey:${incomingHash}`,
-          JSON.stringify({
-            whiteLabelId: whiteLabel.id,
-            name: dbKey.name,
-            keyId: dbKey.id,
-            status: 'ACTIVE',
-          }),
-        );
+        if (whiteLabel.status === WhiteLabelStatus.ACTIVE) {
+          // Re-index into Redis for O(1) performance
+          await this.redisService.set(
+            `whitelabel:apikey:${incomingHash}`,
+            JSON.stringify({
+              whiteLabelId: whiteLabel.id,
+              name: dbKey.name,
+              keyId: dbKey.id,
+              status: 'ACTIVE',
+            }),
+          );
+        }
         // Telemetry update
         this.prismaService.whiteLabelApiKey
           .update({
@@ -101,7 +99,7 @@ export class WhitelabelMiddleware implements NestMiddleware {
       // Fallback: check Redis tenant configured keys
       if (!whiteLabel) {
         const approvedLabels = await this.prismaService.whiteLabel.findMany({
-          where: { status: WhiteLabelStatus.APPROVED },
+          where: { status: WhiteLabelStatus.ACTIVE },
         });
 
         for (const wl of approvedLabels) {
@@ -164,7 +162,10 @@ export class WhitelabelMiddleware implements NestMiddleware {
             whiteLabel = await this.prismaService.whiteLabel.findUnique({
               where: { id: tenantIdHeader.trim() },
             });
-          } else if (typeof subdomainHeader === 'string' && subdomainHeader.trim()) {
+          } else if (
+            typeof subdomainHeader === 'string' &&
+            subdomainHeader.trim()
+          ) {
             whiteLabel = await this.prismaService.whiteLabel.findFirst({
               where: { subdomain: subdomainHeader.trim().toLowerCase() },
             });
@@ -177,9 +178,15 @@ export class WhitelabelMiddleware implements NestMiddleware {
             });
           } else {
             // Resolve from host or first approved
-            const host = (req.headers['x-forwarded-host'] || req.headers['host'] || '') as string;
+            const host = (req.headers['x-forwarded-host'] ||
+              req.headers['host'] ||
+              '') as string;
             const cleanHost = host.split(':')[0].toLowerCase();
-            if (cleanHost && cleanHost !== 'localhost' && cleanHost !== '127.0.0.1') {
+            if (
+              cleanHost &&
+              cleanHost !== 'localhost' &&
+              cleanHost !== '127.0.0.1'
+            ) {
               whiteLabel = await this.prismaService.whiteLabel.findFirst({
                 where: {
                   OR: [
@@ -191,7 +198,7 @@ export class WhitelabelMiddleware implements NestMiddleware {
             }
             if (!whiteLabel) {
               whiteLabel = await this.prismaService.whiteLabel.findFirst({
-                where: { status: WhiteLabelStatus.APPROVED },
+                where: { status: WhiteLabelStatus.ACTIVE },
                 orderBy: { createdAt: 'asc' },
               });
             }
@@ -206,11 +213,15 @@ export class WhitelabelMiddleware implements NestMiddleware {
       );
     }
 
+    // 3. Tenant Status Validation: only active portals can be accessed, EXCEPT for initial setup/tenant route
+    const isSetupOrTenantRoute =
+      req.originalUrl?.includes('/whitelabel/tenant') ||
+      req.baseUrl?.includes('/whitelabel/tenant') ||
+      req.path?.includes('/tenant');
 
-    // 3. Tenant Status Validation
-    if (whiteLabel.status !== WhiteLabelStatus.APPROVED) {
+    if (whiteLabel.status !== WhiteLabelStatus.ACTIVE && !isSetupOrTenantRoute) {
       throw new ForbiddenException(
-        `This WhiteLabel portal is currently ${whiteLabel.status.toLowerCase()}. Please contact support.`,
+        `This WhiteLabel portal is currently ${whiteLabel.status.toLowerCase()}. Please complete setup in the onboarding wizard.`,
       );
     }
 

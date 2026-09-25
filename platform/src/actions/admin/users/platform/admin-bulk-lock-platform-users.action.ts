@@ -41,7 +41,8 @@ export async function adminBulkLockPlatformUsersAction(input: {
     if (res.data.error || !res.data.success) {
       return {
         success: false,
-        message: res.data.message || "Failed to bulk update account lock status.",
+        message:
+          res.data.message || "Failed to bulk update account lock status.",
       };
     }
 

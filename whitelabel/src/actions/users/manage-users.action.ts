@@ -9,7 +9,7 @@ import axios from "axios";
 export async function createUserAction(input: CreateUserInput): Promise<{
   success: boolean;
   message: string;
-  user?: any;
+  user?: unknown;
 }> {
   try {
     const validate = await createUserSchema.safeParseAsync(input);

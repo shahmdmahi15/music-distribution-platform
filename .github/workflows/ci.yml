@@ -1,0 +1,111 @@
+name: Continuous Integration (CI)
+
+on:
+  push:
+    branches: [main, master, staging]
+  pull_request:
+    branches: [main, master, staging]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-api:
+    name: Build & Validate API Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: music_distribution_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/music_distribution_test
+        run: npx prisma generate
+
+      - name: Build API Bundle
+        working-directory: api
+        run: npm run build
+
+  validate-platform:
+    name: Typecheck & Validate Platform Console
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: platform
+        run: npm ci
+
+      - name: Verify TypeScript Types
+        working-directory: platform
+        run: npx tsc --noEmit
+
+  validate-whitelabel:
+    name: Typecheck & Validate WhiteLabel Portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.13.0
+
+      - name: Install Dependencies
+        working-directory: whitelabel
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify TypeScript Types
+        working-directory: whitelabel
+        run: npx tsc --noEmit

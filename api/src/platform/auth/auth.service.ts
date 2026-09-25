@@ -24,6 +24,11 @@ import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { ClientMetadata } from '../decorator/client-info.decorator';
 import { Prisma, PlatformUser } from 'src/generated/prisma/client';
+import {
+  PlatformUserRole,
+  PaymentStatus,
+  WhiteLabelStatus,
+} from 'src/generated/prisma/enums';
 
 const AUTH_MAX_FAILED_ATTEMPTS = 5;
 const AUTH_LOCKOUT_DURATION_MS = 1000 * 60 * 60;
@@ -768,7 +773,7 @@ export class AuthService {
     let whiteLabelStatus: string | null = null;
     let isWhiteLabelActive = false;
 
-    if (user.role === 'CLIENT') {
+    if (user.role === PlatformUserRole.CLIENT) {
       const sub = await this.prismaService.platformSubscription.findUnique({
         where: { subscriberId: user.id },
         include: {
@@ -783,7 +788,7 @@ export class AuthService {
             },
           },
           payments: {
-            where: { status: 'COMPLETED' },
+            where: { status: PaymentStatus.COMPLETED },
             select: { id: true },
             take: 1,
           },
@@ -793,7 +798,8 @@ export class AuthService {
       if (sub?.whiteLabel) {
         whiteLabelStatus = sub.whiteLabel.status;
         isWhiteLabelActive =
-          sub.whiteLabel.status === 'APPROVED' && sub.payments.length > 0;
+          sub.whiteLabel.status === WhiteLabelStatus.ACTIVE &&
+          sub.payments.length > 0;
       }
     }
 

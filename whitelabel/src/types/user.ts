@@ -7,6 +7,19 @@ export enum WhiteLabelUserRole {
   CLIENT = "CLIENT",
 }
 
+export enum WhiteLabelSignupModel {
+  INVITE_ONLY = "INVITE_ONLY",
+  ADMIN_APPROVAL = "ADMIN_APPROVAL",
+  OPEN_REGISTRATION = "OPEN_REGISTRATION",
+}
+
+export enum WhiteLabelBusinessType {
+  RECORD_LABEL = "RECORD_LABEL",
+  DISTRIBUTOR_AGGREGATOR = "DISTRIBUTOR_AGGREGATOR",
+  MUSIC_PUBLISHER = "MUSIC_PUBLISHER",
+  OTHER = "OTHER",
+}
+
 export interface WhiteLabelUser {
   id: string;
   code: string;
@@ -16,6 +29,7 @@ export interface WhiteLabelUser {
   role: WhiteLabelUserRole;
   image?: string | null;
   twoFactorEnabled: boolean;
+  isApproved?: boolean;
   lastLoginAt?: string | null;
   lockedUntil?: string | null;
   createdAt: string;
@@ -29,6 +43,7 @@ export interface WhiteLabelTenant {
   name: string;
   subdomain?: string | null;
   customDomain?: string | null;
+  elasticIpv4?: string | null;
   tagline?: string | null;
   description?: string | null;
   logoUrl?: string | null;
@@ -49,9 +64,14 @@ export interface WhiteLabelTenant {
     linkedin?: string | null;
     tiktok?: string | null;
   };
-  userSignupModel?: string;
-  businessType?: string;
+  userSignupModel?: WhiteLabelSignupModel | string;
+  businessType?: WhiteLabelBusinessType | string;
   country?: string | null;
+  status?: string;
+  catalogTrackCount?: number;
+  monthlyTrackDelivery?: number;
+  monthlyRevenueUsd?: string | number | null;
+  hasDirectDeals?: boolean;
   theme?: {
     primaryColor?: string;
     accentColor?: string;
@@ -64,18 +84,22 @@ export interface WhiteLabelTenant {
   sso?: {
     googleEnabled?: boolean;
     githubEnabled?: boolean;
+    enforce2fa?: boolean;
+    sessionTimeoutHours?: number;
   };
   domain?: {
     subdomain?: string | null;
+    platformSubdomainFqdn?: string | null;
     customDomain?: string | null;
     cnameTarget?: string;
     verified?: boolean;
     sslStatus?: string;
   };
   isConfigured?: boolean;
+  isSetupComplete?: boolean;
+  hasOwner?: boolean;
   brandingConfigured?: boolean;
 }
-
 
 export interface SessionItem {
   id: string;

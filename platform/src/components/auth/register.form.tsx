@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { RegisterInput, registerSchema } from "@/schemas/auth/register.schema";
 import { registerAction } from "@/actions/auth/register.action";
@@ -22,7 +22,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Check,
+  Lock,
+  Mail,
+  User,
+  ShieldAlert,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -30,6 +39,48 @@ export function RegisterForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
+
+  // Real-time password criteria assessment
+  const passwordCriteria = useMemo(() => {
+    const hasMinLen = passwordValue.length >= 8;
+    const hasUpper = /[A-Z]/.test(passwordValue);
+    const hasLower = /[a-z]/.test(passwordValue);
+    const hasSpecialOrNumber = /[\d\W]/.test(passwordValue);
+
+    const score = [hasMinLen, hasUpper, hasLower, hasSpecialOrNumber].filter(
+      Boolean,
+    ).length;
+
+    return {
+      hasMinLen,
+      hasUpper,
+      hasLower,
+      hasSpecialOrNumber,
+      score,
+      strengthLabel:
+        score === 0
+          ? ""
+          : score <= 2
+            ? "Weak"
+            : score === 3
+              ? "Good"
+              : "Strong & Secure",
+      strengthColor:
+        score <= 2
+          ? "bg-rose-500"
+          : score === 3
+            ? "bg-amber-500"
+            : "bg-emerald-500",
+      textColor:
+        score <= 2
+          ? "text-rose-500"
+          : score === 3
+            ? "text-amber-500"
+            : "text-emerald-500",
+    };
+  }, [passwordValue]);
+
   const form = useForm({
     defaultValues: {
       firstName: "",
@@ -80,20 +131,26 @@ export function RegisterForm() {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight">
-          Create your account
+    <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1">
+        <div className="flex items-center justify-start">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+            <ShieldCheck className="h-3 w-3" />
+            <span>Secure Registration</span>
+          </div>
+        </div>
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+          Create distributor account
         </CardTitle>
-        <CardDescription>
-          Join RoyalMotionIT and distribute your tracks worldwide
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Direct DSP ingestion, WhiteLabel features, and global royalties.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="register-form"
                 onSubmit={(e) => {
@@ -102,9 +159,9 @@ export function RegisterForm() {
                   form.handleSubmit();
                 }}
               >
-                <FieldGroup className="gap-4">
+                <FieldGroup className="gap-2 sm:gap-2.5">
                   {/* First & Last Name Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                     {/* First Name Field */}
                     <form.Field name="firstName">
                       {(field) => {
@@ -115,8 +172,9 @@ export function RegisterForm() {
                           <Field data-invalid={isInvalid}>
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium"
+                              className="text-[11px] font-medium text-foreground flex items-center gap-1"
                             >
+                              <User className="h-2.5 w-2.5 text-muted-foreground" />
                               First Name
                             </FieldLabel>
                             <Input
@@ -128,10 +186,11 @@ export function RegisterForm() {
                                 field.handleChange(e.target.value)
                               }
                               aria-invalid={isInvalid}
-                              placeholder="John"
+                              placeholder="Alex"
                               autoComplete="given-name"
                               type="text"
                               disabled={isSubmitting}
+                              className="h-8 sm:h-8.5 text-xs"
                             />
                             {isInvalid && (
                               <FieldError errors={field.state.meta.errors} />
@@ -151,8 +210,9 @@ export function RegisterForm() {
                           <Field data-invalid={isInvalid}>
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium"
+                              className="text-[11px] font-medium text-foreground flex items-center gap-1"
                             >
+                              <User className="h-2.5 w-2.5 text-muted-foreground" />
                               Last Name
                             </FieldLabel>
                             <Input
@@ -164,10 +224,11 @@ export function RegisterForm() {
                                 field.handleChange(e.target.value)
                               }
                               aria-invalid={isInvalid}
-                              placeholder="Doe"
+                              placeholder="Vance"
                               autoComplete="family-name"
                               type="text"
                               disabled={isSubmitting}
+                              className="h-8 sm:h-8.5 text-xs"
                             />
                             {isInvalid && (
                               <FieldError errors={field.state.meta.errors} />
@@ -187,9 +248,10 @@ export function RegisterForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
-                            Email Address
+                            <Mail className="h-2.5 w-2.5 text-muted-foreground" />
+                            Work / Business Email
                           </FieldLabel>
                           <Input
                             id={field.name}
@@ -198,10 +260,11 @@ export function RegisterForm() {
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             aria-invalid={isInvalid}
-                            placeholder="name@example.com"
+                            placeholder="label@royalmotionit.com"
                             autoComplete="email"
                             type="email"
                             disabled={isSubmitting}
+                            className="h-8 sm:h-8.5 text-xs"
                           />
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
@@ -211,51 +274,114 @@ export function RegisterForm() {
                     }}
                   </form.Field>
 
-                  {/* Password Field */}
+                  {/* Password Field with Strength Meter */}
                   <form.Field name="password">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched && !field.state.meta.isValid;
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel
-                            htmlFor={field.name}
-                            className="font-medium"
-                          >
-                            Password
-                          </FieldLabel>
+                          <div className="flex items-center justify-between">
+                            <FieldLabel
+                              htmlFor={field.name}
+                              className="text-[11px] font-medium text-foreground flex items-center gap-1"
+                            >
+                              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
+                              Password
+                            </FieldLabel>
+                            {passwordCriteria.strengthLabel && (
+                              <span
+                                className={`text-[10px] font-semibold ${passwordCriteria.textColor}`}
+                              >
+                                {passwordCriteria.strengthLabel}
+                              </span>
+                            )}
+                          </div>
                           <div className="relative">
                             <Input
                               id={field.name}
                               name={field.name}
                               value={field.state.value}
                               onBlur={field.handleBlur}
-                              onChange={(e) =>
-                                field.handleChange(e.target.value)
-                              }
+                              onChange={(e) => {
+                                field.handleChange(e.target.value);
+                                setPasswordValue(e.target.value);
+                              }}
                               aria-invalid={isInvalid}
-                              placeholder="••••••••"
+                              placeholder="Create a strong password"
                               autoComplete="new-password"
                               type={showPassword ? "text" : "password"}
                               disabled={isSubmitting}
-                              className="pr-10"
+                              className="pr-9 h-8 sm:h-8.5 text-xs"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
                               disabled={isSubmitting}
                               aria-label={
                                 showPassword ? "Hide password" : "Show password"
                               }
                             >
                               {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-3.5 w-3.5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3.5 w-3.5" />
                               )}
                             </button>
                           </div>
+
+                          {/* Visual Password Strength Bars & Compact Inline Check */}
+                          {passwordValue.length > 0 && (
+                            <div className="space-y-1 pt-1">
+                              <div className="grid grid-cols-4 gap-1 h-0.5 w-full">
+                                {[1, 2, 3, 4].map((seg) => (
+                                  <div
+                                    key={seg}
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      passwordCriteria.score >= seg
+                                        ? passwordCriteria.strengthColor
+                                        : "bg-muted"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span
+                                  className={
+                                    passwordCriteria.hasMinLen
+                                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                                      : ""
+                                  }
+                                >
+                                  8+ chars
+                                </span>
+                                <span>•</span>
+                                <span
+                                  className={
+                                    passwordCriteria.hasUpper &&
+                                    passwordCriteria.hasLower
+                                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                                      : ""
+                                  }
+                                >
+                                  Upper & lowercase
+                                </span>
+                                <span>•</span>
+                                <span
+                                  className={
+                                    passwordCriteria.hasSpecialOrNumber
+                                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                                      : ""
+                                  }
+                                >
+                                  Number / symbol
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
                           )}
@@ -273,8 +399,9 @@ export function RegisterForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
+                            <Lock className="h-2.5 w-2.5 text-muted-foreground" />
                             Confirm Password
                           </FieldLabel>
                           <div className="relative">
@@ -287,18 +414,18 @@ export function RegisterForm() {
                                 field.handleChange(e.target.value)
                               }
                               aria-invalid={isInvalid}
-                              placeholder="••••••••"
+                              placeholder="Confirm password"
                               autoComplete="new-password"
                               type={showConfirmPassword ? "text" : "password"}
                               disabled={isSubmitting}
-                              className="pr-10"
+                              className="pr-9 h-8 sm:h-8.5 text-xs"
                             />
                             <button
                               type="button"
                               onClick={() =>
                                 setShowConfirmPassword(!showConfirmPassword)
                               }
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
                               disabled={isSubmitting}
                               aria-label={
                                 showConfirmPassword
@@ -307,9 +434,9 @@ export function RegisterForm() {
                               }
                             >
                               {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-3.5 w-3.5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3.5 w-3.5" />
                               )}
                             </button>
                           </div>
@@ -324,31 +451,37 @@ export function RegisterForm() {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="register-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm font-semibold active:scale-[0.98] shadow-sm"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    Registering...
                   </>
                 ) : (
                   "Create Account"
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
-                Already have an account?{" "}
-                <Link
-                  href="/auth/login"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Sign In
-                </Link>
+              <div className="text-center text-xs text-muted-foreground space-y-1">
+                <p className="text-[10px] text-muted-foreground/80 leading-tight">
+                  By registering, you agree to our Terms of Service & Privacy
+                  Policy.
+                </p>
+                <div className="text-[11px]">
+                  Already registered?{" "}
+                  <Link
+                    href="/auth/login"
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    Sign In
+                  </Link>
+                </div>
               </div>
             </CardFooter>
           </>

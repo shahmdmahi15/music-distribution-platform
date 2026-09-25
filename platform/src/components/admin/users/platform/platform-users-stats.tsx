@@ -19,8 +19,10 @@ interface PlatformUsersStatsProps {
 
 export function PlatformUsersStats({ stats }: PlatformUsersStatsProps) {
   const total = stats.totalUsers || 0;
-  const activePercent = total > 0 ? Math.round((stats.activeUsers / total) * 100) : 0;
-  const twoFactorPercent = total > 0 ? Math.round((stats.twoFactorUsers / total) * 100) : 0;
+  const activePercent =
+    total > 0 ? Math.round((stats.activeUsers / total) * 100) : 0;
+  const twoFactorPercent =
+    total > 0 ? Math.round((stats.twoFactorUsers / total) * 100) : 0;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -125,35 +127,40 @@ export function PlatformUsersRoleBadges({
       label: "Owners",
       count: roleCounts.OWNER,
       icon: Crown,
-      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+      color:
+        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
     },
     {
       role: "ADMIN",
       label: "Admins",
       count: roleCounts.ADMIN,
       icon: Shield,
-      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+      color:
+        "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
     },
     {
       role: "MANAGER",
       label: "Managers",
       count: roleCounts.MANAGER,
       icon: Briefcase,
-      color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+      color:
+        "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
     },
     {
       role: "STAFF",
       label: "Staff",
       count: roleCounts.STAFF,
       icon: UserCheck2,
-      color: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30",
+      color:
+        "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30",
     },
     {
       role: "CLIENT",
       label: "Clients",
       count: roleCounts.CLIENT,
       icon: User,
-      color: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30",
+      color:
+        "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30",
     },
   ];
 

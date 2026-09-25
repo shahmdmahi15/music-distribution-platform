@@ -3,7 +3,6 @@
 import { api } from "@/lib/api";
 import { WL_SESSION_COOKIE } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
-import axios from "axios";
 
 export async function logoutAction(): Promise<{
   success: boolean;
@@ -25,7 +24,10 @@ export async function logoutAction(): Promise<{
           },
         );
       } catch (err) {
-        console.warn("[Whitelabel.LogoutAction] Remote revocation failed:", err);
+        console.warn(
+          "[Whitelabel.LogoutAction] Remote revocation failed:",
+          err,
+        );
       }
     }
 

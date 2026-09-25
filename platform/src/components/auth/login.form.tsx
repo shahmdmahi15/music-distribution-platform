@@ -22,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -82,20 +82,29 @@ export function LoginForm() {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight">
+    <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1">
+        <div className="flex items-center justify-between">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
+            <ShieldCheck className="h-3 w-3" />
+            <span>256-Bit SSL Encrypted</span>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            Portal Access
+          </span>
+        </div>
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
           Welcome back
         </CardTitle>
-        <CardDescription>
-          Enter your email and password to access your artist portal
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Sign in to access your distribution dashboard and streaming analytics.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="login-form"
                 onSubmit={(e) => {
@@ -104,7 +113,7 @@ export function LoginForm() {
                   form.handleSubmit();
                 }}
               >
-                <FieldGroup className="gap-4">
+                <FieldGroup className="gap-2.5 sm:gap-3">
                   {/* Email Field */}
                   <form.Field name="email">
                     {(field) => {
@@ -114,8 +123,9 @@ export function LoginForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
+                            <Mail className="h-2.5 w-2.5 text-muted-foreground" />
                             Email Address
                           </FieldLabel>
                           <Input
@@ -125,10 +135,11 @@ export function LoginForm() {
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             aria-invalid={isInvalid}
-                            placeholder="name@example.com"
+                            placeholder="name@royalmotionit.com"
                             autoComplete="email"
                             type="email"
                             disabled={isSubmitting}
+                            className="h-8.5 sm:h-9 text-xs sm:text-sm"
                           />
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
@@ -148,13 +159,14 @@ export function LoginForm() {
                           <div className="flex items-center justify-between">
                             <FieldLabel
                               htmlFor={field.name}
-                              className="font-medium"
+                              className="text-[11px] font-medium text-foreground flex items-center gap-1"
                             >
+                              <Lock className="h-2.5 w-2.5 text-muted-foreground" />
                               Password
                             </FieldLabel>
                             <Link
                               href="/auth/request-password-reset"
-                              className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                              className="text-[11px] text-primary hover:underline transition-colors font-medium"
                             >
                               Forgot password?
                             </Link>
@@ -173,21 +185,21 @@ export function LoginForm() {
                               autoComplete="current-password"
                               type={showPassword ? "text" : "password"}
                               disabled={isSubmitting}
-                              className="pr-10"
+                              className="pr-9 h-8.5 sm:h-9 text-xs sm:text-sm"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
                               disabled={isSubmitting}
                               aria-label={
                                 showPassword ? "Hide password" : "Show password"
                               }
                             >
                               {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-3.5 w-3.5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3.5 w-3.5" />
                               )}
                             </button>
                           </div>
@@ -202,40 +214,40 @@ export function LoginForm() {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="login-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm font-semibold active:scale-[0.98] shadow-sm"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
-                    Signing In...
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    Signing in...
                   </>
                 ) : (
                   "Sign In"
                 )}
               </Button>
 
-              <div className="flex flex-col items-center justify-center gap-1.5 w-full text-center text-xs text-muted-foreground mt-2">
-                <div>
+              <div className="flex flex-col items-center justify-center gap-1.5 w-full text-center text-xs text-muted-foreground">
+                <div className="text-[11px]">
                   Don&apos;t have an account?{" "}
                   <Link
                     href="/auth/register"
-                    className="text-primary hover:underline font-medium"
+                    className="text-primary hover:underline font-semibold"
                   >
                     Create an account
                   </Link>
                 </div>
-                <div>
-                  Need verification?{" "}
+                <div className="text-[10px] text-muted-foreground/80">
+                  Need email verification?{" "}
                   <Link
                     href="/auth/resend-verification"
                     className="text-primary hover:underline font-medium"
                   >
-                    Resend verification email
+                    Resend link
                   </Link>
                 </div>
               </div>

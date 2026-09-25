@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function RequestPasswordResetForm() {
@@ -75,21 +76,25 @@ export function RequestPasswordResetForm() {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight">
-          Reset Password
+    <Card className="glass-card shadow-2xl border-border/80 relative overflow-hidden bg-card/90 backdrop-blur-xl">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/25 text-primary mb-0.5 shadow-sm">
+          <KeyRound className="h-4.5 w-4.5" />
+        </div>
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight">
+          Reset your password
         </CardTitle>
-        <CardDescription>
-          Enter your email address and we&apos;ll send you a link to reset your
-          password
+        <CardDescription className="text-xs text-muted-foreground line-clamp-2">
+          Enter your registered email address and we&apos;ll send you an
+          encrypted recovery link.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="request-password-reset-form"
                 onSubmit={(e) => {
@@ -108,22 +113,28 @@ export function RequestPasswordResetForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium text-foreground flex items-center gap-1"
                           >
                             Email Address
                           </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            aria-invalid={isInvalid}
-                            placeholder="name@example.com"
-                            autoComplete="email"
-                            type="email"
-                            disabled={isSubmitting}
-                          />
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                            <Input
+                              id={field.name}
+                              name={field.name}
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
+                              aria-invalid={isInvalid}
+                              placeholder="name@royalmotionit.com"
+                              autoComplete="email"
+                              type="email"
+                              disabled={isSubmitting}
+                              className="pl-9 h-8.5 sm:h-9 text-xs sm:text-sm"
+                            />
+                          </div>
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
                           )}
@@ -135,28 +146,29 @@ export function RequestPasswordResetForm() {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="request-password-reset-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm active:scale-[0.98] font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Sending Link...
                   </>
                 ) : (
-                  "Send Reset Link"
+                  "Send Encrypted Reset Link"
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="text-center text-xs text-muted-foreground">
                 <Link
                   href="/auth/login"
-                  className="text-primary hover:underline font-medium"
+                  className="text-primary hover:underline font-medium inline-flex items-center gap-1.5 text-[11px]"
                 >
+                  <ArrowLeft className="h-3 w-3" />
                   Back to Sign In
                 </Link>
               </div>

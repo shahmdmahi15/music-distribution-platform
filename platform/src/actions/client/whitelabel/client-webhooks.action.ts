@@ -2,7 +2,10 @@
 
 import { env } from "@/env";
 import { cookies } from "next/headers";
-import { WhiteLabelWebhookConfig, WhiteLabelWebhookLog } from "@/types/whitelabel";
+import {
+  WhiteLabelWebhookConfig,
+  WhiteLabelWebhookLog,
+} from "@/types/whitelabel";
 
 export async function clientGetWebhooksAction(): Promise<{
   success: boolean;

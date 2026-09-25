@@ -16,7 +16,7 @@ export async function loginAction(input: LoginInput): Promise<{
   message: string;
   requireMfa?: boolean;
   redirectUrl?: string;
-  user?: any;
+  user?: unknown;
 }> {
   try {
     const validate = await loginSchema.safeParseAsync(input);
@@ -74,7 +74,8 @@ export async function loginAction(input: LoginInput): Promise<{
       return {
         success: false,
         message:
-          error.response?.data?.message || "Invalid credentials or request error",
+          error.response?.data?.message ||
+          "Invalid credentials or request error",
       };
     }
     console.error("[Whitelabel.LoginAction]:", error);

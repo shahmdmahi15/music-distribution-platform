@@ -38,8 +38,12 @@ export interface AdminWhiteLabelsResponse {
     all: number;
     pending: number;
     underReview: number;
-    approved: number;
+    processing?: number;
+    contracted?: number;
+    paid?: number;
+    active: number;
     rejected: number;
+    suspended?: number;
   };
 }
 
@@ -61,7 +65,17 @@ export async function adminGetWhiteLabelsAction(params?: {
         message: "Session token not found.",
         items: [],
         pagination: { total: 0, page: 1, limit: 20, totalPages: 1 },
-        counts: { all: 0, pending: 0, underReview: 0, approved: 0, rejected: 0 },
+        counts: {
+          all: 0,
+          pending: 0,
+          underReview: 0,
+          processing: 0,
+          contracted: 0,
+          paid: 0,
+          active: 0,
+          rejected: 0,
+          suspended: 0,
+        },
       };
     }
 
@@ -76,7 +90,17 @@ export async function adminGetWhiteLabelsAction(params?: {
         message: res.data.message,
         items: [],
         pagination: { total: 0, page: 1, limit: 20, totalPages: 1 },
-        counts: { all: 0, pending: 0, underReview: 0, approved: 0, rejected: 0 },
+        counts: {
+          all: 0,
+          pending: 0,
+          underReview: 0,
+          processing: 0,
+          contracted: 0,
+          paid: 0,
+          active: 0,
+          rejected: 0,
+          suspended: 0,
+        },
       };
     }
 
@@ -99,7 +123,17 @@ export async function adminGetWhiteLabelsAction(params?: {
       message: "Failed to fetch WhiteLabel applications.",
       items: [],
       pagination: { total: 0, page: 1, limit: 20, totalPages: 1 },
-      counts: { all: 0, pending: 0, underReview: 0, approved: 0, rejected: 0 },
+      counts: {
+        all: 0,
+        pending: 0,
+        underReview: 0,
+        processing: 0,
+        contracted: 0,
+        paid: 0,
+        active: 0,
+        rejected: 0,
+        suspended: 0,
+      },
     };
   }
 }

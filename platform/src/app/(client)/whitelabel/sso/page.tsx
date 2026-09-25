@@ -1,11 +1,20 @@
 import { clientGetSsoAction } from "@/actions/client/whitelabel/client-sso.action";
 import { clientGetBrandingAction } from "@/actions/client/whitelabel/client-get-branding.action";
 import { ClientSsoView } from "@/components/client/whitelabel/client-sso-view";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { WhiteLabelSignupModel } from "@/types/whitelabel";
+import {
+  WhiteLabelSignupModel,
+  WhiteLabelSsoConfig,
+} from "@/types/whitelabel";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +32,20 @@ export default async function WhiteLabelSsoPage() {
             <div className="h-12 w-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-2">
               <AlertTriangle className="h-6 w-6" />
             </div>
-            <CardTitle className="text-lg font-bold">WhiteLabel Not Activated</CardTitle>
+            <CardTitle className="text-lg font-bold">
+              WhiteLabel Not Activated
+            </CardTitle>
             <CardDescription className="text-xs">
               {brandingResult.message ||
                 "You must have an approved WhiteLabel application before configuring auth & SSO."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pb-6">
-            <Button render={<Link href="/" />} size="sm" className="text-xs font-semibold">
+            <Button
+              render={<Link href="/" />}
+              size="sm"
+              className="text-xs font-semibold"
+            >
               Return to Application Status
             </Button>
           </CardContent>
@@ -39,7 +54,7 @@ export default async function WhiteLabelSsoPage() {
     );
   }
 
-  const defaultSso = {
+  const defaultSso: WhiteLabelSsoConfig = {
     userSignupModel: WhiteLabelSignupModel.INVITE_ONLY,
     googleEnabled: true,
     googleClientId: "",
@@ -49,6 +64,21 @@ export default async function WhiteLabelSsoPage() {
     githubClientSecretMasked: "",
     enforce2fa: false,
     sessionTimeoutHours: 72,
+
+    awsRegion: "",
+    awsAccessKeyId: "",
+    awsSecretAccessKeyMasked: "",
+    hasAwsSecretAccessKey: false,
+    bucketName: "",
+    senderEmail: "",
+    databaseUrlMasked: "",
+    hasDatabaseUrl: false,
+    redisUrlMasked: "",
+    hasRedisUrl: false,
+    cloudflareApiTokenMasked: "",
+    hasCloudflareApiToken: false,
+    cloudflareZoneId: "",
+    cloudflareBaseDomain: "",
   };
 
   return (

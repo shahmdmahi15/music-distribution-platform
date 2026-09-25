@@ -44,7 +44,9 @@ export async function adminUploadContractAction(
     revalidatePath("/");
     return {
       success: true,
-      message: data.message || "Contract agreement uploaded successfully. Status transitioned to CONTRACTED.",
+      message:
+        data.message ||
+        "Contract agreement uploaded successfully. Status transitioned to CONTRACTED.",
       contractUrl: data.contractUrl,
       whiteLabel: data.whiteLabel,
     };
@@ -52,7 +54,8 @@ export async function adminUploadContractAction(
     console.error("[Action.Admin.WhiteLabel.UploadContract] Error:", error);
     return {
       success: false,
-      message: "An unexpected error occurred while uploading contract agreement.",
+      message:
+        "An unexpected error occurred while uploading contract agreement.",
     };
   }
 }

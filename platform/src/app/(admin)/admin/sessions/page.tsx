@@ -79,7 +79,8 @@ export default async function AdminSessionsPage() {
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          View, monitor, and manage all active and historical sessions for your administrator account.
+          View, monitor, and manage all active and historical sessions for your
+          administrator account.
         </p>
       </div>
 
@@ -95,7 +96,9 @@ export default async function AdminSessionsPage() {
               <div className="text-2xl font-bold tracking-tight text-foreground">
                 {stats.total}
               </div>
-              <span className="text-xs text-muted-foreground">All recorded devices</span>
+              <span className="text-xs text-muted-foreground">
+                All recorded devices
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
               <KeyRound className="h-5 w-5" />

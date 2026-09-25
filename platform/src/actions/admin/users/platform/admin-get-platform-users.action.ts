@@ -23,7 +23,9 @@ export async function adminGetPlatformUsersAction(
   stats?: PlatformUsersStats;
 }> {
   try {
-    const parse = await adminGetPlatformUsersSchema.safeParseAsync(params || {});
+    const parse = await adminGetPlatformUsersSchema.safeParseAsync(
+      params || {},
+    );
     const query = parse.success ? parse.data : {};
 
     const cookieStore = await cookies();

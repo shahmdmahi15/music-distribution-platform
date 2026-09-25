@@ -13,4 +13,3 @@ export function useIsMobile() {
     () => false,
   );
 }
-

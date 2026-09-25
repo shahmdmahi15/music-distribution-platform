@@ -1,6 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Users,
   Building2,
@@ -37,7 +43,8 @@ export default function AdminWhiteLabelUsersPage() {
             WhiteLabel Tenant Directory & Users
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
-            Inspect, manage, and audit user populations partitioned across activated WhiteLabel partner distribution instances.
+            Inspect, manage, and audit user populations partitioned across
+            activated WhiteLabel partner distribution instances.
           </p>
         </div>
 
@@ -64,7 +71,9 @@ export default function AdminWhiteLabelUsersPage() {
               <div className="text-2xl font-bold tracking-tight text-foreground">
                 0
               </div>
-              <span className="text-[11px] text-muted-foreground">Active isolated tenants</span>
+              <span className="text-[11px] text-muted-foreground">
+                Active isolated tenants
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
               <Building2 className="h-5 w-5" />
@@ -100,7 +109,9 @@ export default function AdminWhiteLabelUsersPage() {
               <div className="text-2xl font-bold tracking-tight text-foreground">
                 0
               </div>
-              <span className="text-[11px] text-muted-foreground">WhiteLabel-bound creators</span>
+              <span className="text-[11px] text-muted-foreground">
+                WhiteLabel-bound creators
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
               <Layers className="h-5 w-5" />
@@ -140,7 +151,10 @@ export default function AdminWhiteLabelUsersPage() {
                 Multi-Tenant Partitioning Active
               </h3>
               <p className="text-xs text-muted-foreground max-w-3xl leading-relaxed">
-                WhiteLabel users are scoped strictly to their respective tenant domains via cryptographic sub-account partitioning. Platform administrators can inspect aggregate rosters once partner instances complete vetting and onboarding approval.
+                WhiteLabel users are scoped strictly to their respective tenant
+                domains via cryptographic sub-account partitioning. Platform
+                administrators can inspect aggregate rosters once partner
+                instances complete vetting and onboarding approval.
               </p>
             </div>
           </div>
@@ -167,7 +181,9 @@ export default function AdminWhiteLabelUsersPage() {
               No WhiteLabel User Accounts Provisioned Yet
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              When a WhiteLabel enterprise instance is approved and launched, its tenant administrators and enrolled artists will automatically appear here with telemetry and audit controls.
+              When a WhiteLabel enterprise instance is approved and launched,
+              its tenant administrators and enrolled artists will automatically
+              appear here with telemetry and audit controls.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3 pt-2">

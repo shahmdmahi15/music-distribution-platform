@@ -15,10 +15,7 @@ import { MailService } from 'src/lib/mail/mail.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { ARGON2_CONFIG } from 'src/config/argon2.config';
 import { REDIS_KEYS } from 'src/config/redis-keys.config';
-import {
-  generateUniqueCode,
-  CodePrefix,
-} from 'src/lib/prisma/code-generator';
+import { generateUniqueCode, CodePrefix } from 'src/lib/prisma/code-generator';
 import {
   WhiteLabel,
   WhiteLabelSignupModel,
@@ -84,6 +81,11 @@ export class WhitelabelAuthService {
         ? WhiteLabelUserRole.OWNER
         : WhiteLabelUserRole.CLIENT;
 
+    const isApproved =
+      whiteLabel.userSignupModel === WhiteLabelSignupModel.ADMIN_APPROVAL
+        ? totalUsersInTenant === 0
+        : true;
+
     const hashedPassword = await argon2.hash(dto.password, ARGON2_CONFIG);
 
     const userCode = await generateUniqueCode(
@@ -102,6 +104,7 @@ export class WhitelabelAuthService {
           firstName: dto.firstName,
           lastName: dto.lastName,
           role: initialRole,
+          isApproved,
           whiteLabelId: whiteLabel.id,
         },
       });
@@ -141,10 +144,14 @@ export class WhitelabelAuthService {
       // Account is created; user can resend verification if needed
     }
 
+    const pendingApproval = !newUser.isApproved;
+
     return {
       success: true,
-      message:
-        'Registration successful. You can now sign in to your portal account.',
+      pendingApproval,
+      message: pendingApproval
+        ? 'Your registration has been submitted and is pending administrator approval before activation.'
+        : 'Registration successful. You can now sign in to your portal account.',
       user: {
         id: newUser.id,
         code: newUser.code,
@@ -152,6 +159,7 @@ export class WhitelabelAuthService {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         role: newUser.role,
+        isApproved: newUser.isApproved,
       },
     };
   }
@@ -170,7 +178,9 @@ export class WhitelabelAuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('User associated with this token does not exist.');
+      throw new BadRequestException(
+        'User associated with this token does not exist.',
+      );
     }
 
     await this.redisService.del(
@@ -196,7 +206,8 @@ export class WhitelabelAuthService {
     if (!user) {
       return {
         success: true,
-        message: 'If the email is registered, a verification link has been sent.',
+        message:
+          'If the email is registered, a verification link has been sent.',
       };
     }
 
@@ -236,6 +247,12 @@ export class WhitelabelAuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid Login Credentials');
+    }
+
+    if (!user.isApproved) {
+      throw new UnauthorizedException(
+        'Your account is currently pending administrator approval. Please wait for an administrator to activate your access.',
+      );
     }
 
     // Account Lockout check
@@ -320,7 +337,8 @@ export class WhitelabelAuthService {
         return {
           requireMfa: true,
           mfaToken,
-          message: 'Two-factor authentication code sent to your registered email.',
+          message:
+            'Two-factor authentication code sent to your registered email.',
         };
       } catch (error) {
         console.error(
@@ -448,9 +466,7 @@ export class WhitelabelAuthService {
     }
 
     // MFA succeeded: clear redis challenge and code
-    await this.redisService.del(
-      REDIS_KEYS.whitelabel.user.mfa.key(user.id),
-    );
+    await this.redisService.del(REDIS_KEYS.whitelabel.user.mfa.key(user.id));
     await this.redisService.del(
       REDIS_KEYS.whitelabel.user.mfaChallenge.key(dto.mfaToken),
     );
@@ -506,7 +522,10 @@ export class WhitelabelAuthService {
     };
   }
 
-  async requestPasswordReset(whiteLabel: WhiteLabel, dto: RequestPasswordResetDto) {
+  async requestPasswordReset(
+    whiteLabel: WhiteLabel,
+    dto: RequestPasswordResetDto,
+  ) {
     const user = await this.prismaService.whiteLabelUser.findUnique({
       where: {
         email_whiteLabelId: {
@@ -519,7 +538,8 @@ export class WhitelabelAuthService {
     if (!user) {
       return {
         success: true,
-        message: 'If the email is registered, password reset instructions have been sent.',
+        message:
+          'If the email is registered, password reset instructions have been sent.',
       };
     }
 
@@ -532,14 +552,22 @@ export class WhitelabelAuthService {
 
     const fullName = `${user.firstName} ${user.lastName}`.trim();
     try {
-      await this.mailService.sendPasswordResetEmail(user.email, fullName, resetToken);
+      await this.mailService.sendPasswordResetEmail(
+        user.email,
+        fullName,
+        resetToken,
+      );
     } catch (error) {
-      console.warn('[WhitelabelAuthService] Password reset email warning:', error);
+      console.warn(
+        '[WhitelabelAuthService] Password reset email warning:',
+        error,
+      );
     }
 
     return {
       success: true,
-      message: 'If the email is registered, password reset instructions have been sent.',
+      message:
+        'If the email is registered, password reset instructions have been sent.',
     };
   }
 
@@ -557,7 +585,9 @@ export class WhitelabelAuthService {
     });
 
     if (!user || user.whiteLabelId !== whiteLabel.id) {
-      throw new BadRequestException('User associated with this token does not exist.');
+      throw new BadRequestException(
+        'User associated with this token does not exist.',
+      );
     }
 
     const hashedPassword = await argon2.hash(dto.password, ARGON2_CONFIG);
@@ -591,7 +621,8 @@ export class WhitelabelAuthService {
 
     return {
       success: true,
-      message: 'Password reset successfully. Please sign in with your new password.',
+      message:
+        'Password reset successfully. Please sign in with your new password.',
     };
   }
 

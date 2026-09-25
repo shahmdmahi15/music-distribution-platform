@@ -32,7 +32,8 @@ export async function clientGetContractPreviewAction() {
     if (!response.ok) {
       return {
         success: false,
-        message: data.message || "Unable to retrieve contract agreement preview.",
+        message:
+          data.message || "Unable to retrieve contract agreement preview.",
       };
     }
 
@@ -44,7 +45,10 @@ export async function clientGetContractPreviewAction() {
       uploadedAt: data.uploadedAt,
     };
   } catch (error) {
-    console.error("[Action.Client.WhiteLabel.GetContractPreview] Error:", error);
+    console.error(
+      "[Action.Client.WhiteLabel.GetContractPreview] Error:",
+      error,
+    );
     return {
       success: false,
       message: "An unexpected error occurred while loading contract preview.",

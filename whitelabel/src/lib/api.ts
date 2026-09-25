@@ -30,28 +30,19 @@ api.interceptors.request.use(async (config) => {
 
     config.headers["User-Agent"] = userAgent;
 
-    // Resolve tenant subdomain from host or env fallback
+    // Detect subdomain from incoming HTTP host header if present
     const hostWithoutPort = host.split(":")[0];
     const hostParts = hostWithoutPort.split(".");
 
-    let detectedSubdomain = env.DEFAULT_WHITELABEL_SUBDOMAIN || "";
     if (
       hostParts.length > 2 &&
       hostWithoutPort !== "localhost" &&
       hostWithoutPort !== "127.0.0.1"
     ) {
-      detectedSubdomain = hostParts[0];
+      config.headers["x-whitelabel-subdomain"] = hostParts[0];
     }
-
-    if (detectedSubdomain) {
-      config.headers["x-whitelabel-subdomain"] = detectedSubdomain;
-    }
-  } catch (error) {
+  } catch {
     config.headers["User-Agent"] = "Whitelabel-Server-Action";
-    if (env.DEFAULT_WHITELABEL_SUBDOMAIN) {
-      config.headers["x-whitelabel-subdomain"] =
-        env.DEFAULT_WHITELABEL_SUBDOMAIN;
-    }
   }
 
   if (env.API_KEY) {

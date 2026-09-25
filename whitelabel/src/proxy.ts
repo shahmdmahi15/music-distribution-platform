@@ -38,12 +38,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // 2. Unauthenticated user attempting to access protected application routes
-  if (!isAuthenticated && !isAuthRoute) {
+  // 2. Unauthenticated user attempting to access protected application routes (except root / which displays setup wizard or redirects)
+  if (!isAuthenticated && !isAuthRoute && pathname !== "/") {
     const loginUrl = new URL("/auth/login", request.url);
-    if (pathname !== "/") {
-      loginUrl.searchParams.set("redirect", pathname);
-    }
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

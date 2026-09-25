@@ -33,7 +33,8 @@ export default async function AdminProfilePage() {
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Manage your personal details, profile picture, security credentials, and linked accounts.
+          Manage your personal details, profile picture, security credentials,
+          and linked accounts.
         </p>
       </div>
 

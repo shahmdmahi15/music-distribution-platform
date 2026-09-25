@@ -69,7 +69,8 @@ export function LockPlatformUserDialog({
         toast.success(res.message || "User account unlocked successfully!");
       } else {
         // Lock
-        const lockMinutes = duration === "permanent" ? undefined : Number(duration);
+        const lockMinutes =
+          duration === "permanent" ? undefined : Number(duration);
         const res = await adminLockPlatformUserAction(user.id, {
           locked: true,
           lockMinutes,
@@ -144,7 +145,8 @@ export function LockPlatformUserDialog({
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 flex items-start gap-3 text-xs text-rose-700 dark:text-rose-300">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <span>
-                  Locking will immediately terminate all active sessions for this user and block them from logging in.
+                  Locking will immediately terminate all active sessions for
+                  this user and block them from logging in.
                 </span>
               </div>
 
@@ -158,7 +160,11 @@ export function LockPlatformUserDialog({
                 >
                   <SelectTrigger className="w-full bg-background/80">
                     <SelectValue placeholder="Select duration">
-                      {(val) => durationLabels[val as string] || val || "Select duration"}
+                      {(val) =>
+                        durationLabels[val as string] ||
+                        val ||
+                        "Select duration"
+                      }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -167,7 +173,9 @@ export function LockPlatformUserDialog({
                     <SelectItem value="1440">24 Hours (1 Day)</SelectItem>
                     <SelectItem value="10080">7 Days (1 Week)</SelectItem>
                     <SelectItem value="43200">30 Days (1 Month)</SelectItem>
-                    <SelectItem value="permanent">Indefinite / Permanent</SelectItem>
+                    <SelectItem value="permanent">
+                      Indefinite / Permanent
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

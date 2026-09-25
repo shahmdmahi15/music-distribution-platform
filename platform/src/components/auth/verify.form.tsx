@@ -73,23 +73,23 @@ export function VerifyForm({ token }: { token: string }) {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary mb-2">
-          <ShieldCheck className="h-6 w-6" />
+    <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1 text-center">
+        <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary mb-1">
+          <ShieldCheck className="h-4.5 w-4.5" />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight">
           Verify Account
         </CardTitle>
-        <CardDescription>
-          Click the button below to confirm and verify your email address
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Click below to confirm and verify your email address.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="verify-form"
                 onSubmit={(e) => {
@@ -132,16 +132,16 @@ export function VerifyForm({ token }: { token: string }) {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="verify-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm active:scale-[0.98] font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Verifying...
                   </>
                 ) : (
@@ -149,7 +149,7 @@ export function VerifyForm({ token }: { token: string }) {
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="text-center text-[11px] text-muted-foreground">
                 <Link
                   href="/auth/login"
                   className="text-primary hover:underline font-medium"

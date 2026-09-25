@@ -10,6 +10,11 @@ export class AppController {
     return this.appService.operational();
   }
 
+  @Get('health')
+  health() {
+    return this.appService.health();
+  }
+
   @Get()
   getHello() {
     return this.appService.getHome();

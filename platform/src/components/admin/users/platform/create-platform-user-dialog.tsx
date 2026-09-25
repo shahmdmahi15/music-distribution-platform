@@ -141,7 +141,8 @@ export function CreatePlatformUserDialog({
             <DialogTitle className="text-xl">Create Platform User</DialogTitle>
           </div>
           <DialogDescription>
-            Add a new administrative staff, manager, or client account with role permissions.
+            Add a new administrative staff, manager, or client account with role
+            permissions.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +246,8 @@ export function CreatePlatformUserDialog({
                 <Field data-invalid={hasError ? "true" : undefined}>
                   <div className="flex items-center justify-between">
                     <FieldLabel className="text-xs font-semibold">
-                      Initial Password <span className="text-destructive">*</span>
+                      Initial Password{" "}
+                      <span className="text-destructive">*</span>
                     </FieldLabel>
                     <button
                       type="button"
@@ -308,7 +310,11 @@ export function CreatePlatformUserDialog({
                   >
                     <SelectTrigger className="w-full bg-background/80">
                       <SelectValue placeholder="Select platform role">
-                        {(val) => roleLabels[val as string] || val || "Select platform role"}
+                        {(val) =>
+                          roleLabels[val as string] ||
+                          val ||
+                          "Select platform role"
+                        }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -362,11 +368,15 @@ export function CreatePlatformUserDialog({
               {(field) => (
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-xs font-semibold cursor-pointer" htmlFor="verified-switch">
+                    <Label
+                      className="text-xs font-semibold cursor-pointer"
+                      htmlFor="verified-switch"
+                    >
                       Auto-verify Email Address
                     </Label>
                     <p className="text-[11px] text-muted-foreground">
-                      Mark the email as already verified so user can sign in immediately.
+                      Mark the email as already verified so user can sign in
+                      immediately.
                     </p>
                   </div>
                   <Switch
@@ -382,7 +392,10 @@ export function CreatePlatformUserDialog({
               {(field) => (
                 <div className="flex items-center justify-between pt-2 border-t border-border/40">
                   <div className="space-y-0.5">
-                    <Label className="text-xs font-semibold cursor-pointer" htmlFor="2fa-switch">
+                    <Label
+                      className="text-xs font-semibold cursor-pointer"
+                      htmlFor="2fa-switch"
+                    >
                       Require Two-Factor (2FA)
                     </Label>
                     <p className="text-[11px] text-muted-foreground">

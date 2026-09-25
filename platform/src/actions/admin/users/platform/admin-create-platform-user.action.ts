@@ -34,11 +34,15 @@ export async function adminCreatePlatformUserAction(
       };
     }
 
-    const res = await api.post("/platform/admin/platform-users", validate.data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const res = await api.post(
+      "/platform/admin/platform-users",
+      validate.data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     if (res.data.error || !res.data.success) {
       return {

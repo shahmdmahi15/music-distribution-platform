@@ -75,21 +75,20 @@ export function ResendVerificationForm() {
   });
 
   return (
-    <Card className="glass-card shadow-2xl border-border/80">
-      <CardHeader className="space-y-1.5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight">
+    <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
+      <CardHeader className="p-4 sm:p-5 pb-2.5 sm:pb-3 space-y-1">
+        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight">
           Resend Verification
         </CardTitle>
-        <CardDescription>
-          Enter your email address and we&apos;ll send you a new link to verify
-          your account
+        <CardDescription className="text-xs text-muted-foreground line-clamp-1">
+          Enter your email to receive a new account verification link.
         </CardDescription>
       </CardHeader>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <>
-            <CardContent>
+            <CardContent className="px-4 sm:px-5 py-0">
               <form
                 id="resend-verification-form"
                 onSubmit={(e) => {
@@ -108,7 +107,7 @@ export function ResendVerificationForm() {
                         <Field data-invalid={isInvalid}>
                           <FieldLabel
                             htmlFor={field.name}
-                            className="font-medium"
+                            className="text-[11px] font-medium"
                           >
                             Email Address
                           </FieldLabel>
@@ -119,10 +118,11 @@ export function ResendVerificationForm() {
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
                             aria-invalid={isInvalid}
-                            placeholder="name@example.com"
+                            placeholder="name@royalmotionit.com"
                             autoComplete="email"
                             type="email"
                             disabled={isSubmitting}
+                            className="h-8.5 sm:h-9 text-xs sm:text-sm"
                           />
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
@@ -135,16 +135,16 @@ export function ResendVerificationForm() {
               </form>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-4 pt-2">
+            <CardFooter className="p-4 sm:p-5 pt-2 sm:pt-2.5 flex flex-col gap-2">
               <Button
                 type="submit"
                 form="resend-verification-form"
-                className="w-full cursor-pointer h-10 active:scale-[0.98]"
+                className="w-full cursor-pointer h-8.5 sm:h-9 text-xs sm:text-sm active:scale-[0.98] font-semibold"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Sending Code...
                   </>
                 ) : (
@@ -152,7 +152,7 @@ export function ResendVerificationForm() {
                 )}
               </Button>
 
-              <div className="text-center text-xs text-muted-foreground mt-2">
+              <div className="text-center text-[11px] text-muted-foreground">
                 <Link
                   href="/auth/login"
                   className="text-primary hover:underline font-medium"

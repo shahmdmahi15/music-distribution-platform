@@ -1,0 +1,81 @@
+name: Deploy Mother Company (API & Platform)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Mother Company AWS EC2 (ARM64 t4g.medium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H -p ${{ secrets.EC2_PORT || 22 }} ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Execute Remote Deployment via SSH
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          PORT: ${{ secrets.EC2_PORT || 22 }}
+          APP_DIR: ${{ secrets.EC2_APP_DIR || '/var/www/music-distribution-platform' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p $PORT $USER@$HOST << 'EOF'
+            set -euo pipefail
+
+            echo "🚀 [Deploy] Navigating to application directory: $APP_DIR"
+            cd /var/www/music-distribution-platform
+
+            echo "📥 [Deploy] Pulling latest changes from git repository..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 [API] Installing dependencies & executing Prisma database migrations..."
+            cd /var/www/music-distribution-platform/api
+            npm ci
+            npx prisma generate
+            npx prisma migrate deploy
+            npm run build
+
+            echo "📦 [Platform] Installing dependencies & compiling Next.js console..."
+            cd /var/www/music-distribution-platform/platform
+            npm ci
+            npm run build
+
+            echo "🔄 [PM2] Reloading API and Platform processes with zero downtime..."
+            cd /var/www/music-distribution-platform
+            pm2 reload ecosystem.config.js --update-env
+
+            echo "🏥 [Healthcheck] Verifying API backend health..."
+            for i in {1..15}; do
+              if curl -s -f http://127.0.0.1:5000/health > /dev/null; then
+                echo "✅ API Health Check passed!"
+                break
+              fi
+              echo "Waiting for API service to become ready... (attempt $i/15)"
+              sleep 2
+            done
+
+            echo "🏥 [Healthcheck] Verifying Platform frontend health..."
+            for i in {1..15}; do
+              if curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308" > /dev/null; then
+                echo "✅ Platform Console Health Check passed!"
+                break
+              fi
+              echo "Waiting for Platform service to become ready... (attempt $i/15)"
+              sleep 2
+            done
+
+            echo "🎉 Deployment successfully completed on Mother Company EC2!"
+          EOF

@@ -89,19 +89,25 @@ export function PlatformUsersTable({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Modal states
-  const [selectedUserForDetails, setSelectedUserForDetails] = useState<string | null>(null);
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState<
+    string | null
+  >(null);
   const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
 
-  const [selectedUserForEdit, setSelectedUserForEdit] = useState<PlatformUserItem | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] =
+    useState<PlatformUserItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const [selectedUserForLock, setSelectedUserForLock] = useState<PlatformUserItem | null>(null);
+  const [selectedUserForLock, setSelectedUserForLock] =
+    useState<PlatformUserItem | null>(null);
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
 
-  const [selectedUserForResetPass, setSelectedUserForResetPass] = useState<PlatformUserItem | null>(null);
+  const [selectedUserForResetPass, setSelectedUserForResetPass] =
+    useState<PlatformUserItem | null>(null);
   const [resetPassDialogOpen, setResetPassDialogOpen] = useState(false);
 
-  const [selectedUserForDelete, setSelectedUserForDelete] = useState<PlatformUserItem | null>(null);
+  const [selectedUserForDelete, setSelectedUserForDelete] =
+    useState<PlatformUserItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Bulk dialogs
@@ -350,7 +356,8 @@ export function PlatformUsersTable({
                         No platform users found
                       </p>
                       <p className="text-xs text-muted-foreground max-w-sm">
-                        Try adjusting your search criteria, clearing active filters, or add a new platform user.
+                        Try adjusting your search criteria, clearing active
+                        filters, or add a new platform user.
                       </p>
                       <Button
                         variant="outline"
@@ -644,11 +651,14 @@ export function PlatformUsersTable({
 
                               {user.activeSessionCount > 0 && (
                                 <DropdownMenuItem
-                                  onClick={() => handleQuickRevokeSessions(user)}
+                                  onClick={() =>
+                                    handleQuickRevokeSessions(user)
+                                  }
                                   className="text-xs cursor-pointer text-rose-600 dark:text-rose-400"
                                 >
                                   <LogOut className="h-3.5 w-3.5 mr-2" />
-                                  Revoke All Sessions ({user.activeSessionCount})
+                                  Revoke All Sessions ({user.activeSessionCount}
+                                  )
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuGroup>

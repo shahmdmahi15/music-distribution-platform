@@ -68,7 +68,9 @@ export function BulkDeleteDialog({
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            This action is permanent and cannot be undone. All active sessions, linked OAuth accounts, and profile data for these {userIds.length} user(s) will be permanently deleted.
+            This action is permanent and cannot be undone. All active sessions,
+            linked OAuth accounts, and profile data for these {userIds.length}{" "}
+            user(s) will be permanently deleted.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -80,14 +82,16 @@ export function BulkDeleteDialog({
                 You are about to delete {userIds.length} platform account(s).
               </p>
               <p className="text-muted-foreground mt-0.5">
-                Self-deletion and sole owner accounts are protected and skipped automatically.
+                Self-deletion and sole owner accounts are protected and skipped
+                automatically.
               </p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              Type <span className="font-mono text-destructive">DELETE</span> to confirm:
+              Type <span className="font-mono text-destructive">DELETE</span> to
+              confirm:
             </label>
             <Input
               value={confirmText}

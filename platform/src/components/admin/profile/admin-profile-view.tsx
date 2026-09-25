@@ -267,9 +267,7 @@ export function AdminProfileView({
           </div>
           <div className="p-2 space-y-0.5 border-l border-border/40">
             <span className="text-muted-foreground">Linked Providers</span>
-            <p className="font-bold text-base text-foreground">
-              {linkedCount}
-            </p>
+            <p className="font-bold text-base text-foreground">{linkedCount}</p>
           </div>
           <div className="p-2 space-y-0.5 border-l border-border/40">
             <span className="text-muted-foreground">Email Status</span>
@@ -358,7 +356,9 @@ export function AdminProfileView({
                           User Code
                         </span>
                         <button
-                          onClick={() => copyToClipboard(user.code!, "User Code")}
+                          onClick={() =>
+                            copyToClipboard(user.code!, "User Code")
+                          }
                           className="hover:text-foreground"
                           title="Copy User Code"
                         >
@@ -484,7 +484,9 @@ export function AdminProfileView({
                         Last Login Timestamp
                       </span>
                       <span className="text-sm font-semibold text-foreground">
-                        {user.lastLoginAt ? formatDate(user.lastLoginAt) : "Never recorded"}
+                        {user.lastLoginAt
+                          ? formatDate(user.lastLoginAt)
+                          : "Never recorded"}
                       </span>
                     </div>
                   </div>
@@ -506,10 +508,7 @@ export function AdminProfileView({
 
       {activeTab === "avatar" && (
         <div className="max-w-2xl">
-          <AdminImageUpdateCard
-            initialImage={user.image}
-            userName={fullName}
-          />
+          <AdminImageUpdateCard initialImage={user.image} userName={fullName} />
         </div>
       )}
 

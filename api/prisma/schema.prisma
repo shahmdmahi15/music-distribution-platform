@@ -46,10 +46,9 @@ enum WhiteLabelBusinessType {
 }
 
 enum WhiteLabelSignupModel {
-  OPEN_PUBLIC
   INVITE_ONLY
-  VETTED_APPLICATION
-  MANUAL_APPROVAL
+  ADMIN_APPROVAL
+  OPEN_REGISTRATION
 }
 
 enum WhiteLabelStatus {
@@ -59,9 +58,20 @@ enum WhiteLabelStatus {
   REJECTED
   CONTRACTED
   PAID
-  APPROVED
   ACTIVE
   SUSPENDED
+}
+
+enum ProvisioningStatus {
+  NOT_STARTED
+  CREDENTIALS_VALIDATED
+  STORAGE_PROVISIONED
+  SES_CONFIGURED
+  EC2_LAUNCHING
+  DNS_CONFIGURED
+  DEPLOYING_APPLICATION
+  ACTIVE
+  FAILED
 }
 
 model OAuthAccount {
@@ -277,6 +287,7 @@ model WhiteLabel {
   domainVerified          Boolean                @default(false)
   domainVerifiedAt        DateTime?
   domainSslStatus         String?                @default("NOT_CONFIGURED")
+  elasticIpv4             String?
   tagline                 String?
   description             String?
   logoUrl                 String?
@@ -307,6 +318,40 @@ model WhiteLabel {
   ssoEnforce2fa           Boolean                @default(false)
   ssoSessionTimeoutHours  Int                    @default(72)
 
+  // Dedicated Cloud & Infrastructure Credentials
+  awsRegion               String?
+  awsAccessKeyId          String?
+  awsSecretAccessKey      String?
+  bucketName              String?
+  senderEmail             String?
+  databaseUrl             String?
+  redisUrl                String?
+  cloudflareApiToken      String?
+  cloudflareZoneId        String?
+  cloudflareBaseDomain    String?
+
+  // AWS Multi-Cloud Infrastructure & Telemetry
+  awsInstanceId           String?
+  awsElasticIp            String?
+  awsAllocationId         String?
+  awsSecurityGroupId      String?
+  awsInstanceType         String?                @default("t4g.medium")
+  awsInstanceState        String?                @default("STOPPED")
+
+  // Storage & SES Telemetry
+  s3BucketArn             String?
+  s3CorsConfigured        Boolean                @default(false)
+  sesIdentityStatus       String?                @default("PENDING")
+  sesDkimTokens           String[]               @default([])
+
+  // Provisioning Lifecycle & Live Telemetry
+  provisioningStatus      ProvisioningStatus     @default(NOT_STARTED)
+  provisioningProgress    Int                    @default(0)
+  provisioningStep        String?
+  provisioningLogs        Json?
+  provisionedAt           DateTime?
+  provisioningError       String?
+
   // Contact Person
   contactFirstName        String?
   contactLastName         String?
@@ -328,6 +373,7 @@ model WhiteLabel {
   // Compliance & Status Lifecycle
   privacyPolicyAccepted   Boolean                @default(true)
   marketingConsent        Boolean                @default(false)
+  isSetupComplete         Boolean                @default(false)
   status                  WhiteLabelStatus       @default(PENDING)
   statusReason            String?
   approvedAt              DateTime?
@@ -439,6 +485,7 @@ model WhiteLabelUser {
 
   // Flags
   twoFactorEnabled Boolean @default(false)
+  isApproved       Boolean @default(true)
 
   // Enums
   role WhiteLabelUserRole @default(CLIENT)

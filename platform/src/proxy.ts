@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // 5. WhiteLabel Management Console Gate:
-  // Clients MUST have an APPROVED and ACTIVE/PAID WhiteLabel subscription to access /whitelabel/* routes.
+  // Clients MUST have an ACTIVE WhiteLabel subscription to access /whitelabel/* routes.
   // If the client is still in Onboarding, Pending Review, Rejected, or Waiting for Payment,
   // they are intercepted and redirected to the application status overview at `/`.
   if (isAuthenticated && isWhiteLabelRoute && hasClientPanelAccess) {

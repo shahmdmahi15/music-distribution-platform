@@ -1,32 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { ClientOnboardingWelcome } from "./client-onboarding-welcome";
 import { WhiteLabelOnboardingWizard } from "./onboarding-wizard";
 import { WhiteLabelApplicationStatusView } from "./application-status-view";
-import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
+import { WhiteLabelStatus } from "@/types/whitelabel";
 import { Subscription, PaymentStatus } from "@/types/subscription";
 import {
-  Building2,
   Disc3,
   Globe,
   KeyRound,
   Layers,
   Sparkles,
-  Users,
-  Webhook,
-  CreditCard,
-  Logs,
   ArrowUpRight,
-  ShieldCheck,
   TrendingUp,
   Music,
   Headphones,
-  CheckCircle2,
   ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
 
 interface ClientWhiteLabelViewProps {
@@ -45,27 +45,53 @@ export function ClientWhiteLabelView({
   subscription,
 }: ClientWhiteLabelViewProps) {
   const [showWizard, setShowWizard] = useState(false);
+  const [activeDraft, setActiveDraft] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const whiteLabel = subscription?.whiteLabel;
   const payments = subscription?.payments || [];
-  const activePayment = payments.find((p) => p.status === PaymentStatus.COMPLETED);
+  const activePayment = payments.find(
+    (p) => p.status === PaymentStatus.COMPLETED,
+  );
 
   const isFullyActive =
-    whiteLabel?.status === WhiteLabelStatus.APPROVED && Boolean(activePayment);
+    whiteLabel?.status === WhiteLabelStatus.ACTIVE && Boolean(activePayment);
 
-  // If user clicked reapply, show wizard
+  // If user clicked start/resume or reapply, show wizard
   if (showWizard) {
     return (
       <WhiteLabelOnboardingWizard
         user={user}
-        onSuccess={() => setShowWizard(false)}
+        initialDraft={activeDraft}
+        onCancel={() => {
+          setShowWizard(false);
+          setActiveDraft(null);
+        }}
+        onSuccess={() => {
+          setShowWizard(false);
+          setActiveDraft(null);
+        }}
       />
     );
   }
 
-  // If no application submitted yet
+  // If no application submitted yet, show the high-trust Welcome Launchpad
   if (!whiteLabel) {
-    return <WhiteLabelOnboardingWizard user={user} />;
+    return (
+      <ClientOnboardingWelcome
+        user={user}
+        onStart={() => {
+          setActiveDraft(null);
+          setShowWizard(true);
+        }}
+        onResumeDraft={(draft) => {
+          setActiveDraft(draft);
+          setShowWizard(true);
+        }}
+      />
+    );
   }
 
   // If application is submitted (pending, under review, rejected, or waiting for payment)
@@ -74,14 +100,57 @@ export function ClientWhiteLabelView({
       <WhiteLabelApplicationStatusView
         whiteLabel={whiteLabel}
         payments={payments}
-        onReapply={() => setShowWizard(true)}
+        onReapply={() => {
+          setActiveDraft({
+            name: whiteLabel.name,
+            businessType: whiteLabel.businessType,
+            companyWebsite: whiteLabel.companyWebsite || "",
+            country: whiteLabel.country || "",
+            yearsInBusiness: whiteLabel.yearsInBusiness,
+            isIncorporated: whiteLabel.isIncorporated,
+            incorporationDocUrl: whiteLabel.incorporationDocUrl || "",
+            desiredSubdomain: whiteLabel.subdomain || "",
+            subdomain: whiteLabel.subdomain || "",
+            elasticIpv4: whiteLabel.elasticIpv4 || "",
+            primaryColor: whiteLabel.primaryColor || "#6366f1",
+            contactFirstName: whiteLabel.contactFirstName || user.firstName,
+            contactLastName: whiteLabel.contactLastName || user.lastName,
+            contactEmail: whiteLabel.contactEmail || user.email,
+            contactLinkedIn: whiteLabel.contactLinkedIn || "",
+            catalogTrackCount: whiteLabel.catalogTrackCount,
+            monthlyTrackDelivery: whiteLabel.monthlyTrackDelivery,
+            monthlyRevenueUsd: whiteLabel.monthlyRevenueUsd
+              ? Number(whiteLabel.monthlyRevenueUsd)
+              : 0,
+            hasDirectDeals: whiteLabel.hasDirectDeals,
+            currentDistributors: whiteLabel.currentDistributors || [],
+            royaltySolutions: whiteLabel.royaltySolutions || [],
+            primaryCatalogLanguage: whiteLabel.primaryCatalogLanguage || "en",
+            wantsCatalogMigration: whiteLabel.wantsCatalogMigration,
+            hasSampleBasedCovers: whiteLabel.hasSampleBasedCovers,
+            userSignupModel: whiteLabel.userSignupModel,
+            topArtists:
+              whiteLabel.artists && whiteLabel.artists.length > 0
+                ? whiteLabel.artists.map((a) => ({
+                    artistName: a.artistName,
+                    instagramHandle: a.instagramHandle || "",
+                    spotifyProfileUrl: a.spotifyProfileUrl || "",
+                    youtubeChannelUrl: a.youtubeChannelUrl || "",
+                    monthlyListeners: a.monthlyListeners || 0,
+                    orderIndex: a.orderIndex || 1,
+                  }))
+                : undefined,
+            privacyPolicyAccepted: true,
+          });
+          setShowWizard(true);
+        }}
       />
     );
   }
 
   // Fully Active WhiteLabel Hub
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in-50 duration-300">
+    <div className="w-full space-y-8 animate-in fade-in-50 duration-300">
       {/* Active WhiteLabel Hero */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-primary/10 via-background to-muted/40 border border-primary/20 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
@@ -98,7 +167,9 @@ export function ClientWhiteLabelView({
             {whiteLabel.name}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
-            Your branded distribution ecosystem is running live. Manage custom themes, domains, developer credentials, and ingestion pipelines below.
+            Your branded distribution ecosystem is running live. Manage custom
+            themes, domains, developer credentials, and ingestion pipelines
+            below.
           </p>
         </div>
 
@@ -118,7 +189,9 @@ export function ClientWhiteLabelView({
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">Catalog Volume</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Catalog Volume
+              </span>
               <p className="text-2xl font-bold text-foreground">
                 {whiteLabel.catalogTrackCount.toLocaleString()}
               </p>
@@ -135,7 +208,9 @@ export function ClientWhiteLabelView({
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">Monthly Ingestion</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Monthly Ingestion
+              </span>
               <p className="text-2xl font-bold text-foreground">
                 {whiteLabel.monthlyTrackDelivery.toLocaleString()}
               </p>
@@ -152,7 +227,9 @@ export function ClientWhiteLabelView({
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">Roster Artists</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Roster Artists
+              </span>
               <p className="text-2xl font-bold text-foreground">
                 {whiteLabel.artists?.length || 0}
               </p>
@@ -169,7 +246,9 @@ export function ClientWhiteLabelView({
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">Monthly Revenue</span>
+              <span className="text-xs text-muted-foreground font-medium">
+                Monthly Revenue
+              </span>
               <p className="text-2xl font-bold text-foreground">
                 ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
               </p>
@@ -197,11 +276,13 @@ export function ClientWhiteLabelView({
               <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardTitle>
             <CardDescription className="text-xs">
-              Configure your platform logo, dark/light color schemes, fonts, and favicon.
+              Configure your platform logo, dark/light color schemes, fonts, and
+              favicon.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">Status:</span> Customized
+            <span className="font-semibold text-foreground">Status:</span>{" "}
+            Customized
           </CardContent>
         </Card>
 
@@ -216,11 +297,13 @@ export function ClientWhiteLabelView({
               <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardTitle>
             <CardDescription className="text-xs">
-              Map your own domain (e.g. app.yourlabel.com) with automated SSL provisioning.
+              Map your own domain (e.g. app.yourlabel.com) with automated SSL
+              provisioning.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">Routing:</span> Ready for CNAME
+            <span className="font-semibold text-foreground">Routing:</span>{" "}
+            Ready for CNAME
           </CardContent>
         </Card>
 
@@ -235,11 +318,13 @@ export function ClientWhiteLabelView({
               <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardTitle>
             <CardDescription className="text-xs">
-              Generate programmatic API tokens and subscribe to streaming delivery webhooks.
+              Generate programmatic API tokens and subscribe to streaming
+              delivery webhooks.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">API Version:</span> v1.0 REST
+            <span className="font-semibold text-foreground">API Version:</span>{" "}
+            v1.0 REST
           </CardContent>
         </Card>
       </div>
@@ -264,7 +349,10 @@ export function ClientWhiteLabelView({
                     <span className="font-bold text-xs text-foreground truncate">
                       {artist.artistName}
                     </span>
-                    <Badge variant="outline" className="font-mono text-[9px] px-1 py-0">
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[9px] px-1 py-0"
+                    >
                       {artist.code}
                     </Badge>
                   </div>

@@ -1,5 +1,15 @@
 import { operationalAction } from "@/actions/system/operational.action";
-import { Music, Sparkles } from "lucide-react";
+import {
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  Globe2,
+  Disc3,
+  Layers,
+  Sparkles,
+  Server,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 
@@ -9,126 +19,169 @@ export default async function AuthLayout({
   children: React.ReactNode;
 }>) {
   const { operational } = await operationalAction();
+
+  const dspPartners = [
+    { name: "Spotify", tag: "Direct Delivery" },
+    { name: "Apple Music", tag: "Lossless" },
+    { name: "YouTube Music", tag: "Content ID" },
+    { name: "Amazon Music", tag: "HD Audio" },
+    { name: "Tidal & Deezer", tag: "Hi-Res" },
+  ];
+
+  const securityPoints = [
+    {
+      title: "Bank-Grade Encryption",
+      desc: "256-bit TLS transmission with Argon2id cryptographic hashing.",
+      icon: Lock,
+    },
+    {
+      title: "Direct DSP Delivery",
+      desc: "Automated ingestion pipeline to 150+ digital streaming services.",
+      icon: Globe2,
+    },
+    {
+      title: "Transparent Royalties",
+      desc: "100% earnings pass-through with granular accounting ledgers.",
+      icon: Layers,
+    },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 w-full">
-      {/* Left Column - Hero/Branding (visible on lg+) */}
-      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-10 overflow-hidden border-r border-border bg-card">
-        {/* Glowing atmospheric circles using theme secondary/primary values */}
-        <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full bg-accent/5 blur-[120px] pointer-events-none" />
+    <div className="h-screen h-[100dvh] max-h-screen w-full overflow-hidden flex flex-col lg:grid lg:grid-cols-12 bg-background selection:bg-primary/20">
+      {/* Left Column - Enterprise Trust & Distribution Infrastructure (visible on lg+) */}
+      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-6 xl:p-8 2xl:p-10 overflow-hidden border-r border-border/70 bg-muted/20 h-full">
+        {/* Subtle background ambient gradients */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/5 blur-[140px] pointer-events-none" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-emerald-500/5 blur-[140px] pointer-events-none" />
 
         {/* Brand Logo & Name */}
-        <Link
-          href="/"
-          className="relative z-10 flex items-center gap-2.5 group"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg group-hover:scale-105 transition-all duration-300">
-            <Music className="h-5 w-5" />
-          </div>
-          <span className="font-heading font-bold text-xl tracking-tight bg-linear-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            RoyalMotionIT
-          </span>
-        </Link>
+        <div className="relative z-10 shrink-0">
+          <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300">
+              <Disc3 className="h-5 w-5 xl:h-6 xl:w-6" />
+            </div>
+            <div>
+              <span className="font-heading font-bold text-lg xl:text-xl tracking-tight text-foreground block leading-none">
+                RoyalMotionIT
+              </span>
+              <span className="text-[10px] font-mono tracking-wider text-muted-foreground uppercase">
+                Music Distribution Platform
+              </span>
+            </div>
+          </Link>
+        </div>
 
-        {/* Feature showcase / Visual mock */}
-        <div className="relative z-10 my-auto flex flex-col gap-8 max-w-md">
-          <div className="space-y-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary border border-primary/20">
-              <Sparkles className="h-3.5 w-3.5" /> Empowering WhiteLabels
-            </span>
-            <h1 className="text-4xl font-extrabold tracking-tight text-foreground leading-tight bg-linear-to-b from-foreground to-muted-foreground bg-clip-text">
-              Distribute your music worldwide.
+        {/* Hero Narrative & Trust Pillars */}
+        <div className="relative z-10 my-auto flex flex-col gap-4 xl:gap-6 max-w-lg py-2">
+          <div className="space-y-2 xl:space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary border border-primary/25 shadow-xs">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Verified Global Music Distribution</span>
+            </div>
+            <h1 className="text-2xl xl:text-3xl font-extrabold tracking-tight text-foreground leading-[1.2]">
+              Professional catalog delivery & royalty infrastructure.
             </h1>
-            <p className="text-muted-foreground text-base leading-relaxed">
-              Keep 100% of your earnings. Upload your tracks to Spotify, Apple
-              Music, TikTok, and over 150 stores globally in minutes.
+            <p className="text-muted-foreground text-xs xl:text-sm leading-relaxed line-clamp-2 xl:line-clamp-3">
+              Distribute your sound recordings directly to all major streaming
+              platforms with lossless audio fidelity, automated routing, and
+              enterprise security.
             </p>
           </div>
 
-          {/* Interactive look Music player mock */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-background/40 p-6 backdrop-blur-xl shadow-2xl">
-            <div className="absolute top-0 right-0 h-24 w-24 bg-primary/5 blur-2xl rounded-full" />
-            <div className="flex items-center gap-4">
-              {/* Rotating Record Album Art */}
-              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-muted overflow-hidden border border-border shadow-inner group">
-                <div className="absolute inset-0 bg-linear-to-tr from-background to-muted" />
-                <div className="absolute inset-2 rounded-full border border-dashed border-border/50 animate-[spin_10s_linear_infinite]" />
-                <div className="absolute h-3 w-3 rounded-full bg-background border border-border z-10" />
-                <div className="absolute inset-0 bg-linear-to-t from-primary/10 to-accent/10 mix-blend-overlay" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="h-1.5 w-12 bg-primary/20 rounded-full mb-2 border border-primary/30" />
-                <h3 className="text-sm font-semibold text-foreground truncate">
-                  Say Yes To Heaven
-                </h3>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  Lana Del Rey
-                </p>
-              </div>
-            </div>
-            {/* Waveform Visualization Mock */}
-            <div className="mt-5 flex items-end gap-0.5 h-6 px-1">
-              {[
-                0.4, 0.7, 0.5, 0.9, 0.6, 0.8, 0.3, 0.7, 0.5, 0.8, 0.9, 0.4, 0.7,
-                0.6, 0.8, 0.5, 0.3, 0.9, 0.7, 0.6, 0.5, 0.8, 0.4, 0.7, 0.5, 0.9,
-                0.3,
-              ].map((val, i) => (
+          {/* Trust Guarantees Grid */}
+          <div className="grid grid-cols-1 gap-2.5">
+            {securityPoints.map((item, idx) => {
+              const Icon = item.icon;
+              return (
                 <div
+                  key={idx}
+                  className="flex items-start gap-3 p-2.5 xl:p-3 rounded-xl border border-border/70 bg-card/60 backdrop-blur-sm shadow-xs transition-all hover:border-border hover:bg-card/90"
+                >
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="space-y-0.5 min-w-0">
+                    <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      {item.title}
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground leading-normal">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Verified Delivery DSP Partner Tags */}
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground block">
+              Direct Global Ingestion Channels
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {dspPartners.map((dsp, i) => (
+                <span
                   key={i}
-                  className="flex-1 rounded-full bg-muted transition-all duration-300"
-                  style={{
-                    height: `${val * 100}%`,
-                    backgroundColor: i < 11 ? "var(--primary)" : "",
-                  }}
-                />
+                  className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] px-2 py-0.5 rounded-md border border-border/80 bg-card/70 text-foreground font-medium"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {dsp.name}
+                  <span className="text-[9px] text-muted-foreground font-mono">
+                    ({dsp.tag})
+                  </span>
+                </span>
               ))}
-            </div>
-            <div className="mt-3 flex justify-between text-[10px] text-muted-foreground/80 font-mono">
-              <span>01:14</span>
-              <span>03:45</span>
             </div>
           </div>
         </div>
 
-        {/* Footer info */}
-        <div className="relative z-10 text-xs text-muted-foreground/75 flex items-center justify-between">
-          <span>&copy; {new Date().getFullYear()} RoyalMotionIT</span>
+        {/* Footer info & System Telemetry */}
+        <div className="relative z-10 text-xs text-muted-foreground flex items-center justify-between pt-3 border-t border-border/60 shrink-0">
+          <span className="font-mono text-[10px] xl:text-[11px]">
+            &copy; {new Date().getFullYear()} RoyalMotionIT
+          </span>
           {operational ? (
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              All systems operational
+            <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px] xl:text-[11px]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Pipes operational
             </span>
           ) : (
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-              All systems down
+            <span className="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 text-[10px] xl:text-[11px]">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Maintenance mode
             </span>
           )}
         </div>
       </div>
 
-      {/* Right Column - Children Pages (Login, register, etc.) */}
-      <div className="flex-1 lg:col-span-7 flex flex-col justify-center items-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden bg-background">
+      {/* Right Column - Children Pages (Login, Register, MFA, Password Reset) */}
+      <div className="flex-1 lg:col-span-7 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative overflow-hidden bg-background h-full">
         {/* Glow behind forms */}
-        <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%] w-75 sm:w-125 h-75 sm:h-125 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
         {/* Floating Theme Toggle */}
-        <div className="absolute top-6 right-6 z-20">
+        <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
           <ThemeToggle />
         </div>
 
         {/* Small screen brand logo */}
-        <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
-            <Music className="h-4 w-4" />
+        <div className="lg:hidden absolute top-4 left-4 sm:top-5 sm:left-5 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Disc3 className="h-4 w-4" />
           </div>
-          <span className="font-heading font-bold text-lg tracking-tight text-foreground">
-            RoyalMotionIT
-          </span>
+          <div>
+            <span className="font-heading font-bold text-sm tracking-tight text-foreground block leading-none">
+              RoyalMotionIT
+            </span>
+            <span className="text-[9px] font-mono text-muted-foreground uppercase">
+              Distribution Portal
+            </span>
+          </div>
         </div>
 
-        {/* Main card wrapper for forms */}
-        <div className="w-full max-w-105 relative z-10">{children}</div>
+        {/* Main card wrapper for forms - strictly constrained, centered */}
+        <div className="w-full max-w-md relative z-10 my-auto">{children}</div>
       </div>
     </div>
   );

@@ -36,10 +36,7 @@ export class WhitelabelSessionAuthService {
       throw new UnauthorizedException('Invalid authorization token format');
     }
 
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     const session = await this.prismaService.session.findUnique({
       where: { token: hashedToken },

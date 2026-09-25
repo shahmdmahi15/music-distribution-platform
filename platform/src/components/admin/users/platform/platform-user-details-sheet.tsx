@@ -96,9 +96,9 @@ export function PlatformUserDetailsDialog({
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [userDetail, setUserDetail] = useState<PlatformUserDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "security" | "sessions">(
-    "profile",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "security" | "sessions"
+  >("profile");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
@@ -140,7 +140,9 @@ export function PlatformUserDetailsDialog({
         toast.success(
           `Email verification status updated to ${newVal ? "Verified" : "Unverified"}.`,
         );
-        setUserDetail((prev) => (prev ? { ...prev, emailVerified: newVal } : null));
+        setUserDetail((prev) =>
+          prev ? { ...prev, emailVerified: newVal } : null,
+        );
         router.refresh();
       } else {
         toast.error(res.message);
@@ -263,10 +265,19 @@ export function PlatformUserDetailsDialog({
 
   const securityRiskLevel =
     totalSecurityFailures >= 5 || userDetail?.isLocked
-      ? { label: "High Risk", color: "text-rose-600 bg-rose-500/10 border-rose-500/30" }
+      ? {
+          label: "High Risk",
+          color: "text-rose-600 bg-rose-500/10 border-rose-500/30",
+        }
       : totalSecurityFailures > 0
-        ? { label: "Moderate Risk", color: "text-amber-600 bg-amber-500/10 border-amber-500/30" }
-        : { label: "Secure", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" };
+        ? {
+            label: "Moderate Risk",
+            color: "text-amber-600 bg-amber-500/10 border-amber-500/30",
+          }
+        : {
+            label: "Secure",
+            color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
+          };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -306,7 +317,9 @@ export function PlatformUserDetailsDialog({
                               {userDetail.code}
                             </Badge>
                             <button
-                              onClick={() => copyToClipboard(userDetail.code!, "User Code")}
+                              onClick={() =>
+                                copyToClipboard(userDetail.code!, "User Code")
+                              }
                               className="text-muted-foreground hover:text-foreground"
                               title="Copy User Code"
                             >
@@ -323,7 +336,9 @@ export function PlatformUserDetailsDialog({
                         <Mail className="h-3.5 w-3.5" />
                         <span>{userDetail.email}</span>
                         <button
-                          onClick={() => copyToClipboard(userDetail.email, "Email")}
+                          onClick={() =>
+                            copyToClipboard(userDetail.email, "Email")
+                          }
                           className="text-muted-foreground hover:text-foreground"
                           title="Copy Email"
                         >
@@ -373,440 +388,452 @@ export function PlatformUserDetailsDialog({
                 </div>
               </DialogHeader>
 
-            {/* Quick Actions Strip */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-8"
-                onClick={() => {
-                  onOpenChange(false);
-                  onOpenEdit(userDetail);
-                }}
-              >
-                <UserPen className="h-3.5 w-3.5 mr-1.5" />
-                Edit Profile
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-8 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                onClick={() => {
-                  onOpenChange(false);
-                  onOpenResetPassword(userDetail);
-                }}
-              >
-                <KeyRound className="h-3.5 w-3.5 mr-1.5" />
-                Reset Password
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={`text-xs h-8 ${
-                  userDetail.isLocked
-                    ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                    : "text-rose-600 dark:text-rose-400 border-rose-500/30"
-                }`}
-                onClick={() => {
-                  onOpenChange(false);
-                  onOpenLock(userDetail);
-                }}
-              >
-                {userDetail.isLocked ? (
-                  <>
-                    <Unlock className="h-3.5 w-3.5 mr-1.5" />
-                    Unlock
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-3.5 w-3.5 mr-1.5" />
-                    Lock Account
-                  </>
-                )}
-              </Button>
-
-              {userDetail.id !== currentUserId && (
+              {/* Quick Actions Strip */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  className="text-xs h-8"
                   onClick={() => {
                     onOpenChange(false);
-                    onOpenDelete(userDetail);
+                    onOpenEdit(userDetail);
                   }}
                 >
-                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                  Delete
+                  <UserPen className="h-3.5 w-3.5 mr-1.5" />
+                  Edit Profile
                 </Button>
-              )}
-            </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenResetPassword(userDetail);
+                  }}
+                >
+                  <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                  Reset Password
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`text-xs h-8 ${
+                    userDetail.isLocked
+                      ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      : "text-rose-600 dark:text-rose-400 border-rose-500/30"
+                  }`}
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenLock(userDetail);
+                  }}
+                >
+                  {userDetail.isLocked ? (
+                    <>
+                      <Unlock className="h-3.5 w-3.5 mr-1.5" />
+                      Unlock
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5 mr-1.5" />
+                      Lock Account
+                    </>
+                  )}
+                </Button>
 
-            {/* Navigation Tabs */}
-            <div className="flex border-b border-border/40 text-xs">
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
-                  activeTab === "profile"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Profile & Details
-              </button>
-              <button
-                onClick={() => setActiveTab("security")}
-                className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
-                  activeTab === "security"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Security & Access
-              </button>
-              <button
-                onClick={() => setActiveTab("sessions")}
-                className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
-                  activeTab === "sessions"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Active Sessions ({userDetail.sessions?.length || 0})
-              </button>
-            </div>
+                {userDetail.id !== currentUserId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenDelete(userDetail);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex border-b border-border/40 text-xs">
+                <button
+                  onClick={() => setActiveTab("profile")}
+                  className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
+                    activeTab === "profile"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Profile & Details
+                </button>
+                <button
+                  onClick={() => setActiveTab("security")}
+                  className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
+                    activeTab === "security"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Security & Access
+                </button>
+                <button
+                  onClick={() => setActiveTab("sessions")}
+                  className={`pb-2.5 px-3 font-semibold transition-colors border-b-2 ${
+                    activeTab === "sessions"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Active Sessions ({userDetail.sessions?.length || 0})
+                </button>
+              </div>
             </div>
 
             {/* Scrollable Content Body */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
-            {/* Tab 1: Profile & Details */}
-            {activeTab === "profile" && (
-              <div className="space-y-4 pt-1 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl border border-border/60 bg-card space-y-1">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Account Created
-                    </span>
-                    <p className="font-semibold text-foreground">
-                      {new Date(userDetail.createdAt).toLocaleDateString("en-US", {
-                        dateStyle: "medium",
-                      })}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl border border-border/60 bg-card space-y-1">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      Last Active
-                    </span>
-                    <p className="font-semibold text-foreground">
-                      {userDetail.lastLoginAt
-                        ? new Date(userDetail.lastLoginAt).toLocaleString("en-US", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })
-                        : "Never logged in"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Linked OAuth Accounts */}
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                    Linked OAuth Providers
-                  </span>
-                  {userDetail.oAuthAccounts &&
-                  userDetail.oAuthAccounts.length > 0 ? (
-                    <div className="space-y-2">
-                      {userDetail.oAuthAccounts.map((acc) => (
-                        <div
-                          key={acc.id}
-                          className="p-3 rounded-xl border border-border/60 bg-card flex items-center justify-between text-xs"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <Globe className="h-4 w-4 text-primary" />
-                            <span className="font-semibold text-foreground uppercase">
-                              {acc.provider}
-                            </span>
-                            <span className="text-[11px] font-mono text-muted-foreground">
-                              (ID: {acc.providerId.slice(0, 8)}...)
-                            </span>
-                          </div>
-                          <span className="text-muted-foreground">
-                            Connected{" "}
-                            {new Date(acc.createdAt).toLocaleDateString("en-US", {
-                              dateStyle: "short",
-                            })}
-                          </span>
-                        </div>
-                      ))}
+              {/* Tab 1: Profile & Details */}
+              {activeTab === "profile" && (
+                <div className="space-y-4 pt-1 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl border border-border/60 bg-card space-y-1">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Account Created
+                      </span>
+                      <p className="font-semibold text-foreground">
+                        {new Date(userDetail.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            dateStyle: "medium",
+                          },
+                        )}
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic p-3 rounded-xl border border-dashed border-border/60 text-center">
-                      No external OAuth accounts linked.
-                    </p>
-                  )}
-                </div>
 
-                {/* WhiteLabel / Subscription (if client) */}
-                {userDetail.subscription && (
+                    <div className="p-3 rounded-xl border border-border/60 bg-card space-y-1">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        Last Active
+                      </span>
+                      <p className="font-semibold text-foreground">
+                        {userDetail.lastLoginAt
+                          ? new Date(userDetail.lastLoginAt).toLocaleString(
+                              "en-US",
+                              {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              },
+                            )
+                          : "Never logged in"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Linked OAuth Accounts */}
                   <div className="space-y-2">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                      WhiteLabel & Subscription
+                      Linked OAuth Providers
                     </span>
-                    <div className="p-3.5 rounded-xl border border-border/60 bg-card space-y-3 text-xs">
-                      <div className="flex items-center justify-between font-semibold">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-primary" />
-                          <span>
-                            {userDetail.subscription.whiteLabel?.name ||
-                              "WhiteLabel Instance"}
-                          </span>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className="border-primary/30 bg-primary/10 text-primary"
-                        >
-                          Subscriber
-                        </Badge>
-                      </div>
-
-                      {userDetail.subscription.suspendedAt && (
-                        <p className="text-rose-600 dark:text-rose-400 font-medium">
-                          Suspended on{" "}
-                          {new Date(
-                            userDetail.subscription.suspendedAt,
-                          ).toLocaleDateString()}
-                        </p>
-                      )}
-
-                      {userDetail.subscription.payments &&
-                        userDetail.subscription.payments.length > 0 && (
-                          <div className="border-t border-border/40 pt-2 space-y-1.5">
-                            <span className="text-[11px] text-muted-foreground font-semibold">
-                              Recent Subscription Payments:
+                    {userDetail.oAuthAccounts &&
+                    userDetail.oAuthAccounts.length > 0 ? (
+                      <div className="space-y-2">
+                        {userDetail.oAuthAccounts.map((acc) => (
+                          <div
+                            key={acc.id}
+                            className="p-3 rounded-xl border border-border/60 bg-card flex items-center justify-between text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <Globe className="h-4 w-4 text-primary" />
+                              <span className="font-semibold text-foreground uppercase">
+                                {acc.provider}
+                              </span>
+                              <span className="text-[11px] font-mono text-muted-foreground">
+                                (ID: {acc.providerId.slice(0, 8)}...)
+                              </span>
+                            </div>
+                            <span className="text-muted-foreground">
+                              Connected{" "}
+                              {new Date(acc.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  dateStyle: "short",
+                                },
+                              )}
                             </span>
-                            {userDetail.subscription.payments.map((p) => (
-                              <div
-                                key={p.id}
-                                className="flex items-center justify-between text-[11px] text-muted-foreground"
-                              >
-                                <span>
-                                  ${(p.amount / 100).toFixed(2)} - Status:{" "}
-                                  <span className="font-semibold text-foreground">
-                                    {p.status}
-                                  </span>
-                                </span>
-                                <span>
-                                  {new Date(p.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                            ))}
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic p-3 rounded-xl border border-dashed border-border/60 text-center">
+                        No external OAuth accounts linked.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* WhiteLabel / Subscription (if client) */}
+                  {userDetail.subscription && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                        WhiteLabel & Subscription
+                      </span>
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-card space-y-3 text-xs">
+                        <div className="flex items-center justify-between font-semibold">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-primary" />
+                            <span>
+                              {userDetail.subscription.whiteLabel?.name ||
+                                "WhiteLabel Instance"}
+                            </span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="border-primary/30 bg-primary/10 text-primary"
+                          >
+                            Subscriber
+                          </Badge>
+                        </div>
+
+                        {userDetail.subscription.suspendedAt && (
+                          <p className="text-rose-600 dark:text-rose-400 font-medium">
+                            Suspended on{" "}
+                            {new Date(
+                              userDetail.subscription.suspendedAt,
+                            ).toLocaleDateString()}
+                          </p>
                         )}
+
+                        {userDetail.subscription.payments &&
+                          userDetail.subscription.payments.length > 0 && (
+                            <div className="border-t border-border/40 pt-2 space-y-1.5">
+                              <span className="text-[11px] text-muted-foreground font-semibold">
+                                Recent Subscription Payments:
+                              </span>
+                              {userDetail.subscription.payments.map((p) => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center justify-between text-[11px] text-muted-foreground"
+                                >
+                                  <span>
+                                    ${(p.amount / 100).toFixed(2)} - Status:{" "}
+                                    <span className="font-semibold text-foreground">
+                                      {p.status}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    {new Date(p.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Security & Access */}
+              {activeTab === "security" && (
+                <div className="space-y-4 pt-1 text-xs">
+                  {/* Security Failure Meters */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Failed Security Counters
+                      </span>
+                      {totalSecurityFailures > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleResetAttempts}
+                          disabled={actionLoading}
+                          className="h-6 text-xs text-primary hover:text-primary px-2"
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset All Failures
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                      <div className="p-2.5 rounded-xl border border-border/60 bg-card">
+                        <div className="font-bold text-base text-foreground">
+                          {userDetail.failedLoginAttempts}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          Login Fails
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl border border-border/60 bg-card">
+                        <div className="font-bold text-base text-foreground">
+                          {userDetail.failedVerificationAttempts}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          Verify Fails
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl border border-border/60 bg-card">
+                        <div className="font-bold text-base text-foreground">
+                          {userDetail.failedTwoFactorAttempts}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          2FA Fails
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl border border-border/60 bg-card">
+                        <div className="font-bold text-base text-foreground">
+                          {userDetail.failedPasswordResetAttempts}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          Reset Fails
+                        </span>
+                      </div>
+                    </div>
+
+                    {userDetail.lockedUntil && (
+                      <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 mt-2">
+                        <ShieldAlert className="h-4 w-4 shrink-0" />
+                        <span>
+                          Locked until:{" "}
+                          {new Date(userDetail.lockedUntil).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instant Status Toggles */}
+                  <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-card">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Security Policy Controls
+                    </span>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          Email Verified
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Manually toggle verified state for this user.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={userDetail.emailVerified}
+                        onCheckedChange={handleToggleEmailVerified}
+                        disabled={actionLoading}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          Two-Factor Authentication (2FA)
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Enable or disable 2FA for this account.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={userDetail.twoFactorEnabled}
+                        onCheckedChange={handleToggleTwoFactor}
+                        disabled={actionLoading}
+                      />
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Tab 2: Security & Access */}
-            {activeTab === "security" && (
-              <div className="space-y-4 pt-1 text-xs">
-                {/* Security Failure Meters */}
-                <div className="space-y-2">
+              {/* Tab 3: Active Sessions & Devices */}
+              {activeTab === "sessions" && (
+                <div className="space-y-3 pt-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Failed Security Counters
+                      Recorded Sessions
                     </span>
-                    {totalSecurityFailures > 0 && (
+                    {userDetail.sessions && userDetail.sessions.length > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleResetAttempts}
+                        onClick={handleRevokeSessions}
                         disabled={actionLoading}
-                        className="h-6 text-xs text-primary hover:text-primary px-2"
+                        className="h-6 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 px-2"
                       >
-                        <RotateCcw className="h-3 w-3 mr-1" />
-                        Reset All Failures
+                        <LogOut className="h-3 w-3 mr-1" />
+                        Revoke All Sessions
                       </Button>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-card">
-                      <div className="font-bold text-base text-foreground">
-                        {userDetail.failedLoginAttempts}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        Login Fails
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-card">
-                      <div className="font-bold text-base text-foreground">
-                        {userDetail.failedVerificationAttempts}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        Verify Fails
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-card">
-                      <div className="font-bold text-base text-foreground">
-                        {userDetail.failedTwoFactorAttempts}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        2FA Fails
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-card">
-                      <div className="font-bold text-base text-foreground">
-                        {userDetail.failedPasswordResetAttempts}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        Reset Fails
-                      </span>
-                    </div>
-                  </div>
+                  {userDetail.sessions && userDetail.sessions.length > 0 ? (
+                    <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                      {userDetail.sessions.map((s) => {
+                        const isRevoked = Boolean(s.revokedAt);
+                        const isExpired = new Date(s.expiresAt) < new Date();
+                        const isActive = !isRevoked && !isExpired;
+                        const parsed = parseUserAgent(s.userAgent);
 
-                  {userDetail.lockedUntil && (
-                    <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 mt-2">
-                      <ShieldAlert className="h-4 w-4 shrink-0" />
-                      <span>
-                        Locked until:{" "}
-                        {new Date(userDetail.lockedUntil).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                        return (
+                          <div
+                            key={s.id}
+                            className="p-3.5 rounded-xl border border-border/60 bg-card space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Laptop className="h-4 w-4 text-primary" />
+                                <span className="font-semibold text-foreground">
+                                  {parsed.browser} on {parsed.os}
+                                </span>
+                              </div>
+                              {isActive ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+                                >
+                                  Active
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-2 py-0.5 text-muted-foreground"
+                                >
+                                  {isRevoked ? "Revoked" : "Expired"}
+                                </Badge>
+                              )}
+                            </div>
 
-                {/* Instant Status Toggles */}
-                <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-card">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                    Security Policy Controls
-                  </span>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Email Verified
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Manually toggle verified state for this user.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={userDetail.emailVerified}
-                      onCheckedChange={handleToggleEmailVerified}
-                      disabled={actionLoading}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Two-Factor Authentication (2FA)
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Enable or disable 2FA for this account.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={userDetail.twoFactorEnabled}
-                      onCheckedChange={handleToggleTwoFactor}
-                      disabled={actionLoading}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 3: Active Sessions & Devices */}
-            {activeTab === "sessions" && (
-              <div className="space-y-3 pt-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Recorded Sessions
-                  </span>
-                  {userDetail.sessions && userDetail.sessions.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRevokeSessions}
-                      disabled={actionLoading}
-                      className="h-6 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 px-2"
-                    >
-                      <LogOut className="h-3 w-3 mr-1" />
-                      Revoke All Sessions
-                    </Button>
-                  )}
-                </div>
-
-                {userDetail.sessions && userDetail.sessions.length > 0 ? (
-                  <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-                    {userDetail.sessions.map((s) => {
-                      const isRevoked = Boolean(s.revokedAt);
-                      const isExpired = new Date(s.expiresAt) < new Date();
-                      const isActive = !isRevoked && !isExpired;
-                      const parsed = parseUserAgent(s.userAgent);
-
-                      return (
-                        <div
-                          key={s.id}
-                          className="p-3.5 rounded-xl border border-border/60 bg-card space-y-1.5"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Laptop className="h-4 w-4 text-primary" />
-                              <span className="font-semibold text-foreground">
-                                {parsed.browser} on {parsed.os}
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>IP: {s.ipAddress || "127.0.0.1"}</span>
+                              <span>
+                                Accessed:{" "}
+                                {new Date(s.accessedAt).toLocaleString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
                               </span>
                             </div>
-                            {isActive ? (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
-                              >
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] px-2 py-0.5 text-muted-foreground"
-                              >
-                                {isRevoked ? "Revoked" : "Expired"}
-                              </Badge>
+
+                            {s.revokeReason && (
+                              <p className="text-[10px] text-rose-600 dark:text-rose-400 italic">
+                                Reason: {s.revokeReason}
+                              </p>
                             )}
                           </div>
-
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>IP: {s.ipAddress || "127.0.0.1"}</span>
-                            <span>
-                              Accessed:{" "}
-                              {new Date(s.accessedAt).toLocaleString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-
-                          {s.revokeReason && (
-                            <p className="text-[10px] text-rose-600 dark:text-rose-400 italic">
-                              Reason: {s.revokeReason}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic p-4 rounded-xl border border-dashed border-border/60 text-center">
-                    No active sessions recorded for this user.
-                  </p>
-                )}
-              </div>
-            )}
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic p-4 rounded-xl border border-dashed border-border/60 text-center">
+                      No active sessions recorded for this user.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

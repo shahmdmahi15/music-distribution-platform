@@ -8,6 +8,9 @@ import { WhiteLabel } from "@/types/whitelabel";
 export interface ApplyWhiteLabelPayload {
   name: string;
   businessType: string;
+  desiredSubdomain?: string;
+  elasticIpv4?: string;
+  primaryColor?: string;
   companyWebsite?: string;
   country?: string;
   yearsInBusiness?: number;

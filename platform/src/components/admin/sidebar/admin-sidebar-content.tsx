@@ -266,7 +266,8 @@ function AdminCollapsibleMenuItem({
   pathname: string;
 }) {
   const hasActiveChild = item.items.some(
-    (sub) => sub.url !== "#" && (pathname === sub.url || pathname.startsWith(sub.url)),
+    (sub) =>
+      sub.url !== "#" && (pathname === sub.url || pathname.startsWith(sub.url)),
   );
   const [isOpen, setIsOpen] = useState(hasActiveChild);
   const [prevPathname, setPrevPathname] = useState(pathname);

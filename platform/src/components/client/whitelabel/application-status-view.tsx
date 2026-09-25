@@ -25,15 +25,57 @@ import {
   ChevronRight,
   Receipt,
   FileSignature,
+  Upload,
+  MessageSquare,
+  PhoneCall,
+  Headphones,
+  FileCheck,
+  AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
 import { formatDate } from "@/lib/utils";
 import { SubscriptionPayment } from "@/types/subscription";
 import { clientGetContractPreviewAction } from "@/actions/client/whitelabel/client-get-contract-preview.action";
+import { clientUploadDocumentAction } from "@/actions/client/whitelabel/client-upload-document.action";
+import { clientDeleteDocumentAction } from "@/actions/client/whitelabel/client-delete-document.action";
+import { clientGetDocumentPreviewAction } from "@/actions/client/whitelabel/client-get-document-preview.action";
+
+const DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
+  INCORPORATION_DOC: "Company Incorporation / Business Certificate",
+  DISTRIBUTION_CONTRACT: "Distribution Agreement / Contract",
+  CATALOG_RIGHTS: "Catalog Ownership / Rights Clearance Proof",
+  IDENTITY_PROOF: "Government ID / Passport of Contact Person",
+  TAX_DOCUMENT: "Tax Form (W-8 / W-9 / Tax ID Certificate)",
+  SUPPLEMENTARY_DOCUMENT: "Other Supplementary Verification Document",
+};
 
 interface ApplicationStatusViewProps {
   whiteLabel: WhiteLabel;
@@ -44,17 +86,103 @@ interface ApplicationStatusViewProps {
 export function WhiteLabelApplicationStatusView({
   whiteLabel,
   payments = [],
+  onReapply,
 }: ApplicationStatusViewProps) {
   const router = useRouter();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPreviewingContract, setIsPreviewingContract] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [docType, setDocType] = useState("INCORPORATION_DOC");
+  const [isDeletingDocId, setIsDeletingDocId] = useState<string | null>(null);
+  const [previewingDocId, setPreviewingDocId] = useState<string | null>(null);
+
+  const handlePreviewDocument = async (doc: any) => {
+    if (doc.fileUrl) {
+      window.open(doc.fileUrl, "_blank");
+      return;
+    }
+    setPreviewingDocId(doc.id);
+    try {
+      const res = await clientGetDocumentPreviewAction(doc.id);
+      if (res.success && res.fileUrl) {
+        window.open(res.fileUrl, "_blank");
+      } else {
+        toast.error(res.message || "Unable to open document preview.");
+      }
+    } catch {
+      toast.error("Failed to load document preview link.");
+    } finally {
+      setPreviewingDocId(null);
+    }
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(label);
     toast.success(`Copied ${label} to clipboard!`);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleUploadDocumentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docFile) {
+      toast.error("Please select a file to upload.");
+      return;
+    }
+
+    if (docFile.size > 25 * 1024 * 1024) {
+      toast.error("File size cannot exceed 25MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", docFile);
+    formData.append("name", docTitle.trim() || docFile.name);
+    formData.append("type", docType);
+
+    setIsUploadingDoc(true);
+    const toastId = toast.loading("Uploading document to secure storage...");
+
+    try {
+      const res = await clientUploadDocumentAction(formData);
+      if (res.success) {
+        toast.success("Document uploaded successfully.", { id: toastId });
+        setShowUploadModal(false);
+        setDocFile(null);
+        setDocTitle("");
+        setDocType("INCORPORATION_DOC");
+        router.refresh();
+      } else {
+        toast.error(res.message || "Failed to upload document.", {
+          id: toastId,
+        });
+      }
+    } catch {
+      toast.error("An error occurred during file upload.", { id: toastId });
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    setIsDeletingDocId(docId);
+    try {
+      const res = await clientDeleteDocumentAction(docId);
+      if (res.success) {
+        toast.success(res.message);
+        router.refresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to delete document.");
+    } finally {
+      setIsDeletingDocId(null);
+    }
   };
 
   const handleRefresh = () => {
@@ -93,64 +221,65 @@ export function WhiteLabelApplicationStatusView({
   > = {
     [WhiteLabelStatus.PENDING]: {
       label: "Application Pending Review",
-      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+      color:
+        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
       description:
         "Your WhiteLabel application has been safely received. Platform administrators will review your credentials and reach out directly.",
       stepIndex: 1,
     },
     [WhiteLabelStatus.UNDER_REVIEW]: {
       label: "Under Review & Direct Contact",
-      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+      color:
+        "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
       description:
         "A platform administrator is currently reviewing your catalog details and reaching out to finalize partnership terms.",
       stepIndex: 2,
     },
     [WhiteLabelStatus.PROCESSING]: {
       label: "Review Complete • Contract Preparation",
-      color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+      color:
+        "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
       description:
         "Review is complete! The formal partnership agreement is being drafted and prepared for mutual execution.",
       stepIndex: 3,
     },
     [WhiteLabelStatus.CONTRACTED]: {
       label: "Agreement Executed (Contract Signed)",
-      color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+      color:
+        "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
       description:
         "The signed agreement has been uploaded by the platform administrator. You can preview the agreement below. Next step is hand-to-hand / offline payment registration.",
-      stepIndex: 4,
+      stepIndex: 5,
     },
     [WhiteLabelStatus.PAID]: {
       label: "Payment Verified • Pending Final Activation",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+      color:
+        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
       description:
         "Payment has been registered and verified by administrators. Cloudflare DNS provisioning and final account activation are being finalized.",
-      stepIndex: 5,
-    },
-    [WhiteLabelStatus.APPROVED]: {
-      label: "WhiteLabel Active & Operational",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-      description:
-        "Your WhiteLabel instance is completely operational with automated Cloudflare routing and full platform console unlocked.",
       stepIndex: 6,
     },
     [WhiteLabelStatus.ACTIVE]: {
       label: "WhiteLabel Active & Operational",
-      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+      color:
+        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
       description:
         "Your WhiteLabel instance is live! Subdomain routing is automated via Cloudflare, and full console navigation is unlocked.",
-      stepIndex: 6,
+      stepIndex: 7,
     },
     [WhiteLabelStatus.REJECTED]: {
-      label: "Application Declined",
-      color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-      description:
-        whiteLabel.statusReason ||
-        "Your application was reviewed and could not be approved at this time. Please contact support for more details.",
+      label: "Application Declined • Administrative Review",
+      color:
+        "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+      description: whiteLabel.statusReason
+        ? `Reviewer Reason Note: "${whiteLabel.statusReason}"`
+        : "Your application was reviewed and could not be approved at this time. Please see the reviewer details below.",
       stepIndex: 2,
     },
     [WhiteLabelStatus.SUSPENDED]: {
       label: "WhiteLabel Suspended",
-      color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+      color:
+        "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
       description:
         whiteLabel.statusReason ||
         "Your WhiteLabel instance has been suspended due to subscription expiration or administrative action.",
@@ -158,7 +287,8 @@ export function WhiteLabelApplicationStatusView({
     },
   };
 
-  const currentCfg = statusConfig[whiteLabel.status] || statusConfig[WhiteLabelStatus.PENDING];
+  const currentCfg =
+    statusConfig[whiteLabel.status] || statusConfig[WhiteLabelStatus.PENDING];
   const stepIdx = currentCfg.stepIndex;
 
   const steps = [
@@ -207,16 +337,18 @@ export function WhiteLabelApplicationStatusView({
       id: "active",
       title: "6. Active",
       desc: "Cloudflare DNS live & console unlocked",
-      isDone: stepIdx >= 6 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
-      isActive: stepIdx >= 6 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
+      isDone: stepIdx >= 7 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
+      isActive:
+        stepIdx === 6 && whiteLabel.status !== WhiteLabelStatus.SUSPENDED,
     },
   ];
 
-  const latestPayment = payments[0] || (whiteLabel.payments && whiteLabel.payments[0]);
-  const isLive = whiteLabel.status === WhiteLabelStatus.ACTIVE || whiteLabel.status === WhiteLabelStatus.APPROVED;
+  const latestPayment =
+    payments[0] || (whiteLabel.payments && whiteLabel.payments[0]);
+  const isLive = whiteLabel.status === WhiteLabelStatus.ACTIVE;
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in-50 duration-300">
+    <div className="w-full space-y-8 animate-in fade-in-50 duration-300">
       {/* Header Card */}
       <Card className="overflow-hidden border-border/80 shadow-md glass-card">
         <div className="p-6 sm:p-8 space-y-6">
@@ -233,7 +365,9 @@ export function WhiteLabelApplicationStatusView({
                   {whiteLabel.code}
                 </Badge>
                 <button
-                  onClick={() => copyToClipboard(whiteLabel.code, "WhiteLabel Code")}
+                  onClick={() =>
+                    copyToClipboard(whiteLabel.code, "WhiteLabel Code")
+                  }
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   title="Copy WhiteLabel Code"
                 >
@@ -270,7 +404,9 @@ export function WhiteLabelApplicationStatusView({
           </div>
 
           {/* Status Alert Banner */}
-          <div className={`p-4 rounded-xl border flex items-start gap-3.5 ${currentCfg.color}`}>
+          <div
+            className={`p-4 rounded-xl border flex items-start gap-3.5 ${currentCfg.color}`}
+          >
             <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold text-sm">{currentCfg.label}</p>
@@ -289,7 +425,9 @@ export function WhiteLabelApplicationStatusView({
               Onboarding & Activation Flow
             </h3>
             <span className="text-[11px] font-mono text-muted-foreground">
-              Step {Math.min(stepIdx, 6)} of 6
+              {whiteLabel.status === WhiteLabelStatus.ACTIVE
+                ? "Completed (6 of 6)"
+                : `Step ${Math.min(stepIdx, 6)} of 6`}
             </span>
           </div>
 
@@ -306,13 +444,29 @@ export function WhiteLabelApplicationStatusView({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                  <span
+                    className={`text-[10px] font-mono font-bold ${
+                      s.isDone
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : s.isActive
+                          ? "text-primary font-extrabold"
+                          : "text-muted-foreground"
+                    }`}
+                  >
                     STEP {s.num}
                   </span>
                   {s.isDone ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : s.isActive &&
+                    whiteLabel.status === WhiteLabelStatus.REJECTED ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+                  ) : s.isActive ? (
+                    <div className="relative flex items-center justify-center">
+                      <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-primary/40"></span>
+                      <Clock className="h-3.5 w-3.5 text-primary relative" />
+                    </div>
                   ) : (
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
                   )}
                 </div>
                 <p className="font-bold text-xs text-foreground leading-tight">
@@ -326,6 +480,81 @@ export function WhiteLabelApplicationStatusView({
           </div>
         </div>
       </Card>
+
+      {/* Rejected / Declined Alert Card with Administrative Reason */}
+      {whiteLabel.status === WhiteLabelStatus.REJECTED && (
+        <Card className="border-rose-500/50 bg-rose-500/5 shadow-md overflow-hidden">
+          <div className="p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className="border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs uppercase tracking-wide"
+                  >
+                    Action Required • Application Declined
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Admin Review Update
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-foreground">
+                  Your WhiteLabel Application Requires Updates
+                </h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  During catalog and operational verification, platform
+                  administration requested changes or additional verification
+                  documents before contract execution.
+                </p>
+              </div>
+            </div>
+
+            {/* Decline Reason Note Box */}
+            <div className="rounded-xl border border-rose-500/30 bg-background/80 dark:bg-card/80 p-4 space-y-2 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                <MessageSquare className="h-4 w-4" />
+                Reviewer Note / Decline Reason:
+              </div>
+              <div className="text-xs text-foreground leading-relaxed whitespace-pre-wrap font-medium p-3 bg-rose-500/5 rounded-lg border border-rose-500/20">
+                {whiteLabel.statusReason ||
+                  "No detailed note provided. Please upload additional business documentation below or contact the enterprise onboarding desk."}
+              </div>
+            </div>
+
+            {/* Resolution Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-rose-500/20">
+              <p className="text-xs text-muted-foreground">
+                You can upload requested documents in the{" "}
+                <strong>Verification Vault</strong> below, or modify your
+                application.
+              </p>
+              <div className="flex items-center gap-2">
+                {onReapply && (
+                  <Button
+                    size="sm"
+                    onClick={onReapply}
+                    className="h-8 text-xs font-semibold gap-1.5 bg-rose-600 hover:bg-rose-500 text-white shadow-xs"
+                  >
+                    Edit & Re-Submit Application
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUploadModal(true)}
+                  className="h-8 text-xs font-semibold gap-1.5 border-rose-500/30 hover:bg-rose-500/10 text-foreground"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload Requested Document
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Active WhiteLabel Live Gateway */}
       {isLive && (
@@ -341,7 +570,8 @@ export function WhiteLabelApplicationStatusView({
                 </span>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                Your WhiteLabel instance is provisioned and ready for your clients.
+                Your WhiteLabel instance is provisioned and ready for your
+                clients.
               </p>
               {whiteLabel.subdomain && (
                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
@@ -385,7 +615,8 @@ export function WhiteLabelApplicationStatusView({
               Partnership Contract Agreement
             </CardTitle>
             <CardDescription className="text-xs">
-              The official executed agreement governing your WhiteLabel licensing and service level terms.
+              The official executed agreement governing your WhiteLabel
+              licensing and service level terms.
             </CardDescription>
           </div>
         </CardHeader>
@@ -399,15 +630,21 @@ export function WhiteLabelApplicationStatusView({
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-foreground text-sm truncate">
-                      {whiteLabel.contractFileName || "Executed_Contract_Agreement.pdf"}
+                      {whiteLabel.contractFileName ||
+                        "Executed_Contract_Agreement.pdf"}
                     </p>
-                    <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[9px] px-1.5 py-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                    >
                       SIGNED & VERIFIED
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {whiteLabel.contractFileSize && (
-                      <span>{(whiteLabel.contractFileSize / 1024).toFixed(1)} KB</span>
+                      <span>
+                        {(whiteLabel.contractFileSize / 1024).toFixed(1)} KB
+                      </span>
                     )}
                     {whiteLabel.contractUploadedAt && (
                       <span suppressHydrationWarning>
@@ -436,7 +673,9 @@ export function WhiteLabelApplicationStatusView({
                 Contract Agreement Not Yet Uploaded
               </p>
               <p className="text-[11px] max-w-sm mx-auto">
-                Once the initial catalog review is marked complete, your platform administrator will upload the signed contract agreement here for your records.
+                Once the initial catalog review is marked complete, your
+                platform administrator will upload the signed contract agreement
+                here for your records.
               </p>
             </div>
           )}
@@ -444,7 +683,9 @@ export function WhiteLabelApplicationStatusView({
       </Card>
 
       {/* Payment Information Section */}
-      {(latestPayment || whiteLabel.status === WhiteLabelStatus.PAID || isLive) && (
+      {(latestPayment ||
+        whiteLabel.status === WhiteLabelStatus.PAID ||
+        isLive) && (
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
             <div className="space-y-0.5">
@@ -453,7 +694,8 @@ export function WhiteLabelApplicationStatusView({
                 Recorded Payment & Subscription Status
               </CardTitle>
               <CardDescription className="text-xs">
-                Offline, wire, or hand-to-hand payment registered and verified by platform administrators.
+                Offline, wire, or hand-to-hand payment registered and verified
+                by platform administrators.
               </CardDescription>
             </div>
           </CardHeader>
@@ -465,7 +707,10 @@ export function WhiteLabelApplicationStatusView({
                     <span className="text-sm font-bold text-foreground">
                       ${latestPayment.amount.toLocaleString()} USD
                     </span>
-                    <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                    >
                       {latestPayment.status}
                     </Badge>
                     {latestPayment.code && (
@@ -476,7 +721,8 @@ export function WhiteLabelApplicationStatusView({
                   </div>
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     <span suppressHydrationWarning>
-                      Valid: {formatDate(latestPayment.startsAt)} – {formatDate(latestPayment.endsAt)}
+                      Valid: {formatDate(latestPayment.startsAt)} –{" "}
+                      {formatDate(latestPayment.endsAt)}
                     </span>
                   </p>
                 </div>
@@ -520,11 +766,15 @@ export function WhiteLabelApplicationStatusView({
           </CardHeader>
           <CardContent className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-muted/30 border border-border/50 space-y-1">
-              <span className="text-muted-foreground text-[11px] block">Primary Representative</span>
+              <span className="text-muted-foreground text-[11px] block">
+                Primary Representative
+              </span>
               <p className="font-semibold text-foreground">
                 {whiteLabel.contactFirstName} {whiteLabel.contactLastName}
               </p>
-              <p className="text-muted-foreground font-mono">{whiteLabel.contactEmail}</p>
+              <p className="text-muted-foreground font-mono">
+                {whiteLabel.contactEmail}
+              </p>
               {whiteLabel.contactLinkedIn && (
                 <p className="text-[11px] text-primary pt-0.5 truncate">
                   {whiteLabel.contactLinkedIn}
@@ -534,15 +784,20 @@ export function WhiteLabelApplicationStatusView({
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground block">Incorporated</span>
+                <span className="text-muted-foreground block">
+                  Incorporated
+                </span>
                 <span className="font-bold text-foreground">
                   {whiteLabel.isIncorporated ? "Yes" : "No"}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground block">Years in Business</span>
+                <span className="text-muted-foreground block">
+                  Years in Business
+                </span>
                 <span className="font-bold text-foreground">
-                  {whiteLabel.yearsInBusiness} {whiteLabel.yearsInBusiness === 1 ? "year" : "years"}
+                  {whiteLabel.yearsInBusiness}{" "}
+                  {whiteLabel.yearsInBusiness === 1 ? "year" : "years"}
                 </span>
               </div>
             </div>
@@ -560,27 +815,39 @@ export function WhiteLabelApplicationStatusView({
           <CardContent className="space-y-3 text-xs">
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">Catalog</span>
+                <span className="text-muted-foreground text-[10px] block">
+                  Catalog
+                </span>
                 <span className="font-bold text-sm text-foreground">
                   {whiteLabel.catalogTrackCount}
                 </span>
-                <span className="text-[10px] text-muted-foreground block">tracks</span>
+                <span className="text-[10px] text-muted-foreground block">
+                  tracks
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">Monthly</span>
+                <span className="text-muted-foreground text-[10px] block">
+                  Monthly
+                </span>
                 <span className="font-bold text-sm text-foreground">
                   {whiteLabel.monthlyTrackDelivery}
                 </span>
-                <span className="text-[10px] text-muted-foreground block">deliv. / mo</span>
+                <span className="text-[10px] text-muted-foreground block">
+                  deliv. / mo
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">Revenue</span>
+                <span className="text-muted-foreground text-[10px] block">
+                  Revenue
+                </span>
                 <span className="font-bold text-sm text-foreground">
                   ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-muted-foreground block">USD / mo</span>
+                <span className="text-[10px] text-muted-foreground block">
+                  USD / mo
+                </span>
               </div>
             </div>
 
@@ -590,7 +857,11 @@ export function WhiteLabelApplicationStatusView({
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {whiteLabel.currentDistributors?.map((d) => (
-                  <Badge key={d} variant="secondary" className="text-[10px] py-0 px-2 font-normal">
+                  <Badge
+                    key={d}
+                    variant="secondary"
+                    className="text-[10px] py-0 px-2 font-normal"
+                  >
                     {d}
                   </Badge>
                 ))}
@@ -599,6 +870,295 @@ export function WhiteLabelApplicationStatusView({
           </CardContent>
         </Card>
       </div>
+
+      {/* Dedicated Onboarding Partner Desk & Verification Vault */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Dedicated Support Partner Desk */}
+        <Card className="border-border/60 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Headphones className="h-4 w-4 text-primary" />
+                Dedicated Onboarding Partner Desk
+              </CardTitle>
+              <Badge
+                variant="outline"
+                className="text-[10px] border-primary/30 text-primary bg-primary/5"
+              >
+                SLA: &lt; 24h Turnaround
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              Direct access to our senior enterprise onboarding desk for
+              expedited review or technical queries.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            <div className="p-3 rounded-xl bg-muted/30 border border-border/50 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-[11px]">
+                  Assigned Partner Specialist
+                </span>
+                <span className="font-semibold text-foreground text-xs">
+                  Enterprise Desk
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                <span className="text-muted-foreground text-[11px]">
+                  VIP Support Email
+                </span>
+                <a
+                  href="mailto:partner-desk@royalmotionit.com"
+                  className="font-mono text-primary hover:underline text-xs"
+                >
+                  partner-desk@royalmotionit.com
+                </a>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                <span className="text-muted-foreground text-[11px]">
+                  Emergency Ingestion Hotline
+                </span>
+                <span className="font-mono text-xs text-foreground">
+                  +1 (800) 948-RMIT
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 gap-1.5"
+                onClick={() => {
+                  window.location.href = `mailto:partner-desk@royalmotionit.com?subject=Inquiry for WhiteLabel Application [${whiteLabel.code}] - ${whiteLabel.name}`;
+                }}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Contact Onboarding Officer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Supplementary Documents Vault */}
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-primary" />
+                Verification Vault & Documents
+              </CardTitle>
+              <Button
+                size="sm"
+                onClick={() => setShowUploadModal(true)}
+                className="h-7 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground"
+              >
+                <Upload className="h-3 w-3" />
+                Upload Document
+              </Button>
+            </div>
+            <CardDescription className="text-xs">
+              Upload company registration, tax certificates, catalog CSVs, or
+              master distribution agreements.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            {whiteLabel.documents && whiteLabel.documents.length > 0 ? (
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {whiteLabel.documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="p-3 rounded-xl border border-border/60 bg-muted/20 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-foreground text-xs truncate">
+                            {doc.name}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0 font-mono capitalize border-primary/30 text-primary bg-primary/5"
+                          >
+                            {doc.type.replace(/_/g, " ").toLowerCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono pt-0.5">
+                          {doc.fileSizeBytes
+                            ? `${(doc.fileSizeBytes / 1024).toFixed(1)} KB`
+                            : ""}
+                          {doc.createdAt && ` • ${formatDate(doc.createdAt)}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePreviewDocument(doc)}
+                        disabled={previewingDocId === doc.id}
+                        className="h-7 text-xs font-semibold gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                        title="Preview Document"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        {previewingDocId === doc.id ? "Opening..." : "Preview"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteDocument(doc.id)}
+                        disabled={isDeletingDocId === doc.id}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                        title="Remove Document"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-5 text-center border border-dashed rounded-xl space-y-1.5 text-muted-foreground">
+                <File className="h-6 w-6 mx-auto opacity-40 text-muted-foreground" />
+                <p className="text-xs font-semibold text-foreground">
+                  No Additional Documents Uploaded
+                </p>
+                <p className="text-[11px]">
+                  Need to send corporate validation documents? Click
+                  &quot;Upload Document&quot; above.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Client Document Upload Dialog Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-[480px] z-[60]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+              <Upload className="h-4 w-4 text-primary" />
+              Upload Verification Document
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Upload requested business certificates, incorporation papers,
+              distribution agreements, or catalog rights documents for
+              administrative review.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={handleUploadDocumentSubmit}
+            className="space-y-4 py-2 text-xs"
+          >
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Select File <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.zip,.docx,.doc"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const f = e.target.files[0];
+                    setDocFile(f);
+                    if (!docTitle.trim()) {
+                      setDocTitle(f.name.replace(/\.[^/.]+$/, ""));
+                    }
+                  }
+                }}
+                className="h-9 text-xs"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Accepted formats: PDF, PNG, JPG, DOCX, ZIP (Max 25MB)
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Document Title / Name
+              </Label>
+              <Input
+                placeholder="e.g. Master Distribution Contract - FUGA"
+                value={docTitle}
+                onChange={(e) => setDocTitle(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Document Type / Category
+              </Label>
+              <Select
+                value={docType}
+                onValueChange={(val) => {
+                  if (val) setDocType(val);
+                }}
+              >
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Select document type">
+                    {(val) =>
+                      DOCUMENT_CATEGORY_LABELS[val as string] ||
+                      val ||
+                      "Select document type"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="z-[70]">
+                  <SelectItem value="INCORPORATION_DOC">
+                    Company Incorporation / Business Certificate
+                  </SelectItem>
+                  <SelectItem value="DISTRIBUTION_CONTRACT">
+                    Distribution Agreement / Contract
+                  </SelectItem>
+                  <SelectItem value="CATALOG_RIGHTS">
+                    Catalog Ownership / Rights Clearance Proof
+                  </SelectItem>
+                  <SelectItem value="IDENTITY_PROOF">
+                    Government ID / Passport of Contact Person
+                  </SelectItem>
+                  <SelectItem value="TAX_DOCUMENT">
+                    Tax Form (W-8 / W-9 / Tax ID Certificate)
+                  </SelectItem>
+                  <SelectItem value="SUPPLEMENTARY_DOCUMENT">
+                    Other Supplementary Verification Document
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUploadModal(false)}
+                disabled={isUploadingDoc}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isUploadingDoc || !docFile}
+                className="text-xs font-bold bg-primary text-primary-foreground gap-1.5"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {isUploadingDoc ? "Uploading to Storage..." : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

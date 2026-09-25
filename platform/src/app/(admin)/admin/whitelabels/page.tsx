@@ -25,7 +25,9 @@ export default async function AdminWhiteLabelsPage() {
             WhiteLabel Instances & Applications
           </h1>
           <p className="text-xs text-muted-foreground max-w-2xl">
-            Review incoming enterprise WhiteLabel applications, inspect catalog telemetry, record offline/manual payments, and activate branded tenant distribution instances.
+            Review incoming enterprise WhiteLabel applications, inspect catalog
+            telemetry, record offline/manual payments, and activate branded
+            tenant distribution instances.
           </p>
         </div>
       </div>

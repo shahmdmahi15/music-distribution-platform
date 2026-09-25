@@ -143,7 +143,8 @@ export function EditPlatformUserDialog({
             <DialogTitle className="text-xl">Edit Platform User</DialogTitle>
           </div>
           <DialogDescription>
-            Update user information, assigned role hierarchy, or verification status.
+            Update user information, assigned role hierarchy, or verification
+            status.
           </DialogDescription>
         </DialogHeader>
 
@@ -254,7 +255,11 @@ export function EditPlatformUserDialog({
                   >
                     <SelectTrigger className="w-full bg-background/80">
                       <SelectValue placeholder="Select platform role">
-                        {(val) => roleLabels[val as string] || val || "Select platform role"}
+                        {(val) =>
+                          roleLabels[val as string] ||
+                          val ||
+                          "Select platform role"
+                        }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -308,7 +313,10 @@ export function EditPlatformUserDialog({
               {(field) => (
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-xs font-semibold cursor-pointer" htmlFor="edit-verified-switch">
+                    <Label
+                      className="text-xs font-semibold cursor-pointer"
+                      htmlFor="edit-verified-switch"
+                    >
                       Email Verified
                     </Label>
                     <p className="text-[11px] text-muted-foreground">
@@ -328,7 +336,10 @@ export function EditPlatformUserDialog({
               {(field) => (
                 <div className="flex items-center justify-between pt-2 border-t border-border/40">
                   <div className="space-y-0.5">
-                    <Label className="text-xs font-semibold cursor-pointer" htmlFor="edit-2fa-switch">
+                    <Label
+                      className="text-xs font-semibold cursor-pointer"
+                      htmlFor="edit-2fa-switch"
+                    >
                       Two-Factor Authentication (2FA)
                     </Label>
                     <p className="text-[11px] text-muted-foreground">

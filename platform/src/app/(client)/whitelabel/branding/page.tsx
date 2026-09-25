@@ -1,6 +1,12 @@
 import { clientGetBrandingAction } from "@/actions/client/whitelabel/client-get-branding.action";
 import { ClientBrandingView } from "@/components/client/whitelabel/client-branding-view";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,7 +24,9 @@ export default async function WhiteLabelBrandingPage() {
             <div className="h-12 w-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-2">
               <AlertTriangle className="h-6 w-6" />
             </div>
-            <CardTitle className="text-lg font-bold">WhiteLabel Not Activated</CardTitle>
+            <CardTitle className="text-lg font-bold">
+              WhiteLabel Not Activated
+            </CardTitle>
             <CardDescription className="text-xs">
               {result.message ||
                 "You must have an approved and active WhiteLabel application before customizing brand assets and domains."}

@@ -4,9 +4,7 @@ import { resetPasswordSchema, ResetPasswordInput } from "@/schemas/auth.schema";
 import { api } from "@/lib/api";
 import axios from "axios";
 
-export async function passwordResetAction(
-  input: ResetPasswordInput,
-): Promise<{
+export async function passwordResetAction(input: ResetPasswordInput): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -39,8 +37,7 @@ export async function passwordResetAction(
     if (axios.isAxiosError(error)) {
       return {
         success: false,
-        message:
-          error.response?.data?.message || "Failed to reset password.",
+        message: error.response?.data?.message || "Failed to reset password.",
       };
     }
     return {

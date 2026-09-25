@@ -101,7 +101,10 @@ export class ProfileService {
 
     // Base64 inflates by ~4/3, so reject on the encoded length before paying
     // for the decode of an oversized payload.
-    if ((base64Data.length * 3) / 4 > STORAGE_KEYS.platform.users.profile.limit) {
+    if (
+      (base64Data.length * 3) / 4 >
+      STORAGE_KEYS.platform.users.profile.limit
+    ) {
       throw new BadRequestException('Image exceeds 1MB limit');
     }
 
