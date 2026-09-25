@@ -632,6 +632,15 @@ export function WhiteLabelOnboardingWizard({
           return false;
         }
       }
+      const trimmedIp = formData.elasticIpv4?.trim() || "";
+      if (trimmedIp.length > 0) {
+        const ipv4Regex =
+          /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+        if (!ipv4Regex.test(trimmedIp)) {
+          toast.error("Must be a valid IPv4 address (e.g. 54.210.12.34)");
+          return false;
+        }
+      }
     }
     if (step === 3) {
       if (
@@ -700,9 +709,11 @@ export function WhiteLabelOnboardingWizard({
       const validArtists = formData.topArtists.filter((a: RosterArtist) =>
         Boolean(a.artistName && a.artistName.trim().length > 0),
       );
+      const cleanedElasticIpv4 = formData.elasticIpv4?.trim();
 
       const res = await clientApplyWhiteLabelAction({
         ...formData,
+        elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
         topArtists: validArtists,
         onboardingDetails: formData.onboardingDetails,
       });

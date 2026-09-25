@@ -14,6 +14,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type, Transform, TransformFnParams } from 'class-transformer';
@@ -86,6 +87,19 @@ export class CreateWhiteLabelDto {
 
   // Elastic IPv4 Address for hosted server routing
   @IsOptional()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' && value.trim() === ''
+      ? undefined
+      : typeof value === 'string'
+        ? value.trim()
+        : value,
+  )
+  @ValidateIf(
+    (o) =>
+      o.elasticIpv4 !== '' &&
+      o.elasticIpv4 !== null &&
+      o.elasticIpv4 !== undefined,
+  )
   @IsString()
   @IsIP(4, { message: 'Must be a valid IPv4 address (e.g. 54.210.12.34)' })
   elasticIpv4?: string;
