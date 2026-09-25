@@ -1079,25 +1079,43 @@ export function AdminWhiteLabelDetailsDialog({
             {/* Interactive 6-Stage Sequential Lifecycle Pipeline Stepper */}
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-0.5">
               {LIFECYCLE_STEPS.map((step, idx) => {
-                const isCompleted =
+                const isStepDone =
                   whiteLabel.status === WhiteLabelStatus.ACTIVE ||
-                  (activeLifecycleIndex !== -1 && idx < activeLifecycleIndex);
-                const isCurrent = step.status === whiteLabel.status;
+                  (idx === 0 && activeLifecycleIndex >= 0) ||
+                  (idx === 1 && activeLifecycleIndex >= 2) ||
+                  (idx === 2 && activeLifecycleIndex >= 3) ||
+                  (idx === 3 &&
+                    (activeLifecycleIndex >= 3 ||
+                      Boolean(whiteLabel.contractKey))) ||
+                  (idx === 4 &&
+                    (activeLifecycleIndex >= 4 || hasCompletedPayment));
+
+                const isNextAction =
+                  !isStepDone &&
+                  ((idx === 1 &&
+                    (whiteLabel.status === WhiteLabelStatus.PENDING ||
+                      whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW)) ||
+                    (idx === 2 &&
+                      whiteLabel.status === WhiteLabelStatus.PROCESSING) ||
+                    (idx === 4 &&
+                      whiteLabel.status === WhiteLabelStatus.CONTRACTED) ||
+                    (idx === 5 && whiteLabel.status === WhiteLabelStatus.PAID));
+
                 return (
                   <div
                     key={step.status}
                     className={`px-2.5 py-1.5 rounded-lg border text-[10px] flex items-center justify-between gap-1 ${
-                      isCurrent
-                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                        : isCompleted
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                      isStepDone
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold"
+                        : isNextAction
+                          ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs ring-1 ring-primary/30"
                           : "border-border/50 bg-background/50 text-muted-foreground"
                     }`}
                   >
                     <span className="truncate">{step.label}</span>
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                    ) : isCurrent ? (
+                    {isStepDone ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    ) : isNextAction ? (
                       <span className="h-2 w-2 rounded-full bg-primary animate-ping shrink-0" />
                     ) : null}
                   </div>

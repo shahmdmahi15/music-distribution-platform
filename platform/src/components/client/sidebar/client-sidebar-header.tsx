@@ -67,6 +67,13 @@ export function ClientSidebarHeader({
                       WhiteLabel Studio
                     </span>
                   </>
+                ) : whiteLabel?.status === WhiteLabelStatus.PAID ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                      Payment Verified
+                    </span>
+                  </>
                 ) : (
                   <>
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />

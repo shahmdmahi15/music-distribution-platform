@@ -297,59 +297,78 @@ export function WhiteLabelApplicationStatusView({
     statusConfig[whiteLabel.status] || statusConfig[WhiteLabelStatus.PENDING];
   const stepIdx = currentCfg.stepIndex;
 
+  const latestPayment =
+    payments[0] || (whiteLabel.payments && whiteLabel.payments[0]);
+  const hasVerifiedPayment =
+    whiteLabel.status === WhiteLabelStatus.PAID ||
+    whiteLabel.status === WhiteLabelStatus.ACTIVE ||
+    Boolean(latestPayment && latestPayment.status === "COMPLETED");
+  const hasSignedContract =
+    whiteLabel.status === WhiteLabelStatus.CONTRACTED ||
+    hasVerifiedPayment ||
+    Boolean(whiteLabel.contractKey);
+
   const steps = [
     {
       num: 1,
       id: "pending",
       title: "1. Submitted",
-      desc: "Received & pending initial review",
-      isDone: stepIdx > 1,
-      isActive: stepIdx === 1,
+      desc: "Application received & logged",
+      isDone: stepIdx >= 1,
+      isActive: false,
     },
     {
       num: 2,
       id: "review",
       title: "2. Under Review",
       desc: "Admin catalog verification & contact",
-      isDone: stepIdx > 2,
-      isActive: stepIdx === 2,
+      isDone: stepIdx >= 3 || hasSignedContract,
+      isActive:
+        whiteLabel.status === WhiteLabelStatus.PENDING ||
+        whiteLabel.status === WhiteLabelStatus.UNDER_REVIEW,
     },
     {
       num: 3,
       id: "processing",
       title: "3. Processing",
       desc: "Review complete, agreement drafting",
-      isDone: stepIdx > 3,
-      isActive: stepIdx === 3,
+      isDone: stepIdx >= 4 || hasSignedContract,
+      isActive: whiteLabel.status === WhiteLabelStatus.PROCESSING,
     },
     {
       num: 4,
       id: "contracted",
       title: "4. Contracted",
       desc: "Signed agreement uploaded & verified",
-      isDone: stepIdx > 4,
-      isActive: stepIdx === 4,
+      isDone: hasSignedContract,
+      isActive: false,
     },
     {
       num: 5,
       id: "paid",
       title: "5. Paid",
-      desc: "Hand-to-hand / offline payment registered",
-      isDone: stepIdx > 5,
-      isActive: stepIdx === 5,
+      desc: hasVerifiedPayment
+        ? "Payment registered & verified"
+        : "Hand-to-hand / offline payment",
+      isDone: hasVerifiedPayment,
+      isActive:
+        whiteLabel.status === WhiteLabelStatus.CONTRACTED &&
+        !hasVerifiedPayment,
     },
     {
       num: 6,
       id: "active",
       title: "6. Active",
-      desc: "Cloudflare DNS live & console unlocked",
+      desc:
+        whiteLabel.status === WhiteLabelStatus.PAID
+          ? "Pending final DNS activation"
+          : "Cloudflare DNS live & console unlocked",
       isDone: whiteLabel.status === WhiteLabelStatus.ACTIVE,
-      isActive: whiteLabel.status === WhiteLabelStatus.ACTIVE,
+      isActive: whiteLabel.status === WhiteLabelStatus.PAID,
     },
   ];
 
-  const latestPayment =
-    payments[0] || (whiteLabel.payments && whiteLabel.payments[0]);
+  const completedStepsCount = steps.filter((s) => s.isDone).length;
   const isLive = whiteLabel.status === WhiteLabelStatus.ACTIVE;
 
   return (
@@ -483,7 +502,7 @@ export function WhiteLabelApplicationStatusView({
             <span className="text-[11px] font-mono text-muted-foreground">
               {whiteLabel.status === WhiteLabelStatus.ACTIVE
                 ? "Completed (6 of 6)"
-                : `Step ${Math.min(stepIdx, 6)} of 6`}
+                : `${completedStepsCount} of 6 Milestones Verified`}
             </span>
           </div>
 
