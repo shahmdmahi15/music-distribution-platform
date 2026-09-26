@@ -72,7 +72,7 @@ export class CreateWhiteLabelDto {
   @IsNotEmpty({ message: 'Business type is required.' })
   @IsEnum(WhiteLabelBusinessType, {
     message:
-      'Business type must be RECORD_LABEL, DISTRIBUTOR_AGGREGATOR, MUSIC_PUBLISHER, or REFERRER.',
+      'Business type must be DISTRIBUTOR_AGGREGATOR or REFERRER.',
   })
   businessType!: WhiteLabelBusinessType;
 

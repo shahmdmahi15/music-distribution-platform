@@ -259,39 +259,66 @@ export function ClientWhiteLabelSetupWizard({
     }
   }, [themeFont]);
 
-  // Business Type Archetype (Record Label, Distributor/Aggregator, Music Publisher, Referrer)
+  // Business Type Archetype (Distributor/Aggregator, Referrer)
   const [businessType, setBusinessType] = useState<WhiteLabelBusinessType>(
-    branding.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+    branding.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
   );
 
   // Business Type Specific Operational Parameters
-  // 1. Record Label
-  const [isrcPrefix, setIsrcPrefix] = useState("QM");
-  const [catalogPrefix, setCatalogPrefix] = useState(
-    `${branding.code ? branding.code.slice(0, 4).toUpperCase() : "RM"}-CAT`,
+  // 1. Distributor / Aggregator (Global Standards: DDEX ERN, Catalog SLA, Anti-Fraud QC)
+  const [aggregationCapacity, setAggregationCapacity] = useState(
+    (branding.onboardingDetails as any)?.aggregationCapacity || "unlimited",
   );
-  const [pLineText, setPLineText] = useState(
-    `℗ ${new Date().getFullYear()} ${branding.name || "Royal Music"}. All master recording rights reserved.`,
+  const [commissionRate, setCommissionRate] = useState(
+    (branding.onboardingDetails as any)?.commissionRate?.toString() || "15",
+  );
+  const [deliveryProtocol, setDeliveryProtocol] = useState(
+    (branding.onboardingDetails as any)?.ingestionProtocol ||
+      (branding.onboardingDetails as any)?.deliveryProtocol ||
+      "DDEX_ERN_4_3",
+  );
+  const [deliveryLatencySla, setDeliveryLatencySla] = useState(
+    (branding.onboardingDetails as any)?.deliveryLatencySla || "STANDARD_48H",
+  );
+  const [isrcModel, setIsrcModel] = useState(
+    (branding.onboardingDetails as any)?.isrcModel || "SYSTEM_AUTOMATED",
+  );
+  const [barcodeModel, setBarcodeModel] = useState(
+    (branding.onboardingDetails as any)?.barcodeModel || "AUTOMATED_EAN13",
+  );
+  const [hasDedicatedQcTeam, setHasDedicatedQcTeam] = useState<boolean>(
+    (branding.onboardingDetails as any)?.hasDedicatedQcTeam ?? true,
+  );
+  const [antiFraudInspectionRequired, setAntiFraudInspectionRequired] = useState<boolean>(
+    (branding.onboardingDetails as any)?.antiFraudInspectionRequired ?? true,
   );
 
-  // 2. Distributor / Aggregator
-  const [aggregationCapacity, setAggregationCapacity] = useState("unlimited");
-  const [commissionRate, setCommissionRate] = useState("15");
-  const [deliveryProtocol, setDeliveryProtocol] = useState("DDEX_ERN_38");
-
-  // 3. Music Publisher
-  const [ipiCaeNumber, setIpiCaeNumber] = useState("");
-  const [primaryPro, setPrimaryPro] = useState("BMI");
-  const [cLineText, setCLineText] = useState(
-    `© ${new Date().getFullYear()} ${branding.name || "Royal Music"} Publishing. All composition rights reserved.`,
-  );
-
-  // 4. Referrer / Agency Partner
+  // 2. Referrer / Agency Partner (Global Standards: Scout code, Attribution, Bounties, Remittance)
   const [referralNetworkCode, setReferralNetworkCode] = useState(
-    `${branding.code ? branding.code.slice(0, 4).toUpperCase() : "AGY"}-SCOUT`,
+    (branding.onboardingDetails as any)?.scoutAffiliateCodePrefix ||
+      (branding.onboardingDetails as any)?.referralNetworkCode ||
+      `${branding.code ? branding.code.slice(0, 4).toUpperCase() : "AGY"}-SCOUT`,
   );
-  const [attributionWindowDays, setAttributionWindowDays] = useState("60");
-  const [commissionBounty, setCommissionBounty] = useState("10");
+  const [scoutNetworkCategory, setScoutNetworkCategory] = useState(
+    (branding.onboardingDetails as any)?.scoutNetworkCategory || "talent_scout",
+  );
+  const [attributionWindowDays, setAttributionWindowDays] = useState(
+    (branding.onboardingDetails as any)?.attributionWindowDays?.toString() || "60",
+  );
+  const [preferredCommissionStructure, setPreferredCommissionStructure] = useState(
+    (branding.onboardingDetails as any)?.preferredCommissionStructure || "lifetime_rev_share",
+  );
+  const [commissionBounty, setCommissionBounty] = useState(
+    (branding.onboardingDetails as any)?.commissionBountyRate?.toString() ||
+      (branding.onboardingDetails as any)?.commissionBounty?.toString() ||
+      "10",
+  );
+  const [payoutMethod, setPayoutMethod] = useState(
+    (branding.onboardingDetails as any)?.payoutMethod || "WISE",
+  );
+  const [minimumPayoutThresholdUsd, setMinimumPayoutThresholdUsd] = useState(
+    (branding.onboardingDetails as any)?.minimumPayoutThresholdUsd?.toString() || "100",
+  );
 
   // Registration Model
   const [signupModel, setSignupModel] = useState<WhiteLabelSignupModel>(
@@ -853,25 +880,30 @@ NODE_ENV=production`;
         senderEmail: senderEmail.trim() || undefined,
         onboardingDetails: {
           businessModel: businessType,
-          ...(businessType === WhiteLabelBusinessType.RECORD_LABEL && {
-            isrcPrefix: isrcPrefix.trim(),
-            catalogPrefix: catalogPrefix.trim(),
-            pLineText: pLineText.trim(),
-          }),
           ...(businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && {
             aggregationCapacity,
             commissionRate: parseFloat(commissionRate) || 15,
             deliveryProtocol,
-          }),
-          ...(businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && {
-            ipiCaeNumber: ipiCaeNumber.trim(),
-            primaryPro,
-            cLineText: cLineText.trim(),
+            ingestionProtocol: deliveryProtocol,
+            deliveryLatencySla,
+            isrcModel,
+            barcodeModel,
+            hasDedicatedQcTeam,
+            antiFraudInspectionRequired,
+            audioLosslessStandard: true,
+            metadataStrictTitleCase: true,
+            aggregatorCommissionCut: parseFloat(commissionRate) || 15,
           }),
           ...(businessType === WhiteLabelBusinessType.REFERRER && {
+            scoutAffiliateCodePrefix: referralNetworkCode.trim(),
             referralNetworkCode: referralNetworkCode.trim(),
-            attributionWindowDays: parseInt(attributionWindowDays) || 60,
+            scoutNetworkCategory,
+            attributionWindowDays: attributionWindowDays === "lifetime" ? "lifetime" : (parseInt(attributionWindowDays) || 60),
+            preferredCommissionStructure,
+            commissionBountyRate: parseFloat(commissionBounty) || 10,
             commissionBounty: parseFloat(commissionBounty) || 10,
+            payoutMethod,
+            minimumPayoutThresholdUsd: parseFloat(minimumPayoutThresholdUsd) || 100,
           }),
         },
       };
@@ -959,11 +991,7 @@ NODE_ENV=production`;
     const businessLabel =
       businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
         ? "Distributor / Aggregator"
-        : businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
-        ? "Music Publisher"
-        : businessType === WhiteLabelBusinessType.REFERRER
-        ? "Referrer / Agency Partner"
-        : "Record Label";
+        : "Referrer / Agency Partner";
 
     return (
       <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -1544,51 +1572,8 @@ NODE_ENV=production`;
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Archetype 1: Record Label */}
-                  <div
-                    onClick={() => {
-                      if (isBusinessTypeLocked) {
-                        if (businessType !== WhiteLabelBusinessType.RECORD_LABEL) {
-                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
-                        }
-                        return;
-                      }
-                      setBusinessType(WhiteLabelBusinessType.RECORD_LABEL);
-                    }}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
-                      businessType === WhiteLabelBusinessType.RECORD_LABEL
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
-                        : isBusinessTypeLocked
-                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
-                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
-                          <Disc className="w-4 h-4" />
-                        </div>
-                        {businessType === WhiteLabelBusinessType.RECORD_LABEL && (
-                          <div className="flex items-center gap-1">
-                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">Record Label</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                          Master recordings, artist contracts, release schedules &amp; IFPI ISRC pipelines.
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
-                      IFPI / RIAA Standard
-                    </Badge>
-                  </div>
-
-                  {/* Archetype 2: Distributor / Aggregator */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Archetype 1: Distributor / Aggregator */}
                   <div
                     onClick={() => {
                       if (isBusinessTypeLocked) {
@@ -1599,82 +1584,50 @@ NODE_ENV=production`;
                       }
                       setBusinessType(WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR);
                     }}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    className={`p-5 rounded-2xl border transition-all space-y-3 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 shadow-md cursor-default"
                         : isBusinessTypeLocked
                           ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
-                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
+                          : "border-border/80 bg-card hover:border-emerald-500/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
-                          <Network className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shadow-xs">
+                          <Network className="w-5 h-5" />
                         </div>
                         {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
-                          <div className="flex items-center gap-1">
-                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-semibold">
+                            {isBusinessTypeLocked && <Lock className="w-3.5 h-3.5" />}
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Active Standard</span>
                           </div>
                         )}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-foreground">Distributor / Aggregator</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                          Multi-tenant DSP delivery, DDEX ERN batch pipelines &amp; aggregated accounting.
+                        <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <span>Distributor / Aggregator</span>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Multi-tenant DSP delivery, automated DDEX ERN batch pipelines, catalog ingestion, artist sub-account management &amp; aggregated royalty accounting.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          DDEX ERN 4.3 / 3.8
+                        </span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
+                          Direct DSP Delivery
+                        </span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
+                          Anti-Fraud Audio QC
+                        </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                      DDEX ERN 3.8 / 4.2
-                    </Badge>
                   </div>
 
-                  {/* Archetype 3: Music Publisher */}
-                  <div
-                    onClick={() => {
-                      if (isBusinessTypeLocked) {
-                        if (businessType !== WhiteLabelBusinessType.MUSIC_PUBLISHER) {
-                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
-                        }
-                        return;
-                      }
-                      setBusinessType(WhiteLabelBusinessType.MUSIC_PUBLISHER);
-                    }}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
-                      businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
-                        : isBusinessTypeLocked
-                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
-                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-500 flex items-center justify-center">
-                          <Headphones className="w-4 h-4" />
-                        </div>
-                        {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && (
-                          <div className="flex items-center gap-1">
-                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">Music Publisher</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                          Composition rights, CWR catalog, mechanical sync licensing &amp; PRO collection.
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-                      CISAC / PRO / CWR
-                    </Badge>
-                  </div>
-
-                  {/* Archetype 4: Referrer / Agency */}
+                  {/* Archetype 2: Referrer / Agency Partner */}
                   <div
                     onClick={() => {
                       if (isBusinessTypeLocked) {
@@ -1685,36 +1638,47 @@ NODE_ENV=production`;
                       }
                       setBusinessType(WhiteLabelBusinessType.REFERRER);
                     }}
-                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    className={`p-5 rounded-2xl border transition-all space-y-3 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.REFERRER
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20 shadow-md cursor-default"
                         : isBusinessTypeLocked
                           ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
-                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
+                          : "border-border/80 bg-card hover:border-amber-500/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
-                          <Briefcase className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center shadow-xs">
+                          <Briefcase className="w-5 h-5" />
                         </div>
                         {businessType === WhiteLabelBusinessType.REFERRER && (
-                          <div className="flex items-center gap-1">
-                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
-                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 text-xs font-semibold">
+                            {isBusinessTypeLocked && <Lock className="w-3.5 h-3.5" />}
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Active Standard</span>
                           </div>
                         )}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-foreground">Referrer / Partner</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                          A&amp;R talent scout networks, partner onboarding attribution &amp; revenue share bounties.
+                        <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <span>Referrer / Agency Partner</span>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          A&amp;R talent scout networks, recording studio alliances, artist onboarding attribution windows &amp; automated revenue share bounties.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          Scout Network Protocol
+                        </span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
+                          Attribution Tracking
+                        </span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
+                          Automated Rev-Share
+                        </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                      Agency Bounty Network
-                    </Badge>
                   </div>
                 </div>
 
@@ -1726,232 +1690,287 @@ NODE_ENV=production`;
               </div>
 
               {/* Dynamic Standards & Industry Parameters based on Business Type */}
-              <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="p-5 rounded-2xl border border-border bg-card space-y-4 shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Award className="w-4 h-4 text-primary" />
                     <span className="text-xs font-bold text-foreground">
-                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && "Record Label Standards (IFPI & Master Rights)"}
-                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && "Distributor & Aggregation Infrastructure (DDEX / DSP)"}
-                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && "Publishing & Composition Rights Standards (CISAC / PRO)"}
-                      {businessType === WhiteLabelBusinessType.REFERRER && "Partner Referral & Scout Network Configuration"}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                        ? "Distributor & Aggregation Infrastructure (DDEX / DSP Standards)"
+                        : "Partner Referral & Scout Network Configuration (Global Standards)"}
                     </span>
                   </div>
                   <Badge variant="secondary" className="text-[10px] font-mono">
-                    Auto-Configured Protocol
+                    Global Industry Standard
                   </Badge>
                 </div>
 
-                {/* 1. Record Label Fields */}
-                {businessType === WhiteLabelBusinessType.RECORD_LABEL && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="isrcPrefix" className="text-[11px] font-medium">
-                        ISRC Registrant Prefix (2-5 Chars)
-                      </Label>
-                      <Input
-                        id="isrcPrefix"
-                        value={isrcPrefix}
-                        onChange={(e) => setIsrcPrefix(e.target.value.toUpperCase())}
-                        placeholder="e.g. QM or US-S1Z"
-                        className="text-xs h-8 font-mono uppercase bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">National ISRC Agency assigned code</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="catalogPrefix" className="text-[11px] font-medium">
-                        Catalog Number Prefix
-                      </Label>
-                      <Input
-                        id="catalogPrefix"
-                        value={catalogPrefix}
-                        onChange={(e) => setCatalogPrefix(e.target.value.toUpperCase())}
-                        placeholder="e.g. RM-CAT"
-                        className="text-xs h-8 font-mono uppercase bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Master release catalog index prefix</p>
-                    </div>
-
-                    <div className="space-y-1 md:col-span-1">
-                      <Label htmlFor="pLineText" className="text-[11px] font-medium">
-                        Default P-Line Master Copyright
-                      </Label>
-                      <Input
-                        id="pLineText"
-                        value={pLineText}
-                        onChange={(e) => setPLineText(e.target.value)}
-                        placeholder={`℗ ${new Date().getFullYear()} ${name}. All rights reserved.`}
-                        className="text-xs h-8 bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Phonogram / Master Sound recording notice</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Distributor Fields */}
+                {/* 1. Distributor & Aggregator Fields */}
                 {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="deliveryProtocol" className="text-[11px] font-medium">
-                        DDEX ERN Delivery Protocol
-                      </Label>
-                      <select
-                        id="deliveryProtocol"
-                        value={deliveryProtocol}
-                        onChange={(e) => setDeliveryProtocol(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
-                      >
-                        <option value="DDEX_ERN_38">DDEX ERN 3.8.2 (Global DSP Universal)</option>
-                        <option value="DDEX_ERN_42">DDEX ERN 4.2 (Next-Gen Hi-Res & Spatial)</option>
-                        <option value="SFTP_DIRECT">Direct SFTP / Cloud Storage Ingestion</option>
-                      </select>
-                      <p className="text-[10px] text-muted-foreground">Standardized electronic release notice</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="deliveryProtocol" className="text-[11px] font-medium">
+                          DDEX ERN Delivery Protocol
+                        </Label>
+                        <select
+                          id="deliveryProtocol"
+                          value={deliveryProtocol}
+                          onChange={(e) => setDeliveryProtocol(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="DDEX_ERN_4_3">DDEX ERN 4.3 (Next-Gen Spatial &amp; Atmos)</option>
+                          <option value="DDEX_ERN_3_8">DDEX ERN 3.8.2 (Universal DSP Delivery)</option>
+                          <option value="S3_DIRECT">Direct S3 Audio Vault Ingestion</option>
+                          <option value="SFTP_BATCH">Scheduled SFTP Batch Ingestion</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Electronic release specification standard</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="deliveryLatencySla" className="text-[11px] font-medium">
+                          Delivery Latency SLA
+                        </Label>
+                        <select
+                          id="deliveryLatencySla"
+                          value={deliveryLatencySla}
+                          onChange={(e) => setDeliveryLatencySla(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="STANDARD_48H">Standard Automated (48 Hours to DSPs)</option>
+                          <option value="FAST_TRACK_4H">Fast Track Priority (4 Hours to DSPs)</option>
+                          <option value="WEEKLY_BATCH">Weekly Scheduled Bulk Batch</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">DSP ingestion queue turnaround time</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="aggregationCapacity" className="text-[11px] font-medium">
+                          Catalog Scale &amp; Buffer Capacity
+                        </Label>
+                        <select
+                          id="aggregationCapacity"
+                          value={aggregationCapacity}
+                          onChange={(e) => setAggregationCapacity(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="starter_10k">Tier 1: Up to 10,000 Catalog Tracks</option>
+                          <option value="pro_100k">Tier 2: Up to 100,000 Catalog Tracks</option>
+                          <option value="unlimited">Tier 3: Unlimited Enterprise Scale</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">High-throughput ingestion pipeline capacity</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="aggregationCapacity" className="text-[11px] font-medium">
-                        Catalog Scale &amp; Ingestion Capacity
-                      </Label>
-                      <select
-                        id="aggregationCapacity"
-                        value={aggregationCapacity}
-                        onChange={(e) => setAggregationCapacity(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
-                      >
-                        <option value="starter_10k">Tier 1: Up to 10,000 Catalog Tracks</option>
-                        <option value="pro_100k">Tier 2: Up to 100,000 Catalog Tracks</option>
-                        <option value="unlimited">Tier 3: Unlimited Enterprise Scale</option>
-                      </select>
-                      <p className="text-[10px] text-muted-foreground">High-throughput distribution buffer</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="commissionRate" className="text-[11px] font-medium">
+                          Standard Aggregator Fee / Commission (%)
+                        </Label>
+                        <Input
+                          id="commissionRate"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={commissionRate}
+                          onChange={(e) => setCommissionRate(e.target.value)}
+                          placeholder="15"
+                          className="text-xs h-8 bg-background font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Default cut retained by aggregator</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="isrcModel" className="text-[11px] font-medium">
+                          ISRC Identifier Model
+                        </Label>
+                        <select
+                          id="isrcModel"
+                          value={isrcModel}
+                          onChange={(e) => setIsrcModel(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="SYSTEM_AUTOMATED">Automated System IFPI Generation</option>
+                          <option value="CUSTOM_REGISTRANT">Custom Registrant Code (BYO Prefix)</option>
+                          <option value="HYBRID_BYO">Hybrid (System Auto + Bring Your Own)</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">International Standard Recording Code standard</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="barcodeModel" className="text-[11px] font-medium">
+                          UPC / EAN-13 Barcode Assignment
+                        </Label>
+                        <select
+                          id="barcodeModel"
+                          value={barcodeModel}
+                          onChange={(e) => setBarcodeModel(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="AUTOMATED_EAN13">Automated GS1 Standard EAN-13 / UPC-A</option>
+                          <option value="CLIENT_PROVIDED">Client / Label Provided Only</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Universal product code assignment protocol</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="commissionRate" className="text-[11px] font-medium">
-                        Standard Distribution Fee / Commission (%)
-                      </Label>
-                      <Input
-                        id="commissionRate"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={commissionRate}
-                        onChange={(e) => setCommissionRate(e.target.value)}
-                        placeholder="15"
-                        className="text-xs h-8 bg-background font-mono"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Default distributor cut deducted on royalties</p>
+                    <div className="p-3 rounded-xl border border-border/80 bg-muted/30 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={hasDedicatedQcTeam}
+                          onChange={(e) => setHasDedicatedQcTeam(e.target.checked)}
+                          className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+                        />
+                        <div className="text-xs">
+                          <div className="font-semibold text-foreground">Dedicated Audio &amp; Metadata QC</div>
+                          <div className="text-[10px] text-muted-foreground">Enforces human + ACRCloud audio fingerprint screening</div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={antiFraudInspectionRequired}
+                          onChange={(e) => setAntiFraudInspectionRequired(e.target.checked)}
+                          className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+                        />
+                        <div className="text-xs">
+                          <div className="font-semibold text-foreground">Anti-Fraud &amp; Stream Manipulation Inspection</div>
+                          <div className="text-[10px] text-muted-foreground">Automated flagging of AI bots and artificial streams</div>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 )}
 
-                {/* 3. Music Publisher Fields */}
-                {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="primaryPro" className="text-[11px] font-medium">
-                        Primary PRO Affiliation (Global Standard)
-                      </Label>
-                      <select
-                        id="primaryPro"
-                        value={primaryPro}
-                        onChange={(e) => setPrimaryPro(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
-                      >
-                        <option value="BMI">BMI (Broadcast Music, Inc. - USA)</option>
-                        <option value="ASCAP">ASCAP (USA)</option>
-                        <option value="SESAC">SESAC (USA)</option>
-                        <option value="PRS">PRS for Music / MCPS (UK)</option>
-                        <option value="SACEM">SACEM (France)</option>
-                        <option value="GEMA">GEMA (Germany)</option>
-                        <option value="SOCAN">SOCAN (Canada)</option>
-                        <option value="APRA_AMCOS">APRA AMCOS (Australia / NZ)</option>
-                        <option value="OTHER">Other National Society</option>
-                      </select>
-                      <p className="text-[10px] text-muted-foreground">Performance rights collecting society</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="ipiCaeNumber" className="text-[11px] font-medium">
-                        IPI / CAE Number (9-11 Digits)
-                      </Label>
-                      <Input
-                        id="ipiCaeNumber"
-                        value={ipiCaeNumber}
-                        onChange={(e) => setIpiCaeNumber(e.target.value)}
-                        placeholder="e.g. 00123456789"
-                        className="text-xs h-8 font-mono bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">CISAC Interested Parties Information</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="cLineText" className="text-[11px] font-medium">
-                        Default C-Line Publishing Notice
-                      </Label>
-                      <Input
-                        id="cLineText"
-                        value={cLineText}
-                        onChange={(e) => setCLineText(e.target.value)}
-                        placeholder={`© ${new Date().getFullYear()} ${name} Publishing. All rights reserved.`}
-                        className="text-xs h-8 bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Composition &amp; lyrical copyright line</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Referrer Fields */}
+                {/* 2. Referrer Fields */}
                 {businessType === WhiteLabelBusinessType.REFERRER && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="referralNetworkCode" className="text-[11px] font-medium">
-                        Agency Scout / Partner Network Code
-                      </Label>
-                      <Input
-                        id="referralNetworkCode"
-                        value={referralNetworkCode}
-                        onChange={(e) => setReferralNetworkCode(e.target.value.toUpperCase())}
-                        placeholder="e.g. AGY-SCOUT"
-                        className="text-xs h-8 font-mono uppercase bg-background"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Identifies recruited labels and catalogs</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="referralNetworkCode" className="text-[11px] font-medium">
+                          Agency Scout / Partner Network Code
+                        </Label>
+                        <Input
+                          id="referralNetworkCode"
+                          value={referralNetworkCode}
+                          onChange={(e) => setReferralNetworkCode(e.target.value.toUpperCase())}
+                          placeholder="e.g. AGY-SCOUT"
+                          className="text-xs h-8 font-mono uppercase bg-background"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Identifies recruited labels and catalogs</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="scoutNetworkCategory" className="text-[11px] font-medium">
+                          Partner Network Classification
+                        </Label>
+                        <select
+                          id="scoutNetworkCategory"
+                          value={scoutNetworkCategory}
+                          onChange={(e) => setScoutNetworkCategory(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="talent_scout">A&amp;R Talent Scout Network</option>
+                          <option value="recording_studio">Recording Studio &amp; Audio Producer</option>
+                          <option value="music_attorney">Music Attorney &amp; Legal Counsel</option>
+                          <option value="management_agency">Artist Management &amp; Booking Agency</option>
+                          <option value="industry_influencer">Music Influencer &amp; Media Curator</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Primary industry referral acquisition channel</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="attributionWindowDays" className="text-[11px] font-medium">
+                          Attribution Tracking Window
+                        </Label>
+                        <select
+                          id="attributionWindowDays"
+                          value={attributionWindowDays}
+                          onChange={(e) => setAttributionWindowDays(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="30">30 Days Attribution</option>
+                          <option value="60">60 Days Attribution (Industry Standard)</option>
+                          <option value="90">90 Days Extended Attribution</option>
+                          <option value="365">365 Days Annual Tracking</option>
+                          <option value="lifetime">Lifetime / Perpetual Catalog Attribution</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Tracking cookie &amp; account lifetime window</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="attributionWindowDays" className="text-[11px] font-medium">
-                        Attribution Tracking Window
-                      </Label>
-                      <select
-                        id="attributionWindowDays"
-                        value={attributionWindowDays}
-                        onChange={(e) => setAttributionWindowDays(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
-                      >
-                        <option value="30">30 Days Attribution</option>
-                        <option value="60">60 Days Attribution (Industry Standard)</option>
-                        <option value="90">90 Days Extended Attribution</option>
-                        <option value="365">365 Days Annual Tracking</option>
-                        <option value="lifetime">Lifetime / Perpetual Catalog Attribution</option>
-                      </select>
-                      <p className="text-[10px] text-muted-foreground">Cookie &amp; account referral tracking duration</p>
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="preferredCommissionStructure" className="text-[11px] font-medium">
+                          Commission Structure
+                        </Label>
+                        <select
+                          id="preferredCommissionStructure"
+                          value={preferredCommissionStructure}
+                          onChange={(e) => setPreferredCommissionStructure(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="lifetime_rev_share">Lifetime Recurring Rev-Share</option>
+                          <option value="upfront_bounty">Upfront Acquisition Bounty</option>
+                          <option value="hybrid_tiered">Hybrid Tiered Bounty &amp; Share</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Reward payout model</p>
+                      </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="commissionBounty" className="text-[11px] font-medium">
-                        Referral Revenue Bounty Split (%)
-                      </Label>
-                      <Input
-                        id="commissionBounty"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={commissionBounty}
-                        onChange={(e) => setCommissionBounty(e.target.value)}
-                        placeholder="10"
-                        className="text-xs h-8 bg-background font-mono"
-                      />
-                      <p className="text-[10px] text-muted-foreground">Partner bounty earned per successful payout</p>
+                      <div className="space-y-1">
+                        <Label htmlFor="commissionBounty" className="text-[11px] font-medium">
+                          Partner Bounty / Rev-Share (%)
+                        </Label>
+                        <Input
+                          id="commissionBounty"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={commissionBounty}
+                          onChange={(e) => setCommissionBounty(e.target.value)}
+                          placeholder="10"
+                          className="text-xs h-8 bg-background font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Percentage earned on royalty profits</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="minimumPayoutThresholdUsd" className="text-[11px] font-medium">
+                          Min Payout Threshold ($)
+                        </Label>
+                        <Input
+                          id="minimumPayoutThresholdUsd"
+                          type="number"
+                          min="10"
+                          max="10000"
+                          value={minimumPayoutThresholdUsd}
+                          onChange={(e) => setMinimumPayoutThresholdUsd(e.target.value)}
+                          placeholder="100"
+                          className="text-xs h-8 bg-background font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Automated trigger amount (USD)</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="payoutMethod" className="text-[11px] font-medium">
+                          Preferred Remittance
+                        </Label>
+                        <select
+                          id="payoutMethod"
+                          value={payoutMethod}
+                          onChange={(e) => setPayoutMethod(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                        >
+                          <option value="WISE">Wise Multi-Currency</option>
+                          <option value="WIRE_ACH">International Wire / ACH</option>
+                          <option value="STRIPE_CONNECT">Stripe Connect Direct</option>
+                          <option value="PAYPAL">PayPal Commercial</option>
+                          <option value="USDT_CRYPTO">USDT (TRC20 / ERC20)</option>
+                        </select>
+                        <p className="text-[10px] text-muted-foreground">Commission transfer rail</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -4356,19 +4375,15 @@ NODE_ENV=production`;
                   <div>
                     <span className="text-muted-foreground">Business Archetype:</span>
                     <div className="font-semibold text-primary mt-0.5 flex items-center gap-1">
-                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && "Record Label (IFPI)"}
-                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && "Distributor (DDEX)"}
-                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && "Music Publisher (PRO)"}
-                      {businessType === WhiteLabelBusinessType.REFERRER && "Referrer Network"}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && "Distributor / Aggregator (DDEX)"}
+                      {businessType === WhiteLabelBusinessType.REFERRER && "Referrer / Scout Partner Network"}
                     </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Industry Metadata:</span>
                     <div className="font-mono text-[11px] text-foreground mt-0.5 truncate">
-                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && `ISRC: ${isrcPrefix || "QM"} • Cat: ${catalogPrefix || "RM-CAT"}`}
-                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && `${deliveryProtocol} • Cut: ${commissionRate}%`}
-                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && `PRO: ${primaryPro} • IPI: ${ipiCaeNumber || "Assigned"}`}
-                      {businessType === WhiteLabelBusinessType.REFERRER && `Code: ${referralNetworkCode} • Bounty: ${commissionBounty}%`}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && `${deliveryProtocol} • Cut: ${commissionRate}% • ${isrcModel}`}
+                      {businessType === WhiteLabelBusinessType.REFERRER && `Code: ${referralNetworkCode} • Bounty: ${commissionBounty}% • ${payoutMethod}`}
                     </div>
                   </div>
                   <div>

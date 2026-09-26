@@ -14,9 +14,7 @@ export enum WhiteLabelSignupModel {
 }
 
 export enum WhiteLabelBusinessType {
-  RECORD_LABEL = "RECORD_LABEL",
   DISTRIBUTOR_AGGREGATOR = "DISTRIBUTOR_AGGREGATOR",
-  MUSIC_PUBLISHER = "MUSIC_PUBLISHER",
   REFERRER = "REFERRER",
 }
 

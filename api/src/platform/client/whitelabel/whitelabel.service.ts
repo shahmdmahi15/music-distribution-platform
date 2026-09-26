@@ -1071,7 +1071,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         // Brand name and business archetype are permanent and immutable once approved/selected
         name: wl.name || dto.name.trim(),
-        businessType: wl.businessType || dto.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+        businessType: wl.businessType || dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
         companyWebsite: dto.companyWebsite?.trim() || wl.companyWebsite,
         ...(dto.onboardingDetails
           ? {

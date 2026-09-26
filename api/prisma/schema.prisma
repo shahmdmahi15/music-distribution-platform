@@ -39,9 +39,7 @@ enum PaymentStatus {
 }
 
 enum WhiteLabelBusinessType {
-  RECORD_LABEL
   DISTRIBUTOR_AGGREGATOR
-  MUSIC_PUBLISHER
   REFERRER
 }
 
@@ -273,7 +271,7 @@ model WhiteLabel {
   name String
 
   // Corporate Profile
-  businessType         WhiteLabelBusinessType @default(RECORD_LABEL)
+  businessType         WhiteLabelBusinessType @default(DISTRIBUTOR_AGGREGATOR)
   companyWebsite       String?
   country              String?
   yearsInBusiness      Int                    @default(0)

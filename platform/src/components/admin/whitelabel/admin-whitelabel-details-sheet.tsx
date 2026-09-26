@@ -258,7 +258,7 @@ export function AdminWhiteLabelDetailsDialog({
   const [dossierForm, setDossierForm] = useState({
     name: whiteLabel?.name || "",
     businessType:
-      whiteLabel?.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+      whiteLabel?.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     companyWebsite: whiteLabel?.companyWebsite || "",
     country: whiteLabel?.country || "",
     yearsInBusiness: whiteLabel?.yearsInBusiness ?? 1,
@@ -356,7 +356,7 @@ export function AdminWhiteLabelDetailsDialog({
     setDossierForm({
       name: whiteLabel.name || "",
       businessType:
-        whiteLabel.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+        whiteLabel.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
       companyWebsite: whiteLabel.companyWebsite || "",
       country: whiteLabel.country || "",
       yearsInBusiness: whiteLabel.yearsInBusiness ?? 1,
@@ -1450,12 +1450,8 @@ export function AdminWhiteLabelDetailsDialog({
                 }`}
               >
                 {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                  ? `Sub-Labels (${whiteLabel.artists?.length || 0})`
-                  : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                    ? `Songwriters (${whiteLabel.artists?.length || 0})`
-                    : whiteLabel.businessType === "REFERRER"
-                      ? `Pipeline (${whiteLabel.artists?.length || 0})`
-                      : `Top Artists (${whiteLabel.artists?.length || 0})`}
+                  ? `Sub-Labels & Catalogs (${whiteLabel.artists?.length || 0})`
+                  : `Prospect Pipeline (${whiteLabel.artists?.length || 0})`}
               </button>
               <button
                 onClick={() => setActiveTab("documents")}
@@ -1698,135 +1694,92 @@ export function AdminWhiteLabelDetailsDialog({
                     </div>
 
                     <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3">
-                      {whiteLabel.businessType === "RECORD_LABEL" && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Label Category
-                            </span>
-                            <span className="font-bold text-foreground capitalize">
-                              {(
-                                whiteLabel.onboardingDetails.labelType ||
-                                "independent"
-                              ).replace(/_/g, " ")}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Primary Genre
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.primaryGenre ||
-                                "Multi-Genre / All Genres"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Artist Royalty Split
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails
-                                .masterRoyaltySplitStandard ||
-                                "70/30 (Artist 70% / Label 30%)"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              ISRC Prefix
-                            </span>
-                            <span className="font-bold text-foreground font-mono">
-                              {whiteLabel.onboardingDetails
-                                .isrcRegistrantCode ||
-                                whiteLabel.onboardingDetails.isrcPrefix ||
-                                "Platform Delegated"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Spatial Audio / Atmos
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails.dolbyAtmosReady !==
-                              false
-                                ? "ADM BWF WAV Ready"
-                                : "Standard Stereo WAV"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Server Routing
-                            </span>
-                            <span className="font-bold text-foreground font-mono">
-                              {whiteLabel.elasticIpv4
-                                ? `Elastic IP (${whiteLabel.elasticIpv4})`
-                                : "Cloudflare Managed"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Launch Timeline
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {whiteLabel.onboardingDetails
-                                .estimatedLaunchTimeline || "Immediate"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-[10px] block">
-                              Primary Language
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {whiteLabel.primaryCatalogLanguage || "English"}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
                       {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
-                        <div className="space-y-2.5 text-xs">
+                        <div className="space-y-3 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Managed Sub-Labels
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails.subLabelsCount ??
-                                  5}{" "}
-                                sub-labels
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Independent Creators
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .independentArtistsRepresented ?? 40}{" "}
-                                artists
-                              </span>
-                            </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
                                 Ingestion Protocol
                               </span>
                               <span className="font-bold text-foreground font-mono">
                                 {(
-                                  whiteLabel.onboardingDetails
-                                    .ingestionProtocol ||
-                                  whiteLabel.onboardingDetails
-                                    .ingestionStandard ||
+                                  whiteLabel.onboardingDetails?.ingestionProtocol ||
+                                  whiteLabel.onboardingDetails?.deliveryProtocol ||
                                   "DDEX_ERN_4_3"
                                 ).replace(/_/g, " ")}
                               </span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                QC & Anti-Fraud
+                                Delivery SLA
                               </span>
                               <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .antiFraudInspectionRequired !== false
-                                  ? "Active Fingerprinting"
+                                {(
+                                  whiteLabel.onboardingDetails?.deliveryLatencySla ||
+                                  "STANDARD_48H"
+                                ).replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Catalog Track Capacity
+                              </span>
+                              <span className="font-bold text-foreground capitalize">
+                                {whiteLabel.onboardingDetails?.aggregationCapacity || "Unlimited"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Aggregator Cut / Fee
+                              </span>
+                              <span className="font-bold text-foreground font-mono">
+                                {whiteLabel.onboardingDetails?.commissionRate ??
+                                  whiteLabel.onboardingDetails?.aggregatorCommissionCut ??
+                                  15}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                ISRC Assignment Model
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {(
+                                  whiteLabel.onboardingDetails?.isrcModel ||
+                                  "SYSTEM_AUTOMATED"
+                                ).replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Barcode (UPC/EAN)
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {(
+                                  whiteLabel.onboardingDetails?.barcodeModel ||
+                                  "AUTOMATED_EAN13"
+                                ).replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Dedicated Audio QC
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails?.hasDedicatedQcTeam !== false
+                                  ? "Active Review Staff"
+                                  : "Self-Serve Only"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Anti-Fraud Screening
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails?.antiFraudInspectionRequired !== false
+                                  ? "ACRCloud Fingerprinting"
                                   : "Standard"}
                               </span>
                             </div>
@@ -1834,97 +1787,86 @@ export function AdminWhiteLabelDetailsDialog({
                         </div>
                       )}
 
-                      {whiteLabel.businessType === "MUSIC_PUBLISHER" && (
-                        <div className="space-y-2.5 text-xs">
+                      {whiteLabel.businessType === "REFERRER" && (
+                        <div className="space-y-3 text-xs">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Musical Works
+                                Scout Network Code
                               </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .musicalWorksCount ?? 150}{" "}
-                                works
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Songwriters Count
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .songwritersRepresentedCount ?? 12}{" "}
-                                writers
+                              <span className="font-bold text-foreground font-mono uppercase">
+                                {whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
+                                  whiteLabel.onboardingDetails?.referralNetworkCode ||
+                                  `${whiteLabel.code}-SCOUT`}
                               </span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Primary PRO / CMO
+                                Partner Category
                               </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .primaryProAffiliation ||
-                                  "ASCAP (United States)"}
+                              <span className="font-bold text-foreground capitalize">
+                                {(
+                                  whiteLabel.onboardingDetails?.scoutNetworkCategory ||
+                                  "talent_scout"
+                                ).replace(/_/g, " ")}
                               </span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Publisher IPI / CAE
+                                Attribution Window
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails?.attributionWindowDays === "lifetime"
+                                  ? "Lifetime Perpetual"
+                                  : `${whiteLabel.onboardingDetails?.attributionWindowDays || 60} Days`}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Rev-Share Bounty
                               </span>
                               <span className="font-bold text-foreground font-mono">
-                                {whiteLabel.onboardingDetails.ipiCaeNumber ||
-                                  whiteLabel.onboardingDetails.caeIpiNumber ||
-                                  "Pending"}
+                                {whiteLabel.onboardingDetails?.commissionBountyRate ??
+                                  whiteLabel.onboardingDetails?.commissionBounty ??
+                                  10}% Split
                               </span>
                             </div>
                           </div>
-                        </div>
-                      )}
 
-                      {whiteLabel.businessType === "REFERRER" && (
-                        <div className="space-y-2.5 text-xs">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Scout Category
+                                Commission Model
                               </span>
                               <span className="font-bold text-foreground capitalize">
                                 {(
-                                  whiteLabel.onboardingDetails
-                                    .scoutNetworkCategory || "talent_scout"
-                                ).replace(/_/g, " ")}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Annual Referrals
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .projectedAnnualReferrals ?? 10}{" "}
-                                partners / yr
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Pipeline Catalog
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails
-                                  .projectedPipelineCatalogSize ?? 500}{" "}
-                                tracks
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Commission Structure
-                              </span>
-                              <span className="font-bold text-foreground capitalize">
-                                {(
-                                  whiteLabel.onboardingDetails
-                                    .preferredCommissionStructure ||
+                                  whiteLabel.onboardingDetails?.preferredCommissionStructure ||
                                   "lifetime_rev_share"
                                 ).replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Payout Threshold
+                              </span>
+                              <span className="font-bold text-foreground font-mono">
+                                ${whiteLabel.onboardingDetails?.minimumPayoutThresholdUsd ?? 100} USD
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Remittance Method
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.onboardingDetails?.payoutMethod || "Wise Business"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Target Prospects
+                              </span>
+                              <span className="font-bold text-foreground">
+                                {whiteLabel.artists?.length || 0} In Pipeline
                               </span>
                             </div>
                           </div>
@@ -2001,17 +1943,11 @@ export function AdminWhiteLabelDetailsDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="RECORD_LABEL">
-                            Record Label
-                          </SelectItem>
                           <SelectItem value="DISTRIBUTOR_AGGREGATOR">
                             Distributor / Aggregator
                           </SelectItem>
-                          <SelectItem value="MUSIC_PUBLISHER">
-                            Music Publisher
-                          </SelectItem>
                           <SelectItem value="REFERRER">
-                            Referrer / Scout
+                            Referrer / Agency Partner
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -2350,11 +2286,7 @@ export function AdminWhiteLabelDetailsDialog({
                 <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
                   {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
                     ? "Sub-Labels & Ingestion Catalogs Submitted for Verification"
-                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                      ? "Songwriters & Musical Works Submitted for Verification"
-                      : whiteLabel.businessType === "REFERRER"
-                        ? "Client & Talent Pipeline Prospects Submitted for Verification"
-                        : "Top Roster Artists Submitted for Verification"}
+                    : "Client & Talent Pipeline Prospects Submitted for Verification"}
                 </h4>
                 {whiteLabel.artists && whiteLabel.artists.length > 0 ? (
                   <div className="space-y-3">

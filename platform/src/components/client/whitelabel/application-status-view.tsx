@@ -1106,94 +1106,6 @@ export function WhiteLabelApplicationStatusView({
           </div>
         </CardHeader>
         <CardContent className="p-5 text-xs space-y-4">
-          {whiteLabel.businessType === "RECORD_LABEL" && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Label Category
-                </span>
-                <p className="font-bold text-foreground capitalize text-sm pt-0.5">
-                  {(
-                    whiteLabel.onboardingDetails?.labelType || "independent"
-                  ).replace(/_/g, " ")}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Primary Genre
-                </span>
-                <p className="font-bold text-foreground text-sm pt-0.5">
-                  {whiteLabel.onboardingDetails?.primaryGenre ||
-                    "Multi-Genre / All Genres"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Artist Royalty Split
-                </span>
-                <p className="font-bold text-foreground text-xs pt-0.5">
-                  {whiteLabel.onboardingDetails?.masterRoyaltySplitStandard ||
-                    "70/30 (Artist 70% / Label 30%)"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  ISRC Registrant Prefix
-                </span>
-                <p className="font-bold text-foreground font-mono text-sm pt-0.5">
-                  {whiteLabel.onboardingDetails?.isrcRegistrantCode ||
-                    whiteLabel.onboardingDetails?.isrcPrefix ||
-                    "Platform Delegated"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Spatial Audio / Atmos
-                </span>
-                <p className="font-bold text-foreground text-xs pt-0.5">
-                  {whiteLabel.onboardingDetails?.dolbyAtmosReady !== false
-                    ? "ADM BWF WAV Enabled"
-                    : "Standard Stereo WAV"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Hosted Server Routing
-                </span>
-                <p className="font-bold text-foreground font-mono text-xs pt-0.5">
-                  {whiteLabel.elasticIpv4
-                    ? `Elastic IP (${whiteLabel.elasticIpv4})`
-                    : "Cloudflare Managed Proxy"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Launch Timeline
-                </span>
-                <p className="font-bold text-foreground text-xs pt-0.5">
-                  {whiteLabel.onboardingDetails?.estimatedLaunchTimeline ||
-                    "Immediate"}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                  Brand Accent Theme
-                </span>
-                <div className="flex items-center gap-2 pt-0.5">
-                  <span
-                    className="h-3.5 w-3.5 rounded-full border border-black/20 shrink-0"
-                    style={{
-                      backgroundColor: whiteLabel.primaryColor || "#6366f1",
-                    }}
-                  />
-                  <span className="font-bold text-foreground font-mono text-xs uppercase">
-                    {whiteLabel.primaryColor || "#6366f1"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
           {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1261,84 +1173,6 @@ export function WhiteLabelApplicationStatusView({
                     </div>
                   </div>
                 )}
-            </div>
-          )}
-
-          {whiteLabel.businessType === "MUSIC_PUBLISHER" && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Musical Works Catalog
-                  </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {(
-                      whiteLabel.onboardingDetails?.musicalWorksCount ?? 150
-                    ).toLocaleString()}{" "}
-                    works
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Songwriters Represented
-                  </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails
-                      ?.songwritersRepresentedCount ?? 12}{" "}
-                    writers
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Primary PRO / CMO
-                  </span>
-                  <p className="font-bold text-foreground text-xs pt-0.5">
-                    {whiteLabel.onboardingDetails?.primaryProAffiliation ||
-                      "ASCAP (United States)"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Publisher IPI / CAE
-                  </span>
-                  <p className="font-bold text-foreground font-mono text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails?.ipiCaeNumber ||
-                      whiteLabel.onboardingDetails?.caeIpiNumber ||
-                      "Pending Registration"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    CWR Exchange Feed
-                  </span>
-                  <p className="font-bold text-foreground text-xs pt-0.5">
-                    {whiteLabel.onboardingDetails?.cwrExchangeEnabled !== false
-                      ? "Enabled (CWR v2.1)"
-                      : "Standard Ingestion"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Mechanical Royalties
-                  </span>
-                  <p className="font-bold text-foreground text-xs pt-0.5">
-                    {whiteLabel.onboardingDetails?.collectsMechanicals !== false
-                      ? "MLC / HFA / MCPS Active"
-                      : "Self-Administered"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20 col-span-2">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Sync Licensing Catalog Vault
-                  </span>
-                  <p className="font-bold text-foreground text-xs pt-0.5">
-                    {(whiteLabel.onboardingDetails?.syncLicensingCatalogSize ??
-                      50) > 0
-                      ? `Active Pitch Vault (${whiteLabel.onboardingDetails?.syncLicensingCatalogSize ?? 50} cleared works)`
-                      : "Standard Administration Only"}
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1427,20 +1261,12 @@ export function WhiteLabelApplicationStatusView({
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" ? (
                   <Building2 className="h-4 w-4 text-primary" />
-                ) : whiteLabel.businessType === "MUSIC_PUBLISHER" ? (
-                  <Disc3 className="h-4 w-4 text-primary" />
-                ) : whiteLabel.businessType === "REFERRER" ? (
-                  <Share2 className="h-4 w-4 text-primary" />
                 ) : (
-                  <Users className="h-4 w-4 text-primary" />
+                  <Share2 className="h-4 w-4 text-primary" />
                 )}
                 {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
                   ? "Submitted Sub-Labels & Ingestion Catalogs"
-                  : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                    ? "Represented Songwriters & Catalog Works"
-                    : whiteLabel.businessType === "REFERRER"
-                      ? "Client & Talent Pipeline Prospects"
-                      : "Verified Roster Artists"}
+                  : "Client & Talent Pipeline Prospects"}
               </CardTitle>
               <Badge variant="secondary" className="font-mono text-[10px]">
                 {whiteLabel.artists.length}{" "}
@@ -1458,27 +1284,15 @@ export function WhiteLabelApplicationStatusView({
                 const igLabel =
                   whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
                     ? "Territory:"
-                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                      ? "PRO Affiliation:"
-                      : whiteLabel.businessType === "REFERRER"
-                        ? "Status:"
-                        : "Instagram:";
+                    : "Prospect Status:";
                 const spotifyLabel =
                   whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
                     ? "Sub-Label Website / Catalog"
-                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                      ? "Top Composition / ISWC"
-                      : whiteLabel.businessType === "REFERRER"
-                        ? "Portfolio / Music Link"
-                        : "Spotify Artist Profile";
+                    : "Portfolio / Music Link";
                 const youtubeLabel =
                   whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
                     ? "Genre Focus:"
-                    : whiteLabel.businessType === "MUSIC_PUBLISHER"
-                      ? "Ownership Split:"
-                      : whiteLabel.businessType === "REFERRER"
-                        ? "Category:"
-                        : "YouTube Channel";
+                    : "Pipeline Category:";
 
                 return (
                   <div
@@ -1508,55 +1322,31 @@ export function WhiteLabelApplicationStatusView({
                       {item.instagramHandle && (
                         <div className="flex items-center justify-between gap-2 truncate">
                           <span>{igLabel}</span>
-                          {whiteLabel.businessType === "RECORD_LABEL" ? (
-                            <a
-                              href={`https://instagram.com/${item.instagramHandle.replace(/^@/, "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-mono text-foreground hover:text-primary hover:underline truncate"
-                            >
-                              {item.instagramHandle.startsWith("@")
-                                ? item.instagramHandle
-                                : `@${item.instagramHandle}`}
-                            </a>
-                          ) : (
-                            <span className="font-mono text-foreground truncate">
-                              {item.instagramHandle}
-                            </span>
-                          )}
+                          <span className="font-mono text-foreground truncate">
+                            {item.instagramHandle}
+                          </span>
                         </div>
                       )}
                       {item.spotifyProfileUrl && (
                         <div className="pt-0.5">
-                          {whiteLabel.businessType === "MUSIC_PUBLISHER" &&
-                          !item.spotifyProfileUrl.startsWith("http") ? (
-                            <div className="flex items-center justify-between gap-2 truncate">
-                              <span>Work / ISWC:</span>
-                              <span className="font-mono text-foreground truncate">
-                                {item.spotifyProfileUrl}
-                              </span>
-                            </div>
-                          ) : (
-                            <a
-                              href={
-                                item.spotifyProfileUrl.startsWith("http")
-                                  ? item.spotifyProfileUrl
-                                  : `https://${item.spotifyProfileUrl}`
-                              }
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1 font-mono text-[10.5px] truncate"
-                            >
-                              <ExternalLink className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{spotifyLabel}</span>
-                            </a>
-                          )}
+                          <a
+                            href={
+                              item.spotifyProfileUrl.startsWith("http")
+                                ? item.spotifyProfileUrl
+                                : `https://${item.spotifyProfileUrl}`
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1 font-mono text-[10.5px] truncate"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{spotifyLabel}</span>
+                          </a>
                         </div>
                       )}
                       {item.youtubeChannelUrl && (
                         <div className="pt-0.5">
-                          {whiteLabel.businessType === "RECORD_LABEL" ||
-                          item.youtubeChannelUrl.startsWith("http") ? (
+                          {item.youtubeChannelUrl.startsWith("http") ? (
                             <a
                               href={
                                 item.youtubeChannelUrl.startsWith("http")

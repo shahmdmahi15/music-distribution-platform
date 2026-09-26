@@ -86,23 +86,13 @@ const BUSINESS_TYPE_META: Record<
   string,
   { label: string; badgeClass: string }
 > = {
-  [WhiteLabelBusinessType.RECORD_LABEL]: {
-    label: "Record Label",
-    badgeClass:
-      "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
-  },
   [WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR]: {
     label: "Distributor / Aggregator",
     badgeClass:
-      "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
-  },
-  [WhiteLabelBusinessType.MUSIC_PUBLISHER]: {
-    label: "Music Publisher",
-    badgeClass:
-      "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   },
   [WhiteLabelBusinessType.REFERRER]: {
-    label: "Referrer / Scout",
+    label: "Referrer / Agency Partner",
     badgeClass:
       "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
   },
@@ -735,14 +725,8 @@ export function AdminWhiteLabelsTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Business Models</SelectItem>
-              <SelectItem value={WhiteLabelBusinessType.RECORD_LABEL}>
-                Record Labels
-              </SelectItem>
               <SelectItem value={WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR}>
                 Distributors / Aggregators
-              </SelectItem>
-              <SelectItem value={WhiteLabelBusinessType.MUSIC_PUBLISHER}>
-                Music Publishers
               </SelectItem>
               <SelectItem value={WhiteLabelBusinessType.REFERRER}>
                 Referrers / Agencies

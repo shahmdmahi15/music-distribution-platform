@@ -125,20 +125,11 @@ export class WhitelabelTenantService {
             royaltyAnalytics: true,
             themeCustomization: true,
             directDistribution: whiteLabel.businessType !== 'REFERRER',
-            // Record Label Global Standards
-            artistRosterManagement: whiteLabel.businessType === 'RECORD_LABEL',
-            isrcMasterRights: whiteLabel.businessType === 'RECORD_LABEL',
-            advanceRecoupment: whiteLabel.businessType === 'RECORD_LABEL',
-            // Distributor / Aggregator Standards
+            // Global Music Distribution & Aggregator Standards
             subLabelMultiTenancy: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
             ddexIngestionPipeline: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
             antiFraudQualityControl: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
-            // Music Publisher Standards
-            publishingWorksAdmin: whiteLabel.businessType === 'MUSIC_PUBLISHER',
-            cwrWorkRegistration: whiteLabel.businessType === 'MUSIC_PUBLISHER',
-            mechanicalRoyaltyLedger: whiteLabel.businessType === 'MUSIC_PUBLISHER',
-            syncLicensingCatalog: whiteLabel.businessType === 'MUSIC_PUBLISHER',
-            // Referrer / Scout Standards
+            // Global Referrer & Talent Scout Network Standards
             referralLinkGenerator: whiteLabel.businessType === 'REFERRER',
             affiliateCommissionLedger: whiteLabel.businessType === 'REFERRER',
             pipelineAnalytics: whiteLabel.businessType === 'REFERRER',

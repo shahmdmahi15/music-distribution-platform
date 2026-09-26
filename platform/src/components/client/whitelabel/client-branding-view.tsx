@@ -40,13 +40,11 @@ interface ClientBrandingViewProps {
 }
 
 const BUSINESS_TYPE_OPTIONS = [
-  { value: WhiteLabelBusinessType.RECORD_LABEL, label: "Record Label" },
   {
     value: WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     label: "Distributor / Aggregator",
   },
-  { value: WhiteLabelBusinessType.MUSIC_PUBLISHER, label: "Music Publisher" },
-  { value: WhiteLabelBusinessType.REFERRER, label: "Referrer" },
+  { value: WhiteLabelBusinessType.REFERRER, label: "Referrer / Agency Partner" },
 ];
 
 export function ClientBrandingView({
@@ -66,7 +64,7 @@ export function ClientBrandingView({
 
     // Corporate Profile
     businessType:
-      initialBranding.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+      initialBranding.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     companyWebsite: initialBranding.companyWebsite || "",
     country: initialBranding.country || "",
     yearsInBusiness: initialBranding.yearsInBusiness ?? 0,

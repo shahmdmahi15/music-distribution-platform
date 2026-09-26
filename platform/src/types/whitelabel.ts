@@ -1,55 +1,40 @@
 export enum WhiteLabelBusinessType {
-  RECORD_LABEL = "RECORD_LABEL",
   DISTRIBUTOR_AGGREGATOR = "DISTRIBUTOR_AGGREGATOR",
-  MUSIC_PUBLISHER = "MUSIC_PUBLISHER",
   REFERRER = "REFERRER",
 }
 
-// Global Standard Onboarding Details: 1. Record Label
-export interface RecordLabelOnboardingData {
-  labelType?: "independent" | "major_distributed" | "boutique" | "genre_specialist";
-  isrcCountryCode?: string;
-  isrcRegistrantCode?: string;
-  primaryGenre?: string;
-  hasInHouseStudio?: boolean;
-  masterRoyaltySplitStandard?: string;
-  physicalDistributionNeeded?: boolean;
-  dolbyAtmosReady?: boolean;
-}
-
-// Global Standard Onboarding Details: 2. Distributor / Aggregator
+// Global Standard Onboarding Details: 1. Distributor / Aggregator
 export interface DistributorAggregatorOnboardingData {
+  catalogTrackCount?: number;
+  monthlyTrackDelivery?: number;
+  primaryDspChannels?: string[];
+  currentDistributor?: string;
+  ingestionProtocol?: "DDEX_ERN_4_3" | "DDEX_ERN_3_8" | "S3_DIRECT" | "SFTP_BATCH";
+  deliveryLatencySla?: "FAST_TRACK_4H" | "STANDARD_48H" | "WEEKLY_BATCH";
+  isrcModel?: "SYSTEM_AUTOMATED" | "CUSTOM_REGISTRANT" | "HYBRID_BYO";
+  barcodeModel?: "AUTOMATED_EAN13" | "CLIENT_PROVIDED";
   subLabelsCount?: number;
-  independentArtistsRepresented?: number;
-  ingestionProtocol?: "DDEX_ERN_3_8" | "DDEX_ERN_4_3" | "S3_DIRECT" | "SFTP_BATCH";
   hasDedicatedQcTeam?: boolean;
   antiFraudInspectionRequired?: boolean;
-  directDspAgreements?: string[];
-  bulkBarcodePoolNeeded?: boolean;
+  audioLosslessStandard?: boolean;
+  metadataStrictTitleCase?: boolean;
+  artworkComplianceStandard?: boolean;
+  aggregatorCommissionCut?: number;
+  automatedArtistPayouts?: boolean;
 }
 
-// Global Standard Onboarding Details: 3. Music Publisher
-export interface MusicPublisherOnboardingData {
-  publishingCompanyType?: "administration" | "co_publishing" | "full_service";
-  primaryProAffiliation?: "ASCAP" | "BMI" | "SESAC" | "PRS" | "GEMA" | "SACEM" | "SOCAN" | "APRA_AMCOS" | "OTHER";
-  ipiCaeNumber?: string;
-  theMlcMemberCode?: string;
-  musicalWorksCount?: number;
-  songwritersRepresentedCount?: number;
-  cwrExchangeEnabled?: boolean;
-  collectsMechanicals?: boolean;
-  syncLicensingCatalogSize?: number;
-}
-
-// Global Standard Onboarding Details: 4. Referrer / Affiliate Partner
+// Global Standard Onboarding Details: 2. Referrer / Affiliate Partner
 export interface ReferrerOnboardingData {
+  scoutAffiliateCodePrefix?: string;
   scoutNetworkCategory?: "talent_scout" | "recording_studio" | "music_attorney" | "management_agency" | "industry_influencer";
-  projectedAnnualReferrals?: number;
-  projectedPipelineCatalogSize?: number;
   targetTerritories?: string[];
-  preferredCommissionStructure?: "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
+  projectedMonthlyReferrals?: number;
   discoveryChannels?: string[];
-  primaryGenresScouted?: string[];
+  attributionWindowDays?: number | "lifetime";
+  preferredCommissionStructure?: "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
+  commissionBountyRate?: number;
+  minimumPayoutThresholdUsd?: number;
+  payoutMethod?: "WIRE_ACH" | "WISE" | "PAYPAL" | "USDT_CRYPTO" | "STRIPE_CONNECT";
 }
 
 export enum WhiteLabelUserRole {
