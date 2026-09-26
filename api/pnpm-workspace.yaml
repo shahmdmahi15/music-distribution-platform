@@ -1,9 +1,9 @@
 allowBuilds:
   '@prisma/engines': true
   argon2: true
-  cpu-features: set this to true or false
+  cpu-features: false
   prisma: true
-  ssh2: set this to true or false
+  ssh2: false
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@aws-sdk/client-s3@3.1133.0'
