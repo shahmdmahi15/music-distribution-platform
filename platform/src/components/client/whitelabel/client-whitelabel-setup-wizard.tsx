@@ -294,7 +294,7 @@ export function ClientWhiteLabelSetupWizard({
   const [linkedin, setLinkedin] = useState(branding.socialLinkedin || "");
   const [website, setWebsite] = useState(branding.companyWebsite || "");
 
-  // S3 Asset Upload Handler
+  // S3 Asset Upload Handler with Strict File Type & Capacity Enforcement (up to 100MB)
   const handleAssetUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     assetType: "logo" | "logoDark" | "favicon" | "banner",
@@ -302,8 +302,50 @@ export function ClientWhiteLabelSetupWizard({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size must be under 5MB.");
+    const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+      logo: [".png", ".svg", ".webp", ".jpg", ".jpeg"],
+      logoDark: [".png", ".svg", ".webp", ".jpg", ".jpeg"],
+      favicon: [".ico", ".png", ".svg", ".webp"],
+      banner: [".jpg", ".jpeg", ".png", ".webp", ".svg"],
+    };
+
+    const ALLOWED_MIME_TYPES: Record<string, string[]> = {
+      logo: ["image/png", "image/svg+xml", "image/webp", "image/jpeg", "image/jpg"],
+      logoDark: ["image/png", "image/svg+xml", "image/webp", "image/jpeg", "image/jpg"],
+      favicon: ["image/x-icon", "image/vnd.microsoft.icon", "image/png", "image/svg+xml", "image/webp"],
+      banner: ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/svg+xml"],
+    };
+
+    const MAX_SIZES_BYTES: Record<string, number> = {
+      logo: 25 * 1024 * 1024, // 25MB
+      logoDark: 25 * 1024 * 1024, // 25MB
+      favicon: 5 * 1024 * 1024, // 5MB
+      banner: 100 * 1024 * 1024, // 100MB
+    };
+
+    const allowedMimes = ALLOWED_MIME_TYPES[assetType] || ALLOWED_MIME_TYPES.logo;
+    const allowedExts = ALLOWED_EXTENSIONS[assetType] || ALLOWED_EXTENSIONS.logo;
+    const fileExt = "." + (file.name.split(".").pop() || "").toLowerCase();
+    const fileMime = (file.type || "").toLowerCase();
+
+    const isMimeValid = allowedMimes.includes(fileMime);
+    const isExtValid = allowedExts.includes(fileExt);
+
+    if (!isMimeValid && !isExtValid) {
+      toast.error(
+        `Invalid file format for ${assetType}. Allowed types: ${allowedExts.join(", ")}`,
+      );
+      e.target.value = "";
+      return;
+    }
+
+    const maxAllowed = MAX_SIZES_BYTES[assetType] || 100 * 1024 * 1024;
+    if (file.size > maxAllowed) {
+      const maxMb = Math.round(maxAllowed / (1024 * 1024));
+      toast.error(
+        `File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds limit of ${maxMb}MB for ${assetType}.`,
+      );
+      e.target.value = "";
       return;
     }
 
@@ -362,6 +404,7 @@ export function ClientWhiteLabelSetupWizard({
   const [copiedSnippet, setCopiedSnippet] = useState(false);
 
   const hasExistingOwner = branding.hasOwner ?? false;
+  const isBusinessTypeLocked = Boolean(branding.businessType);
 
   const portalHost = branding.customDomain
     ? `https://${branding.customDomain}`
@@ -873,20 +916,44 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
               {/* 4 Business Types Selector */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Music Business Operating Model</span>
-                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
-                    4 Industry Archetypes
-                  </Badge>
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Music Business Operating Model</span>
+                  </Label>
+                  {isBusinessTypeLocked ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-muted/60 text-muted-foreground font-mono flex items-center gap-1"
+                    >
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                      Permanent • Locked
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                      Permanent Once Activated
+                    </Badge>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Archetype 1: Record Label */}
                   <div
-                    onClick={() => setBusinessType(WhiteLabelBusinessType.RECORD_LABEL)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    onClick={() => {
+                      if (isBusinessTypeLocked) {
+                        if (businessType !== WhiteLabelBusinessType.RECORD_LABEL) {
+                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
+                        }
+                        return;
+                      }
+                      setBusinessType(WhiteLabelBusinessType.RECORD_LABEL);
+                    }}
+                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.RECORD_LABEL
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
-                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        : isBusinessTypeLocked
+                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
+                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
                     <div className="space-y-2">
@@ -895,7 +962,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                           <Disc className="w-4 h-4" />
                         </div>
                         {businessType === WhiteLabelBusinessType.RECORD_LABEL && (
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1">
+                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          </div>
                         )}
                       </div>
                       <div>
@@ -912,11 +982,21 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                   {/* Archetype 2: Distributor / Aggregator */}
                   <div
-                    onClick={() => setBusinessType(WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    onClick={() => {
+                      if (isBusinessTypeLocked) {
+                        if (businessType !== WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR) {
+                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
+                        }
+                        return;
+                      }
+                      setBusinessType(WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR);
+                    }}
+                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
-                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        : isBusinessTypeLocked
+                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
+                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
                     <div className="space-y-2">
@@ -925,7 +1005,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                           <Network className="w-4 h-4" />
                         </div>
                         {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1">
+                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          </div>
                         )}
                       </div>
                       <div>
@@ -942,11 +1025,21 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                   {/* Archetype 3: Music Publisher */}
                   <div
-                    onClick={() => setBusinessType(WhiteLabelBusinessType.MUSIC_PUBLISHER)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    onClick={() => {
+                      if (isBusinessTypeLocked) {
+                        if (businessType !== WhiteLabelBusinessType.MUSIC_PUBLISHER) {
+                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
+                        }
+                        return;
+                      }
+                      setBusinessType(WhiteLabelBusinessType.MUSIC_PUBLISHER);
+                    }}
+                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
-                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        : isBusinessTypeLocked
+                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
+                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
                     <div className="space-y-2">
@@ -955,7 +1048,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                           <Headphones className="w-4 h-4" />
                         </div>
                         {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && (
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1">
+                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          </div>
                         )}
                       </div>
                       <div>
@@ -972,11 +1068,21 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                   {/* Archetype 4: Referrer / Agency */}
                   <div
-                    onClick={() => setBusinessType(WhiteLabelBusinessType.REFERRER)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                    onClick={() => {
+                      if (isBusinessTypeLocked) {
+                        if (businessType !== WhiteLabelBusinessType.REFERRER) {
+                          toast.info("Business operating model is permanently registered to your tenant contract and cannot be modified.");
+                        }
+                        return;
+                      }
+                      setBusinessType(WhiteLabelBusinessType.REFERRER);
+                    }}
+                    className={`p-4 rounded-xl border transition-all space-y-2.5 relative flex flex-col justify-between ${
                       businessType === WhiteLabelBusinessType.REFERRER
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
-                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs cursor-default"
+                        : isBusinessTypeLocked
+                          ? "border-border/40 bg-muted/20 opacity-40 cursor-not-allowed"
+                          : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40 cursor-pointer"
                     }`}
                   >
                     <div className="space-y-2">
@@ -985,7 +1091,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                           <Briefcase className="w-4 h-4" />
                         </div>
                         {businessType === WhiteLabelBusinessType.REFERRER && (
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                          <div className="flex items-center gap-1">
+                            {isBusinessTypeLocked && <Lock className="w-3 h-3 text-primary" />}
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          </div>
                         )}
                       </div>
                       <div>
@@ -1000,6 +1109,12 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </Badge>
                   </div>
                 </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  {isBusinessTypeLocked
+                    ? "Business operating model is permanently registered to your tenant contract and cannot be modified."
+                    : "Note: Your selected operating model sets the foundational catalog, rights, and distribution architecture. It becomes permanent upon setup completion."}
+                </p>
               </div>
 
               {/* Dynamic Standards & Industry Parameters based on Business Type */}
@@ -1786,14 +1901,14 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        High-contrast dark/colored logo for light backgrounds (PNG, SVG, WEBP &bull; Max 5MB).
+                        High-contrast dark/colored logo for light backgrounds (PNG, SVG, WEBP, JPEG &bull; Max 25MB).
                       </p>
                     </div>
 
                     <input
                       id="upload-asset-logo"
                       type="file"
-                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      accept=".png,.svg,.webp,.jpg,.jpeg,image/png,image/svg+xml,image/webp,image/jpeg"
                       className="hidden"
                       onChange={(e) => handleAssetUpload(e, "logo")}
                     />
@@ -1883,14 +1998,14 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        White or light mark for dark mode navigation and backdrops (PNG, SVG, WEBP &bull; Max 5MB).
+                        White or light mark for dark mode navigation and backdrops (PNG, SVG, WEBP, JPEG &bull; Max 25MB).
                       </p>
                     </div>
 
                     <input
                       id="upload-asset-logoDark"
                       type="file"
-                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      accept=".png,.svg,.webp,.jpg,.jpeg,image/png,image/svg+xml,image/webp,image/jpeg"
                       className="hidden"
                       onChange={(e) => handleAssetUpload(e, "logoDark")}
                     />
@@ -1980,14 +2095,14 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Browser tab icon and bookmark icon (32x32px or 64x64px square).
+                        Browser tab icon and bookmark icon (.ico, .png, .svg, .webp &bull; Max 5MB).
                       </p>
                     </div>
 
                     <input
                       id="upload-asset-favicon"
                       type="file"
-                      accept="image/x-icon,image/png,image/svg+xml"
+                      accept=".ico,.png,.svg,.webp,image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,image/webp"
                       className="hidden"
                       onChange={(e) => handleAssetUpload(e, "favicon")}
                     />
@@ -2077,14 +2192,14 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Wide landscape banner for login screen and artist home (1920x600px &bull; Max 5MB).
+                        Wide landscape banner for login screen and artist home (JPG, PNG, WEBP, SVG &bull; Max 100MB).
                       </p>
                     </div>
 
                     <input
                       id="upload-asset-banner"
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
+                      accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml"
                       className="hidden"
                       onChange={(e) => handleAssetUpload(e, "banner")}
                     />

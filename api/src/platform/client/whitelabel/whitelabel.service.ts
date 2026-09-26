@@ -1049,9 +1049,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
       data: {
-        // Brand name is permanent and immutable once approved in the partner contract
+        // Brand name and business archetype are permanent and immutable once approved/selected
         name: wl.name || dto.name.trim(),
-        businessType: dto.businessType || wl.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+        businessType: wl.businessType || dto.businessType || WhiteLabelBusinessType.RECORD_LABEL,
         companyWebsite: dto.companyWebsite?.trim() || wl.companyWebsite,
         ...(dto.onboardingDetails
           ? {
@@ -1267,6 +1267,42 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
   ) {
     if (!file) {
       throw new BadRequestException('No image file provided.');
+    }
+
+    const ALLOWED_MIME_TYPES: Record<string, string[]> = {
+      logo: ['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg', 'image/jpg'],
+      logoDark: ['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg', 'image/jpg'],
+      favicon: [
+        'image/x-icon',
+        'image/vnd.microsoft.icon',
+        'image/png',
+        'image/svg+xml',
+        'image/webp',
+      ],
+      banner: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'],
+    };
+
+    const MAX_FILE_SIZES: Record<string, number> = {
+      logo: 25 * 1024 * 1024, // 25MB
+      logoDark: 25 * 1024 * 1024, // 25MB
+      favicon: 5 * 1024 * 1024, // 5MB
+      banner: 100 * 1024 * 1024, // 100MB
+    };
+
+    const allowed = ALLOWED_MIME_TYPES[assetType] || ALLOWED_MIME_TYPES.logo;
+    const fileMime = (file.mimetype || '').toLowerCase();
+    if (!allowed.includes(fileMime)) {
+      throw new BadRequestException(
+        `Invalid file format (${file.mimetype}) for ${assetType}. Allowed types: ${allowed.map((t) => t.replace('image/', '')).join(', ')}`,
+      );
+    }
+
+    const maxSize = MAX_FILE_SIZES[assetType] || 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      const maxMb = Math.round(maxSize / (1024 * 1024));
+      throw new BadRequestException(
+        `File size (${(file.size / (1024 * 1024)).toFixed(2)}MB) exceeds maximum limit of ${maxMb}MB for ${assetType}.`,
+      );
     }
 
     const subscription =

@@ -9,8 +9,8 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  app.use(json({ limit: '10mb' }));
-  app.use(urlencoded({ extended: true, limit: '10mb' }));
+  app.use(json({ limit: '100mb' }));
+  app.use(urlencoded({ extended: true, limit: '100mb' }));
 
   app.useGlobalPipes(
     new ValidationPipe({
