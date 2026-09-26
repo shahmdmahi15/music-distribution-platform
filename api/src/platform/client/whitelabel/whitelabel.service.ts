@@ -1054,7 +1054,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         tagline: dto.tagline?.trim() || null,
         description: dto.description?.trim() || null,
         supportEmail: dto.supportEmail.trim().toLowerCase(),
-        supportPhone: dto.supportPhone?.trim() || null,
+        supportPhone: dto.supportPhone.trim(),
         copyrightText:
           dto.copyrightText?.trim() ||
           `© ${new Date().getFullYear()} ${wl.name || dto.name.trim()}. All rights reserved.`,

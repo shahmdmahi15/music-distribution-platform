@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Palette,
@@ -46,11 +46,26 @@ const PRESET_PALETTES = [
   { name: "Golden Amber", primary: "#f59e0b", accent: "#ef4444" },
 ];
 
-const FONT_OPTIONS = [
-  { id: "Inter", label: "Inter (Clean & Modern)" },
-  { id: "Outfit", label: "Outfit (Dynamic & Sleek)" },
-  { id: "Plus Jakarta Sans", label: "Plus Jakarta Sans (High-End Tech)" },
-  { id: "Geist", label: "Geist (Minimalist Precision)" },
+export const FONT_OPTIONS = [
+  { id: "Inter", label: "Inter (Modern Tech & Neutral)", category: "Sans-Serif" },
+  { id: "Plus Jakarta Sans", label: "Plus Jakarta Sans (High-End SaaS & Clean)", category: "Sans-Serif" },
+  { id: "Outfit", label: "Outfit (Creative, Modern & Sleek)", category: "Sans-Serif" },
+  { id: "Poppins", label: "Poppins (Geometric, Bold & Friendly)", category: "Sans-Serif" },
+  { id: "DM Sans", label: "DM Sans (Minimalist & Geometric)", category: "Sans-Serif" },
+  { id: "Manrope", label: "Manrope (Semi-Geometric Precision)", category: "Sans-Serif" },
+  { id: "Lexend", label: "Lexend (Ultra-Legible & Streamlined)", category: "Sans-Serif" },
+  { id: "Montserrat", label: "Montserrat (Urban, Heavy & Commercial)", category: "Sans-Serif" },
+  { id: "Urbanist", label: "Urbanist (Contemporary Digital & Hip-Hop)", category: "Sans-Serif" },
+  { id: "Space Grotesk", label: "Space Grotesk (Cutting-Edge & Future)", category: "Display" },
+  { id: "Sora", label: "Sora (Futuristic Electronic & Crisp)", category: "Sans-Serif" },
+  { id: "Raleway", label: "Raleway (Elegant, Artistic & Expressive)", category: "Sans-Serif" },
+  { id: "Syne", label: "Syne (Avant-Garde & High Fashion)", category: "Display" },
+  { id: "Oswald", label: "Oswald (Condensed & High Stature)", category: "Display" },
+  { id: "Bebas Neue", label: "Bebas Neue (Punchy & Headline Impact)", category: "Display" },
+  { id: "Epilogue", label: "Epilogue (Expressive Contemporary Editorial)", category: "Sans-Serif" },
+  { id: "Playfair Display", label: "Playfair Display (Luxury & Classical Serif)", category: "Serif" },
+  { id: "Cinzel", label: "Cinzel (Regal & Cinematic Trajan)", category: "Serif" },
+  { id: "Roboto", label: "Roboto (Neutral & Crisp Standard)", category: "Sans-Serif" },
 ];
 
 export function ClientThemeView({
@@ -62,6 +77,54 @@ export function ClientThemeView({
   const [previewMode, setPreviewMode] = useState<"light" | "dark">(
     initialTheme.mode === "light" ? "light" : "dark",
   );
+
+  // Dynamically inject Google Fonts for real-time live preview
+  useEffect(() => {
+    const MASTER_LINK_ID = "whitelabel-theme-google-fonts";
+    if (typeof document !== "undefined" && !document.getElementById(MASTER_LINK_ID)) {
+      const link = document.createElement("link");
+      link.id = MASTER_LINK_ID;
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?" +
+        [
+          "Bebas+Neue",
+          "Cinzel:wght@400;600;700",
+          "DM+Sans:wght@400;500;600;700",
+          "Epilogue:wght@400;600;700",
+          "Inter:wght@400;500;600;700",
+          "Lexend:wght@400;500;600;700",
+          "Manrope:wght@400;500;600;700",
+          "Montserrat:wght@400;500;600;700",
+          "Oswald:wght@400;500;600;700",
+          "Outfit:wght@400;500;600;700",
+          "Playfair+Display:wght@400;600;700",
+          "Plus+Jakarta+Sans:wght@400;500;600;700;800",
+          "Poppins:wght@400;500;600;700",
+          "Raleway:wght@400;500;600;700",
+          "Roboto:wght@400;500;700",
+          "Sora:wght@400;500;600;700",
+          "Space+Grotesk:wght@400;500;600;700",
+          "Syne:wght@500;600;700;800",
+          "Urbanist:wght@400;500;600;700",
+        ]
+          .map((f) => `family=${f}`)
+          .join("&") +
+        "&display=swap";
+      document.head.appendChild(link);
+    }
+
+    if (typeof document !== "undefined" && theme.fontFamily) {
+      const activeFontId = `google-font-active-${theme.fontFamily.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
+      if (!document.getElementById(activeFontId)) {
+        const link = document.createElement("link");
+        link.id = activeFontId;
+        link.rel = "stylesheet";
+        link.href = `https://fonts.googleapis.com/css2?family=${theme.fontFamily.replace(/\s+/g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+  }, [theme.fontFamily]);
 
   const activeLogoUrl =
     previewMode === "dark"
@@ -345,6 +408,7 @@ export function ClientThemeView({
                       onClick={() =>
                         setTheme((prev) => ({ ...prev, fontFamily: f.id }))
                       }
+                      style={{ fontFamily: `"${f.id}", sans-serif` }}
                       className={`px-3 py-2.5 rounded-lg border text-left text-xs transition-all ${
                         theme.fontFamily === f.id
                           ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/20"
@@ -516,14 +580,21 @@ export function ClientThemeView({
               <CardContent className="p-4 space-y-4">
                 {/* Mock Portal Container with Browser Chrome */}
                 <div
-                  className="rounded-xl border shadow-sm transition-all duration-200 overflow-hidden"
+                  className="rounded-xl border shadow-sm transition-all duration-200 overflow-hidden whitelabel-theme-preview-root"
                   style={{
                     backgroundColor:
                       previewMode === "light" ? "#ffffff" : "#090d16",
                     borderColor: `${theme.primaryColor}33`,
                     borderRadius: theme.radius,
+                    fontFamily: `"${theme.fontFamily || "Inter"}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`,
                   }}
                 >
+                  <style>{`
+                    .whitelabel-theme-preview-root,
+                    .whitelabel-theme-preview-root * {
+                      font-family: "${theme.fontFamily || "Inter"}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                    }
+                  `}</style>
                   {/* Browser Chrome Header with Favicon */}
                   <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b border-border/40 text-[10px] text-muted-foreground">
                     <div className="flex items-center gap-1">

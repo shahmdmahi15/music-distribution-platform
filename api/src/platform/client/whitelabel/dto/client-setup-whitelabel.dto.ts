@@ -43,13 +43,13 @@ export class ClientSetupWhiteLabelDto {
   )
   supportEmail!: string;
 
-  @IsOptional()
-  @IsString()
+  @IsNotEmpty({ message: 'Support phone is required.' })
+  @IsString({ message: 'Support phone must be a string.' })
   @Transform(({ value }: TransformFnParams) =>
     typeof value === 'string' ? value.trim() : (value as unknown),
   )
   @MaxLength(32)
-  supportPhone?: string;
+  supportPhone!: string;
 
   @IsOptional()
   @IsString()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -89,12 +89,26 @@ const PRESET_ACCENT_COLORS = [
   { name: "White", hex: "#ffffff" },
 ];
 
-const FONT_OPTIONS = [
-  { id: "Inter", label: "Inter (Modern Tech)" },
-  { id: "Outfit", label: "Outfit (Creative & Bold)" },
-  { id: "Poppins", label: "Poppins (Clean & Friendly)" },
-  { id: "Roboto", label: "Roboto (Neutral & Crisp)" },
-  { id: "Plus Jakarta Sans", label: "Plus Jakarta (Premium Sans)" },
+export const FONT_OPTIONS = [
+  { id: "Inter", label: "Inter (Modern Tech & Neutral)", category: "Sans-Serif" },
+  { id: "Plus Jakarta Sans", label: "Plus Jakarta Sans (High-End SaaS & Clean)", category: "Sans-Serif" },
+  { id: "Outfit", label: "Outfit (Creative, Modern & Sleek)", category: "Sans-Serif" },
+  { id: "Poppins", label: "Poppins (Geometric, Bold & Friendly)", category: "Sans-Serif" },
+  { id: "DM Sans", label: "DM Sans (Minimalist & Geometric)", category: "Sans-Serif" },
+  { id: "Manrope", label: "Manrope (Semi-Geometric Precision)", category: "Sans-Serif" },
+  { id: "Lexend", label: "Lexend (Ultra-Legible & Streamlined)", category: "Sans-Serif" },
+  { id: "Montserrat", label: "Montserrat (Urban, Heavy & Commercial)", category: "Sans-Serif" },
+  { id: "Urbanist", label: "Urbanist (Contemporary Digital & Hip-Hop)", category: "Sans-Serif" },
+  { id: "Space Grotesk", label: "Space Grotesk (Cutting-Edge & Future)", category: "Display" },
+  { id: "Sora", label: "Sora (Futuristic Electronic & Crisp)", category: "Sans-Serif" },
+  { id: "Raleway", label: "Raleway (Elegant, Artistic & Expressive)", category: "Sans-Serif" },
+  { id: "Syne", label: "Syne (Avant-Garde & High Fashion)", category: "Display" },
+  { id: "Oswald", label: "Oswald (Condensed & High Stature)", category: "Display" },
+  { id: "Bebas Neue", label: "Bebas Neue (Punchy & Headline Impact)", category: "Display" },
+  { id: "Epilogue", label: "Epilogue (Expressive Contemporary Editorial)", category: "Sans-Serif" },
+  { id: "Playfair Display", label: "Playfair Display (Luxury & Classical Serif)", category: "Serif" },
+  { id: "Cinzel", label: "Cinzel (Regal & Cinematic Trajan)", category: "Serif" },
+  { id: "Roboto", label: "Roboto (Neutral & Crisp Standard)", category: "Sans-Serif" },
 ];
 
 const RADIUS_OPTIONS = [
@@ -157,6 +171,54 @@ export function ClientWhiteLabelSetupWizard({
   );
   const [themeFont, setThemeFont] = useState(branding.themeFont || "Inter");
   const [cardStyle, setCardStyle] = useState(branding.cardStyle || "modern");
+
+  // Dynamically inject Google Fonts for real-time live component preview
+  useEffect(() => {
+    const MASTER_LINK_ID = "whitelabel-wizard-google-fonts";
+    if (typeof document !== "undefined" && !document.getElementById(MASTER_LINK_ID)) {
+      const link = document.createElement("link");
+      link.id = MASTER_LINK_ID;
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2?" +
+        [
+          "Bebas+Neue",
+          "Cinzel:wght@400;600;700",
+          "DM+Sans:wght@400;500;600;700",
+          "Epilogue:wght@400;600;700",
+          "Inter:wght@400;500;600;700",
+          "Lexend:wght@400;500;600;700",
+          "Manrope:wght@400;500;600;700",
+          "Montserrat:wght@400;500;600;700",
+          "Oswald:wght@400;500;600;700",
+          "Outfit:wght@400;500;600;700",
+          "Playfair+Display:wght@400;600;700",
+          "Plus+Jakarta+Sans:wght@400;500;600;700;800",
+          "Poppins:wght@400;500;600;700",
+          "Raleway:wght@400;500;600;700",
+          "Roboto:wght@400;500;700",
+          "Sora:wght@400;500;600;700",
+          "Space+Grotesk:wght@400;500;600;700",
+          "Syne:wght@500;600;700;800",
+          "Urbanist:wght@400;500;600;700",
+        ]
+          .map((f) => `family=${f}`)
+          .join("&") +
+        "&display=swap";
+      document.head.appendChild(link);
+    }
+
+    if (typeof document !== "undefined" && themeFont) {
+      const activeFontId = `google-font-active-${themeFont.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
+      if (!document.getElementById(activeFontId)) {
+        const link = document.createElement("link");
+        link.id = activeFontId;
+        link.rel = "stylesheet";
+        link.href = `https://fonts.googleapis.com/css2?family=${themeFont.replace(/\s+/g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+  }, [themeFont]);
 
   // Registration Model
   const [signupModel, setSignupModel] = useState<WhiteLabelSignupModel>(
@@ -434,6 +496,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         toast.error("Please enter a valid Support Email address.");
         return;
       }
+      if (!supportPhone.trim()) {
+        toast.error("Please enter a valid Support Phone number.");
+        return;
+      }
     }
 
     if (step === 5 && !hasExistingOwner) {
@@ -472,7 +538,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         tagline: tagline.trim() || undefined,
         description: description.trim() || undefined,
         supportEmail: supportEmail.trim(),
-        supportPhone: supportPhone.trim() || undefined,
+        supportPhone: supportPhone.trim(),
         copyrightText: copyrightText.trim() || undefined,
         primaryColor,
         accentColor,
@@ -747,7 +813,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                 <div className="space-y-1.5">
                   <Label htmlFor="supportPhone" className="text-xs font-medium">
-                    Support Phone (Optional)
+                    Support Phone <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="supportPhone"
@@ -755,6 +821,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     onChange={(e) => setSupportPhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
                     className="text-xs h-9"
+                    required
                   />
                 </div>
 
@@ -932,14 +999,27 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Font Family</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">Font Family</Label>
+                        <span
+                          className="text-[10px] font-semibold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20 transition-all truncate max-w-[130px]"
+                          style={{ fontFamily: `"${themeFont}", sans-serif` }}
+                        >
+                          Aa • {themeFont}
+                        </span>
+                      </div>
                       <select
                         value={themeFont}
                         onChange={(e) => setThemeFont(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground"
+                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground font-medium"
+                        style={{ fontFamily: `"${themeFont}", sans-serif` }}
                       >
                         {FONT_OPTIONS.map((f) => (
-                          <option key={f.id} value={f.id}>
+                          <option
+                            key={f.id}
+                            value={f.id}
+                            style={{ fontFamily: `"${f.id}", sans-serif` }}
+                          >
                             {f.label}
                           </option>
                         ))}
@@ -961,15 +1041,21 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </div>
 
                     <div
-                      className="p-4 rounded-xl border border-border/70 shadow-sm space-y-3 transition-all"
+                      className="p-4 rounded-xl border border-border/70 shadow-sm space-y-3 transition-all whitelabel-preview-root"
                       style={{
                         borderRadius: themeRadius,
                         backgroundColor:
                           themeMode === "light" ? "#ffffff" : "#0d1117",
                         color: themeMode === "light" ? "#09090b" : "#f4f4f5",
-                        fontFamily: themeFont,
+                        fontFamily: `"${themeFont}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`,
                       }}
                     >
+                      <style>{`
+                        .whitelabel-preview-root,
+                        .whitelabel-preview-root * {
+                          font-family: "${themeFont}", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                        }
+                      `}</style>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div
@@ -2269,15 +2355,23 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </div>
                   </div>
                   <div>
+                    <span className="text-muted-foreground">
+                      Support Phone:
+                    </span>
+                    <div className="font-semibold text-foreground mt-0.5 truncate">
+                      {supportPhone}
+                    </div>
+                  </div>
+                  <div>
                     <span className="text-muted-foreground">Registration:</span>
                     <div className="font-semibold text-foreground mt-0.5">
                       {signupModel}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Theme Mode:</span>
+                    <span className="text-muted-foreground">Theme & Font:</span>
                     <div className="font-semibold text-foreground mt-0.5 capitalize">
-                      {themeMode} ({primaryColor})
+                      {themeMode} &bull; {themeFont} ({primaryColor})
                     </div>
                   </div>
                   <div>

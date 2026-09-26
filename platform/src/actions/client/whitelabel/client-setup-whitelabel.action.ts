@@ -10,7 +10,7 @@ export interface ClientSetupWhiteLabelInput {
   tagline?: string;
   description?: string;
   supportEmail: string;
-  supportPhone?: string;
+  supportPhone: string;
   copyrightText?: string;
   primaryColor?: string;
   accentColor?: string;
