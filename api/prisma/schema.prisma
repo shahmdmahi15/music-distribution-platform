@@ -329,6 +329,8 @@ model WhiteLabel {
   cloudflareApiToken      String?
   cloudflareZoneId        String?
   cloudflareBaseDomain    String?
+  cloudflareOriginCert    String?
+  cloudflareOriginKey     String?
 
   // AWS Multi-Cloud Infrastructure & Telemetry
   awsInstanceId           String?

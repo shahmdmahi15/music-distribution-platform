@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsBoolean,
   MaxLength,
   MinLength,
   Matches,
@@ -107,9 +108,28 @@ export class StartCloudProvisioningDto extends ValidateCloudCredentialsDto {
     typeof value === 'string' ? value.trim() : (value as unknown),
   )
   elasticIpv4?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareOriginCert?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareOriginKey?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  recreateInstance?: boolean;
 }
 
 export class SaveCloudCredentialsDto extends ValidateCloudCredentialsDto {
+  @IsOptional()
+  @IsString()
+  cloudflareOriginCert?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareOriginKey?: string;
   @IsOptional()
   @IsString()
   @Transform(({ value }: TransformFnParams) =>

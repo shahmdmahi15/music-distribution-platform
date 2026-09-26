@@ -261,6 +261,8 @@ export interface WhiteLabelBranding {
   cloudflareApiToken?: string | null;
   cloudflareZoneId?: string | null;
   cloudflareBaseDomain?: string | null;
+  cloudflareOriginCert?: string | null;
+  cloudflareOriginKey?: string | null;
   senderEmail?: string | null;
   hasCloudflareCredentials?: boolean;
   expectedCustomDomain?: string | null;
@@ -514,6 +516,8 @@ export interface WhiteLabelProvisioningTelemetry {
   awsInstanceState?: string | null;
   awsKeyPairName?: string | null;
   awsKeyPairPrivateKey?: string | null;
+  cloudflareOriginCert?: string | null;
+  cloudflareOriginKey?: string | null;
   s3CorsConfigured?: boolean;
   bucketName?: string | null;
   sesIdentityStatus?: string | null;

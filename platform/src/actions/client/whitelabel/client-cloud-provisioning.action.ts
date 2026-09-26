@@ -21,6 +21,9 @@ export interface StartCloudProvisioningInput extends ValidateCloudCredentialsInp
   customDomain?: string;
   subdomain?: string;
   elasticIpv4?: string;
+  cloudflareOriginCert?: string;
+  cloudflareOriginKey?: string;
+  recreateInstance?: boolean;
 }
 
 export async function clientValidateCloudCredentialsAction(

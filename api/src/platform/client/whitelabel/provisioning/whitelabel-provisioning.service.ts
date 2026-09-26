@@ -230,6 +230,8 @@ export class WhitelabelProvisioningService {
         subdomain: 'backstage',
         ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
         ...(dto.instanceType ? { awsInstanceType: dto.instanceType.trim() } : {}),
+        ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
+        ...(dto.cloudflareOriginKey ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() } : {}),
       },
     });
 
@@ -301,6 +303,8 @@ export class WhitelabelProvisioningService {
         customDomain: targetCustomDomain,
         subdomain: 'backstage',
         ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
+        ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
+        ...(dto.cloudflareOriginKey ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() } : {}),
         awsInstanceType: dto.instanceType || 't4g.medium',
         provisioningStatus: ProvisioningStatus.CREDENTIALS_VALIDATED,
         provisioningProgress: 15,
@@ -312,7 +316,7 @@ export class WhitelabelProvisioningService {
 
     // Fire background asynchronous pipeline (unawaited)
     setImmediate(() => {
-      this.executeProvisioningPipeline(updated.id).catch((err) => {
+      this.executeProvisioningPipeline(updated.id, dto.recreateInstance || false).catch((err) => {
         this.logger.error(
           `[ProvisioningPipeline] Error on tenant ${updated.id}: ${err.message}`,
           err.stack,
@@ -351,6 +355,8 @@ export class WhitelabelProvisioningService {
         awsInstanceState: true,
         awsKeyPairName: true,
         awsKeyPairPrivateKey: true,
+        cloudflareOriginCert: true,
+        cloudflareOriginKey: true,
         s3CorsConfigured: true,
         bucketName: true,
         sesIdentityStatus: true,
@@ -376,12 +382,17 @@ export class WhitelabelProvisioningService {
   /**
    * Asynchronous multi-stage provisioning pipeline state machine.
    */
-  private async executeProvisioningPipeline(whiteLabelId: string) {
+  private async executeProvisioningPipeline(
+    whiteLabelId: string,
+    forceRecreateInstance: boolean = false,
+  ) {
     try {
       await this.prismaService.$executeRawUnsafe(`
         ALTER TABLE "WhiteLabel" 
         ADD COLUMN IF NOT EXISTS "awsKeyPairName" TEXT, 
-        ADD COLUMN IF NOT EXISTS "awsKeyPairPrivateKey" TEXT;
+        ADD COLUMN IF NOT EXISTS "awsKeyPairPrivateKey" TEXT,
+        ADD COLUMN IF NOT EXISTS "cloudflareOriginCert" TEXT,
+        ADD COLUMN IF NOT EXISTS "cloudflareOriginKey" TEXT;
       `);
     } catch {}
 
@@ -1020,26 +1031,52 @@ export class WhitelabelProvisioningService {
         'INFO',
       );
 
-      const originCertData = await this.requestCloudflareOriginCertificate(
-        cfToken,
-        [customDomain, `*.${baseDomain}`, baseDomain],
-        wl.contactEmail || wl.senderEmail || undefined,
-      );
+      let originCertData: { certificate: string; privateKey: string } | null =
+        null;
 
-      if (originCertData) {
+      if (wl.cloudflareOriginCert && wl.cloudflareOriginKey) {
+        originCertData = {
+          certificate: wl.cloudflareOriginCert.trim(),
+          privateKey: wl.cloudflareOriginKey.trim(),
+        };
         await this.appendLog(
           whiteLabelId,
           'SSL',
-          `Cloudflare Origin CA certificate successfully generated via API for "*.${baseDomain}". Installing to EC2 Nginx.`,
+          `Using configured Cloudflare Origin CA certificate and private key. Installing to EC2 Nginx.`,
           'SUCCESS',
         );
       } else {
-        await this.appendLog(
-          whiteLabelId,
-          'SSL',
-          `Cloudflare Origin CA API token scoped for DNS. Auto-generating high-grade 2048-bit RSA origin certificate on EC2 and synchronizing Cloudflare to Full SSL mode.`,
-          'INFO',
+        originCertData = await this.requestCloudflareOriginCertificate(
+          cfToken,
+          [customDomain, `*.${baseDomain}`, baseDomain],
+          wl.contactEmail || wl.senderEmail || undefined,
         );
+
+        if (originCertData) {
+          try {
+            await this.prismaService.whiteLabel.update({
+              where: { id: whiteLabelId },
+              data: {
+                cloudflareOriginCert: originCertData.certificate,
+                cloudflareOriginKey: originCertData.privateKey,
+              },
+            });
+          } catch {}
+
+          await this.appendLog(
+            whiteLabelId,
+            'SSL',
+            `Cloudflare Origin CA certificate successfully generated via API for "*.${baseDomain}". Installing to EC2 Nginx and archived to database.`,
+            'SUCCESS',
+          );
+        } else {
+          await this.appendLog(
+            whiteLabelId,
+            'SSL',
+            `Notice: Cloudflare API token scoped for DNS. Generating self-signed RSA origin certificate on EC2. For Cloudflare Full (Strict) SSL mode, paste your Origin Certificate in wizard settings or add 'Zone -> SSL and Certificates -> Edit' to your token.`,
+            'INFO',
+          );
+        }
       }
 
       const escapedWlName = (wl.name || 'WhiteLabel').replace(/["'\\]/g, '');
@@ -1096,13 +1133,13 @@ ${originCertScriptBlock}
 chmod 644 /etc/ssl/certs/whitelabel_origin.crt
 chmod 600 /etc/ssl/private/whitelabel_origin.key
 
-# 6. High-availability Zero-502 Holding Web Application on Port 3001
+# 6. High-availability Zero-502 Holding Web Application on Port 3000
 mkdir -p /var/www/whitelabel-holding
 cat << 'EOF_HOLDING' > /var/www/whitelabel-holding/server.js
 const http = require('http');
 const url = require('url');
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const TENANT_NAME = ${JSON.stringify(wl.name)};
 const TENANT_CODE = ${JSON.stringify(wl.code)};
 const CUSTOM_DOMAIN = ${JSON.stringify(customDomain)};
@@ -1258,7 +1295,7 @@ server.listen(PORT, '127.0.0.1', () => {
 });
 EOF_HOLDING
 
-pm2 start /var/www/whitelabel-holding/server.js --name "whitelabel-portal"
+PORT=3000 pm2 start /var/www/whitelabel-holding/server.js --name "whitelabel-portal"
 pm2 save
 
 # 7. Nginx Production Configuration (100MB Body Limit + SSL on Port 443)
@@ -1294,7 +1331,7 @@ server {
     proxy_busy_buffers_size 128k;
 
     location / {
-        proxy_pass http://127.0.0.1:3001;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -1340,7 +1377,7 @@ cat << 'EOF_ENV' > "$REPO_DIR/whitelabel/.env"
 API_BASE_URL="${apiBaseUrl}"
 API_KEY="${rawApiKey}"
 INTERNAL_API_SECRET="${internalSecret}"
-PORT=3001
+PORT=3000
 NODE_ENV=production
 EOF_ENV
 
@@ -1350,10 +1387,10 @@ pnpm install
 echo "[$(date -u)] Compiling Next.js 16 production build..."
 pnpm run build
 
-echo "[$(date -u)] Build succeeded! Switching PM2 process to Next.js production server..."
+echo "[$(date -u)] Build succeeded! Switching PM2 process to Next.js production server on Port 3000..."
 pm2 delete whitelabel-portal || true
 cd "$REPO_DIR/whitelabel"
-pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3001
+pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000
 pm2 save
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
 pm2 save
@@ -1374,13 +1411,36 @@ git reset --hard origin/master
 cd "$REPO_DIR/whitelabel"
 pnpm install
 pnpm run build
-pm2 reload whitelabel-portal || pm2 restart whitelabel-portal
+pm2 delete whitelabel-portal || true
+cd "$REPO_DIR/whitelabel"
+pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000
+pm2 save
 EOF_DEPLOY_SCRIPT
 
 chmod +x /var/www/deploy-whitelabel.sh
 
-# Launch the build in the background
-nohup /var/www/build-whitelabel.sh > /dev/null 2>&1 &
+# 10. Dedicated systemd service to run build & deployment in isolated cgroup
+cat << 'EOF_SERVICE' > /etc/systemd/system/whitelabel-bootstrap.service
+[Unit]
+Description=WhiteLabel Next.js Application Bootstrap and Build Service
+After=network.target nginx.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/var/www
+ExecStart=/bin/bash /var/www/build-whitelabel.sh
+StandardOutput=append:/var/log/whitelabel-build.log
+StandardError=append:/var/log/whitelabel-build.log
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target
+EOF_SERVICE
+
+systemctl daemon-reload
+systemctl enable whitelabel-bootstrap.service
+systemctl start whitelabel-bootstrap.service &
 `;
 
       // =========================================================================
@@ -1389,7 +1449,28 @@ nohup /var/www/build-whitelabel.sh > /dev/null 2>&1 &
       let instanceId: string | null = wl.awsInstanceId || null;
       let shouldLaunchNewInstance = true;
 
-      if (instanceId) {
+      if (forceRecreateInstance && instanceId) {
+        try {
+          await this.appendLog(
+            whiteLabelId,
+            'COMPUTE',
+            `Fresh deployment requested (Recreate Instance). Terminating previous EC2 instance (${instanceId})...`,
+            'WARN',
+          );
+          await ec2.send(
+            new TerminateInstancesCommand({
+              InstanceIds: [instanceId],
+            }),
+          );
+          await new Promise((r) => setTimeout(r, 2000));
+        } catch (termErr: any) {
+          this.logger.warn(
+            `Could not terminate instance ${instanceId}: ${termErr.message}`,
+          );
+        }
+        instanceId = null;
+        shouldLaunchNewInstance = true;
+      } else if (instanceId) {
         try {
           const descRes = await ec2.send(
             new DescribeInstancesCommand({
@@ -1409,7 +1490,7 @@ nohup /var/www/build-whitelabel.sh > /dev/null 2>&1 &
             await this.appendLog(
               whiteLabelId,
               'COMPUTE',
-              `Reusing existing active EC2 instance (${instanceId}, State: ${stateName.toUpperCase()}). Preserving system state and maintaining continuity.`,
+              `Reusing existing active EC2 instance (${instanceId}, State: ${stateName.toUpperCase()}). Preserving system state and maintaining continuity. (To trigger a clean re-installation, enable "Recreate Instance" in setup).`,
               'INFO',
             );
 

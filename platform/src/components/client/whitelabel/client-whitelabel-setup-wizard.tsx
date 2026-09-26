@@ -50,6 +50,8 @@ import {
   Headphones,
   Loader2,
   Save,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -442,10 +444,11 @@ export function ClientWhiteLabelSetupWizard({
       : "<Will auto-generate on activation>");
 
   const envSnippet = `# WhiteLabel Portal (.env)
-# Only 3 environment variables required:
 API_BASE_URL="https://api.royalmotionit.com"
 API_KEY="${displayApiKey}"
-INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0-9]/g, "_")}_live"`;
+INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0-9]/g, "_")}_live"
+PORT=3000
+NODE_ENV=production`;
 
   const copyEnvSnippet = () => {
     navigator.clipboard.writeText(envSnippet);
@@ -529,6 +532,16 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
   const [cloudflareBaseDomain, setCloudflareBaseDomain] = useState(
     branding.cloudflareBaseDomain || "",
   );
+  const [cloudflareOriginCert, setCloudflareOriginCert] = useState(
+    branding.cloudflareOriginCert || "",
+  );
+  const [cloudflareOriginKey, setCloudflareOriginKey] = useState(
+    branding.cloudflareOriginKey || "",
+  );
+  const [showOriginCertInputs, setShowOriginCertInputs] = useState(
+    Boolean(branding.cloudflareOriginCert && branding.cloudflareOriginKey),
+  );
+  const [recreateInstance, setRecreateInstance] = useState(false);
   // Subdomain is permanently locked to "backstage"
   const portalSubdomain = "backstage";
   const [showCfToken, setShowCfToken] = useState(false);
@@ -572,6 +585,8 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase(),
         subdomain: "backstage",
         elasticIpv4: elasticIpv4.trim() || undefined,
+        cloudflareOriginCert: cloudflareOriginCert.trim() || undefined,
+        cloudflareOriginKey: cloudflareOriginKey.trim() || undefined,
       });
 
       if (res.success) {
@@ -703,6 +718,9 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase(),
         subdomain: "backstage",
         elasticIpv4: elasticIpv4.trim() || undefined,
+        cloudflareOriginCert: cloudflareOriginCert.trim() || undefined,
+        cloudflareOriginKey: cloudflareOriginKey.trim() || undefined,
+        recreateInstance,
       });
 
       if (res.success) {
@@ -3646,10 +3664,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                       </div>
                       <div>
                         <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wide">
-                          Part B: Cloudflare Console Guide
+                          Part B: Cloudflare Console &amp; SSL Guide
                         </h3>
                         <p className="text-[10px] text-muted-foreground">
-                          Zone ID + Edit Zone DNS API Token + SSL
+                          Zone ID + API Token (DNS &amp; SSL Permissions) + Origin Certificate
                         </p>
                       </div>
                     </div>
@@ -3664,7 +3682,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </a>
                   </div>
 
-                  <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside leading-relaxed">
+                  <ol className="text-[11px] text-muted-foreground space-y-2 list-decimal list-inside leading-relaxed">
                     <li>
                       Your managed subdomain{" "}
                       <code className="text-primary font-semibold">
@@ -3673,25 +3691,31 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                       is <strong>already active</strong> on RoyalMotionIT DNS!
                     </li>
                     <li>
-                      For a custom domain (e.g.{" "}
+                      For your custom domain (e.g.{" "}
                       <code className="text-foreground">backstage.yourdomain.com</code>):
                       select your domain in <strong>Cloudflare Dashboard</strong>.
                     </li>
                     <li>
-                      On the <strong>Overview</strong> page (bottom-right{" "}
-                      <strong>API</strong> section), copy your{" "}
-                      <strong>32-character Zone ID</strong>.
+                      On the domain <strong>Overview</strong> page (bottom-right <strong>API</strong> section), copy your <strong>32-character Zone ID</strong>.
                     </li>
                     <li>
-                      Click <strong>Get your API token &rarr; Create Token</strong>{" "}
-                      &rarr; Use template <strong>Edit zone DNS</strong> &rarr;
-                      select your specific zone &rarr; copy your{" "}
-                      <strong>API Token</strong> below.
+                      <strong>API Token Creation (with SSL &amp; DNS Permissions):</strong>
+                      <div className="pl-4 mt-1 space-y-1 text-[10px] bg-background/60 p-2.5 rounded-lg border border-border/60">
+                        <div>&bull; Click <strong>Get your API token &rarr; Create Token &rarr; Create Custom Token</strong> (or choose <em>Edit zone DNS</em> and click add more permissions).</div>
+                        <div className="font-semibold text-foreground">&bull; Add TWO permissions:</div>
+                        <div className="pl-2 font-mono text-sky-600 dark:text-sky-400">1. Zone &rarr; DNS &rarr; Edit <span className="text-muted-foreground">(for A, CNAME, DKIM, MX, SPF, DMARC records)</span></div>
+                        <div className="pl-2 font-mono text-emerald-600 dark:text-emerald-400">2. Zone &rarr; SSL and Certificates &rarr; Edit <span className="text-muted-foreground">(for Origin CA certificate &amp; Full Strict SSL synchronization)</span></div>
+                        <div>&bull; Under <strong>Zone Resources</strong>, select <strong>Include &rarr; Specific zone &rarr; [yourdomain.com]</strong>.</div>
+                        <div>&bull; Click <strong>Continue to summary &rarr; Create Token</strong> and copy the token into the input below.</div>
+                      </div>
+                    </li>
+                    <li>
+                      <strong>Direct Origin Certificate (15-Year Zero-521 Setup):</strong> In Cloudflare Dashboard, go to <strong>SSL/TLS &rarr; Origin Server &rarr; Create Certificate</strong> (15-Year validity). You can paste the generated Origin Certificate &amp; Private Key into the optional <em>Origin SSL Certificate</em> section below for 100% strict SSL.
                     </li>
                   </ol>
 
-                  <div className="pt-1 flex items-center justify-between border-t border-sky-500/20 text-[10px] text-muted-foreground">
-                    <span>SSL/TLS Mode Recommendation:</span>
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-sky-500/20 text-[10px] text-muted-foreground">
+                    <span>Cloudflare SSL/TLS Encryption Mode:</span>
                     <span className="font-mono font-bold text-foreground">
                       Full (Strict) + Proxied Orange Cloud
                     </span>
@@ -4104,6 +4128,105 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                             </p>
                           </div>
                         </div>
+                      </div>
+
+                      {/* 3. Cloudflare Origin SSL / TLS Certificate (Optional / Recommended) */}
+                      <div className="space-y-3 pt-3 border-t border-border/60">
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setShowOriginCertInputs(!showOriginCertInputs)}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-foreground hover:text-primary transition-colors text-left"
+                          >
+                            <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>3. Cloudflare Origin SSL Certificate</span>
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] font-normal border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                            >
+                              Recommended &bull; Full (Strict) SSL
+                            </Badge>
+                            {showOriginCertInputs ? (
+                              <ChevronUp className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+                            )}
+                          </button>
+                          <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                            Optional (Auto-generated if omitted)
+                          </span>
+                        </div>
+
+                        {showOriginCertInputs && (
+                          <div className="p-3.5 rounded-lg border border-border bg-muted/30 space-y-3">
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Paste your 15-year Cloudflare Origin Certificate and Private Key from{" "}
+                              <strong>Cloudflare Dashboard &rarr; SSL/TLS &rarr; Origin Server &rarr; Create Certificate</strong>.
+                              This installs directly to your EC2 Nginx (<code>/etc/ssl/certs/whitelabel_origin.crt</code>)
+                              to eliminate Cloudflare Error 521 / 526 forever.
+                            </p>
+
+                            <div className="space-y-2">
+                              <div className="space-y-1">
+                                <Label htmlFor="originCert" className="text-xs font-medium">
+                                  Cloudflare Origin Certificate (PEM)
+                                </Label>
+                                <textarea
+                                  id="originCert"
+                                  rows={4}
+                                  value={cloudflareOriginCert}
+                                  onChange={(e) => setCloudflareOriginCert(e.target.value)}
+                                  placeholder="-----BEGIN CERTIFICATE-----&#10;MIID...&#10;-----END CERTIFICATE-----"
+                                  className="w-full text-[10px] font-mono rounded-md border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <Label htmlFor="originKey" className="text-xs font-medium">
+                                  Cloudflare Origin Private Key (PEM)
+                                </Label>
+                                <textarea
+                                  id="originKey"
+                                  rows={4}
+                                  value={cloudflareOriginKey}
+                                  onChange={(e) => setCloudflareOriginKey(e.target.value)}
+                                  placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIE...&#10;-----END PRIVATE KEY-----"
+                                  className="w-full text-[10px] font-mono rounded-md border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 4. EC2 Lifecycle & Deployment Options */}
+                      <div className="space-y-2 pt-3 border-t border-border/60">
+                        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          <Cpu className="w-3.5 h-3.5 text-blue-500" />
+                          <span>4. EC2 Compute Deployment Mode</span>
+                        </div>
+
+                        <label className="flex items-start gap-3 p-3 rounded-lg border border-border/80 bg-background hover:bg-muted/40 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={recreateInstance}
+                            onChange={(e) => setRecreateInstance(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                          />
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold text-foreground flex items-center gap-2">
+                              <span>Fresh EC2 Deployment (Recreate Instance)</span>
+                              {recreateInstance && (
+                                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[9px]">
+                                  Clean Bootstrap
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Terminate previously allocated EC2 instance and launch a brand new Ubuntu 24.04 instance with fresh cloud-init bootstrap, Git clone, and Next.js production build on Port 3000. (Leave unchecked to reuse existing active instance).
+                            </p>
+                          </div>
+                        </label>
                       </div>
 
                       {/* Validation Banner */}
