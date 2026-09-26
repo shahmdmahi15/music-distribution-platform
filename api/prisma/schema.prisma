@@ -335,6 +335,8 @@ model WhiteLabel {
   awsElasticIp            String?
   awsAllocationId         String?
   awsSecurityGroupId      String?
+  awsKeyPairName          String?
+  awsKeyPairPrivateKey    String?
   awsInstanceType         String?                @default("t4g.medium")
   awsInstanceState        String?                @default("STOPPED")
 

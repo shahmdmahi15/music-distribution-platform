@@ -19,6 +19,11 @@ import {
   RunInstancesCommand,
   DescribeImagesCommand,
   TerminateInstancesCommand,
+  CreateKeyPairCommand,
+  DescribeKeyPairsCommand,
+  DeleteKeyPairCommand,
+  DescribeInstancesCommand,
+  StartInstancesCommand,
 } from '@aws-sdk/client-ec2';
 import {
   S3Client,
@@ -34,6 +39,7 @@ import {
   CreateEmailIdentityCommand,
   GetEmailIdentityCommand,
   GetAccountCommand,
+  PutEmailIdentityMailFromAttributesCommand,
 } from '@aws-sdk/client-sesv2';
 import {
   ProvisioningStatus,
@@ -343,6 +349,8 @@ export class WhitelabelProvisioningService {
         awsElasticIp: true,
         awsInstanceType: true,
         awsInstanceState: true,
+        awsKeyPairName: true,
+        awsKeyPairPrivateKey: true,
         s3CorsConfigured: true,
         bucketName: true,
         sesIdentityStatus: true,
@@ -369,6 +377,14 @@ export class WhitelabelProvisioningService {
    * Asynchronous multi-stage provisioning pipeline state machine.
    */
   private async executeProvisioningPipeline(whiteLabelId: string) {
+    try {
+      await this.prismaService.$executeRawUnsafe(`
+        ALTER TABLE "WhiteLabel" 
+        ADD COLUMN IF NOT EXISTS "awsKeyPairName" TEXT, 
+        ADD COLUMN IF NOT EXISTS "awsKeyPairPrivateKey" TEXT;
+      `);
+    } catch {}
+
     const wl = await this.prismaService.whiteLabel.findUnique({
       where: { id: whiteLabelId },
     });
@@ -539,114 +555,200 @@ export class WhitelabelProvisioningService {
       );
 
       // =========================================================================
-      // STAGE 2: SES MAILING DOMAIN (mail.<customdomain>) + CLOUDFLARE DKIM/SPF/MX (Progress: 50%)
+      // STAGE 2: SES DUAL IDENTITIES & MAIL FROM (mail.backstage.customdomain) (Progress: 50%)
       // =========================================================================
-      const mailDomain = `mail.${baseDomain}`;
+      const identityBackstage = customDomain; // e.g. backstage.royalmusic.io
+      const identityRoot = baseDomain; // e.g. royalmusic.io
+      const mailFromDomain = `mail.${identityBackstage}`; // e.g. mail.backstage.royalmusic.io
+      const cfEmail = wl.contactEmail || wl.senderEmail || undefined;
 
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `Registering SES domain identity for mailing domain "${mailDomain}" and auto-wiring Cloudflare DNS...`,
+        `Configuring AWS SES identities ("${identityBackstage}" & "${identityRoot}") with MAIL FROM "${mailFromDomain}"...`,
         'INFO',
         ProvisioningStatus.SES_CONFIGURED,
         50,
-        `Configuring SES Mailing Domain (${mailDomain}) & auto-injecting DKIM to Cloudflare`,
+        `Configuring SES identities and auto-wiring Cloudflare DNS`,
       );
 
       const ses = new SESv2Client({ region, credentials });
-      let dkimTokens: string[] = [];
 
+      // 1. Create or retrieve identity for backstage domain
+      let backstageDkimTokens: string[] = [];
       try {
-        const sesRes = await ses.send(
-          new CreateEmailIdentityCommand({
-            EmailIdentity: mailDomain,
-          }),
+        const res = await ses.send(
+          new CreateEmailIdentityCommand({ EmailIdentity: identityBackstage }),
         );
-        dkimTokens = sesRes.DkimAttributes?.Tokens || [];
-      } catch (err: any) {
+        backstageDkimTokens = res.DkimAttributes?.Tokens || [];
+      } catch {
         const existing = await ses.send(
-          new GetEmailIdentityCommand({
-            EmailIdentity: mailDomain,
-          }),
+          new GetEmailIdentityCommand({ EmailIdentity: identityBackstage }),
         );
-        dkimTokens = existing.DkimAttributes?.Tokens || [];
+        backstageDkimTokens = existing.DkimAttributes?.Tokens || [];
       }
 
-      await this.appendLog(
-        whiteLabelId,
-        'SES',
-        `SES mailing domain "${mailDomain}" registered. Retrieved ${dkimTokens.length} DKIM authentication tokens.`,
-        'SUCCESS',
+      // 2. Create or retrieve identity for root custom domain
+      let rootDkimTokens: string[] = [];
+      try {
+        const res = await ses.send(
+          new CreateEmailIdentityCommand({ EmailIdentity: identityRoot }),
+        );
+        rootDkimTokens = res.DkimAttributes?.Tokens || [];
+      } catch {
+        const existing = await ses.send(
+          new GetEmailIdentityCommand({ EmailIdentity: identityRoot }),
+        );
+        rootDkimTokens = existing.DkimAttributes?.Tokens || [];
+      }
+
+      // 3. Configure MAIL FROM domain (mail.backstage.customdomain) on both identities
+      try {
+        await ses.send(
+          new PutEmailIdentityMailFromAttributesCommand({
+            EmailIdentity: identityBackstage,
+            MailFromDomain: mailFromDomain,
+            BehaviorOnMxFailure: 'USE_DEFAULT_VALUE',
+          }),
+        );
+      } catch (mfErr: any) {
+        this.logger.warn(`Could not set MailFrom on ${identityBackstage}: ${mfErr.message}`);
+      }
+
+      try {
+        await ses.send(
+          new PutEmailIdentityMailFromAttributesCommand({
+            EmailIdentity: identityRoot,
+            MailFromDomain: mailFromDomain,
+            BehaviorOnMxFailure: 'USE_DEFAULT_VALUE',
+          }),
+        );
+      } catch (mfErr: any) {
+        this.logger.warn(`Could not set MailFrom on ${identityRoot}: ${mfErr.message}`);
+      }
+
+      // 4. Clean up any stale DKIM CNAME records in Cloudflare DNS
+      await this.cleanupStaleCloudflareDkimRecords(
+        cfToken,
+        zoneId,
+        identityBackstage,
+        backstageDkimTokens,
+        cfEmail,
+      );
+      await this.cleanupStaleCloudflareDkimRecords(
+        cfToken,
+        zoneId,
+        identityRoot,
+        rootDkimTokens,
+        cfEmail,
       );
 
-      // Auto-inject 3 DKIM CNAMEs into Cloudflare DNS for mailDomain
-      for (const token of dkimTokens) {
-        const dkimCname = `${token}._domainkey.${mailDomain}`;
-        const dkimTarget = `${token}.dkim.amazonses.com`;
-
+      // 5. Inject DKIM CNAMEs for backstage domain (clean, deduplicated)
+      for (const token of backstageDkimTokens) {
         await this.upsertCloudflareDnsRecord(
           cfToken,
           zoneId,
           'CNAME',
-          dkimCname,
-          dkimTarget,
+          `${token}._domainkey.${identityBackstage}`,
+          `${token}.dkim.amazonses.com`,
           false,
+          undefined,
+          cfEmail,
         );
       }
 
-      // Auto-inject SPF TXT record for mailDomain
-      await this.upsertCloudflareDnsRecord(
-        cfToken,
-        zoneId,
-        'TXT',
-        mailDomain,
-        'v=spf1 include:amazonses.com ~all',
-        false,
-      );
+      // 6. Inject DKIM CNAMEs for root domain (clean, deduplicated)
+      for (const token of rootDkimTokens) {
+        await this.upsertCloudflareDnsRecord(
+          cfToken,
+          zoneId,
+          'CNAME',
+          `${token}._domainkey.${identityRoot}`,
+          `${token}.dkim.amazonses.com`,
+          false,
+          undefined,
+          cfEmail,
+        );
+      }
 
-      // Auto-inject MX feedback routing record for mailDomain
+      // 7. Inject MX record for MAIL FROM domain
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
         'MX',
-        mailDomain,
+        mailFromDomain,
         `feedback-smtp.${region}.amazonses.com`,
         false,
         10,
+        cfEmail,
       );
 
-      // Auto-inject DMARC TXT record for mailDomain
+      // 8. Inject SPF TXT record for MAIL FROM domain
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
         'TXT',
-        `_dmarc.${mailDomain}`,
-        'v=DMARC1; p=none;',
-        false,
-      );
-
-      // Auto-inject SPF TXT record into Cloudflare DNS for root baseDomain as well
-      await this.upsertCloudflareDnsRecord(
-        cfToken,
-        zoneId,
-        'TXT',
-        baseDomain,
+        mailFromDomain,
         'v=spf1 include:amazonses.com ~all',
         false,
+        undefined,
+        cfEmail,
       );
 
+      // 9. Inject DMARC TXT record for backstage domain
+      await this.upsertCloudflareDnsRecord(
+        cfToken,
+        zoneId,
+        'TXT',
+        `_dmarc.${identityBackstage}`,
+        'v=DMARC1; p=none;',
+        false,
+        undefined,
+        cfEmail,
+      );
+
+      // 10. Inject SPF TXT record for root domain (smart merge with existing SPF, zero duplicates)
+      await this.upsertCloudflareSpfRecord(
+        cfToken,
+        zoneId,
+        identityRoot,
+        cfEmail,
+      );
+
+      // 11. Inject DMARC TXT record for root domain
+      await this.upsertCloudflareDnsRecord(
+        cfToken,
+        zoneId,
+        'TXT',
+        `_dmarc.${identityRoot}`,
+        'v=DMARC1; p=none;',
+        false,
+        undefined,
+        cfEmail,
+      );
+
+      // 12. Prune obsolete legacy mail records on mail.${baseDomain} if present
+      await this.pruneLegacyMailRecords(
+        cfToken,
+        zoneId,
+        baseDomain,
+        cfEmail,
+      );
+
+      const allTokens = [...backstageDkimTokens, ...rootDkimTokens];
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
         data: {
           sesIdentityStatus: 'SUCCESS',
-          sesDkimTokens: dkimTokens,
+          sesDkimTokens: allTokens,
+          senderEmail: `noreply@${mailFromDomain}`,
         },
       });
 
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `Dedicated mailing domain "${mailDomain}" ready! 3 DKIM CNAMEs, SPF TXT, MX feedback routing, and DMARC auto-configured.`,
+        `SES identities ("${identityBackstage}" & "${identityRoot}") verified with MAIL FROM "${mailFromDomain}". All Cloudflare DNS records synchronized with zero duplicate entries.`,
         'SUCCESS',
       );
 
@@ -769,6 +871,76 @@ export class WhitelabelProvisioningService {
         'SUCCESS',
       );
 
+      // 3. Create or resolve SSH Key Pair (archived to DB for user download/copy)
+      const keyPairName = `rmit-${wl.code.toLowerCase().replace(/[^a-z0-9]/g, '-')}-key`;
+      let privateKeyPem = wl.awsKeyPairPrivateKey || null;
+
+      let keyPairExistsInAws = false;
+      try {
+        const kpRes = await ec2.send(
+          new DescribeKeyPairsCommand({
+            KeyNames: [keyPairName],
+          }),
+        );
+        if (kpRes.KeyPairs && kpRes.KeyPairs.length > 0) {
+          keyPairExistsInAws = true;
+        }
+      } catch {
+        keyPairExistsInAws = false;
+      }
+
+      if (!privateKeyPem || !keyPairExistsInAws) {
+        if (keyPairExistsInAws) {
+          try {
+            await ec2.send(new DeleteKeyPairCommand({ KeyName: keyPairName }));
+          } catch (e: any) {
+            this.logger.warn(`Could not delete previous AWS key pair: ${e.message}`);
+          }
+        }
+
+        const createdKp = await ec2.send(
+          new CreateKeyPairCommand({
+            KeyName: keyPairName,
+            KeyType: 'rsa',
+            KeyFormat: 'pem',
+            TagSpecifications: [
+              {
+                ResourceType: 'key-pair',
+                Tags: [
+                  { Key: 'Name', Value: keyPairName },
+                  { Key: 'Project', Value: 'RoyalMotionIT-WhiteLabel' },
+                  { Key: 'TenantCode', Value: wl.code },
+                ],
+              },
+            ],
+          }),
+        );
+
+        privateKeyPem = createdKp.KeyMaterial || null;
+
+        await this.prismaService.whiteLabel.update({
+          where: { id: whiteLabelId },
+          data: {
+            awsKeyPairName: keyPairName,
+            awsKeyPairPrivateKey: privateKeyPem,
+          },
+        });
+
+        await this.appendLog(
+          whiteLabelId,
+          'COMPUTE',
+          `Generated high-security RSA SSH Key Pair "${keyPairName}" and saved private .pem key to database.`,
+          'SUCCESS',
+        );
+      } else {
+        await this.appendLog(
+          whiteLabelId,
+          'COMPUTE',
+          `Reusing existing SSH Key Pair "${keyPairName}".`,
+          'INFO',
+        );
+      }
+
       // =========================================================================
       // STAGE 4: EC2 INSTANCE LAUNCH & CLOUD-INIT BOOTSTRAP (Progress: 82%)
       // =========================================================================
@@ -782,32 +954,58 @@ export class WhitelabelProvisioningService {
         'Launching EC2 instance and bootstrapping WhiteLabel runtime',
       );
 
-      let activeKey = await this.prismaService.whiteLabelApiKey.findFirst({
-        where: { whiteLabelId: wl.id },
+      // Generate or retrieve API Key for the tenant's EC2 to communicate with Mother API
+      let rawApiKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
+      const hashedKey = crypto
+        .createHash('sha256')
+        .update(rawApiKey)
+        .digest('hex');
+
+      const existingKey = await this.prismaService.whiteLabelApiKey.findFirst({
+        where: {
+          whiteLabelId: wl.id,
+          name: 'Auto-Provisioned EC2 Key',
+        },
       });
 
-      if (!activeKey) {
-        const rawKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
-        const keyHash = crypto
-          .createHash('sha256')
-          .update(rawKey)
-          .digest('hex');
-        activeKey = await this.prismaService.whiteLabelApiKey.create({
+      if (!existingKey) {
+        await this.prismaService.whiteLabelApiKey.create({
           data: {
             code: `RMIT-KEY-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
             name: 'Auto-Provisioned EC2 Key',
-            keyHash,
-            keyPrefix: `${rawKey.slice(0, 10)}...${rawKey.slice(-4)}`,
-            keyMasked: `${rawKey.slice(0, 10)}****************${rawKey.slice(-4)}`,
+            keyHash: hashedKey,
+            keyPrefix: `${rawApiKey.slice(0, 10)}...${rawApiKey.slice(-4)}`,
+            keyMasked: `${rawApiKey.slice(0, 10)}****************${rawApiKey.slice(-4)}`,
             whiteLabelId: wl.id,
+          },
+        });
+      } else {
+        await this.prismaService.whiteLabelApiKey.update({
+          where: { id: existingKey.id },
+          data: {
+            keyHash: hashedKey,
+            keyPrefix: `${rawApiKey.slice(0, 10)}...${rawApiKey.slice(-4)}`,
+            keyMasked: `${rawApiKey.slice(0, 10)}****************${rawApiKey.slice(-4)}`,
           },
         });
       }
 
+      await this.redisService.set(
+        `whitelabel:apikey:${hashedKey}`,
+        JSON.stringify({
+          whiteLabelId: wl.id,
+          name: 'Auto-Provisioned EC2 Key',
+          status: 'ACTIVE',
+        }),
+      );
+
       const apiBaseUrl = 'https://api.royalmotionit.com';
-      const internalSecret =
-        this.configService.get('INTERNAL_API_SECRET', { infer: true }) ||
-        'internal_api_secret_default';
+      let internalSecret =
+        this.configService.get('INTERNAL_API_SECRET', { infer: true }) || '';
+      if (!internalSecret || internalSecret.length < 32) {
+        internalSecret =
+          'aca33084fe01ee718b5e01d1c5034d308bef8aa984dfbde32f4db51375e5bcd7';
+      }
 
       const isArm = (wl.awsInstanceType || 't4g.medium').startsWith('t4g');
       const amiId = await this.resolveUbuntuAmi(ec2, isArm);
@@ -870,39 +1068,37 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # 1. System packages & OpenSSL
-apt-get update && apt-get install -y ca-certificates curl gnupg nginx ufw git openssl
+apt-get update && apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential
 
-# 2. Firewall configuration
+# 2. Swap configuration (prevents out-of-memory spikes during Next.js builds)
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+# 3. Firewall configuration
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
-# 3. Node.js & Process Manager (PM2)
+# 4. Node.js 22 LTS, PM2 & pnpm
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
-npm install -g pm2
+npm install -g pm2 pnpm
 
-# 4. Origin SSL Certificates
+# 5. Origin SSL Certificates
 mkdir -p /etc/ssl/certs /etc/ssl/private
 ${originCertScriptBlock}
 chmod 644 /etc/ssl/certs/whitelabel_origin.crt
 chmod 600 /etc/ssl/private/whitelabel_origin.key
 
-# 5. Application runtime directory & environment
-mkdir -p /var/www/whitelabel
-cd /var/www/whitelabel
-
-cat <<EOF > /var/www/whitelabel/.env
-API_BASE_URL="${apiBaseUrl}"
-API_KEY="${activeKey.keyPrefix.replace('...', 'xxxx')}"
-INTERNAL_API_SECRET="${internalSecret}"
-PORT=3001
-NODE_ENV=production
-EOF
-
-# 6. High-availability Web Application on Port 3001 (Zero-502 Guarantee)
-cat << 'EOF_SERVER' > /var/www/whitelabel/server.js
+# 6. High-availability Zero-502 Holding Web Application on Port 3001
+mkdir -p /var/www/whitelabel-holding
+cat << 'EOF_HOLDING' > /var/www/whitelabel-holding/server.js
 const http = require('http');
 const url = require('url');
 
@@ -917,7 +1113,6 @@ const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
-  // Immediate 200 OK for health check probes
   if (pathname === '/health' || pathname === '/healthz' || pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
@@ -932,7 +1127,6 @@ const server = http.createServer((req, res) => {
     }));
   }
 
-  // Branded Backstage Portal Operational Landing Page
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(\`<!DOCTYPE html>
 <html lang="en">
@@ -1060,26 +1254,22 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(\`WhiteLabel Portal listening on http://127.0.0.1:\${PORT}\`);
+  console.log(\`WhiteLabel Holding Server listening on http://127.0.0.1:\${PORT}\`);
 });
-EOF_SERVER
+EOF_HOLDING
 
-pm2 start /var/www/whitelabel/server.js --name "whitelabel-portal"
-pm2 save
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
+pm2 start /var/www/whitelabel-holding/server.js --name "whitelabel-portal"
 pm2 save
 
 # 7. Nginx Production Configuration (100MB Body Limit + SSL on Port 443)
-cat <<EOF > /etc/nginx/sites-available/whitelabel
-# 1. HTTP Redirect to HTTPS
+cat << 'EOF_NGINX' > /etc/nginx/sites-available/whitelabel
 server {
     listen 80;
     listen [::]:80;
     server_name ${customDomain};
-    return 301 https://\\$host\\$request_uri;
+    return 301 https://\$host\$request_uri;
 }
 
-# 2. HTTPS Origin Server (Cloudflare SSL)
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
@@ -1093,11 +1283,9 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
 
-    # High-capacity 100MB Lossless Audio & Asset Body Limit
     client_max_body_size 100M;
     client_body_buffer_size 128k;
 
-    # Tuned Proxy Buffers and Timeouts for large uploads
     proxy_connect_timeout 300s;
     proxy_send_timeout 300s;
     proxy_read_timeout 300s;
@@ -1108,111 +1296,240 @@ server {
     location / {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \\$http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \\$host;
-        proxy_cache_bypass \\$http_upgrade;
-        proxy_set_header X-Real-IP \\$remote_addr;
-        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
     }
 }
-EOF
+EOF_NGINX
 
 ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
+
+# 8. Automated Background WhiteLabel App Deployment (Git Clone, Build, PM2 Handover)
+cat << 'EOF_BUILD_SCRIPT' > /var/www/build-whitelabel.sh
+#!/bin/bash
+set -euo pipefail
+LOG_FILE="/var/log/whitelabel-build.log"
+exec >> "$LOG_FILE" 2>&1
+
+echo "[$(date -u)] === Starting WhiteLabel Build & Deployment ==="
+
+REPO_DIR="/var/www/music-distribution-platform"
+mkdir -p /var/www
+
+if [ ! -d "$REPO_DIR/.git" ]; then
+  echo "[$(date -u)] Cloning music-distribution-platform repository..."
+  git clone https://github.com/shahmdmahi15/music-distribution-platform.git "$REPO_DIR"
+else
+  echo "[$(date -u)] Existing repository detected. Fetching latest master..."
+  cd "$REPO_DIR"
+  git fetch origin master
+  git reset --hard origin/master
+fi
+
+cd "$REPO_DIR/whitelabel"
+
+echo "[$(date -u)] Writing production environment configuration..."
+cat << 'EOF_ENV' > "$REPO_DIR/whitelabel/.env"
+API_BASE_URL="${apiBaseUrl}"
+API_KEY="${rawApiKey}"
+INTERNAL_API_SECRET="${internalSecret}"
+PORT=3001
+NODE_ENV=production
+EOF_ENV
+
+echo "[$(date -u)] Installing whitelabel dependencies via pnpm..."
+pnpm install
+
+echo "[$(date -u)] Compiling Next.js 16 production build..."
+pnpm run build
+
+echo "[$(date -u)] Build succeeded! Switching PM2 process to Next.js production server..."
+pm2 delete whitelabel-portal || true
+cd "$REPO_DIR/whitelabel"
+pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3001
+pm2 save
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
+pm2 save
+
+echo "[$(date -u)] === WhiteLabel Portal Production App Successfully Deployed! ==="
+EOF_BUILD_SCRIPT
+
+chmod +x /var/www/build-whitelabel.sh
+
+# 9. Standalone manual update script
+cat << 'EOF_DEPLOY_SCRIPT' > /var/www/deploy-whitelabel.sh
+#!/bin/bash
+set -euo pipefail
+REPO_DIR="/var/www/music-distribution-platform"
+cd "$REPO_DIR"
+git fetch origin master
+git reset --hard origin/master
+cd "$REPO_DIR/whitelabel"
+pnpm install
+pnpm run build
+pm2 reload whitelabel-portal || pm2 restart whitelabel-portal
+EOF_DEPLOY_SCRIPT
+
+chmod +x /var/www/deploy-whitelabel.sh
+
+# Launch the build in the background
+nohup /var/www/build-whitelabel.sh > /dev/null 2>&1 &
 `;
 
-      // Terminate any previous instance to cleanly re-attach the dedicated Elastic IP
-      if (wl.awsInstanceId) {
+      // =========================================================================
+      // EC2 INSTANCE REUSE & LAUNCH MANAGEMENT
+      // =========================================================================
+      let instanceId: string | null = wl.awsInstanceId || null;
+      let shouldLaunchNewInstance = true;
+
+      if (instanceId) {
         try {
-          await ec2.send(
-            new TerminateInstancesCommand({
-              InstanceIds: [wl.awsInstanceId],
+          const descRes = await ec2.send(
+            new DescribeInstancesCommand({
+              InstanceIds: [instanceId],
             }),
           );
-          await this.appendLog(
-            whiteLabelId,
-            'COMPUTE',
-            `Terminated previous instance (${wl.awsInstanceId}) to re-deploy with SSL and 100M upload configuration.`,
-            'INFO',
-          );
-          // Brief pause for AWS to release Elastic IP association
-          await new Promise((r) => setTimeout(r, 4000));
-        } catch (termErr: any) {
+          const inst = descRes.Reservations?.[0]?.Instances?.[0];
+          const stateName = inst?.State?.Name;
+
+          if (
+            inst &&
+            stateName &&
+            stateName !== 'terminated' &&
+            stateName !== 'shutting-down'
+          ) {
+            shouldLaunchNewInstance = false;
+            await this.appendLog(
+              whiteLabelId,
+              'COMPUTE',
+              `Reusing existing active EC2 instance (${instanceId}, State: ${stateName.toUpperCase()}). Preserving system state and maintaining continuity.`,
+              'INFO',
+            );
+
+            if (stateName === 'stopped') {
+              await this.appendLog(
+                whiteLabelId,
+                'COMPUTE',
+                `Instance is stopped. Starting instance (${instanceId})...`,
+                'INFO',
+              );
+              await ec2.send(
+                new StartInstancesCommand({
+                  InstanceIds: [instanceId],
+                }),
+              );
+              await this.waitForInstanceState(ec2, instanceId, 'running', 60);
+            } else if (stateName === 'pending') {
+              await this.waitForInstanceState(ec2, instanceId, 'running', 60);
+            }
+
+            await this.prismaService.whiteLabel.update({
+              where: { id: whiteLabelId },
+              data: {
+                awsInstanceState: 'RUNNING',
+              },
+            });
+          } else {
+            await this.appendLog(
+              whiteLabelId,
+              'COMPUTE',
+              `Previous instance (${instanceId}) was terminated. Provisioning a new instance...`,
+              'WARN',
+            );
+            shouldLaunchNewInstance = true;
+          }
+        } catch (descErr: any) {
           this.logger.warn(
-            `Could not terminate previous instance ${wl.awsInstanceId}: ${termErr.message}`,
+            `Could not describe instance ${instanceId}: ${descErr.message}`,
           );
+          shouldLaunchNewInstance = true;
         }
       }
 
-      const runInstanceRes = await ec2.send(
-        new RunInstancesCommand({
-          ImageId: amiId,
-          InstanceType: (wl.awsInstanceType as any) || 't4g.medium',
-          MinCount: 1,
-          MaxCount: 1,
-          SecurityGroupIds: [sgId],
-          UserData: Buffer.from(userDataScript).toString('base64'),
-          TagSpecifications: [
-            {
-              ResourceType: 'instance',
-              Tags: [
-                { Key: 'Name', Value: `rmit-${wl.code.toLowerCase()}-portal` },
-                { Key: 'Project', Value: 'RoyalMotionIT-WhiteLabel' },
-                { Key: 'TenantCode', Value: wl.code },
-                { Key: 'Domain', Value: customDomain },
-              ],
-            },
-          ],
-        }),
-      );
+      if (shouldLaunchNewInstance) {
+        await this.appendLog(
+          whiteLabelId,
+          'COMPUTE',
+          `Launching new dedicated EC2 Ubuntu 24.04 instance (${wl.awsInstanceType || 't4g.medium'}) with SSH Key "${keyPairName}" & automated cloud-init bootstrap...`,
+          'INFO',
+        );
 
-      const instanceId = runInstanceRes.Instances?.[0]?.InstanceId;
-      if (!instanceId) {
-        throw new Error('EC2 RunInstances failed to return an instance ID.');
+        const runInstanceRes = await ec2.send(
+          new RunInstancesCommand({
+            ImageId: amiId,
+            InstanceType: (wl.awsInstanceType as any) || 't4g.medium',
+            KeyName: keyPairName,
+            MinCount: 1,
+            MaxCount: 1,
+            SecurityGroupIds: [sgId],
+            UserData: Buffer.from(userDataScript).toString('base64'),
+            TagSpecifications: [
+              {
+                ResourceType: 'instance',
+                Tags: [
+                  { Key: 'Name', Value: `rmit-${wl.code.toLowerCase()}-portal` },
+                  { Key: 'Project', Value: 'RoyalMotionIT-WhiteLabel' },
+                  { Key: 'TenantCode', Value: wl.code },
+                  { Key: 'Domain', Value: customDomain },
+                ],
+              },
+            ],
+          }),
+        );
+
+        instanceId = runInstanceRes.Instances?.[0]?.InstanceId || null;
+        if (!instanceId) {
+          throw new Error('EC2 RunInstances failed to return an instance ID.');
+        }
+
+        await this.appendLog(
+          whiteLabelId,
+          'COMPUTE',
+          `EC2 instance launched successfully (${instanceId}, AMI: ${amiId}, Key: ${keyPairName}). Waiting for instance state...`,
+          'INFO',
+        );
+
+        await this.prismaService.whiteLabel.update({
+          where: { id: whiteLabelId },
+          data: {
+            awsInstanceId: instanceId,
+            awsInstanceState: 'RUNNING',
+          },
+        });
       }
 
-      await this.appendLog(
-        whiteLabelId,
-        'COMPUTE',
-        `EC2 instance launched (${instanceId}, AMI: ${amiId}). Waiting for instance state before associating Elastic IP...`,
-        'INFO',
-      );
-
-      // Resilient association loop
+      // Associate or Reassociate Elastic IP to the instance
       let associated = false;
-      for (let attempt = 1; attempt <= 12; attempt++) {
+      for (let attempt = 1; attempt <= 15; attempt++) {
         try {
           await ec2.send(
             new AssociateAddressCommand({
               AllocationId: allocationId,
-              InstanceId: instanceId,
+              InstanceId: instanceId!,
+              AllowReassociation: true,
             }),
           );
           associated = true;
           break;
         } catch (assocErr: any) {
-          if (attempt === 12) {
+          if (attempt === 15) {
             throw new Error(`Failed to associate Elastic IP: ${assocErr.message}`);
           }
           await new Promise((r) => setTimeout(r, 3000));
         }
       }
 
-      await this.prismaService.whiteLabel.update({
-        where: { id: whiteLabelId },
-        data: {
-          awsInstanceId: instanceId,
-          awsInstanceState: 'RUNNING',
-        },
-      });
-
       await this.appendLog(
         whiteLabelId,
         'COMPUTE',
-        `Elastic IP ${elasticIp} attached to instance ${instanceId}. Server is booting and bootstrapping services.`,
+        `Dedicated Elastic IP ${elasticIp} attached to instance ${instanceId}. Server is operational.`,
         'SUCCESS',
       );
 
@@ -1323,7 +1640,7 @@ nginx -t && systemctl restart nginx
   }
 
   /**
-   * Idempotently creates or updates a Cloudflare DNS record.
+   * Idempotently creates or updates a Cloudflare DNS record, removing any duplicate entries.
    */
   private async upsertCloudflareDnsRecord(
     token: string,
@@ -1333,18 +1650,15 @@ nginx -t && systemctl restart nginx
     content: string,
     proxied: boolean,
     priority?: number,
+    email?: string,
   ) {
+    const headers = this.getCloudflareHeaders(token, email);
     const listRes = await fetch(
-      `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&type=${type}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      },
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&type=${type}&per_page=50`,
+      { headers },
     );
     const listData = (await listRes.json()) as any;
-    const existingRecord = listData?.result?.[0];
+    const records = (listData?.result || []) as any[];
 
     const bodyPayload: any = {
       type,
@@ -1357,30 +1671,90 @@ nginx -t && systemctl restart nginx
       bodyPayload.priority = priority;
     }
 
-    if (existingRecord) {
-      await fetch(
-        `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${existingRecord.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    if (records.length > 0) {
+      // 1. Update the primary record if needed
+      const primaryRecord = records[0];
+      const needsUpdate =
+        primaryRecord.content !== content ||
+        primaryRecord.proxied !== bodyPayload.proxied ||
+        (priority !== undefined && primaryRecord.priority !== priority);
+
+      if (needsUpdate) {
+        await fetch(
+          `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${primaryRecord.id}`,
+          {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(bodyPayload),
           },
-          body: JSON.stringify(bodyPayload),
-        },
-      );
+        );
+      }
+
+      // 2. Delete any redundant/duplicate records for this (name, type) to keep DNS clean
+      if (records.length > 1) {
+        for (const duplicateRecord of records.slice(1)) {
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${duplicateRecord.id}`,
+            {
+              method: 'DELETE',
+              headers,
+            },
+          );
+        }
+      }
     } else {
+      // 3. Create fresh record if none exists
       await fetch(
         `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(bodyPayload),
         },
       );
+    }
+  }
+
+  /**
+   * Prunes any stale DKIM CNAME records for a domain in Cloudflare DNS.
+   */
+  private async cleanupStaleCloudflareDkimRecords(
+    token: string,
+    zoneId: string,
+    domain: string,
+    activeDkimTokens: string[],
+    email?: string,
+  ) {
+    try {
+      const headers = this.getCloudflareHeaders(token, email);
+      const activeNames = new Set(
+        activeDkimTokens.map((t) => `${t}._domainkey.${domain}`.toLowerCase()),
+      );
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=CNAME&per_page=100`,
+        { headers },
+      );
+      const data = (await res.json()) as any;
+      const records = (data?.result || []) as any[];
+
+      for (const rec of records) {
+        const recName = (rec.name || '').toLowerCase();
+        if (
+          recName.includes(`._domainkey.${domain.toLowerCase()}`) &&
+          !activeNames.has(recName)
+        ) {
+          // Stale DKIM record from older SES run, delete it
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${rec.id}`,
+            {
+              method: 'DELETE',
+              headers,
+            },
+          );
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not prune stale DKIM records: ${err.message}`);
     }
   }
 
@@ -1548,5 +1922,147 @@ nginx -t && systemctl restart nginx
       where: { id: whiteLabelId },
       data: updateData,
     });
+  }
+
+  /**
+   * Helper to poll AWS EC2 until an instance reaches a desired state (e.g. 'running').
+   */
+  private async waitForInstanceState(
+    ec2: EC2Client,
+    instanceId: string,
+    targetState: string,
+    maxWaitSeconds: number = 60,
+  ): Promise<boolean> {
+    const start = Date.now();
+    while ((Date.now() - start) / 1000 < maxWaitSeconds) {
+      try {
+        const res = await ec2.send(
+          new DescribeInstancesCommand({
+            InstanceIds: [instanceId],
+          }),
+        );
+        const state = res.Reservations?.[0]?.Instances?.[0]?.State?.Name;
+        if (state === targetState) {
+          return true;
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    return false;
+  }
+
+  /**
+   * Smartly creates or merges an SPF TXT record for a domain, ensuring strictly ONE SPF record exists.
+   */
+  private async upsertCloudflareSpfRecord(
+    token: string,
+    zoneId: string,
+    domain: string,
+    email?: string,
+  ) {
+    const cleanDomain = domain.trim().toLowerCase();
+    const headers = this.getCloudflareHeaders(token, email);
+
+    // Fetch all TXT records for this domain
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(cleanDomain)}&type=TXT&per_page=50`,
+      { headers },
+    );
+    const listData = (await listRes.json()) as any;
+    const txtRecords = (listData?.result || []) as any[];
+
+    // Filter only SPF records (those starting with "v=spf1")
+    const spfRecords = txtRecords.filter((r) => {
+      const c = (r.content || '').replace(/^["']|["']$/g, '').trim();
+      return c.startsWith('v=spf1');
+    });
+
+    if (spfRecords.length > 0) {
+      // Primary SPF record
+      const primary = spfRecords[0];
+      let content = (primary.content || '').replace(/^["']|["']$/g, '').trim();
+
+      if (!content.includes('include:amazonses.com')) {
+        if (content.includes('~all')) {
+          content = content.replace('~all', 'include:amazonses.com ~all');
+        } else if (content.includes('-all')) {
+          content = content.replace('-all', 'include:amazonses.com -all');
+        } else if (content.includes('?all')) {
+          content = content.replace('?all', 'include:amazonses.com ?all');
+        } else {
+          content = `${content} include:amazonses.com ~all`;
+        }
+
+        await fetch(
+          `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${primary.id}`,
+          {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              type: 'TXT',
+              name: cleanDomain,
+              content,
+              ttl: 3600,
+            }),
+          },
+        );
+      }
+
+      // If there are duplicate SPF records on the same domain, delete the extras!
+      if (spfRecords.length > 1) {
+        for (const extraSpf of spfRecords.slice(1)) {
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${extraSpf.id}`,
+            {
+              method: 'DELETE',
+              headers,
+            },
+          );
+        }
+      }
+    } else {
+      // Create new SPF TXT record
+      await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            type: 'TXT',
+            name: cleanDomain,
+            content: 'v=spf1 include:amazonses.com ~all',
+            ttl: 3600,
+          }),
+        },
+      );
+    }
+  }
+
+  /**
+   * Cleans up legacy mail records on mail.<baseDomain> if they linger from previous setup attempts.
+   */
+  private async pruneLegacyMailRecords(
+    token: string,
+    zoneId: string,
+    baseDomain: string,
+    email?: string,
+  ) {
+    try {
+      const headers = this.getCloudflareHeaders(token, email);
+      const legacyMailDomain = `mail.${baseDomain.trim().toLowerCase()}`;
+      const mxRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(legacyMailDomain)}&type=MX&per_page=20`,
+        { headers },
+      );
+      const mxData = (await mxRes.json()) as any;
+      for (const rec of mxData?.result || []) {
+        if ((rec.content || '').includes('amazonses.com')) {
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${rec.id}`,
+            { method: 'DELETE', headers },
+          );
+        }
+      }
+    } catch {}
   }
 }

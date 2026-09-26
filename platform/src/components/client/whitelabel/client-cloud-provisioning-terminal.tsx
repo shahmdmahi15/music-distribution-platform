@@ -17,6 +17,8 @@ import {
   Check,
   ArrowRight,
   Sparkles,
+  Key,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,7 @@ export function ClientCloudProvisioningTerminal({
     useState<WhiteLabelProvisioningTelemetry | null>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
   const fetchStatus = async () => {
@@ -100,6 +103,30 @@ export function ClientCloudProvisioningTerminal({
     setCopiedUrl(true);
     toast.success("Portal URL copied to clipboard");
     setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const copySshKey = () => {
+    if (!telemetry?.awsKeyPairPrivateKey) return;
+    navigator.clipboard.writeText(telemetry.awsKeyPairPrivateKey);
+    setCopiedKey(true);
+    toast.success("SSH Private Key (.pem) copied to clipboard");
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
+
+  const downloadSshKey = () => {
+    if (!telemetry?.awsKeyPairPrivateKey) return;
+    const blob = new Blob([telemetry.awsKeyPairPrivateKey], {
+      type: "application/x-pem-file",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${telemetry.awsKeyPairName || "rmit-key"}.pem`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${telemetry.awsKeyPairName || "rmit-key"}.pem`);
   };
 
   return (
@@ -279,6 +306,60 @@ export function ClientCloudProvisioningTerminal({
             </div>
           </div>
         </div>
+
+        {/* Dedicated SSH Key Pair Access Card */}
+        {telemetry?.awsKeyPairName && (
+          <div className="mt-3 p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Key className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-zinc-200">EC2 SSH Key Pair</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                  >
+                    {telemetry.awsKeyPairName}
+                  </Badge>
+                </div>
+                <div className="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">
+                  {telemetry.awsElasticIp
+                    ? `ssh -i ${telemetry.awsKeyPairName}.pem ubuntu@${telemetry.awsElasticIp}`
+                    : "Archived securely in database"}
+                </div>
+              </div>
+            </div>
+
+            {telemetry.awsKeyPairPrivateKey && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copySshKey}
+                  className="text-xs h-7 border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 gap-1.5"
+                >
+                  {copiedKey ? (
+                    <Check className="h-3 w-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  <span>{copiedKey ? "Copied" : "Copy .pem"}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={downloadSshKey}
+                  className="text-xs h-7 border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 gap-1.5"
+                >
+                  <Download className="h-3 w-3" />
+                  <span>Download .pem</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Terminal Output Screen */}

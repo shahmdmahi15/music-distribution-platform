@@ -205,6 +205,8 @@ export interface WhiteLabel {
   awsAccessKeyId?: string | null;
   bucketName?: string | null;
   senderEmail?: string | null;
+  awsKeyPairName?: string | null;
+  awsKeyPairPrivateKey?: string | null;
   cloudflareZoneId?: string | null;
   cloudflareBaseDomain?: string | null;
   isSetupComplete?: boolean;
@@ -266,6 +268,8 @@ export interface WhiteLabelBranding {
   awsElasticIp?: string | null;
   awsInstanceType?: string | null;
   awsInstanceState?: string | null;
+  awsKeyPairName?: string | null;
+  awsKeyPairPrivateKey?: string | null;
   s3BucketArn?: string | null;
   bucketName?: string | null;
   sesIdentityStatus?: string | null;
@@ -508,6 +512,8 @@ export interface WhiteLabelProvisioningTelemetry {
   awsElasticIp?: string | null;
   awsInstanceType?: string | null;
   awsInstanceState?: string | null;
+  awsKeyPairName?: string | null;
+  awsKeyPairPrivateKey?: string | null;
   s3CorsConfigured?: boolean;
   bucketName?: string | null;
   sesIdentityStatus?: string | null;
