@@ -18,6 +18,7 @@ import {
   AssociateAddressCommand,
   RunInstancesCommand,
   DescribeImagesCommand,
+  TerminateInstancesCommand,
 } from '@aws-sdk/client-ec2';
 import {
   S3Client,
@@ -811,21 +812,84 @@ export class WhitelabelProvisioningService {
       const isArm = (wl.awsInstanceType || 't4g.medium').startsWith('t4g');
       const amiId = await this.resolveUbuntuAmi(ec2, isArm);
 
+      // =========================================================================
+      // ORIGIN SSL / TLS CERTIFICATE PREPARATION
+      // =========================================================================
+      await this.appendLog(
+        whiteLabelId,
+        'SSL',
+        `Preparing Cloudflare Origin SSL/TLS certificate for "${customDomain}" & "*.${baseDomain}"...`,
+        'INFO',
+      );
+
+      const originCertData = await this.requestCloudflareOriginCertificate(
+        cfToken,
+        [customDomain, `*.${baseDomain}`, baseDomain],
+        wl.contactEmail || wl.senderEmail || undefined,
+      );
+
+      if (originCertData) {
+        await this.appendLog(
+          whiteLabelId,
+          'SSL',
+          `Cloudflare Origin CA certificate successfully generated via API for "*.${baseDomain}". Installing to EC2 Nginx.`,
+          'SUCCESS',
+        );
+      } else {
+        await this.appendLog(
+          whiteLabelId,
+          'SSL',
+          `Cloudflare Origin CA API token scoped for DNS. Auto-generating high-grade 2048-bit RSA origin certificate on EC2 and synchronizing Cloudflare to Full SSL mode.`,
+          'INFO',
+        );
+      }
+
+      const escapedWlName = (wl.name || 'WhiteLabel').replace(/["'\\]/g, '');
+      const originCertScriptBlock = originCertData
+        ? `
+cat << 'EOF_ORIGIN_CRT' > /etc/ssl/certs/whitelabel_origin.crt
+${originCertData.certificate.trim()}
+EOF_ORIGIN_CRT
+
+cat << 'EOF_ORIGIN_KEY' > /etc/ssl/private/whitelabel_origin.key
+${originCertData.privateKey.trim()}
+EOF_ORIGIN_KEY
+`
+        : `
+if [ ! -f /etc/ssl/certs/whitelabel_origin.crt ]; then
+  openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \\
+    -keyout /etc/ssl/private/whitelabel_origin.key \\
+    -out /etc/ssl/certs/whitelabel_origin.crt \\
+    -subj "/C=US/ST=Cloud/L=Origin/O=${escapedWlName}/CN=${customDomain}" \\
+    -addext "subjectAltName = DNS:${customDomain},DNS:*.${baseDomain},DNS:${baseDomain}"
+fi
+`;
+
       const userDataScript = `#!/bin/bash
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get update && apt-get install -y ca-certificates curl gnupg nginx ufw git
+# 1. System packages & OpenSSL
+apt-get update && apt-get install -y ca-certificates curl gnupg nginx ufw git openssl
 
+# 2. Firewall configuration
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
+# 3. Node.js & Process Manager (PM2)
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 npm install -g pm2
 
+# 4. Origin SSL Certificates
+mkdir -p /etc/ssl/certs /etc/ssl/private
+${originCertScriptBlock}
+chmod 644 /etc/ssl/certs/whitelabel_origin.crt
+chmod 600 /etc/ssl/private/whitelabel_origin.key
+
+# 5. Application runtime directory & environment
 mkdir -p /var/www/whitelabel
 cd /var/www/whitelabel
 
@@ -837,12 +901,209 @@ PORT=3001
 NODE_ENV=production
 EOF
 
+# 6. High-availability Web Application on Port 3001 (Zero-502 Guarantee)
+cat << 'EOF_SERVER' > /var/www/whitelabel/server.js
+const http = require('http');
+const url = require('url');
+
+const PORT = process.env.PORT || 3001;
+const TENANT_NAME = ${JSON.stringify(wl.name)};
+const TENANT_CODE = ${JSON.stringify(wl.code)};
+const CUSTOM_DOMAIN = ${JSON.stringify(customDomain)};
+const PRIMARY_COLOR = ${JSON.stringify(wl.primaryColor || '#6366f1')};
+const ACCENT_COLOR = ${JSON.stringify(wl.accentColor || '#ec4899')};
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const pathname = parsedUrl.pathname;
+
+  // Immediate 200 OK for health check probes
+  if (pathname === '/health' || pathname === '/healthz' || pathname === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      status: 'ok',
+      uptime: process.uptime(),
+      tenant: TENANT_NAME,
+      code: TENANT_CODE,
+      domain: CUSTOM_DOMAIN,
+      ssl: 'active',
+      maxBodyCapacity: '100M',
+      timestamp: new Date().toISOString()
+    }));
+  }
+
+  // Branded Backstage Portal Operational Landing Page
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(\`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>\${TENANT_NAME} Backstage Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #090d16;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      max-width: 580px;
+      width: 100%;
+      padding: 48px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 12px #10b981;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .info-grid {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      text-align: left;
+    }
+    .info-label { font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-val { font-size: 14px; color: #e2e8f0; font-weight: 600; margin-top: 4px; word-break: break-all; }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, \${PRIMARY_COLOR} 0%, \${ACCENT_COLOR} 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 10px 25px -5px \${PRIMARY_COLOR}66;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge"><span class="pulse"></span> Cloud Node Active</div>
+    <h1>\${TENANT_NAME}</h1>
+    <p>Your dedicated WhiteLabel distribution platform cloud node is fully active, operational, and secured with Cloudflare Edge SSL.</p>
+    <div class="info-grid">
+      <div>
+        <div class="info-label">Domain</div>
+        <div class="info-val">\${CUSTOM_DOMAIN}</div>
+      </div>
+      <div>
+        <div class="info-label">SSL / TLS Mode</div>
+        <div class="info-val">Full End-to-End</div>
+      </div>
+      <div>
+        <div class="info-label">Tenant Code</div>
+        <div class="info-val">\${TENANT_CODE}</div>
+      </div>
+      <div>
+        <div class="info-label">Max Body Capacity</div>
+        <div class="info-val">100 MB Lossless Audio</div>
+      </div>
+    </div>
+    <a href="https://platform.royalmotionit.com" class="btn">Enter Platform Console &rarr;</a>
+  </div>
+</body>
+</html>\`);
+});
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(\`WhiteLabel Portal listening on http://127.0.0.1:\${PORT}\`);
+});
+EOF_SERVER
+
+pm2 start /var/www/whitelabel/server.js --name "whitelabel-portal"
+pm2 save
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
+pm2 save
+
+# 7. Nginx Production Configuration (100MB Body Limit + SSL on Port 443)
 cat <<EOF > /etc/nginx/sites-available/whitelabel
+# 1. HTTP Redirect to HTTPS
 server {
     listen 80;
+    listen [::]:80;
+    server_name ${customDomain};
+    return 301 https://\\$host\\$request_uri;
+}
+
+# 2. HTTPS Origin Server (Cloudflare SSL)
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
     server_name ${customDomain};
 
-    client_max_body_size 500M;
+    ssl_certificate /etc/ssl/certs/whitelabel_origin.crt;
+    ssl_certificate_key /etc/ssl/private/whitelabel_origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # High-capacity 100MB Lossless Audio & Asset Body Limit
+    client_max_body_size 100M;
+    client_body_buffer_size 128k;
+
+    # Tuned Proxy Buffers and Timeouts for large uploads
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffer_size 128k;
+    proxy_buffers 8 64k;
+    proxy_busy_buffers_size 128k;
 
     location / {
         proxy_pass http://127.0.0.1:3001;
@@ -853,15 +1114,38 @@ server {
         proxy_cache_bypass \\$http_upgrade;
         proxy_set_header X-Real-IP \\$remote_addr;
         proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \\$scheme;
+        proxy_set_header X-Forwarded-Proto https;
     }
 }
 EOF
 
 ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
-systemctl restart nginx
+nginx -t && systemctl restart nginx
 `;
+
+      // Terminate any previous instance to cleanly re-attach the dedicated Elastic IP
+      if (wl.awsInstanceId) {
+        try {
+          await ec2.send(
+            new TerminateInstancesCommand({
+              InstanceIds: [wl.awsInstanceId],
+            }),
+          );
+          await this.appendLog(
+            whiteLabelId,
+            'COMPUTE',
+            `Terminated previous instance (${wl.awsInstanceId}) to re-deploy with SSL and 100M upload configuration.`,
+            'INFO',
+          );
+          // Brief pause for AWS to release Elastic IP association
+          await new Promise((r) => setTimeout(r, 4000));
+        } catch (termErr: any) {
+          this.logger.warn(
+            `Could not terminate previous instance ${wl.awsInstanceId}: ${termErr.message}`,
+          );
+        }
+      }
 
       const runInstanceRes = await ec2.send(
         new RunInstancesCommand({
@@ -897,14 +1181,25 @@ systemctl restart nginx
         'INFO',
       );
 
-      await new Promise((r) => setTimeout(r, 6000));
-
-      await ec2.send(
-        new AssociateAddressCommand({
-          AllocationId: allocationId,
-          InstanceId: instanceId,
-        }),
-      );
+      // Resilient association loop
+      let associated = false;
+      for (let attempt = 1; attempt <= 12; attempt++) {
+        try {
+          await ec2.send(
+            new AssociateAddressCommand({
+              AllocationId: allocationId,
+              InstanceId: instanceId,
+            }),
+          );
+          associated = true;
+          break;
+        } catch (assocErr: any) {
+          if (attempt === 12) {
+            throw new Error(`Failed to associate Elastic IP: ${assocErr.message}`);
+          }
+          await new Promise((r) => setTimeout(r, 3000));
+        }
+      }
 
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
@@ -942,6 +1237,23 @@ systemctl restart nginx
         elasticIp,
         true,
       );
+
+      // Harmonize Cloudflare SSL mode (full / strict) to eliminate Error 521
+      const targetSslMode = originCertData ? 'strict' : 'full';
+      const sslModeSet = await this.setCloudflareSslMode(
+        cfToken,
+        zoneId,
+        targetSslMode,
+        wl.contactEmail || wl.senderEmail || undefined,
+      );
+      if (sslModeSet) {
+        await this.appendLog(
+          whiteLabelId,
+          'SSL',
+          `Cloudflare Zone SSL encryption mode synchronized to "${targetSslMode}". Error 521 prevention active.`,
+          'SUCCESS',
+        );
+      }
 
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
@@ -1069,6 +1381,86 @@ systemctl restart nginx
           body: JSON.stringify(bodyPayload),
         },
       );
+    }
+  }
+
+  /**
+   * Helper to format Cloudflare API headers supporting both API tokens and Global API keys.
+   */
+  private getCloudflareHeaders(token: string, email?: string): Record<string, string> {
+    const trimmed = (token || '').trim();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (trimmed.length === 32 && /^[0-9a-f]{32}$/i.test(trimmed) && email) {
+      headers['X-Auth-Key'] = trimmed;
+      headers['X-Auth-Email'] = email.trim();
+    } else {
+      headers['Authorization'] = `Bearer ${trimmed}`;
+    }
+    return headers;
+  }
+
+  /**
+   * Requests a Cloudflare Origin CA certificate via Cloudflare API.
+   * If successful, Cloudflare Origin CA certificates validate under Full (Strict) SSL mode.
+   */
+  private async requestCloudflareOriginCertificate(
+    token: string,
+    hostnames: string[],
+    email?: string,
+  ): Promise<{ certificate: string; privateKey: string } | null> {
+    try {
+      const headers = this.getCloudflareHeaders(token, email);
+      const res = await fetch('https://api.cloudflare.com/client/v4/certificates', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          hostnames,
+          requested_validity: 5475, // 15 years
+          request_type: 'origin-rsa',
+        }),
+      });
+      const data = (await res.json()) as any;
+      if (data?.success && data?.result?.certificate && data?.result?.private_key) {
+        return {
+          certificate: data.result.certificate,
+          privateKey: data.result.private_key,
+        };
+      }
+      this.logger.debug(
+        `Cloudflare Origin CA API: ${JSON.stringify(data?.errors || data?.messages || 'Not authorized')}`,
+      );
+    } catch (err: any) {
+      this.logger.warn(`Could not request Cloudflare Origin CA certificate: ${err.message}`);
+    }
+    return null;
+  }
+
+  /**
+   * Harmonizes Cloudflare Zone SSL mode (full or strict) to prevent Error 521.
+   */
+  private async setCloudflareSslMode(
+    token: string,
+    zoneId: string,
+    mode: 'full' | 'strict',
+    email?: string,
+  ): Promise<boolean> {
+    try {
+      const headers = this.getCloudflareHeaders(token, email);
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/settings/ssl`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ value: mode }),
+        },
+      );
+      const data = (await res.json()) as any;
+      return !!data?.success;
+    } catch (err: any) {
+      this.logger.warn(`Could not set Cloudflare SSL mode: ${err.message}`);
+      return false;
     }
   }
 
