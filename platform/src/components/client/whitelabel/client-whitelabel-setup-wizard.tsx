@@ -166,6 +166,22 @@ export function ClientWhiteLabelSetupWizard({
   const [step, setStep] = useState(1);
   const totalSteps = 8;
 
+  const isAlreadyConfigured = Boolean(
+    branding.isSetupComplete ||
+      branding.isSetupCompleted ||
+      branding.status === "ACTIVE",
+  );
+  const [showWizard, setShowWizard] = useState(!isAlreadyConfigured);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopyText = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(label);
+    toast.success(`Copied ${label} to clipboard`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
   // Form State - Brand name is permanent and immutable from the tenant contract
   const name = branding.name || "";
   const [tagline, setTagline] = useState(branding.tagline || "");
@@ -854,6 +870,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
       }
 
       setLaunchSuccess(true);
+      setShowWizard(false);
       toast.success(
         "WhiteLabel setup completed! Full WhiteLabel Command Center unlocked.",
       );
@@ -885,8 +902,534 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
     { num: 8, short: "Launch", title: "Review & Unlock Console" },
   ];
 
+  if (!showWizard && isAlreadyConfigured) {
+    const activeCustomDomain =
+      branding.customDomain ||
+      (cloudflareBaseDomain
+        ? `backstage.${cloudflareBaseDomain.toLowerCase()}`
+        : "");
+    const baseDomain =
+      cloudflareBaseDomain ||
+      branding.cloudflareBaseDomain ||
+      (activeCustomDomain
+        ? activeCustomDomain.replace(/^backstage\./, "")
+        : "");
+    const portalUrl = activeCustomDomain
+      ? activeCustomDomain.startsWith("http")
+        ? activeCustomDomain
+        : `https://${activeCustomDomain}`
+      : baseDomain
+      ? `https://backstage.${baseDomain}`
+      : "https://backstage.platform.royalmotionit.com";
+
+    const mailDomain = baseDomain
+      ? `mail.${baseDomain}`
+      : activeCustomDomain
+      ? `mail.${activeCustomDomain.replace(/^backstage\./, "")}`
+      : "mail.royalmusic.io";
+    const mailSender =
+      senderEmail || branding.senderEmail || `noreply@${mailDomain}`;
+    const activeBucket =
+      bucketName || branding.bucketName || "rmit-mother-platform-vault";
+    const activeRegion = awsRegion || branding.awsRegion || "ap-southeast-1";
+    const activeZone =
+      baseDomain ||
+      (activeCustomDomain
+        ? activeCustomDomain.replace(/^backstage\./, "")
+        : "royalmusic.io");
+    const businessLabel =
+      businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+        ? "Distributor / Aggregator"
+        : businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
+        ? "Music Publisher"
+        : businessType === WhiteLabelBusinessType.REFERRER
+        ? "Referrer / Agency Partner"
+        : "Record Label";
+
+    return (
+      <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
+        {/* 1. Hero Status & Confirmation Banner */}
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-background p-6 sm:p-8 shadow-lg">
+          <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 px-2.5 py-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Production • Fully Configured &amp; Active
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-mono border-border bg-background/50">
+                  {businessLabel}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-mono border-border bg-background/50">
+                  {branding.code || "RMIT-WL"}
+                </Badge>
+              </div>
+
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight flex items-center gap-2.5">
+                  <span>{name}</span>
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 inline" />
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                  Your WhiteLabel distribution infrastructure is fully operational. Multi-cloud AWS resources, Cloudflare edge DNS routing, dedicated SES email identities, and your custom Backstage artist portal are active and live.
+                </p>
+              </div>
+
+              <div className="pt-1 flex items-center gap-2 flex-wrap">
+                {portalUrl && (
+                  <Button
+                    render={
+                      <a
+                        href={portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-9 px-4 gap-2 shadow-sm"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    Open Live Backstage Portal
+                    <ExternalLink className="w-3 h-3 opacity-80" />
+                  </Button>
+                )}
+
+                <Button
+                  render={<Link href="/whitelabel" />}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-9 px-3 gap-1.5"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  Console Overview
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowWizard(true)}
+                  className="text-xs h-9 text-muted-foreground hover:text-foreground gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Re-run Setup Wizard
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Brand Stamp Preview */}
+            <div className="hidden lg:flex flex-col items-center justify-center p-4 rounded-xl border border-border/80 bg-background/60 backdrop-blur-sm min-w-[200px] text-center space-y-2">
+              <div className="h-14 w-full flex items-center justify-center overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl || branding.logoUrl || ""}
+                  alt={name}
+                  crossOrigin="anonymous"
+                  className="max-h-full max-w-[160px] object-contain"
+                />
+              </div>
+              <div className="text-[11px] font-semibold text-foreground truncate max-w-[160px]">
+                {name}
+              </div>
+              <div className="text-[10px] text-muted-foreground font-mono">
+                {themeFont} &bull; {themeMode.toUpperCase()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Connected Multi-Cloud Architecture & Live Endpoints */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Server className="w-3.5 h-3.5 text-primary" />
+              Live Connected Infrastructure Endpoints
+            </h2>
+            <span className="text-[11px] text-emerald-500 font-mono flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              All 4 Systems Interconnected
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. Portal Endpoint */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-colors flex flex-col justify-between space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">Backstage Portal</span>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-mono">SSL Active</Badge>
+                </div>
+                <div className="text-xs font-mono font-semibold text-foreground truncate" title={portalUrl}>
+                  {portalUrl.replace(/^https?:\/\//, "")}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Primary artist login &amp; catalog distribution workspace</p>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyText(portalUrl, "Portal URL")}
+                  className="text-[10px] h-6 px-2 gap-1 flex-1 font-mono"
+                >
+                  <Copy className="w-2.5 h-2.5" />
+                  {copiedField === "Portal URL" ? "Copied" : "Copy URL"}
+                </Button>
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 rounded-md border border-border hover:bg-muted text-muted-foreground hover:text-foreground"
+                  title="Open Portal"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* 2. Amazon SES Mailing */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-colors flex flex-col justify-between space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">Amazon SES Mail</span>
+                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[9px] font-mono">DKIM Wired</Badge>
+                </div>
+                <div className="text-xs font-mono font-semibold text-foreground truncate" title={mailDomain}>
+                  {mailDomain}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Automated invites, artist verification &amp; statements</p>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyText(mailSender, "Sender Email")}
+                  className="text-[10px] h-6 px-2 gap-1 flex-1 font-mono truncate"
+                >
+                  <Mail className="w-2.5 h-2.5" />
+                  {copiedField === "Sender Email" ? "Copied" : mailSender}
+                </Button>
+              </div>
+            </div>
+
+            {/* 3. S3 Audio Vault */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-colors flex flex-col justify-between space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">S3 Media Vault</span>
+                  <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[9px] font-mono">CORS Online</Badge>
+                </div>
+                <div className="text-xs font-mono font-semibold text-foreground truncate" title={activeBucket}>
+                  {activeBucket}
+                </div>
+                <p className="text-[10px] text-muted-foreground">{activeRegion} &bull; Direct master audio &amp; brand assets</p>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyText(activeBucket, "S3 Bucket")}
+                  className="text-[10px] h-6 px-2 gap-1 flex-1 font-mono"
+                >
+                  <Copy className="w-2.5 h-2.5" />
+                  {copiedField === "S3 Bucket" ? "Copied" : "Copy Bucket"}
+                </Button>
+              </div>
+            </div>
+
+            {/* 4. Cloudflare Edge DNS */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-colors flex flex-col justify-between space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase">Cloudflare Edge</span>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-mono">DDoS Protected</Badge>
+                </div>
+                <div className="text-xs font-mono font-semibold text-foreground truncate" title={activeZone}>
+                  {activeZone}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Universal SSL edge proxy &amp; CNAME propagation</p>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <Button
+                  render={<Link href="/whitelabel/domain" />}
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px] h-6 px-2 gap-1 flex-1 font-mono"
+                >
+                  <Globe className="w-2.5 h-2.5" />
+                  DNS Records &rarr;
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Direct Customization Directory (Pointing to Left Sidebar Menu) */}
+        <div className="space-y-3 pt-2">
+          <div className="space-y-0.5">
+            <h2 className="text-base sm:text-lg font-extrabold text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Customize &amp; Manage Your Platform from the Menu
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Your console is fully unlocked. You can fine-tune every subsystem anytime using the left navigation menu or these direct shortcuts:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {/* A. Identity & Branding */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Palette className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Branding
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Identity &amp; Brand Assets</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Update primary &amp; dark mode logos, browser favicon, onboarding hero banner, support contact phone/email, and official social channels.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/branding" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Customize Branding</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* B. Theme Customizer */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Theme
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Theme &amp; Typography</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Tailor primary and accent colors, select from 16 curated Google font presets, set component border radius, card style, and dark mode defaults.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/theme" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Customize Theme</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* C. Domain & DNS */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Domain &amp; DNS
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Domain &amp; DNS Management</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Monitor custom domain bindings, verify DKIM/SPF mail records, manage Cloudflare DNS zones, and run automated health checks.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/domain" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Manage Domains &amp; DNS</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* D. Credentials & SSO */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Credentials &amp; SSO
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Authentication &amp; Security</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Configure Google and GitHub OAuth credentials, enforce mandatory 2FA across all artist portals, and tune session timeouts.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/sso" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Configure SSO &amp; Security</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* E. API Keys */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; API Keys
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Production API Keys</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Generate scoped API keys for automated music deliveries, DDEX ingestion engines, and external microservice integrations.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/api-keys" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Manage API Keys</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* F. Webhooks */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Radio className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Webhooks
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Webhooks &amp; Events</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Subscribe to real-time event notifications for audio uploads, DDEX delivery updates, metadata validations, and royalty payouts.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/webhooks" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Configure Webhooks</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* G. Portal Users */}
+            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <UserPlus className="w-4 h-4" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                    Menu &bull; Users
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Portal Users &amp; Team</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Manage your internal staff, invite A&amp;R managers and label admins, audit active artist accounts, and control permissions.
+                </p>
+              </div>
+              <Button
+                render={<Link href="/whitelabel/users" />}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
+              >
+                <span>Manage Users</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
+
+            {/* H. Re-Run Wizard Card */}
+            <div className="p-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-all flex flex-col justify-between space-y-3 group md:col-span-2 lg:col-span-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4" />
+                  </div>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] font-mono">
+                    Full Re-Configuration
+                  </Badge>
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Re-run Full Setup Wizard</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Need to step through all 8 guided setup stages again, test alternative AWS/Cloudflare credentials, or re-run automated provisioning from scratch?
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  setStep(1);
+                  setShowWizard(true);
+                }}
+                className="w-full sm:w-auto text-xs h-8 gap-2 font-semibold"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Launch 8-Step Setup Wizard Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Re-Configuration Back Banner */}
+      {isAlreadyConfigured && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div className="text-xs">
+              <span className="font-bold text-foreground">WhiteLabel Platform Is Already Configured &amp; Active.</span>{" "}
+              <span className="text-muted-foreground">You are currently in re-configuration mode.</span>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowWizard(false)}
+            className="text-xs h-7 px-3 gap-1.5 self-start sm:self-auto font-medium"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Return to System Status Hub
+          </Button>
+        </div>
+      )}
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-card shadow-sm">
         <div className="flex items-center gap-3">
