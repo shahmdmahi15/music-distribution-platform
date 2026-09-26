@@ -52,6 +52,11 @@ export interface WhiteLabelTenant {
   bannerUrl?: string | null;
   primaryColor?: string;
   accentColor?: string;
+  themeRadius?: string;
+  themeFont?: string;
+  themeMode?: string;
+  navbarStyle?: string;
+  cardStyle?: string;
   supportEmail?: string | null;
   supportPhone?: string | null;
   copyrightText?: string | null;

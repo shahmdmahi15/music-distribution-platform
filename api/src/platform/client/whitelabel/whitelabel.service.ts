@@ -16,7 +16,7 @@ import {
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { CreateWhiteLabelDto } from './dto/create-whitelabel.dto';
 import { UpdateBrandingDto } from 'src/platform/dto/update-branding.dto';
-import { Prisma, WhiteLabelStatus, WhiteLabelBusinessType } from 'src/generated/prisma/client';
+import { Prisma, WhiteLabelStatus, WhiteLabelBusinessType, WhiteLabelSignupModel } from 'src/generated/prisma/client';
 import { RedisService } from 'src/lib/redis/redis.service';
 import * as crypto from 'node:crypto';
 import * as dns from 'node:dns/promises';
@@ -1284,6 +1284,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           dto.socialLinkedin !== undefined ? dto.socialLinkedin : undefined,
         socialTiktok:
           dto.socialTiktok !== undefined ? dto.socialTiktok : undefined,
+        userSignupModel:
+          dto.userSignupModel !== undefined ? dto.userSignupModel : undefined,
       },
     });
 
@@ -3820,6 +3822,112 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     return {
       success: true,
       message: `User ${targetUser.email} has been permanently removed from the portal.`,
+    };
+  }
+
+  async getRegistrationPolicy(userId: string) {
+    const wl = await this.getActiveWhiteLabel(userId);
+
+    const onboarding = (wl.onboardingDetails as Record<string, any>) || {};
+    const regPolicy = onboarding.registrationPolicy || {
+      inviteCodes: [],
+      requireEmailVerification: true,
+      defaultRole: 'CLIENT',
+      customWelcomeMessage: '',
+      allowDirectApplication: true,
+    };
+
+    const [totalUsers, pendingApprovals] = await Promise.all([
+      this.prismaService.whiteLabelUser.count({
+        where: { whiteLabelId: wl.id },
+      }),
+      this.prismaService.whiteLabelUser.count({
+        where: {
+          whiteLabelId: wl.id,
+          isApproved: false,
+        },
+      }),
+    ]);
+
+    const activeInviteCodes = (regPolicy.inviteCodes || []).filter(
+      (c: any) =>
+        c.isActive !== false &&
+        (!c.expiresAt || new Date(c.expiresAt) > new Date()) &&
+        (!c.maxUses || (c.usedCount || 0) < c.maxUses),
+    ).length;
+
+    return {
+      success: true,
+      policy: {
+        userSignupModel: wl.userSignupModel,
+        policySettings: regPolicy,
+        stats: {
+          totalUsers,
+          pendingApprovals,
+          activeInviteCodes,
+        },
+      },
+    };
+  }
+
+  async updateRegistrationPolicy(
+    userId: string,
+    dto: {
+      userSignupModel?: WhiteLabelSignupModel;
+      policySettings?: Record<string, any>;
+    },
+  ) {
+    const wl = await this.getActiveWhiteLabel(userId);
+
+    const onboarding = (wl.onboardingDetails as Record<string, any>) || {};
+    const existingPolicy = onboarding.registrationPolicy || {};
+
+    const mergedPolicy = dto.policySettings
+      ? { ...existingPolicy, ...dto.policySettings }
+      : existingPolicy;
+
+    const updated = await this.prismaService.whiteLabel.update({
+      where: { id: wl.id },
+      data: {
+        userSignupModel: dto.userSignupModel || undefined,
+        onboardingDetails: {
+          ...onboarding,
+          registrationPolicy: mergedPolicy,
+        },
+      },
+    });
+
+    const [totalUsers, pendingApprovals] = await Promise.all([
+      this.prismaService.whiteLabelUser.count({
+        where: { whiteLabelId: wl.id },
+      }),
+      this.prismaService.whiteLabelUser.count({
+        where: {
+          whiteLabelId: wl.id,
+          isApproved: false,
+        },
+      }),
+    ]);
+
+    const activeInviteCodes = (mergedPolicy.inviteCodes || []).filter(
+      (c: any) =>
+        c.isActive !== false &&
+        (!c.expiresAt || new Date(c.expiresAt) > new Date()) &&
+        (!c.maxUses || (c.usedCount || 0) < c.maxUses),
+    ).length;
+
+    return {
+      success: true,
+      message: 'Registration policy updated successfully.',
+      policy: {
+        userSignupModel: updated.userSignupModel,
+        policySettings: mergedPolicy,
+        stats: {
+          totalUsers,
+          pendingApprovals,
+          activeInviteCodes,
+        },
+      },
     };
   }
 }

@@ -50,12 +50,6 @@ export class WhitelabelAuthService {
   ) {}
 
   async register(whiteLabel: WhiteLabel, dto: RegisterDto) {
-    if (whiteLabel.userSignupModel === WhiteLabelSignupModel.INVITE_ONLY) {
-      throw new ForbiddenException(
-        'Public registrations are disabled for this portal. An invitation is required.',
-      );
-    }
-
     const existingUser = await this.prismaService.whiteLabelUser.findUnique({
       where: {
         email_whiteLabelId: {
@@ -72,18 +66,78 @@ export class WhitelabelAuthService {
       );
     }
 
-    // Determine initial role: if this is the first user in this tenant, make them OWNER, else CLIENT
+    // Determine initial role: if this is the first user in this tenant, make them OWNER, else respect policy
     const totalUsersInTenant = await this.prismaService.whiteLabelUser.count({
       where: { whiteLabelId: whiteLabel.id },
     });
-    const initialRole =
-      totalUsersInTenant === 0
-        ? WhiteLabelUserRole.OWNER
-        : WhiteLabelUserRole.CLIENT;
+
+    const isFirstUser = totalUsersInTenant === 0;
+
+    const onboarding =
+      (whiteLabel.onboardingDetails as Record<string, any>) || {};
+    const regPolicy = (onboarding.registrationPolicy as Record<string, any>) || {};
+    const inviteCodes = (regPolicy.inviteCodes as Array<any>) || [];
+
+    // Enforce Registration Policy for non-first users
+    if (!isFirstUser && whiteLabel.userSignupModel === WhiteLabelSignupModel.INVITE_ONLY) {
+      if (!dto.inviteCode || !dto.inviteCode.trim()) {
+        throw new ForbiddenException(
+          'This portal operates on an invitation-only policy. A valid invitation code is required to register.',
+        );
+      }
+
+      const normalizedCode = dto.inviteCode.trim().toUpperCase();
+      const matchingCode = inviteCodes.find(
+        (c) =>
+          c.code &&
+          c.code.toUpperCase() === normalizedCode &&
+          c.isActive !== false,
+      );
+
+      if (!matchingCode) {
+        throw new ForbiddenException(
+          'Invalid invitation code. Please verify your code or contact the portal administrator.',
+        );
+      }
+
+      if (matchingCode.expiresAt && new Date(matchingCode.expiresAt) < new Date()) {
+        throw new ForbiddenException(
+          'This invitation code has expired. Please request a new invitation.',
+        );
+      }
+
+      if (
+        matchingCode.maxUses &&
+        (matchingCode.usedCount || 0) >= matchingCode.maxUses
+      ) {
+        throw new ForbiddenException(
+          'This invitation code has reached its maximum registration limit.',
+        );
+      }
+
+      // Record invite code redemption
+      matchingCode.usedCount = (matchingCode.usedCount || 0) + 1;
+      await this.prismaService.whiteLabel.update({
+        where: { id: whiteLabel.id },
+        data: {
+          onboardingDetails: {
+            ...onboarding,
+            registrationPolicy: {
+              ...regPolicy,
+              inviteCodes,
+            },
+          },
+        },
+      });
+    }
+
+    const initialRole = isFirstUser
+      ? WhiteLabelUserRole.OWNER
+      : (regPolicy.defaultRole as WhiteLabelUserRole) || WhiteLabelUserRole.CLIENT;
 
     const isApproved =
       whiteLabel.userSignupModel === WhiteLabelSignupModel.ADMIN_APPROVAL
-        ? totalUsersInTenant === 0
+        ? isFirstUser
         : true;
 
     const hashedPassword = await argon2.hash(dto.password, ARGON2_CONFIG);

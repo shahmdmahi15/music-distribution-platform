@@ -21,6 +21,7 @@ import {
   KeyRound,
   Webhook,
   Users,
+  UserCheck,
 } from "lucide-react";
 
 interface SimpleNavigationItem {
@@ -58,6 +59,11 @@ const activeNavigations: SimpleNavigationGroup[] = [
         title: "Setup Wizard",
         url: "/whitelabel/setup",
         icon: Sparkles,
+      },
+      {
+        title: "Registration Policy",
+        url: "/whitelabel/policy",
+        icon: UserCheck,
       },
       {
         title: "Webhooks",
@@ -112,6 +118,11 @@ const setupPendingNavigations: SimpleNavigationGroup[] = [
         title: "Setup Wizard",
         url: "/whitelabel/setup",
         icon: Sparkles,
+      },
+      {
+        title: "Registration Policy",
+        url: "/whitelabel/policy",
+        icon: UserCheck,
       },
     ],
   },

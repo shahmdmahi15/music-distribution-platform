@@ -5,6 +5,7 @@ import {
   MinLength,
   MaxLength,
   Matches,
+  IsOptional,
 } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
 
@@ -46,4 +47,11 @@ export class RegisterDto {
       'Password must contain at least one uppercase letter, one lowercase letter, and one number or special character.',
   })
   password!: string;
+
+  @IsOptional()
+  @IsString({ message: 'Invite code must be a string.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : (value as unknown),
+  )
+  inviteCode?: string;
 }

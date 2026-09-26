@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { registerAction } from "@/actions/auth/register.action";
 import { useTenant } from "@/components/tenant-theme-provider";
 import {
@@ -14,6 +15,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sparkles,
+  KeyRound,
+  ShieldCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,8 +35,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { WhiteLabelSignupModel } from "@/types/user";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const tenant = useTenant();
+  const searchParams = useSearchParams();
+  const urlInviteCode = searchParams.get("code") || "";
 
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -45,6 +51,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState(urlInviteCode);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const isInviteOnly =
@@ -55,9 +62,19 @@ export default function RegisterPage() {
     tenant?.userSignupModel === WhiteLabelSignupModel.ADMIN_APPROVAL ||
     tenant?.userSignupModel === "ADMIN_APPROVAL";
 
+  const regPolicy =
+    (tenant?.onboardingDetails as Record<string, any>)?.registrationPolicy || {};
+  const customWelcome = regPolicy.customWelcomeMessage;
+
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (isInviteOnly && !inviteCode.trim()) {
+      setErrorMessage("An invitation code is required to register on this portal.");
+      toast.error("Please enter a valid invitation code.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match.");
@@ -83,6 +100,7 @@ export default function RegisterPage() {
         lastName,
         email,
         password,
+        inviteCode: inviteCode.trim() ? inviteCode.trim().toUpperCase() : undefined,
       });
 
       if (!res.success) {
@@ -106,9 +124,11 @@ export default function RegisterPage() {
           <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
             <Sparkles className="h-3 w-3" />
             <span>
-              {isAdminApproval
-                ? "Curated Review (Admin Approval)"
-                : "Artist & Roster Registration"}
+              {isInviteOnly
+                ? "Exclusive Invitation Network"
+                : isAdminApproval
+                  ? "Curated Review (Admin Approval)"
+                  : "Artist & Roster Registration"}
             </span>
           </div>
           <span className="text-[10px] font-mono text-muted-foreground">
@@ -121,49 +141,14 @@ export default function RegisterPage() {
         <CardDescription className="text-xs text-muted-foreground">
           {isAdminApproval
             ? `Submit your profile to request access to ${tenant?.name || "this portal"}. Applications are reviewed before access is activated.`
-            : `Join ${tenant?.name || "Music Portal"} distribution and royalty network.`}
+            : isInviteOnly
+              ? `Enter your private invitation code to register on ${tenant?.name || "this portal"}.`
+              : `Join ${tenant?.name || "Music Portal"} distribution and royalty network.`}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="px-4 sm:px-5 py-2 space-y-4">
-        {isInviteOnly ? (
-          <div className="space-y-4 py-3">
-            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <AlertTitle className="text-xs font-semibold">
-                Invitation Required
-              </AlertTitle>
-              <AlertDescription className="text-xs text-muted-foreground mt-1">
-                Public self-registration is disabled for{" "}
-                {tenant?.name || "this portal"}. Membership is strictly managed
-                by invitation. If you are a signed artist or distribution
-                partner, please check your email invitation link or reach out to
-                the label administrator.
-              </AlertDescription>
-            </Alert>
-
-            {tenant?.supportEmail && (
-              <p className="text-xs text-center text-muted-foreground">
-                Inquiries:{" "}
-                <a
-                  href={`mailto:${tenant.supportEmail}`}
-                  className="font-medium text-foreground underline underline-offset-2"
-                >
-                  {tenant.supportEmail}
-                </a>
-              </p>
-            )}
-
-            <Button
-              render={<Link href="/auth/login" />}
-              className="w-full h-9 text-xs font-semibold gap-1.5"
-              style={{ backgroundColor: primaryColor }}
-            >
-              <span>Back to Sign In</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : success ? (
+        {success ? (
           <div className="text-center py-6 space-y-3">
             <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-emerald-500/10 text-emerald-500 mb-1">
               <CheckCircle2 className="h-8 w-8" />
@@ -185,8 +170,7 @@ export default function RegisterPage() {
                 <>
                   Your portal account has been created. A verification email has
                   been dispatched to{" "}
-                  <span className="font-semibold text-foreground">{email}</span>
-                  .
+                  <span className="font-semibold text-foreground">{email}</span>.
                 </>
               )}
             </p>
@@ -203,6 +187,42 @@ export default function RegisterPage() {
           </div>
         ) : (
           <>
+            {/* Custom Welcome Message if configured by tenant */}
+            {customWelcome && (
+              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 text-xs text-muted-foreground flex items-start gap-2">
+                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{customWelcome}</span>
+              </div>
+            )}
+
+            {/* Invite-Only Policy Alert */}
+            {isInviteOnly && (
+              <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 py-2.5 px-3">
+                <KeyRound className="h-4 w-4 text-amber-500" />
+                <AlertTitle className="text-xs font-semibold">
+                  Invitation Required
+                </AlertTitle>
+                <AlertDescription className="text-[11px] text-muted-foreground mt-0.5">
+                  Registration on {tenant?.name || "this portal"} is private. An
+                  authorized invitation code is required to register.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Admin Approval Notice */}
+            {isAdminApproval && (
+              <Alert className="border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200 py-2.5 px-3">
+                <ShieldCheck className="h-4 w-4 text-blue-500" />
+                <AlertTitle className="text-xs font-semibold">
+                  Staff Verification Required
+                </AlertTitle>
+                <AlertDescription className="text-[11px] text-muted-foreground mt-0.5">
+                  Accounts submitted here are held in review until approved by
+                  label administration.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {errorMessage && (
               <Alert variant="destructive" className="py-2 px-3 text-xs">
                 <AlertDescription>{errorMessage}</AlertDescription>
@@ -210,6 +230,31 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleRegister} className="space-y-3">
+              {/* Invite Code Input (prominently shown when invite-only or if query code provided) */}
+              {(isInviteOnly || urlInviteCode) && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Invitation Code</span>
+                    </Label>
+                    {urlInviteCode && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                        Auto-applied from link
+                      </span>
+                    )}
+                  </div>
+                  <Input
+                    type="text"
+                    required={isInviteOnly}
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. ROYAL-VIP-8492"
+                    className="font-mono uppercase text-xs h-8.5 font-bold tracking-wider"
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-foreground">
@@ -338,7 +383,11 @@ export default function RegisterPage() {
                   </>
                 ) : (
                   <>
-                    <span>Create Portal Account</span>
+                    <span>
+                      {isAdminApproval
+                        ? "Submit Application"
+                        : "Create Portal Account"}
+                    </span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </>
                 )}
@@ -360,5 +409,19 @@ export default function RegisterPage() {
         </div>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-12">
+          <Spinner className="h-6 w-6" />
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

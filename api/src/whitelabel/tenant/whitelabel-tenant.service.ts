@@ -83,6 +83,16 @@ export class WhitelabelTenantService {
           themeMeta?.primaryColor || whiteLabel.primaryColor || '#6366f1',
         accentColor:
           themeMeta?.accentColor || whiteLabel.accentColor || '#ec4899',
+        themeRadius:
+          themeMeta?.radius || whiteLabel.themeRadius || '0.5rem',
+        themeFont:
+          themeMeta?.fontFamily || whiteLabel.themeFont || 'Inter',
+        themeMode:
+          themeMeta?.mode || whiteLabel.themeMode || 'dark',
+        navbarStyle:
+          themeMeta?.navbarStyle || whiteLabel.navbarStyle || 'glass',
+        cardStyle:
+          themeMeta?.cardStyle || whiteLabel.cardStyle || 'modern',
         supportEmail: whiteLabel.supportEmail,
         supportPhone: whiteLabel.supportPhone,
         copyrightText:

@@ -18,6 +18,7 @@ export const registerSchema = z.object({
       /((?=.*\d)|(?=.*\W+))(?=.*[a-z])(?=.*[A-Z]).*$/,
       "Password must include uppercase, lowercase, and a number or symbol",
     ),
+  inviteCode: z.string().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

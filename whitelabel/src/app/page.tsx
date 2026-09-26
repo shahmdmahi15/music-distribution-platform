@@ -55,7 +55,9 @@ export default async function DashboardPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-6 sm:p-8 border border-border/60 shadow-xl bg-card"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor}15 0%, rgba(0,0,0,0) 100%)`,
+            background: tenant?.bannerUrl
+              ? `linear-gradient(135deg, rgba(15,23,42,0.82) 0%, rgba(15,23,42,0.92) 100%), url(${tenant.bannerUrl}) center/cover no-repeat`
+              : `linear-gradient(135deg, ${primaryColor}15 0%, rgba(0,0,0,0) 100%)`,
           }}
         >
           <div className="relative z-10 max-w-3xl">

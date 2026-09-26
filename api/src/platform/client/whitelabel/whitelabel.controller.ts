@@ -159,6 +159,22 @@ export class ClientWhitelabelController {
     return await this.clientWhitelabelService.updateBranding(userId, dto);
   }
 
+  @Get('policy')
+  async getRegistrationPolicy(@CurrentUser('id') userId: string) {
+    return await this.clientWhitelabelService.getRegistrationPolicy(userId);
+  }
+
+  @Patch('policy')
+  async updateRegistrationPolicy(
+    @CurrentUser('id') userId: string,
+    @Body() dto: { userSignupModel?: any; policySettings?: Record<string, any> },
+  ) {
+    return await this.clientWhitelabelService.updateRegistrationPolicy(
+      userId,
+      dto,
+    );
+  }
+
   @Post('branding/asset')
   @UseInterceptors(FileInterceptor('file'))
   async uploadBrandingAsset(

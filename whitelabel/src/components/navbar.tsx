@@ -58,9 +58,31 @@ export function Navbar() {
     }
   };
 
+  const navbarStyle =
+    tenant?.theme?.navbarStyle || tenant?.navbarStyle || "glass";
+  const primaryColor =
+    tenant?.theme?.primaryColor || tenant?.primaryColor || "#6366f1";
+
+  const isFloating = navbarStyle === "floating";
+  const isSolid = navbarStyle === "solid";
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
+    <header
+      className={
+        isFloating
+          ? "sticky top-3 z-40 max-w-7xl mx-auto px-4 w-full transition-all duration-200"
+          : isSolid
+            ? "sticky top-0 z-40 w-full border-b border-border bg-background shadow-xs transition-all duration-200"
+            : "sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md transition-all duration-200"
+      }
+    >
+      <div
+        className={
+          isFloating
+            ? "flex h-16 items-center justify-between px-4 sm:px-6 rounded-2xl border border-border/60 bg-background/90 backdrop-blur-md shadow-lg"
+            : "max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6"
+        }
+      >
         {/* Brand / Logo */}
         <div className="flex items-center gap-6">
           <Link
@@ -167,7 +189,7 @@ export function Navbar() {
               <Link
                 href="/auth/register"
                 className="px-3 py-1.5 rounded-lg text-xs font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-                style={{ backgroundColor: tenant?.primaryColor || "#6366f1" }}
+                style={{ backgroundColor: primaryColor }}
               >
                 Register
               </Link>
