@@ -1396,9 +1396,8 @@ echo "[$(date -u)] Compiling Next.js 16 production build..."
 pnpm run build
 
 echo "[$(date -u)] Build succeeded! Switching PM2 process to Next.js production server on Port 3000..."
-pm2 delete whitelabel-portal || true
 cd "$REPO_DIR/whitelabel"
-pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000
+pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
 pm2 save
 env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
 pm2 save
@@ -1419,9 +1418,7 @@ git reset --hard origin/master
 cd "$REPO_DIR/whitelabel"
 pnpm install
 pnpm run build
-pm2 delete whitelabel-portal || true
-cd "$REPO_DIR/whitelabel"
-pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000
+pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
 pm2 save
 EOF_DEPLOY_SCRIPT
 
@@ -1863,17 +1860,35 @@ server {
           );
 
           // 8. Install dependencies via pnpm
-          await this.execSsh(
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Installing dependencies via pnpm in /var/www/music-distribution-platform/whitelabel...`,
+            'INFO',
+            ProvisioningStatus.DEPLOYING_APPLICATION,
+            97,
+            'Installing dependencies with pnpm',
+          );
+
+          const installRes = await this.execSsh(
             ssh,
             `cd /var/www/music-distribution-platform/whitelabel && pnpm install`,
-            undefined,
+            async (line) => {
+              if (line.includes('Packages:') || line.includes('Progress:') || line.includes('Done')) {
+                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
+              }
+            },
             600000,
           );
+
+          if (installRes.code !== 0) {
+            throw new Error(`pnpm install failed (code ${installRes.code}): ${installRes.stderr || installRes.stdout}`);
+          }
 
           await this.appendLog(
             whiteLabelId,
             'DEPLOY',
-            `Dependencies installed. Compiling Next.js 16 production build ("pnpm run build")...`,
+            `Dependencies installed successfully. Compiling Next.js 16 production build ("pnpm run build")...`,
             'INFO',
             ProvisioningStatus.DEPLOYING_APPLICATION,
             98,
@@ -1881,13 +1896,14 @@ server {
           );
 
           // 9. Build Next.js
-          await this.execSsh(
+          const buildRes = await this.execSsh(
             ssh,
             `cd /var/www/music-distribution-platform/whitelabel && pnpm run build`,
             async (line) => {
               if (
                 line.includes('Compiled successfully') ||
-                line.includes('Generating static pages')
+                line.includes('Generating static pages') ||
+                line.includes('Finalizing page optimization')
               ) {
                 await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
               }
@@ -1895,21 +1911,29 @@ server {
             900000,
           );
 
-          // 10. Start PM2 on Port 3000
+          if (buildRes.code !== 0) {
+            throw new Error(`Next.js build failed (code ${buildRes.code}): ${buildRes.stderr || buildRes.stdout}`);
+          }
+
+          // 10. Start PM2 on Port 3000 using ecosystem.config.js
           await this.appendLog(
             whiteLabelId,
             'DEPLOY',
-            `Next.js build succeeded! Launching production runtime on Port 3000 via PM2...`,
+            `Next.js build succeeded! Launching production runtime on Port 3000 via PM2 ecosystem...`,
             'INFO',
             ProvisioningStatus.DEPLOYING_APPLICATION,
             99,
             'Starting WhiteLabel portal with PM2',
           );
 
-          await this.execSsh(
+          const pm2Res = await this.execSsh(
             ssh,
-            `pm2 delete whitelabel-portal || true && cd /var/www/music-distribution-platform/whitelabel && pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000 && pm2 save && sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu || true && pm2 save`,
+            `cd /var/www/music-distribution-platform/whitelabel && (pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js) && pm2 save && (sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu || true) && pm2 save`,
           );
+
+          if (pm2Res.code !== 0) {
+            throw new Error(`PM2 start failed (code ${pm2Res.code}): ${pm2Res.stderr || pm2Res.stdout}`);
+          }
 
           await this.appendLog(
             whiteLabelId,
@@ -2330,6 +2354,10 @@ server {
     onOutput?: (line: string) => Promise<void> | void,
     timeoutMs: number = 900000,
   ): Promise<{ code: number; stdout: string; stderr: string }> {
+    const fullCommand = command.includes('export PATH=')
+      ? command
+      : `export PATH="/usr/local/bin:/usr/bin:/bin:$PATH" && ${command}`;
+
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
@@ -2343,7 +2371,7 @@ server {
         );
       }, timeoutMs);
 
-      client.exec(command, (err, stream) => {
+      client.exec(fullCommand, (err, stream) => {
         if (err) {
           clearTimeout(timer);
           return reject(err);
