@@ -39,6 +39,7 @@ import {
   SESv2Client,
   CreateEmailIdentityCommand,
   GetEmailIdentityCommand,
+  DeleteEmailIdentityCommand,
   GetAccountCommand,
   PutEmailIdentityMailFromAttributesCommand,
 } from '@aws-sdk/client-sesv2';
@@ -569,24 +570,31 @@ export class WhitelabelProvisioningService {
       );
 
       // =========================================================================
-      // STAGE 2: SES DUAL IDENTITIES & MAIL FROM (mail.backstage.customdomain) (Progress: 50%)
+      // STAGE 2: SES IDENTITY & MAIL FROM (mail.backstage.customdomain) (Progress: 50%)
       // =========================================================================
       const identityBackstage = customDomain; // e.g. backstage.royalmusic.io
-      const identityRoot = baseDomain; // e.g. royalmusic.io
       const mailFromDomain = `mail.${identityBackstage}`; // e.g. mail.backstage.royalmusic.io
       const cfEmail = wl.contactEmail || wl.senderEmail || undefined;
 
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `Configuring AWS SES identities ("${identityBackstage}" & "${identityRoot}") with MAIL FROM "${mailFromDomain}"...`,
+        `Configuring AWS SES email identity ("${identityBackstage}") with custom MAIL FROM "${mailFromDomain}"...`,
         'INFO',
         ProvisioningStatus.SES_CONFIGURED,
         50,
-        `Configuring SES identities and auto-wiring Cloudflare DNS`,
+        `Configuring SES identity and synchronizing Cloudflare DNS`,
       );
 
       const ses = new SESv2Client({ region, credentials });
+
+      // Clean up any legacy root domain identity from AWS SES if previously created
+      if (baseDomain && baseDomain !== identityBackstage) {
+        try {
+          await ses.send(new DeleteEmailIdentityCommand({ EmailIdentity: baseDomain }));
+          this.logger.log(`Pruned legacy SES root identity: ${baseDomain}`);
+        } catch {}
+      }
 
       // 1. Create or retrieve identity for backstage domain
       let backstageDkimTokens: string[] = [];
@@ -602,21 +610,7 @@ export class WhitelabelProvisioningService {
         backstageDkimTokens = existing.DkimAttributes?.Tokens || [];
       }
 
-      // 2. Create or retrieve identity for root custom domain
-      let rootDkimTokens: string[] = [];
-      try {
-        const res = await ses.send(
-          new CreateEmailIdentityCommand({ EmailIdentity: identityRoot }),
-        );
-        rootDkimTokens = res.DkimAttributes?.Tokens || [];
-      } catch {
-        const existing = await ses.send(
-          new GetEmailIdentityCommand({ EmailIdentity: identityRoot }),
-        );
-        rootDkimTokens = existing.DkimAttributes?.Tokens || [];
-      }
-
-      // 3. Configure MAIL FROM domain (mail.backstage.customdomain) on both identities
+      // 2. Configure custom MAIL FROM domain on backstage identity
       try {
         await ses.send(
           new PutEmailIdentityMailFromAttributesCommand({
@@ -629,19 +623,7 @@ export class WhitelabelProvisioningService {
         this.logger.warn(`Could not set MailFrom on ${identityBackstage}: ${mfErr.message}`);
       }
 
-      try {
-        await ses.send(
-          new PutEmailIdentityMailFromAttributesCommand({
-            EmailIdentity: identityRoot,
-            MailFromDomain: mailFromDomain,
-            BehaviorOnMxFailure: 'USE_DEFAULT_VALUE',
-          }),
-        );
-      } catch (mfErr: any) {
-        this.logger.warn(`Could not set MailFrom on ${identityRoot}: ${mfErr.message}`);
-      }
-
-      // 4. Clean up any stale DKIM CNAME records in Cloudflare DNS
+      // 3. Clean up any stale DKIM CNAME records for backstage domain
       await this.cleanupStaleCloudflareDkimRecords(
         cfToken,
         zoneId,
@@ -649,15 +631,19 @@ export class WhitelabelProvisioningService {
         backstageDkimTokens,
         cfEmail,
       );
-      await this.cleanupStaleCloudflareDkimRecords(
-        cfToken,
-        zoneId,
-        identityRoot,
-        rootDkimTokens,
-        cfEmail,
-      );
 
-      // 5. Inject DKIM CNAMEs for backstage domain (clean, deduplicated)
+      // Clean up any legacy DKIM CNAME records on root domain
+      if (baseDomain && baseDomain !== identityBackstage) {
+        await this.cleanupStaleCloudflareDkimRecords(
+          cfToken,
+          zoneId,
+          baseDomain,
+          [],
+          cfEmail,
+        );
+      }
+
+      // 4. Inject 3 DKIM CNAMEs for backstage domain (clean, deduplicated)
       for (const token of backstageDkimTokens) {
         await this.upsertCloudflareDnsRecord(
           cfToken,
@@ -671,21 +657,7 @@ export class WhitelabelProvisioningService {
         );
       }
 
-      // 6. Inject DKIM CNAMEs for root domain (clean, deduplicated)
-      for (const token of rootDkimTokens) {
-        await this.upsertCloudflareDnsRecord(
-          cfToken,
-          zoneId,
-          'CNAME',
-          `${token}._domainkey.${identityRoot}`,
-          `${token}.dkim.amazonses.com`,
-          false,
-          undefined,
-          cfEmail,
-        );
-      }
-
-      // 7. Inject MX record for MAIL FROM domain
+      // 5. Inject MX record for MAIL FROM domain
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
@@ -697,7 +669,7 @@ export class WhitelabelProvisioningService {
         cfEmail,
       );
 
-      // 8. Inject SPF TXT record for MAIL FROM domain
+      // 6. Inject SPF TXT record for MAIL FROM domain
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
@@ -709,7 +681,7 @@ export class WhitelabelProvisioningService {
         cfEmail,
       );
 
-      // 9. Inject DMARC TXT record for backstage domain
+      // 7. Inject DMARC TXT record for backstage domain
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
@@ -721,27 +693,7 @@ export class WhitelabelProvisioningService {
         cfEmail,
       );
 
-      // 10. Inject SPF TXT record for root domain (smart merge with existing SPF, zero duplicates)
-      await this.upsertCloudflareSpfRecord(
-        cfToken,
-        zoneId,
-        identityRoot,
-        cfEmail,
-      );
-
-      // 11. Inject DMARC TXT record for root domain
-      await this.upsertCloudflareDnsRecord(
-        cfToken,
-        zoneId,
-        'TXT',
-        `_dmarc.${identityRoot}`,
-        'v=DMARC1; p=none;',
-        false,
-        undefined,
-        cfEmail,
-      );
-
-      // 12. Prune obsolete legacy mail records on mail.${baseDomain} if present
+      // 8. Prune obsolete legacy mail records on mail.${baseDomain} if present
       await this.pruneLegacyMailRecords(
         cfToken,
         zoneId,
@@ -749,20 +701,19 @@ export class WhitelabelProvisioningService {
         cfEmail,
       );
 
-      const allTokens = [...backstageDkimTokens, ...rootDkimTokens];
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
         data: {
           sesIdentityStatus: 'SUCCESS',
-          sesDkimTokens: allTokens,
-          senderEmail: `noreply@${mailFromDomain}`,
+          sesDkimTokens: backstageDkimTokens,
+          senderEmail: `noreply@${identityBackstage}`,
         },
       });
 
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `SES identities ("${identityBackstage}" & "${identityRoot}") verified with MAIL FROM "${mailFromDomain}". All Cloudflare DNS records synchronized with zero duplicate entries.`,
+        `SES email identity ("${identityBackstage}") verified with MAIL FROM "${mailFromDomain}". All Cloudflare DNS records synchronized for backstage mailing with zero duplicate entries.`,
         'SUCCESS',
       );
 
@@ -1873,17 +1824,25 @@ if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v')
   DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 fi
 
-if ! command -v pnpm >/dev/null 2>&1; then
-  echo "Installing pnpm..."
-  npm install -g pnpm@latest
-fi
-ln -sf $(which pnpm || echo /usr/local/bin/pnpm) /usr/bin/pnpm 2>/dev/null || true
+# Clean up any potential broken or circular symlinks
+rm -f /usr/bin/pnpm /usr/local/bin/pnpm /usr/bin/pm2 /usr/local/bin/pm2
+npm install -g pnpm@latest pm2@latest
+corepack enable 2>/dev/null || true
 
-if ! command -v pm2 >/dev/null 2>&1; then
-  echo "Installing PM2..."
-  npm install -g pm2@latest
-fi
-ln -sf $(which pm2 || echo /usr/local/bin/pm2) /usr/bin/pm2 2>/dev/null || true
+# Securely ensure binaries exist in /usr/bin without circular links
+NPM_PREFIX="$(npm config get prefix 2>/dev/null || echo /usr)"
+for bin_name in pnpm pm2; do
+  SOURCE_BIN="$NPM_PREFIX/bin/$bin_name"
+  if [ -f "$SOURCE_BIN" ] && [ "$SOURCE_BIN" != "/usr/bin/$bin_name" ]; then
+    ln -sf "$SOURCE_BIN" "/usr/bin/$bin_name"
+  fi
+  chmod +x "/usr/bin/$bin_name" 2>/dev/null || true
+  if [ -f "$SOURCE_BIN" ]; then chmod +x "$SOURCE_BIN" 2>/dev/null || true; fi
+done
+
+echo "Node runtime: $(node -v)"
+echo "pnpm runtime: $(pnpm -v)"
+echo "pm2 runtime: $(pm2 -v)"
 
 if [ ! -f /swapfile ]; then
   echo "Allocating 2GB build swap partition..."
@@ -1946,15 +1905,15 @@ chown -R ubuntu:ubuntu /var/www/music-distribution-platform
 
 echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
 cd /var/www/music-distribution-platform/whitelabel
-sudo -u ubuntu pnpm install
-sudo -u ubuntu pnpm run build
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm run build
 
 echo "=== [6/6] Starting PM2 process on Port 3000 ==="
-sudo -u ubuntu pm2 delete whitelabel-portal 2>/dev/null || true
-sudo -u ubuntu pm2 start ecosystem.config.js
-sudo -u ubuntu pm2 save
-env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
-sudo -u ubuntu pm2 save
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 delete whitelabel-portal 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 start ecosystem.config.js
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
+env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
 
 # Ensure Nginx is enabled and restarted
 systemctl enable nginx
