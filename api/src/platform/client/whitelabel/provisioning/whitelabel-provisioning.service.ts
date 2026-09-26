@@ -1578,9 +1578,16 @@ systemctl start whitelabel-bootstrap.service &
         await this.appendLog(
           whiteLabelId,
           'COMPUTE',
-          `EC2 instance launched successfully (${instanceId}, AMI: ${amiId}, Key: ${keyPairName}). Waiting for instance state...`,
+          `EC2 instance launched successfully (${instanceId}, AMI: ${amiId}, Key: ${keyPairName}). Waiting for instance to enter RUNNING state...`,
           'INFO',
         );
+
+        const isRunning = await this.waitForInstanceState(ec2, instanceId, 'running', 180);
+        if (!isRunning) {
+          throw new Error(
+            `EC2 instance (${instanceId}) failed to reach RUNNING state within 180 seconds.`,
+          );
+        }
 
         await this.prismaService.whiteLabel.update({
           where: { id: whiteLabelId },
@@ -1687,83 +1694,62 @@ systemctl start whitelabel-bootstrap.service &
         )?.awsKeyPairPrivateKey ||
         null;
 
-      if (currentSshKey && elasticIp) {
+      if (!currentSshKey || !elasticIp) {
+        throw new Error(
+          `Cannot execute automated SSH deployment: Missing RSA Private Key or Elastic IP.`,
+        );
+      }
+
+      await this.appendLog(
+        whiteLabelId,
+        'DEPLOY',
+        `Connecting to customer EC2 via SSH (ubuntu@${elasticIp}) using tenant RSA key pair...`,
+        'INFO',
+        ProvisioningStatus.DEPLOYING_APPLICATION,
+        95,
+        'SSH connection & automated production deployment on customer EC2',
+      );
+
+      const ssh = await this.connectSsh(elasticIp, currentSshKey, 'ubuntu', 300000);
+      await this.appendLog(
+        whiteLabelId,
+        'DEPLOY',
+        `SSH connection established! Connected to customer instance at ubuntu@${elasticIp}.`,
+        'SUCCESS',
+      );
+
+      try {
+        // 1. Install Cloudflare Origin / Self-Signed SSL Certificates
+        if (originCertData?.certificate && originCertData?.privateKey) {
+          await this.appendLog(
+            whiteLabelId,
+            'SSL',
+            `Writing SSL certificate and private key to /etc/ssl/certs/whitelabel_origin.crt...`,
+            'INFO',
+          );
+          const crtB64 = Buffer.from(originCertData.certificate.trim()).toString('base64');
+          const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString('base64');
+          await this.execSsh(
+            ssh,
+            `sudo mkdir -p /etc/ssl/certs /etc/ssl/private && echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
+          );
+          await this.appendLog(
+            whiteLabelId,
+            'SSL',
+            `SSL certificate & key installed on customer EC2 with strict file permissions (600/644).`,
+            'SUCCESS',
+          );
+        }
+
+        // 2. Configure customer Nginx with 100MB body limit, Port 443 SSL, proxying to Port 3000
         await this.appendLog(
           whiteLabelId,
           'DEPLOY',
-          `Connecting to customer EC2 via SSH (ubuntu@${elasticIp}) using tenant RSA key pair...`,
+          `Writing Nginx reverse-proxy configuration (100MB upload capacity, TLS 1.2/1.3, Port 3000 proxy)...`,
           'INFO',
-          ProvisioningStatus.DEPLOYING_APPLICATION,
-          95,
-          'SSH connection & production app build on customer EC2',
         );
 
-        let ssh: SshClient | null = null;
-        try {
-          ssh = await this.connectSsh(elasticIp, currentSshKey, 'ubuntu', 180000);
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `SSH connection verified. Synchronizing packages, Nginx SSL reverse-proxy, and Next.js repository...`,
-            'SUCCESS',
-          );
-
-          // 1. Wait for cloud-init if still active
-          await this.execSsh(
-            ssh,
-            'sudo cloud-init status --wait || true',
-            undefined,
-            120000,
-          );
-
-          // 2. Ensure essentials: Node 22, PM2, pnpm, Nginx, git, build-essential
-          await this.execSsh(
-            ssh,
-            `sudo DEBIAN_FRONTEND=noninteractive apt-get update -y && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential && command -v node >/dev/null 2>&1 || (curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt-get install -y nodejs) && command -v pnpm >/dev/null 2>&1 || sudo npm install -g pnpm pm2`,
-            undefined,
-            300000,
-          );
-
-          // 3. Configure 2GB Swap space (protects against memory spikes during Next.js build)
-          await this.execSsh(
-            ssh,
-            `if [ ! -f /swapfile ]; then sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048; sudo chmod 600 /swapfile; sudo mkswap /swapfile; sudo swapon /swapfile; echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab; fi`,
-            undefined,
-            60000,
-          );
-
-          // 4. Install Cloudflare Origin / Self-Signed SSL Certificates
-          if (originCertData?.certificate && originCertData?.privateKey) {
-            await this.appendLog(
-              whiteLabelId,
-              'SSL',
-              `Writing SSL certificate and private key to /etc/ssl/certs/whitelabel_origin.crt...`,
-              'INFO',
-            );
-            const crtB64 = Buffer.from(originCertData.certificate.trim()).toString('base64');
-            const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString('base64');
-            await this.execSsh(
-              ssh,
-              `sudo mkdir -p /etc/ssl/certs /etc/ssl/private && echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
-            );
-            await this.appendLog(
-              whiteLabelId,
-              'SSL',
-              `SSL certificate & key installed on customer EC2 with strict file permissions (600/644).`,
-              'SUCCESS',
-            );
-          }
-
-          // 5. Write Nginx configuration with 100MB body limit, Port 443 SSL, proxying to 127.0.0.1:3000
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Configuring customer Nginx with 100MB upload capacity and proxy pass to Port 3000...`,
-            'INFO',
-          );
-
-          const nginxConfig = `
-server {
+        const nginxConfig = `server {
     listen 80;
     listen [::]:80;
     server_name ${customDomain};
@@ -1806,156 +1792,196 @@ server {
     }
 }
 `;
-          const nginxB64 = Buffer.from(nginxConfig.trim()).toString('base64');
-          await this.execSsh(
-            ssh,
-            `echo "${nginxB64}" | base64 -d | sudo tee /etc/nginx/sites-available/whitelabel > /dev/null && sudo ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/whitelabel && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && (sudo systemctl reload nginx || sudo systemctl restart nginx)`,
-          );
+        const nginxB64 = Buffer.from(nginxConfig.trim()).toString('base64');
+        await this.execSsh(
+          ssh,
+          `echo "${nginxB64}" | base64 -d | sudo tee /etc/nginx/sites-available/whitelabel > /dev/null && sudo ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/whitelabel && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && (sudo systemctl reload nginx || sudo systemctl restart nginx)`,
+        );
 
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Nginx configuration active! 100MB body limit & SSL reverse-proxy enabled.`,
-            'SUCCESS',
-          );
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `Nginx configuration active! 100MB body limit & SSL reverse-proxy enabled.`,
+          'SUCCESS',
+        );
 
-          // 6. Clone / pull repository to /var/www/music-distribution-platform
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Synchronizing WhiteLabel application codebase from GitHub to /var/www/music-distribution-platform...`,
-            'INFO',
-            ProvisioningStatus.DEPLOYING_APPLICATION,
-            96,
-            'Pulling repository and configuring WhiteLabel portal',
-          );
+        // 3. Automated End-to-End Build & PM2 Deployment Script
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `Executing autonomous WhiteLabel build & PM2 deployment script on customer EC2...`,
+          'INFO',
+          ProvisioningStatus.DEPLOYING_APPLICATION,
+          96,
+          'Building WhiteLabel Next.js application & starting PM2 runtime',
+        );
 
-          await this.execSsh(
-            ssh,
-            `sudo mkdir -p /var/www && sudo chown -R ubuntu:ubuntu /var/www && if [ ! -d "/var/www/music-distribution-platform/.git" ]; then git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform; else cd /var/www/music-distribution-platform && git fetch origin master && git reset --hard origin/master; fi`,
-            async (line) => {
-              if (line.includes('Cloning') || line.includes('HEAD is now at')) {
-                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
-              }
-            },
-            300000,
-          );
+        const deployScriptContent = `#!/bin/bash
+set -euo pipefail
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
-          // 7. Write production .env file for /var/www/music-distribution-platform/whitelabel
-          const envLines = `API_BASE_URL="${apiBaseUrl}"\nAPI_KEY="${rawApiKey}"\nINTERNAL_API_SECRET="${internalSecret}"\nPORT=3000\nNODE_ENV=production\n`;
-          const envB64 = Buffer.from(envLines).toString('base64');
-          await this.execSsh(
-            ssh,
-            `echo "${envB64}" | base64 -d > /var/www/music-distribution-platform/whitelabel/.env`,
-          );
+echo "=== [1/6] Waiting for system package manager locks ==="
+while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+  echo "Waiting for apt package lock to release..."
+  sleep 3
+done
 
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Production environment configuration written (.env). Installing dependencies...`,
-            'SUCCESS',
-            ProvisioningStatus.DEPLOYING_APPLICATION,
-            97,
-            'Installing dependencies with pnpm',
-          );
+echo "=== [2/6] Ensuring system packages & Node.js 22 LTS ==="
+sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential
 
-          // 8. Install dependencies via pnpm
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Installing dependencies via pnpm in /var/www/music-distribution-platform/whitelabel...`,
-            'INFO',
-            ProvisioningStatus.DEPLOYING_APPLICATION,
-            97,
-            'Installing dependencies with pnpm',
-          );
+if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]; then
+  echo "Installing Node.js 22 LTS..."
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+fi
 
-          const installRes = await this.execSsh(
-            ssh,
-            `cd /var/www/music-distribution-platform/whitelabel && pnpm install`,
-            async (line) => {
-              if (line.includes('Packages:') || line.includes('Progress:') || line.includes('Done')) {
-                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
-              }
-            },
-            600000,
-          );
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "Installing pnpm..."
+  sudo npm install -g pnpm@latest
+fi
+sudo ln -sf $(which pnpm || echo /usr/local/bin/pnpm) /usr/bin/pnpm 2>/dev/null || true
 
-          if (installRes.code !== 0) {
-            throw new Error(`pnpm install failed (code ${installRes.code}): ${installRes.stderr || installRes.stdout}`);
-          }
+if ! command -v pm2 >/dev/null 2>&1; then
+  echo "Installing PM2..."
+  sudo npm install -g pm2@latest
+fi
+sudo ln -sf $(which pm2 || echo /usr/local/bin/pm2) /usr/bin/pm2 2>/dev/null || true
 
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Dependencies installed successfully. Compiling Next.js 16 production build ("pnpm run build")...`,
-            'INFO',
-            ProvisioningStatus.DEPLOYING_APPLICATION,
-            98,
-            'Building Next.js 16 production bundle',
-          );
+if [ ! -f /swapfile ]; then
+  echo "Allocating 2GB build swap partition..."
+  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
 
-          // 9. Build Next.js
-          const buildRes = await this.execSsh(
-            ssh,
-            `cd /var/www/music-distribution-platform/whitelabel && pnpm run build`,
-            async (line) => {
-              if (
-                line.includes('Compiled successfully') ||
-                line.includes('Generating static pages') ||
-                line.includes('Finalizing page optimization')
-              ) {
-                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
-              }
-            },
-            900000,
-          );
+echo "=== [3/6] Synchronizing repository from GitHub ==="
+sudo mkdir -p /var/www
+sudo chown -R ubuntu:ubuntu /var/www
 
-          if (buildRes.code !== 0) {
-            throw new Error(`Next.js build failed (code ${buildRes.code}): ${buildRes.stderr || buildRes.stdout}`);
-          }
+if [ ! -d "/var/www/music-distribution-platform/.git" ]; then
+  git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform
+else
+  cd /var/www/music-distribution-platform
+  git fetch origin master
+  git reset --hard origin/master
+fi
 
-          // 10. Start PM2 on Port 3000 using ecosystem.config.js
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Next.js build succeeded! Launching production runtime on Port 3000 via PM2 ecosystem...`,
-            'INFO',
-            ProvisioningStatus.DEPLOYING_APPLICATION,
-            99,
-            'Starting WhiteLabel portal with PM2',
-          );
+echo "=== [4/6] Configuring production environment and ecosystem ==="
+cd /var/www/music-distribution-platform/whitelabel
 
-          const pm2Res = await this.execSsh(
-            ssh,
-            `cd /var/www/music-distribution-platform/whitelabel && (pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js) && pm2 save && (sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu || true) && pm2 save`,
-          );
+cat << 'ENV_EOF' > .env
+API_BASE_URL="${apiBaseUrl}"
+API_KEY="${rawApiKey}"
+INTERNAL_API_SECRET="${internalSecret}"
+PORT=3000
+NODE_ENV=production
+ENV_EOF
 
-          if (pm2Res.code !== 0) {
-            throw new Error(`PM2 start failed (code ${pm2Res.code}): ${pm2Res.stderr || pm2Res.stdout}`);
-          }
+cp -f .env .env.production
+cp -f .env .env.local
 
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `WhiteLabel portal PM2 process is running on Port 3000 with auto-restart enabled.`,
-            'SUCCESS',
-          );
+cat << 'ECOSYSTEM_EOF' > ecosystem.config.js
+module.exports = {
+  apps: [
+    {
+      name: "whitelabel-portal",
+      cwd: "/var/www/music-distribution-platform/whitelabel",
+      script: "node_modules/next/dist/bin/next",
+      args: "start -p 3000",
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+      },
+    },
+  ],
+};
+ECOSYSTEM_EOF
 
-          ssh.end();
-        } catch (deployErr: any) {
-          if (ssh) {
-            try {
-              ssh.end();
-            } catch {}
-          }
-          await this.appendLog(
-            whiteLabelId,
-            'DEPLOY',
-            `Notice during direct SSH deployment: ${deployErr.message}. The autonomous background cloud-init service on the instance will complete the deployment.`,
-            'WARN',
+echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
+pnpm install
+pnpm run build
+
+echo "=== [6/6] Starting PM2 process on Port 3000 ==="
+pm2 delete whitelabel-portal 2>/dev/null || true
+pm2 start ecosystem.config.js
+pm2 save
+sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
+pm2 save
+
+echo "Verifying local service health on Port 3000..."
+for i in {1..25}; do
+  if curl -s -f http://127.0.0.1:3000 > /dev/null || curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308|404" > /dev/null; then
+    echo "DEPLOYMENT_VERIFIED_SUCCESS"
+    exit 0
+  fi
+  echo "Waiting for Next.js server on Port 3000... (attempt $i/25)"
+  sleep 2
+done
+
+echo "DEPLOYMENT_FAILED_HEALTHCHECK"
+exit 1
+`;
+        const scriptB64 = Buffer.from(deployScriptContent).toString('base64');
+        await this.execSsh(
+          ssh,
+          `echo "${scriptB64}" | base64 -d > /var/www/auto-deploy.sh && chmod +x /var/www/auto-deploy.sh`,
+        );
+
+        // Run the script and stream progress to the wizard log
+        const scriptExecRes = await this.execSsh(
+          ssh,
+          `bash /var/www/auto-deploy.sh`,
+          async (line) => {
+            if (
+              line.startsWith('===') ||
+              line.includes('Installing') ||
+              line.includes('Cloning') ||
+              line.includes('Compiled successfully') ||
+              line.includes('Generating static pages') ||
+              line.includes('Finalizing page optimization') ||
+              line.includes('DEPLOYMENT_VERIFIED_SUCCESS')
+            ) {
+              await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
+            }
+          },
+          1200000,
+        );
+
+        if (
+          scriptExecRes.code !== 0 ||
+          !scriptExecRes.stdout.includes('DEPLOYMENT_VERIFIED_SUCCESS')
+        ) {
+          throw new Error(
+            `Automated build/start failed on customer EC2: ${scriptExecRes.stderr || scriptExecRes.stdout || `Exit code ${scriptExecRes.code}`}`,
           );
         }
+
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `WhiteLabel portal PM2 process is running on Port 3000 and verified healthy!`,
+          'SUCCESS',
+          ProvisioningStatus.DEPLOYING_APPLICATION,
+          99,
+          'WhiteLabel portal verified healthy on Port 3000',
+        );
+
+        ssh.end();
+      } catch (deployErr: any) {
+        if (ssh) {
+          try {
+            ssh.end();
+          } catch {}
+        }
+        throw new Error(`Deployment on customer EC2 failed: ${deployErr.message}`);
       }
 
       // =========================================================================
