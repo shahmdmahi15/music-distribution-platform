@@ -268,6 +268,7 @@ export function ClientBrandingView({
                     <img
                       src={branding.logoUrl}
                       alt="Primary Logo"
+                      crossOrigin="anonymous"
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
@@ -336,6 +337,7 @@ export function ClientBrandingView({
                     <img
                       src={branding.logoDarkUrl}
                       alt="Dark Mode Logo"
+                      crossOrigin="anonymous"
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
@@ -404,6 +406,7 @@ export function ClientBrandingView({
                     <img
                       src={branding.faviconUrl}
                       alt="Favicon"
+                      crossOrigin="anonymous"
                       className="h-10 w-10 object-contain rounded"
                     />
                   ) : (
@@ -507,6 +510,7 @@ export function ClientBrandingView({
                   <img
                     src={branding.bannerUrl}
                     alt="Platform Banner"
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                   />
                 ) : (

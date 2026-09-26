@@ -285,6 +285,8 @@ export function ClientWhiteLabelSetupWizard({
   const [logoDarkUrl, setLogoDarkUrl] = useState(branding.logoDarkUrl || "");
   const [faviconUrl, setFaviconUrl] = useState(branding.faviconUrl || "");
   const [bannerUrl, setBannerUrl] = useState(branding.bannerUrl || "");
+  const [assetImgErrors, setAssetImgErrors] = useState<Record<string, boolean>>({});
+  const [assetCacheBuster, setAssetCacheBuster] = useState<number>(() => Date.now());
 
   // Comprehensive Social Links & Online Presence
   const [instagram, setInstagram] = useState(branding.socialInstagram || "");
@@ -364,6 +366,9 @@ export function ClientWhiteLabelSetupWizard({
           res.message || `${assetType} uploaded to S3 successfully!`,
           { id: toastId },
         );
+        const newBuster = Date.now();
+        setAssetCacheBuster(newBuster);
+        setAssetImgErrors((p) => ({ ...p, [assetType]: false }));
         if (assetType === "logo") setLogoUrl(res.assetUrl);
         else if (assetType === "logoDark") setLogoDarkUrl(res.assetUrl);
         else if (assetType === "favicon") setFaviconUrl(res.assetUrl);
@@ -2011,13 +2016,47 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                     {logoUrl ? (
                       <div className="space-y-2">
-                        <div className="h-20 w-full rounded-lg border border-border/80 bg-white p-2 flex items-center justify-center overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={logoUrl}
-                            alt="Light Logo Preview"
-                            className="max-h-full max-w-full object-contain"
-                          />
+                        <div className="h-20 w-full rounded-lg border border-border/80 bg-white p-2 flex items-center justify-center overflow-hidden relative">
+                          {assetImgErrors.logo ? (
+                            <div className="flex flex-col items-center justify-center gap-1.5 text-center p-2">
+                              <span className="text-[11px] text-destructive font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Preview failed to load
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAssetImgErrors((p) => ({ ...p, logo: false }));
+                                  setAssetCacheBuster(Date.now());
+                                }}
+                                className="text-[10px] h-6 px-2.5 gap-1 text-zinc-900 border-zinc-300 hover:bg-zinc-100"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" />
+                                Reload Preview
+                              </Button>
+                            </div>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={`logo-${assetCacheBuster}`}
+                              src={
+                                logoUrl.includes("?")
+                                  ? `${logoUrl}&t=${assetCacheBuster}`
+                                  : `${logoUrl}?t=${assetCacheBuster}`
+                              }
+                              alt="Light Logo Preview"
+                              crossOrigin="anonymous"
+                              className="max-h-full max-w-full object-contain"
+                              onError={() =>
+                                setAssetImgErrors((p) => ({ ...p, logo: true }))
+                              }
+                              onLoad={() =>
+                                setAssetImgErrors((p) => ({ ...p, logo: false }))
+                              }
+                            />
+                          )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <Button
@@ -2039,7 +2078,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setLogoUrl("")}
+                            onClick={() => {
+                              setLogoUrl("");
+                              setAssetImgErrors((p) => ({ ...p, logo: false }));
+                            }}
                             className="text-xs h-7 text-destructive hover:text-destructive px-2"
                             title="Remove Logo"
                           >
@@ -2109,13 +2151,47 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                     {logoDarkUrl ? (
                       <div className="space-y-2">
-                        <div className="h-20 w-full rounded-lg border border-border/80 bg-zinc-950 p-2 flex items-center justify-center overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={logoDarkUrl}
-                            alt="Dark Logo Preview"
-                            className="max-h-full max-w-full object-contain"
-                          />
+                        <div className="h-20 w-full rounded-lg border border-border/80 bg-zinc-950 p-2 flex items-center justify-center overflow-hidden relative">
+                          {assetImgErrors.logoDark ? (
+                            <div className="flex flex-col items-center justify-center gap-1.5 text-center p-2">
+                              <span className="text-[11px] text-destructive font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Preview failed to load
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAssetImgErrors((p) => ({ ...p, logoDark: false }));
+                                  setAssetCacheBuster(Date.now());
+                                }}
+                                className="text-[10px] h-6 px-2.5 gap-1 text-zinc-100 border-zinc-700 hover:bg-zinc-800"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" />
+                                Reload Preview
+                              </Button>
+                            </div>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={`logoDark-${assetCacheBuster}`}
+                              src={
+                                logoDarkUrl.includes("?")
+                                  ? `${logoDarkUrl}&t=${assetCacheBuster}`
+                                  : `${logoDarkUrl}?t=${assetCacheBuster}`
+                              }
+                              alt="Dark Logo Preview"
+                              crossOrigin="anonymous"
+                              className="max-h-full max-w-full object-contain"
+                              onError={() =>
+                                setAssetImgErrors((p) => ({ ...p, logoDark: true }))
+                              }
+                              onLoad={() =>
+                                setAssetImgErrors((p) => ({ ...p, logoDark: false }))
+                              }
+                            />
+                          )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <Button
@@ -2137,7 +2213,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setLogoDarkUrl("")}
+                            onClick={() => {
+                              setLogoDarkUrl("");
+                              setAssetImgErrors((p) => ({ ...p, logoDark: false }));
+                            }}
                             className="text-xs h-7 text-destructive hover:text-destructive px-2"
                             title="Remove Dark Logo"
                           >
@@ -2206,13 +2285,46 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                     {faviconUrl ? (
                       <div className="space-y-2">
-                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 p-2 flex items-center justify-center overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={faviconUrl}
-                            alt="Favicon Preview"
-                            className="w-8 h-8 object-contain"
-                          />
+                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 p-2 flex items-center justify-center overflow-hidden relative">
+                          {assetImgErrors.favicon ? (
+                            <div className="flex flex-col items-center justify-center gap-1 text-center p-1">
+                              <span className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Failed
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAssetImgErrors((p) => ({ ...p, favicon: false }));
+                                  setAssetCacheBuster(Date.now());
+                                }}
+                                className="text-[9px] h-5 px-1.5 gap-1"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" /> Retry
+                              </Button>
+                            </div>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={`favicon-${assetCacheBuster}`}
+                              src={
+                                faviconUrl.includes("?")
+                                  ? `${faviconUrl}&t=${assetCacheBuster}`
+                                  : `${faviconUrl}?t=${assetCacheBuster}`
+                              }
+                              alt="Favicon Preview"
+                              crossOrigin="anonymous"
+                              className="w-8 h-8 object-contain"
+                              onError={() =>
+                                setAssetImgErrors((p) => ({ ...p, favicon: true }))
+                              }
+                              onLoad={() =>
+                                setAssetImgErrors((p) => ({ ...p, favicon: false }))
+                              }
+                            />
+                          )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <Button
@@ -2234,7 +2346,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setFaviconUrl("")}
+                            onClick={() => {
+                              setFaviconUrl("");
+                              setAssetImgErrors((p) => ({ ...p, favicon: false }));
+                            }}
                             className="text-xs h-7 text-destructive hover:text-destructive px-2"
                             title="Remove Favicon"
                           >
@@ -2303,13 +2418,46 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                     {bannerUrl ? (
                       <div className="space-y-2">
-                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={bannerUrl}
-                            alt="Banner Preview"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 overflow-hidden relative">
+                          {assetImgErrors.banner ? (
+                            <div className="h-full flex flex-col items-center justify-center gap-1 text-center p-1">
+                              <span className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Failed to load preview
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setAssetImgErrors((p) => ({ ...p, banner: false }));
+                                  setAssetCacheBuster(Date.now());
+                                }}
+                                className="text-[9px] h-5 px-1.5 gap-1"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" /> Retry
+                              </Button>
+                            </div>
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              key={`banner-${assetCacheBuster}`}
+                              src={
+                                bannerUrl.includes("?")
+                                  ? `${bannerUrl}&t=${assetCacheBuster}`
+                                  : `${bannerUrl}?t=${assetCacheBuster}`
+                              }
+                              alt="Banner Preview"
+                              crossOrigin="anonymous"
+                              className="w-full h-full object-cover"
+                              onError={() =>
+                                setAssetImgErrors((p) => ({ ...p, banner: true }))
+                              }
+                              onLoad={() =>
+                                setAssetImgErrors((p) => ({ ...p, banner: false }))
+                              }
+                            />
+                          )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <Button
@@ -2331,7 +2479,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setBannerUrl("")}
+                            onClick={() => {
+                              setBannerUrl("");
+                              setAssetImgErrors((p) => ({ ...p, banner: false }));
+                            }}
                             className="text-xs h-7 text-destructive hover:text-destructive px-2"
                             title="Remove Banner"
                           >

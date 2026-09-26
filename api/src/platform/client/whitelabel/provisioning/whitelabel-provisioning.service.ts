@@ -24,6 +24,8 @@ import {
   CreateBucketCommand,
   PutBucketCorsCommand,
   PutBucketLifecycleConfigurationCommand,
+  PutPublicAccessBlockCommand,
+  PutBucketPolicyCommand,
   HeadBucketCommand,
 } from '@aws-sdk/client-s3';
 import {
@@ -453,6 +455,52 @@ export class WhitelabelProvisioningService {
           },
         }),
       );
+
+      // Configure Public Access Block & Bucket Policy so public branding assets are accessible
+      // while keeping private audio/vault locked
+      try {
+        await s3.send(
+          new PutPublicAccessBlockCommand({
+            Bucket: bucket,
+            PublicAccessBlockConfiguration: {
+              BlockPublicAcls: true,
+              IgnorePublicAcls: true,
+              BlockPublicPolicy: false,
+              RestrictPublicBuckets: false,
+            },
+          }),
+        );
+
+        const tenantPolicy = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Sid: 'AllowPublicReadForBrandingAndMedia',
+              Effect: 'Allow',
+              Principal: '*',
+              Action: 's3:GetObject',
+              Resource: [
+                `arn:aws:s3:::${bucket}/whitelabels/*/branding/*`,
+                `arn:aws:s3:::${bucket}/branding/*`,
+                `arn:aws:s3:::${bucket}/public/*`,
+                `arn:aws:s3:::${bucket}/covers/*`,
+                `arn:aws:s3:::${bucket}/avatars/*`,
+              ],
+            },
+          ],
+        };
+
+        await s3.send(
+          new PutBucketPolicyCommand({
+            Bucket: bucket,
+            Policy: JSON.stringify(tenantPolicy),
+          }),
+        );
+      } catch (policyErr: any) {
+        this.logger.warn(
+          `Could not apply public branding policy on tenant bucket ${bucket}: ${policyErr?.message || policyErr}`,
+        );
+      }
 
       // Configure Lifecycle Rules (Transition masters to Standard-IA after 60 days, Glacier after 180 days)
       await s3.send(
