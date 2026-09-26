@@ -41,6 +41,13 @@ api.interceptors.request.use(async (config) => {
     ) {
       config.headers["x-whitelabel-subdomain"] = hostParts[0];
     }
+    if (
+      hostWithoutPort &&
+      hostWithoutPort !== "localhost" &&
+      hostWithoutPort !== "127.0.0.1"
+    ) {
+      config.headers["x-whitelabel-domain"] = hostWithoutPort;
+    }
   } catch {
     config.headers["User-Agent"] = "Whitelabel-Server-Action";
   }

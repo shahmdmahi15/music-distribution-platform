@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect } from "react";
 import { WhiteLabelTenant, WhiteLabelUser } from "@/types/user";
+import { getGoogleFontUrl, getFontFamilyCss } from "@/lib/fonts";
 
 interface TenantContextValue {
   tenant: WhiteLabelTenant | null;
@@ -35,20 +36,41 @@ export function TenantProvider({
   const navbarStyle =
     tenant?.theme?.navbarStyle || tenant?.navbarStyle || "glass";
 
-  // Dynamically load Google Font if a specific font is configured
+  // Dynamically synchronize Google Font and root CSS variables on the client
   useEffect(() => {
     if (typeof document !== "undefined" && fontFamily) {
-      const activeFontId = `google-font-tenant-${fontFamily.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
-      if (!document.getElementById(activeFontId)) {
-        const link = document.createElement("link");
-        link.id = activeFontId;
+      // 1. Maintain Google Font <link> in document.head
+      const linkId = "whitelabel-active-google-font";
+      let link = document.getElementById(linkId) as HTMLLinkElement | null;
+      const expectedHref = getGoogleFontUrl(fontFamily);
+      if (!link) {
+        link = document.createElement("link");
+        link.id = linkId;
         link.rel = "stylesheet";
-        link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
         document.head.appendChild(link);
       }
-    }
-  }, [fontFamily]);
+      if (link.href !== expectedHref) {
+        link.href = expectedHref;
+      }
 
+      // 2. Synchronize :root CSS variables so all Radix portals & elements inherit
+      const root = document.documentElement;
+      const fontCss = getFontFamilyCss(fontFamily);
+      root.style.setProperty("--font-sans", fontCss);
+      root.style.setProperty("--font-heading", fontCss);
+      root.style.setProperty("--tenant-primary", primaryColor);
+      root.style.setProperty("--tenant-accent", accentColor);
+      root.style.setProperty("--tenant-radius", radius);
+      root.style.setProperty("--primary", primaryColor);
+      root.style.setProperty("--primary-foreground", "#ffffff");
+      root.style.setProperty("--ring", primaryColor);
+      root.style.setProperty("--radius", radius);
+
+      document.body.style.fontFamily = fontCss;
+    }
+  }, [fontFamily, primaryColor, accentColor, radius]);
+
+  const fontCss = getFontFamilyCss(fontFamily);
   const styleVars = {
     "--tenant-primary": primaryColor,
     "--tenant-accent": accentColor,
@@ -57,9 +79,9 @@ export function TenantProvider({
     "--primary-foreground": "#ffffff",
     "--ring": primaryColor,
     "--radius": radius,
-    "--font-sans": `'${fontFamily}', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`,
-    "--font-heading": `'${fontFamily}', sans-serif`,
-    fontFamily: `'${fontFamily}', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`,
+    "--font-sans": fontCss,
+    "--font-heading": fontCss,
+    fontFamily: fontCss,
   } as React.CSSProperties;
 
   return (

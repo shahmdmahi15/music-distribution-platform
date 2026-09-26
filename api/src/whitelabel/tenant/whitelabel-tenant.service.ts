@@ -80,19 +80,19 @@ export class WhitelabelTenantService {
         faviconUrl: this.resolveUrl(whiteLabel.faviconUrl),
         bannerUrl: this.resolveUrl(whiteLabel.bannerUrl),
         primaryColor:
-          themeMeta?.primaryColor || whiteLabel.primaryColor || '#6366f1',
+          whiteLabel.primaryColor || themeMeta?.primaryColor || '#6366f1',
         accentColor:
-          themeMeta?.accentColor || whiteLabel.accentColor || '#ec4899',
+          whiteLabel.accentColor || themeMeta?.accentColor || '#ec4899',
         themeRadius:
-          themeMeta?.radius || whiteLabel.themeRadius || '0.5rem',
+          whiteLabel.themeRadius || themeMeta?.radius || '0.5rem',
         themeFont:
-          themeMeta?.fontFamily || whiteLabel.themeFont || 'Inter',
+          whiteLabel.themeFont || themeMeta?.fontFamily || 'Inter',
         themeMode:
-          themeMeta?.mode || whiteLabel.themeMode || 'dark',
+          whiteLabel.themeMode || themeMeta?.mode || 'dark',
         navbarStyle:
-          themeMeta?.navbarStyle || whiteLabel.navbarStyle || 'glass',
+          whiteLabel.navbarStyle || themeMeta?.navbarStyle || 'glass',
         cardStyle:
-          themeMeta?.cardStyle || whiteLabel.cardStyle || 'modern',
+          whiteLabel.cardStyle || themeMeta?.cardStyle || 'modern',
         supportEmail: whiteLabel.supportEmail,
         supportPhone: whiteLabel.supportPhone,
         copyrightText:
@@ -146,15 +146,15 @@ export class WhitelabelTenantService {
         },
         theme: {
           primaryColor:
-            themeMeta?.primaryColor || whiteLabel.primaryColor || '#6366f1',
+            whiteLabel.primaryColor || themeMeta?.primaryColor || '#6366f1',
           accentColor:
-            themeMeta?.accentColor || whiteLabel.accentColor || '#ec4899',
-          radius: themeMeta?.radius || whiteLabel.themeRadius || '0.5rem',
-          mode: themeMeta?.mode || whiteLabel.themeMode || 'dark',
-          fontFamily: themeMeta?.fontFamily || whiteLabel.themeFont || 'Inter',
-          cardStyle: themeMeta?.cardStyle || whiteLabel.cardStyle || 'modern',
+            whiteLabel.accentColor || themeMeta?.accentColor || '#ec4899',
+          radius: whiteLabel.themeRadius || themeMeta?.radius || '0.5rem',
+          mode: whiteLabel.themeMode || themeMeta?.mode || 'dark',
+          fontFamily: whiteLabel.themeFont || themeMeta?.fontFamily || 'Inter',
+          cardStyle: whiteLabel.cardStyle || themeMeta?.cardStyle || 'modern',
           navbarStyle:
-            themeMeta?.navbarStyle || whiteLabel.navbarStyle || 'glass',
+            whiteLabel.navbarStyle || themeMeta?.navbarStyle || 'glass',
         },
         sso: {
           userSignupModel: whiteLabel.userSignupModel,
