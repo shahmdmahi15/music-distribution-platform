@@ -2,6 +2,7 @@ import {
   Injectable,
   OnModuleInit,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import SESTransport from 'nodemailer/lib/ses-transport';
@@ -11,9 +12,11 @@ import { EnvironmentVariables } from 'src/config/env.config';
 import { compile } from 'handlebars';
 import * as fs from 'fs/promises';
 import { join } from 'path';
+import { WhiteLabel } from 'src/generated/prisma/client';
 
 @Injectable()
 export class MailService implements OnModuleInit {
+  private readonly logger = new Logger(MailService.name);
   private transporter!: nodemailer.Transporter<SESTransport.SentMessageInfo>;
   private senderEmail!: string;
   private platformUrl!: string;
@@ -155,4 +158,205 @@ export class MailService implements OnModuleInit {
       ...options,
     });
   }
+
+  /**
+   * Resolves the WhiteLabel tenant's dedicated SES transporter, sender address,
+   * portal domain, and brand styling context.
+   */
+  private resolveWhiteLabelContext(whiteLabel: WhiteLabel) {
+    // 1. Resolve portal URL (prefer custom domain, fallback to platform subdomain or platform URL)
+    let portalUrl = this.platformUrl;
+    if (whiteLabel.customDomain && whiteLabel.customDomain.trim() !== '') {
+      const cleanDomain = whiteLabel.customDomain
+        .trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/, '');
+      portalUrl = `https://${cleanDomain}`;
+    } else if (whiteLabel.subdomain && whiteLabel.subdomain.trim() !== '') {
+      portalUrl = `https://${whiteLabel.subdomain.trim()}.platform.royalmotionit.com`;
+    }
+
+    // 2. Resolve sender address
+    let senderEmail = this.senderEmail;
+    if (whiteLabel.senderEmail && whiteLabel.senderEmail.trim() !== '') {
+      senderEmail = whiteLabel.senderEmail.trim().toLowerCase();
+    } else if (whiteLabel.customDomain && whiteLabel.customDomain.trim() !== '') {
+      const cleanDomain = whiteLabel.customDomain
+        .trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/, '');
+      senderEmail = `noreply@${cleanDomain}`;
+    }
+
+    const brandName = whiteLabel.name?.trim() || 'Music Portal';
+    const fromHeader = `"${brandName}" <${senderEmail}>`;
+
+    // 3. Resolve dedicated or platform SES transporter
+    let transporter = this.transporter;
+    if (
+      whiteLabel.awsAccessKeyId &&
+      whiteLabel.awsSecretAccessKey &&
+      whiteLabel.awsAccessKeyId.trim() !== '' &&
+      whiteLabel.awsSecretAccessKey.trim() !== ''
+    ) {
+      try {
+        const sesClient = new SESv2Client({
+          region: whiteLabel.awsRegion?.trim() || 'ap-southeast-1',
+          credentials: {
+            accessKeyId: whiteLabel.awsAccessKeyId.trim(),
+            secretAccessKey: whiteLabel.awsSecretAccessKey.trim(),
+          },
+        });
+        transporter = nodemailer.createTransport({
+          SES: { sesClient, SendEmailCommand },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `[MailService] Failed to initialize dedicated SES transporter for tenant ${whiteLabel.id}: ${err}`,
+        );
+      }
+    }
+
+    return {
+      portalUrl,
+      senderEmail,
+      fromHeader,
+      transporter,
+      brandName,
+      logoUrl: whiteLabel.logoUrl || null,
+      primaryColor: whiteLabel.primaryColor || '#6366f1',
+      supportEmail: whiteLabel.supportEmail || null,
+      copyrightText:
+        whiteLabel.copyrightText ||
+        `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`,
+    };
+  }
+
+  /**
+   * Resilient send helper that uses tenant transporter with fallback to platform SES
+   */
+  private async sendWithFallback(
+    transporter: nodemailer.Transporter<SESTransport.SentMessageInfo>,
+    mailOptions: {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+    },
+  ): Promise<SESTransport.SentMessageInfo> {
+    try {
+      return await transporter.sendMail(mailOptions);
+    } catch (primaryErr) {
+      this.logger.warn(
+        `[MailService] Delivery attempt failed from ${mailOptions.from}: ${primaryErr}. Retrying with platform transporter.`,
+      );
+      try {
+        return await this.transporter.sendMail(mailOptions);
+      } catch (fallbackErr) {
+        this.logger.warn(
+          `[MailService] Delivery with tenant From header failed: ${fallbackErr}. Retrying with system default sender.`,
+        );
+        return await this.transporter.sendMail({
+          ...mailOptions,
+          from: this.senderEmail,
+        });
+      }
+    }
+  }
+
+  /**
+   * Sends branded account verification email from the WhiteLabel custom domain / SES
+   */
+  async sendWhiteLabelVerificationEmail(
+    whiteLabel: WhiteLabel,
+    email: string,
+    name: string,
+    token: string,
+  ): Promise<SESTransport.SentMessageInfo> {
+    const ctx = this.resolveWhiteLabelContext(whiteLabel);
+    const verificationUrl = `${ctx.portalUrl}/auth/verify?token=${token}`;
+
+    const htmlContent = await this.compileTemplate(
+      'whitelabel-email-verification',
+      {
+        name,
+        brandName: ctx.brandName,
+        logoUrl: ctx.logoUrl,
+        primaryColor: ctx.primaryColor,
+        url: verificationUrl,
+        supportEmail: ctx.supportEmail,
+        copyrightText: ctx.copyrightText,
+      },
+    );
+
+    return this.sendWithFallback(ctx.transporter, {
+      from: ctx.fromHeader,
+      to: email,
+      subject: `Welcome to ${ctx.brandName}! Please verify your email`,
+      html: htmlContent,
+    });
+  }
+
+  /**
+   * Sends branded password reset email from the WhiteLabel custom domain / SES
+   */
+  async sendWhiteLabelPasswordResetEmail(
+    whiteLabel: WhiteLabel,
+    email: string,
+    name: string,
+    token: string,
+  ): Promise<SESTransport.SentMessageInfo> {
+    const ctx = this.resolveWhiteLabelContext(whiteLabel);
+    const resetUrl = `${ctx.portalUrl}/auth/reset-password?token=${token}`;
+
+    const htmlContent = await this.compileTemplate(
+      'whitelabel-password-reset',
+      {
+        name,
+        brandName: ctx.brandName,
+        logoUrl: ctx.logoUrl,
+        primaryColor: ctx.primaryColor,
+        resetUrl,
+        supportEmail: ctx.supportEmail,
+        copyrightText: ctx.copyrightText,
+      },
+    );
+
+    return this.sendWithFallback(ctx.transporter, {
+      from: ctx.fromHeader,
+      to: email,
+      subject: `Reset your password for ${ctx.brandName}`,
+      html: htmlContent,
+    });
+  }
+
+  /**
+   * Sends branded 2FA security challenge email from the WhiteLabel custom domain / SES
+   */
+  async sendWhiteLabel2faCodeEmail(
+    whiteLabel: WhiteLabel,
+    email: string,
+    name: string,
+    code: string,
+  ): Promise<SESTransport.SentMessageInfo> {
+    const ctx = this.resolveWhiteLabelContext(whiteLabel);
+
+    const htmlContent = await this.compileTemplate('whitelabel-2fa-code', {
+      name,
+      code,
+      brandName: ctx.brandName,
+      logoUrl: ctx.logoUrl,
+      primaryColor: ctx.primaryColor,
+      supportEmail: ctx.supportEmail,
+      copyrightText: ctx.copyrightText,
+    });
+
+    return this.sendWithFallback(ctx.transporter, {
+      from: ctx.fromHeader,
+      to: email,
+      subject: `${code} is your ${ctx.brandName} authentication code`,
+      html: htmlContent,
+    });
+  }
 }
+

@@ -185,7 +185,8 @@ export class WhitelabelAuthService {
     const fullName = `${newUser.firstName} ${newUser.lastName}`.trim();
 
     try {
-      await this.mailService.sendVerificationEmail(
+      await this.mailService.sendWhiteLabelVerificationEmail(
+        whiteLabel,
         newUser.email,
         fullName,
         token,
@@ -274,7 +275,12 @@ export class WhitelabelAuthService {
 
     const fullName = `${user.firstName} ${user.lastName}`.trim();
     try {
-      await this.mailService.sendVerificationEmail(user.email, fullName, token);
+      await this.mailService.sendWhiteLabelVerificationEmail(
+        whiteLabel,
+        user.email,
+        fullName,
+        token,
+      );
     } catch (error) {
       console.warn('[WhitelabelAuthService] Resend email warning:', error);
     }
@@ -381,7 +387,12 @@ export class WhitelabelAuthService {
         );
 
         const fullName = `${user.firstName} ${user.lastName}`.trim();
-        await this.mailService.send2faCodeEmail(user.email, fullName, mfaCode);
+        await this.mailService.sendWhiteLabel2faCodeEmail(
+          whiteLabel,
+          user.email,
+          fullName,
+          mfaCode,
+        );
 
         await this.prismaService.whiteLabelUser.update({
           where: { id: user.id },
@@ -606,7 +617,8 @@ export class WhitelabelAuthService {
 
     const fullName = `${user.firstName} ${user.lastName}`.trim();
     try {
-      await this.mailService.sendPasswordResetEmail(
+      await this.mailService.sendWhiteLabelPasswordResetEmail(
+        whiteLabel,
         user.email,
         fullName,
         resetToken,
