@@ -1093,311 +1093,10 @@ ${originCertScriptBlock}
 chmod 644 /etc/ssl/certs/whitelabel_origin.crt
 chmod 600 /etc/ssl/private/whitelabel_origin.key
 
-# 6. High-availability Zero-502 Holding Web Application on Port 3000
-mkdir -p /var/www/whitelabel-holding
-cat << 'EOF_HOLDING' > /var/www/whitelabel-holding/server.js
-const http = require('http');
-const url = require('url');
-
-const PORT = process.env.PORT || 3000;
-const TENANT_NAME = ${JSON.stringify(wl.name)};
-const TENANT_CODE = ${JSON.stringify(wl.code)};
-const CUSTOM_DOMAIN = ${JSON.stringify(customDomain)};
-const PRIMARY_COLOR = ${JSON.stringify(wl.primaryColor || '#6366f1')};
-const ACCENT_COLOR = ${JSON.stringify(wl.accentColor || '#ec4899')};
-
-const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-
-  if (pathname === '/health' || pathname === '/healthz' || pathname === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({
-      status: 'ok',
-      uptime: process.uptime(),
-      tenant: TENANT_NAME,
-      code: TENANT_CODE,
-      domain: CUSTOM_DOMAIN,
-      ssl: 'active',
-      maxBodyCapacity: '100M',
-      timestamp: new Date().toISOString()
-    }));
-  }
-
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(\`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>\${TENANT_NAME} Backstage Portal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #090d16;
-      color: #f1f5f9;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .card {
-      background: rgba(17, 24, 39, 0.9);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      max-width: 580px;
-      width: 100%;
-      padding: 48px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-      text-align: center;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      padding: 6px 16px;
-      border-radius: 9999px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 24px;
-    }
-    .pulse {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 12px #10b981;
-    }
-    h1 {
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    p {
-      color: #94a3b8;
-      font-size: 15px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-    .info-grid {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 32px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      text-align: left;
-    }
-    .info-label { font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-    .info-val { font-size: 14px; color: #e2e8f0; font-weight: 600; margin-top: 4px; word-break: break-all; }
-    .btn {
-      display: inline-block;
-      width: 100%;
-      padding: 16px 24px;
-      background: linear-gradient(135deg, \${PRIMARY_COLOR} 0%, \${ACCENT_COLOR} 100%);
-      color: #fff;
-      font-weight: 700;
-      font-size: 15px;
-      border-radius: 12px;
-      text-decoration: none;
-      box-shadow: 0 10px 25px -5px \${PRIMARY_COLOR}66;
-      transition: all 0.2s ease;
-    }
-    .btn:hover { opacity: 0.95; transform: translateY(-1px); }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="badge"><span class="pulse"></span> Cloud Node Active</div>
-    <h1>\${TENANT_NAME}</h1>
-    <p>Your dedicated WhiteLabel distribution platform cloud node is fully active, operational, and secured with Cloudflare Edge SSL.</p>
-    <div class="info-grid">
-      <div>
-        <div class="info-label">Domain</div>
-        <div class="info-val">\${CUSTOM_DOMAIN}</div>
-      </div>
-      <div>
-        <div class="info-label">SSL / TLS Mode</div>
-        <div class="info-val">Full End-to-End</div>
-      </div>
-      <div>
-        <div class="info-label">Tenant Code</div>
-        <div class="info-val">\${TENANT_CODE}</div>
-      </div>
-      <div>
-        <div class="info-label">Max Body Capacity</div>
-        <div class="info-val">100 MB Lossless Audio</div>
-      </div>
-    </div>
-    <a href="https://platform.royalmotionit.com" class="btn">Enter Platform Console &rarr;</a>
-  </div>
-</body>
-</html>\`);
-});
-
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(\`WhiteLabel Holding Server listening on http://127.0.0.1:\${PORT}\`);
-});
-EOF_HOLDING
-
-PORT=3000 pm2 start /var/www/whitelabel-holding/server.js --name "whitelabel-portal"
-pm2 save
-
-# 7. Nginx Production Configuration (100MB Body Limit + SSL on Port 443)
-cat << 'EOF_NGINX' > /etc/nginx/sites-available/whitelabel
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${customDomain};
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    server_name ${customDomain};
-
-    ssl_certificate /etc/ssl/certs/whitelabel_origin.crt;
-    ssl_certificate_key /etc/ssl/private/whitelabel_origin.key;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 1d;
-
-    client_max_body_size 100M;
-    client_body_buffer_size 128k;
-
-    proxy_connect_timeout 300s;
-    proxy_send_timeout 300s;
-    proxy_read_timeout 300s;
-    proxy_buffer_size 128k;
-    proxy_buffers 8 64k;
-    proxy_busy_buffers_size 128k;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-}
-EOF_NGINX
-
-ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl restart nginx
-
-# 8. Automated Background WhiteLabel App Deployment (Git Clone, Build, PM2 Handover)
-cat << 'EOF_BUILD_SCRIPT' > /var/www/build-whitelabel.sh
-#!/bin/bash
-set -euo pipefail
-LOG_FILE="/var/log/whitelabel-build.log"
-exec >> "$LOG_FILE" 2>&1
-
-echo "[$(date -u)] === Starting WhiteLabel Build & Deployment ==="
-
-REPO_DIR="/var/www/music-distribution-platform"
+# 6. Prepare web directory with ubuntu ownership
 mkdir -p /var/www
-
-if [ ! -d "$REPO_DIR/.git" ]; then
-  echo "[$(date -u)] Cloning music-distribution-platform repository..."
-  git clone https://github.com/shahmdmahi15/music-distribution-platform.git "$REPO_DIR"
-else
-  echo "[$(date -u)] Existing repository detected. Fetching latest master..."
-  cd "$REPO_DIR"
-  git fetch origin master
-  git reset --hard origin/master
-fi
-
-cd "$REPO_DIR/whitelabel"
-
-echo "[$(date -u)] Writing production environment configuration..."
-cat << 'EOF_ENV' > "$REPO_DIR/whitelabel/.env"
-API_BASE_URL="${apiBaseUrl}"
-API_KEY="${rawApiKey}"
-INTERNAL_API_SECRET="${internalSecret}"
-PORT=3000
-NODE_ENV=production
-EOF_ENV
-
-echo "[$(date -u)] Installing whitelabel dependencies via pnpm..."
-pnpm install
-
-echo "[$(date -u)] Compiling Next.js 16 production build..."
-pnpm run build
-
-echo "[$(date -u)] Build succeeded! Switching PM2 process to Next.js production server on Port 3000..."
-cd "$REPO_DIR/whitelabel"
-pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
-pm2 save
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
-pm2 save
-
-echo "[$(date -u)] === WhiteLabel Portal Production App Successfully Deployed! ==="
-EOF_BUILD_SCRIPT
-
-chmod +x /var/www/build-whitelabel.sh
-
-# 9. Standalone manual update script
-cat << 'EOF_DEPLOY_SCRIPT' > /var/www/deploy-whitelabel.sh
-#!/bin/bash
-set -euo pipefail
-REPO_DIR="/var/www/music-distribution-platform"
-cd "$REPO_DIR"
-git fetch origin master
-git reset --hard origin/master
-cd "$REPO_DIR/whitelabel"
-pnpm install
-pnpm run build
-pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
-pm2 save
-EOF_DEPLOY_SCRIPT
-
-chmod +x /var/www/deploy-whitelabel.sh
-
-# 10. Dedicated systemd service to run build & deployment in isolated cgroup
-cat << 'EOF_SERVICE' > /etc/systemd/system/whitelabel-bootstrap.service
-[Unit]
-Description=WhiteLabel Next.js Application Bootstrap and Build Service
-After=network.target nginx.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/var/www
-ExecStart=/bin/bash /var/www/build-whitelabel.sh
-StandardOutput=append:/var/log/whitelabel-build.log
-StandardError=append:/var/log/whitelabel-build.log
-TimeoutStartSec=1800
-
-[Install]
-WantedBy=multi-user.target
-EOF_SERVICE
-
-systemctl daemon-reload
-systemctl enable whitelabel-bootstrap.service
-systemctl start whitelabel-bootstrap.service &
+chown -R ubuntu:ubuntu /var/www
+chmod 755 /var/www
 `;
 
       // =========================================================================
@@ -1507,6 +1206,16 @@ systemctl start whitelabel-bootstrap.service &
             MinCount: 1,
             MaxCount: 1,
             SecurityGroupIds: [sgId],
+            BlockDeviceMappings: [
+              {
+                DeviceName: '/dev/sda1',
+                Ebs: {
+                  VolumeSize: 20,
+                  VolumeType: 'gp3',
+                  DeleteOnTermination: true,
+                },
+              },
+            ],
             UserData: Buffer.from(userDataScript).toString('base64'),
             TagSpecifications: [
               {
@@ -1698,7 +1407,13 @@ systemctl start whitelabel-bootstrap.service &
           'SUCCESS',
         );
 
-        // 2. Ensure directories exist with proper permissions
+        // 2. Terminate any legacy holding servers or root PM2 daemons on port 3000
+        await this.execSsh(
+          ssh,
+          `sudo fuser -k 3000/tcp 2>/dev/null || true; sudo pm2 delete all 2>/dev/null || true; sudo pm2 kill 2>/dev/null || true; sudo systemctl stop pm2-root 2>/dev/null || true; sudo systemctl disable pm2-root 2>/dev/null || true; sudo systemctl stop whitelabel-bootstrap 2>/dev/null || true; sudo systemctl disable whitelabel-bootstrap 2>/dev/null || true; sudo rm -f /etc/systemd/system/whitelabel-bootstrap.service /etc/systemd/system/pm2-root.service 2>/dev/null || true; sudo rm -rf /var/www/whitelabel-holding 2>/dev/null || true; sudo systemctl daemon-reload 2>/dev/null || true`,
+        );
+
+        // 3. Ensure directories exist with proper permissions
         await this.execSsh(
           ssh,
           `sudo mkdir -p /var/www /etc/ssl/certs /etc/ssl/private /etc/nginx/sites-available /etc/nginx/sites-enabled && sudo chown -R ubuntu:ubuntu /var/www && sudo chmod 755 /var/www`,
@@ -1909,7 +1624,26 @@ sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm run build
 
 echo "=== [6/6] Starting PM2 process on Port 3000 ==="
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 delete whitelabel-portal 2>/dev/null || true
+# Force kill anything occupying port 3000 to guarantee clean bind
+fuser -k 3000/tcp 2>/dev/null || true
+pm2 delete all 2>/dev/null || true
+pm2 kill 2>/dev/null || true
+systemctl stop pm2-root 2>/dev/null || true
+systemctl disable pm2-root 2>/dev/null || true
+systemctl stop whitelabel-bootstrap 2>/dev/null || true
+systemctl disable whitelabel-bootstrap 2>/dev/null || true
+rm -f /etc/systemd/system/whitelabel-bootstrap.service /etc/systemd/system/pm2-root.service 2>/dev/null || true
+rm -rf /var/www/whitelabel-holding 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
+
+# Clean ubuntu PM2 state
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 delete all 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 kill 2>/dev/null || true
+
+# Wait 2 seconds for port release
+sleep 2
+
+# Start Next.js via ecosystem
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 start ecosystem.config.js
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
 env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
@@ -1920,16 +1654,21 @@ systemctl enable nginx
 systemctl restart nginx
 
 echo "Verifying local service health on Port 3000..."
-for i in {1..30}; do
-  if curl -s -f http://127.0.0.1:3000 > /dev/null || curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308|404" > /dev/null; then
-    echo "DEPLOYMENT_VERIFIED_SUCCESS"
-    exit 0
+for i in {1..35}; do
+  STATUS_RAW=$(sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 jlist 2>/dev/null || echo "[]")
+  if echo "$STATUS_RAW" | grep -q '"status":"online"'; then
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000 || echo "000")
+    if [[ "$HTTP_CODE" =~ ^(200|307|308|404)$ ]]; then
+      echo "DEPLOYMENT_VERIFIED_SUCCESS"
+      exit 0
+    fi
   fi
-  echo "Waiting for Next.js server on Port 3000... (attempt $i/30)"
+  echo "Waiting for Next.js server on Port 3000... (attempt $i/35)"
   sleep 2
 done
 
 echo "DEPLOYMENT_FAILED_HEALTHCHECK"
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 logs whitelabel-portal --lines 30 --nostream 2>/dev/null || true
 exit 1
 `;
         const scriptB64 = Buffer.from(deployScriptContent).toString('base64');
