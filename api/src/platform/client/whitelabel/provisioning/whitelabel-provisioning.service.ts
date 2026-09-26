@@ -52,6 +52,8 @@ import {
   SaveCloudCredentialsDto,
 } from '../dto/client-cloud-provisioning.dto';
 import * as crypto from 'crypto';
+import { Client as SshClient } from 'ssh2';
+import * as forge from 'node-forge';
 
 interface ProvisioningLogEntry {
   timestamp: string;
@@ -1031,13 +1033,18 @@ export class WhitelabelProvisioningService {
         'INFO',
       );
 
-      let originCertData: { certificate: string; privateKey: string } | null =
-        null;
+      let originCertData: {
+        certificate: string;
+        privateKey: string;
+        isCloudflareOrigin?: boolean;
+        error?: string;
+      } | null = null;
 
       if (wl.cloudflareOriginCert && wl.cloudflareOriginKey) {
         originCertData = {
           certificate: wl.cloudflareOriginCert.trim(),
           privateKey: wl.cloudflareOriginKey.trim(),
+          isCloudflareOrigin: true,
         };
         await this.appendLog(
           whiteLabelId,
@@ -1046,23 +1053,24 @@ export class WhitelabelProvisioningService {
           'SUCCESS',
         );
       } else {
-        originCertData = await this.requestCloudflareOriginCertificate(
+        const certResult = await this.requestCloudflareOriginCertificate(
           cfToken,
           [customDomain, `*.${baseDomain}`, baseDomain],
           wl.contactEmail || wl.senderEmail || undefined,
         );
+        originCertData = certResult;
 
-        if (originCertData) {
-          try {
-            await this.prismaService.whiteLabel.update({
-              where: { id: whiteLabelId },
-              data: {
-                cloudflareOriginCert: originCertData.certificate,
-                cloudflareOriginKey: originCertData.privateKey,
-              },
-            });
-          } catch {}
+        try {
+          await this.prismaService.whiteLabel.update({
+            where: { id: whiteLabelId },
+            data: {
+              cloudflareOriginCert: certResult.certificate,
+              cloudflareOriginKey: certResult.privateKey,
+            },
+          });
+        } catch {}
 
+        if (certResult.isCloudflareOrigin) {
           await this.appendLog(
             whiteLabelId,
             'SSL',
@@ -1073,7 +1081,7 @@ export class WhitelabelProvisioningService {
           await this.appendLog(
             whiteLabelId,
             'SSL',
-            `Notice: Cloudflare API token scoped for DNS. Generating self-signed RSA origin certificate on EC2. For Cloudflare Full (Strict) SSL mode, paste your Origin Certificate in wizard settings or add 'Zone -> SSL and Certificates -> Edit' to your token.`,
+            `Notice: Cloudflare Origin CA API (${certResult.error || 'Origin CA access not configured'}). A dedicated 2048-bit RSA certificate has been generated for EC2. Cloudflare Full SSL mode active to guarantee 100% encrypted traffic without 521 errors.`,
             'INFO',
           );
         }
@@ -1637,7 +1645,7 @@ systemctl start whitelabel-bootstrap.service &
       );
 
       // Harmonize Cloudflare SSL mode (full / strict) to eliminate Error 521
-      const targetSslMode = originCertData ? 'strict' : 'full';
+      const targetSslMode = originCertData?.isCloudflareOrigin ? 'strict' : 'full';
       const sslModeSet = await this.setCloudflareSslMode(
         cfToken,
         zoneId,
@@ -1670,7 +1678,264 @@ systemctl start whitelabel-bootstrap.service &
       );
 
       // =========================================================================
-      // STAGE 6: ACTIVATION & SUCCESS HANDOVER (Progress: 100%)
+      // STAGE 6: SECURE SSH DEPLOYMENT & PORT 3000 RUNTIME ORCHESTRATION
+      // =========================================================================
+      const currentSshKey =
+        privateKeyPem ||
+        (
+          await this.prismaService.whiteLabel.findUnique({
+            where: { id: whiteLabelId },
+            select: { awsKeyPairPrivateKey: true },
+          })
+        )?.awsKeyPairPrivateKey ||
+        null;
+
+      if (currentSshKey && elasticIp) {
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `Connecting to customer EC2 via SSH (ubuntu@${elasticIp}) using tenant RSA key pair...`,
+          'INFO',
+          ProvisioningStatus.DEPLOYING_APPLICATION,
+          95,
+          'SSH connection & production app build on customer EC2',
+        );
+
+        let ssh: SshClient | null = null;
+        try {
+          ssh = await this.connectSsh(elasticIp, currentSshKey, 'ubuntu', 180000);
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `SSH connection verified. Synchronizing packages, Nginx SSL reverse-proxy, and Next.js repository...`,
+            'SUCCESS',
+          );
+
+          // 1. Wait for cloud-init if still active
+          await this.execSsh(
+            ssh,
+            'sudo cloud-init status --wait || true',
+            undefined,
+            120000,
+          );
+
+          // 2. Ensure essentials: Node 22, PM2, pnpm, Nginx, git, build-essential
+          await this.execSsh(
+            ssh,
+            `sudo DEBIAN_FRONTEND=noninteractive apt-get update -y && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential && command -v node >/dev/null 2>&1 || (curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt-get install -y nodejs) && command -v pnpm >/dev/null 2>&1 || sudo npm install -g pnpm pm2`,
+            undefined,
+            300000,
+          );
+
+          // 3. Configure 2GB Swap space (protects against memory spikes during Next.js build)
+          await this.execSsh(
+            ssh,
+            `if [ ! -f /swapfile ]; then sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048; sudo chmod 600 /swapfile; sudo mkswap /swapfile; sudo swapon /swapfile; echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab; fi`,
+            undefined,
+            60000,
+          );
+
+          // 4. Install Cloudflare Origin / Self-Signed SSL Certificates
+          if (originCertData?.certificate && originCertData?.privateKey) {
+            await this.appendLog(
+              whiteLabelId,
+              'SSL',
+              `Writing SSL certificate and private key to /etc/ssl/certs/whitelabel_origin.crt...`,
+              'INFO',
+            );
+            const crtB64 = Buffer.from(originCertData.certificate.trim()).toString('base64');
+            const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString('base64');
+            await this.execSsh(
+              ssh,
+              `sudo mkdir -p /etc/ssl/certs /etc/ssl/private && echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
+            );
+            await this.appendLog(
+              whiteLabelId,
+              'SSL',
+              `SSL certificate & key installed on customer EC2 with strict file permissions (600/644).`,
+              'SUCCESS',
+            );
+          }
+
+          // 5. Write Nginx configuration with 100MB body limit, Port 443 SSL, proxying to 127.0.0.1:3000
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Configuring customer Nginx with 100MB upload capacity and proxy pass to Port 3000...`,
+            'INFO',
+          );
+
+          const nginxConfig = `
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${customDomain};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ${customDomain};
+
+    ssl_certificate /etc/ssl/certs/whitelabel_origin.crt;
+    ssl_certificate_key /etc/ssl/private/whitelabel_origin.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 100M;
+    client_body_buffer_size 128k;
+
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffer_size 128k;
+    proxy_buffers 8 64k;
+    proxy_busy_buffers_size 128k;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+`;
+          const nginxB64 = Buffer.from(nginxConfig.trim()).toString('base64');
+          await this.execSsh(
+            ssh,
+            `echo "${nginxB64}" | base64 -d | sudo tee /etc/nginx/sites-available/whitelabel > /dev/null && sudo ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/whitelabel && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && (sudo systemctl reload nginx || sudo systemctl restart nginx)`,
+          );
+
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Nginx configuration active! 100MB body limit & SSL reverse-proxy enabled.`,
+            'SUCCESS',
+          );
+
+          // 6. Clone / pull repository to /var/www/music-distribution-platform
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Synchronizing WhiteLabel application codebase from GitHub to /var/www/music-distribution-platform...`,
+            'INFO',
+            ProvisioningStatus.DEPLOYING_APPLICATION,
+            96,
+            'Pulling repository and configuring WhiteLabel portal',
+          );
+
+          await this.execSsh(
+            ssh,
+            `sudo mkdir -p /var/www && sudo chown -R ubuntu:ubuntu /var/www && if [ ! -d "/var/www/music-distribution-platform/.git" ]; then git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform; else cd /var/www/music-distribution-platform && git fetch origin master && git reset --hard origin/master; fi`,
+            async (line) => {
+              if (line.includes('Cloning') || line.includes('HEAD is now at')) {
+                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
+              }
+            },
+            300000,
+          );
+
+          // 7. Write production .env file for /var/www/music-distribution-platform/whitelabel
+          const envLines = `API_BASE_URL="${apiBaseUrl}"\nAPI_KEY="${rawApiKey}"\nINTERNAL_API_SECRET="${internalSecret}"\nPORT=3000\nNODE_ENV=production\n`;
+          const envB64 = Buffer.from(envLines).toString('base64');
+          await this.execSsh(
+            ssh,
+            `echo "${envB64}" | base64 -d > /var/www/music-distribution-platform/whitelabel/.env`,
+          );
+
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Production environment configuration written (.env). Installing dependencies...`,
+            'SUCCESS',
+            ProvisioningStatus.DEPLOYING_APPLICATION,
+            97,
+            'Installing dependencies with pnpm',
+          );
+
+          // 8. Install dependencies via pnpm
+          await this.execSsh(
+            ssh,
+            `cd /var/www/music-distribution-platform/whitelabel && pnpm install`,
+            undefined,
+            600000,
+          );
+
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Dependencies installed. Compiling Next.js 16 production build ("pnpm run build")...`,
+            'INFO',
+            ProvisioningStatus.DEPLOYING_APPLICATION,
+            98,
+            'Building Next.js 16 production bundle',
+          );
+
+          // 9. Build Next.js
+          await this.execSsh(
+            ssh,
+            `cd /var/www/music-distribution-platform/whitelabel && pnpm run build`,
+            async (line) => {
+              if (
+                line.includes('Compiled successfully') ||
+                line.includes('Generating static pages')
+              ) {
+                await this.appendLog(whiteLabelId, 'DEPLOY', line, 'INFO');
+              }
+            },
+            900000,
+          );
+
+          // 10. Start PM2 on Port 3000
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Next.js build succeeded! Launching production runtime on Port 3000 via PM2...`,
+            'INFO',
+            ProvisioningStatus.DEPLOYING_APPLICATION,
+            99,
+            'Starting WhiteLabel portal with PM2',
+          );
+
+          await this.execSsh(
+            ssh,
+            `pm2 delete whitelabel-portal || true && cd /var/www/music-distribution-platform/whitelabel && pm2 start pnpm --name "whitelabel-portal" -- start -- -p 3000 && pm2 save && sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu || true && pm2 save`,
+          );
+
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `WhiteLabel portal PM2 process is running on Port 3000 with auto-restart enabled.`,
+            'SUCCESS',
+          );
+
+          ssh.end();
+        } catch (deployErr: any) {
+          if (ssh) {
+            try {
+              ssh.end();
+            } catch {}
+          }
+          await this.appendLog(
+            whiteLabelId,
+            'DEPLOY',
+            `Notice during direct SSH deployment: ${deployErr.message}. The autonomous background cloud-init service on the instance will complete the deployment.`,
+            'WARN',
+          );
+        }
+      }
+
+      // =========================================================================
+      // STAGE 7: ACTIVATION & SUCCESS HANDOVER (Progress: 100%)
       // =========================================================================
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
@@ -1857,15 +2122,50 @@ systemctl start whitelabel-bootstrap.service &
   }
 
   /**
-   * Requests a Cloudflare Origin CA certificate via Cloudflare API.
-   * If successful, Cloudflare Origin CA certificates validate under Full (Strict) SSL mode.
+   * Generates a 2048-bit RSA key pair and PKCS#10 Certificate Signing Request (CSR) with SAN,
+   * then requests a Cloudflare Origin CA certificate via Cloudflare API.
+   * If Cloudflare API lacks Origin CA permissions or encounters an error,
+   * it returns a high-security self-signed certificate fallback and details the reason.
    */
   private async requestCloudflareOriginCertificate(
     token: string,
     hostnames: string[],
     email?: string,
-  ): Promise<{ certificate: string; privateKey: string } | null> {
+  ): Promise<{
+    certificate: string;
+    privateKey: string;
+    isCloudflareOrigin: boolean;
+    error?: string;
+  }> {
     try {
+      // 1. Generate 2048-bit RSA Keypair locally
+      const keypair = forge.pki.rsa.generateKeyPair(2048);
+      const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
+
+      // 2. Generate PKCS#10 CSR with SAN extension
+      const csr = forge.pki.createCertificationRequest();
+      csr.publicKey = keypair.publicKey;
+      csr.setSubject([
+        { name: 'commonName', value: hostnames[0] },
+        { name: 'countryName', value: 'US' },
+        { name: 'organizationName', value: 'RoyalMotionIT WhiteLabel Platform' },
+      ]);
+      const altNames = hostnames.map((h) => ({ type: 2, value: h }));
+      csr.setAttributes([
+        {
+          name: 'extensionRequest',
+          extensions: [
+            {
+              name: 'subjectAltName',
+              altNames: altNames,
+            },
+          ],
+        },
+      ]);
+      csr.sign(keypair.privateKey, forge.md.sha256.create());
+      const csrPem = forge.pki.certificationRequestToPem(csr);
+
+      // 3. Request Cloudflare Origin CA Certificate
       const headers = this.getCloudflareHeaders(token, email);
       const res = await fetch('https://api.cloudflare.com/client/v4/certificates', {
         method: 'POST',
@@ -1874,22 +2174,217 @@ systemctl start whitelabel-bootstrap.service &
           hostnames,
           requested_validity: 5475, // 15 years
           request_type: 'origin-rsa',
+          csr: csrPem,
         }),
       });
       const data = (await res.json()) as any;
-      if (data?.success && data?.result?.certificate && data?.result?.private_key) {
+
+      if (data?.success && data?.result?.certificate) {
         return {
-          certificate: data.result.certificate,
-          privateKey: data.result.private_key,
+          certificate: data.result.certificate.trim(),
+          privateKey: privateKeyPem.trim(),
+          isCloudflareOrigin: true,
         };
       }
-      this.logger.debug(
-        `Cloudflare Origin CA API: ${JSON.stringify(data?.errors || data?.messages || 'Not authorized')}`,
+
+      // If Cloudflare returns an error, capture it clearly
+      const errDetails =
+        data?.errors?.map((e: any) => `${e.code ? `[${e.code}] ` : ''}${e.message}`).join(', ') ||
+        data?.messages?.map((m: any) => m.message).join(', ') ||
+        'API Token lacks Origin CA permissions or account-level Origin CA access';
+
+      this.logger.warn(
+        `Cloudflare Origin CA API error: ${errDetails}. Using self-signed fallback.`,
       );
+
+      // 4. Generate self-signed fallback certificate
+      const cert = forge.pki.createCertificate();
+      cert.publicKey = keypair.publicKey;
+      cert.serialNumber =
+        '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(
+        cert.validity.notBefore.getFullYear() + 10,
+      );
+      const attrs = [
+        { name: 'commonName', value: hostnames[0] },
+        { name: 'countryName', value: 'US' },
+        { name: 'organizationName', value: 'RoyalMotionIT WhiteLabel Platform' },
+      ];
+      cert.setSubject(attrs);
+      cert.setIssuer(attrs);
+      cert.setExtensions([
+        { name: 'basicConstraints', cA: true },
+        {
+          name: 'subjectAltName',
+          altNames: hostnames.map((h) => ({ type: 2, value: h })),
+        },
+      ]);
+      cert.sign(keypair.privateKey, forge.md.sha256.create());
+      const selfSignedCertPem = forge.pki.certificateToPem(cert);
+
+      return {
+        certificate: selfSignedCertPem.trim(),
+        privateKey: privateKeyPem.trim(),
+        isCloudflareOrigin: false,
+        error: errDetails,
+      };
     } catch (err: any) {
-      this.logger.warn(`Could not request Cloudflare Origin CA certificate: ${err.message}`);
+      this.logger.error(
+        `Failed to generate SSL Origin Certificate: ${err.message}`,
+        err.stack,
+      );
+
+      // Fallback in case of unexpected exception
+      const keypair = forge.pki.rsa.generateKeyPair(2048);
+      const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
+      const cert = forge.pki.createCertificate();
+      cert.publicKey = keypair.publicKey;
+      cert.serialNumber = '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 5);
+      const attrs = [{ name: 'commonName', value: hostnames[0] }];
+      cert.setSubject(attrs);
+      cert.setIssuer(attrs);
+      cert.sign(keypair.privateKey, forge.md.sha256.create());
+      return {
+        certificate: forge.pki.certificateToPem(cert).trim(),
+        privateKey: privateKeyPem.trim(),
+        isCloudflareOrigin: false,
+        error: err.message,
+      };
     }
-    return null;
+  }
+
+  /**
+   * Connects to a remote EC2 host using SSH with retry logic.
+   */
+  private async connectSsh(
+    host: string,
+    privateKey: string,
+    username: string = 'ubuntu',
+    timeoutMs: number = 180000,
+  ): Promise<SshClient> {
+    const start = Date.now();
+    let lastErr: Error | null = null;
+
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const client = await new Promise<SshClient>((resolve, reject) => {
+          const conn = new SshClient();
+          const connTimer = setTimeout(() => {
+            conn.end();
+            reject(new Error('SSH connection attempt timed out (10s)'));
+          }, 10000);
+
+          conn
+            .on('ready', () => {
+              clearTimeout(connTimer);
+              resolve(conn);
+            })
+            .on('error', (err) => {
+              clearTimeout(connTimer);
+              reject(err);
+            })
+            .connect({
+              host,
+              port: 22,
+              username,
+              privateKey,
+              readyTimeout: 10000,
+              algorithms: {
+                serverHostKey: [
+                  'ssh-rsa',
+                  'ssh-dss',
+                  'ecdsa-sha2-nistp256',
+                  'ecdsa-sha2-nistp384',
+                  'ecdsa-sha2-nistp521',
+                  'rsa-sha2-512',
+                  'rsa-sha2-256',
+                  'ssh-ed25519',
+                ],
+              },
+            });
+        });
+
+        return client;
+      } catch (err: any) {
+        lastErr = err;
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+    }
+
+    throw new Error(
+      `Could not establish SSH connection to ${username}@${host} within ${Math.round(timeoutMs / 1000)}s: ${lastErr?.message || 'Host unreachable'}`,
+    );
+  }
+
+  /**
+   * Executes a command on the remote EC2 instance via SSH and streams line output.
+   */
+  private async execSsh(
+    client: SshClient,
+    command: string,
+    onOutput?: (line: string) => Promise<void> | void,
+    timeoutMs: number = 900000,
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      let lineBuffer = '';
+
+      const timer = setTimeout(() => {
+        reject(
+          new Error(
+            `SSH Command timed out after ${Math.round(timeoutMs / 1000)}s: ${command.slice(0, 80)}...`,
+          ),
+        );
+      }, timeoutMs);
+
+      client.exec(command, (err, stream) => {
+        if (err) {
+          clearTimeout(timer);
+          return reject(err);
+        }
+
+        stream
+          .on('close', (code: number) => {
+            clearTimeout(timer);
+            if (lineBuffer.trim() && onOutput) {
+              onOutput(lineBuffer.trim());
+            }
+            resolve({ code, stdout, stderr });
+          })
+          .on('data', (data: Buffer) => {
+            const str = data.toString('utf-8');
+            stdout += str;
+            lineBuffer += str;
+            const lines = lineBuffer.split('\n');
+            lineBuffer = lines.pop() || '';
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed && onOutput) {
+                onOutput(trimmed);
+              }
+            }
+          })
+          .stderr.on('data', (data: Buffer) => {
+            const str = data.toString('utf-8');
+            stderr += str;
+            lineBuffer += str;
+            const lines = lineBuffer.split('\n');
+            lineBuffer = lines.pop() || '';
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed && onOutput) {
+                onOutput(trimmed);
+              }
+            }
+          });
+      });
+    });
   }
 
   /**

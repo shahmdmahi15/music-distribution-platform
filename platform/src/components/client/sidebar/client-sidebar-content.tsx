@@ -13,18 +13,14 @@ import {
 import { PaymentStatus, Subscription } from "@/types/subscription";
 import { WhiteLabelStatus } from "@/types/whitelabel";
 import {
-  Disc3,
   House,
   LayoutDashboard,
   UserPen,
   ShieldPlus,
   Sparkles,
-  Globe,
-  Palette,
   KeyRound,
   Webhook,
   Users,
-  ShieldCheck,
 } from "lucide-react";
 
 interface SimpleNavigationItem {
@@ -64,34 +60,14 @@ const activeNavigations: SimpleNavigationGroup[] = [
         icon: Sparkles,
       },
       {
-        title: "Identity & Branding",
-        url: "/whitelabel/branding",
-        icon: Disc3,
-      },
-      {
-        title: "Theme Customizer",
-        url: "/whitelabel/theme",
-        icon: Palette,
-      },
-      {
-        title: "Domain & DNS",
-        url: "/whitelabel/domain",
-        icon: Globe,
-      },
-      {
-        title: "Credentials & SSO",
-        url: "/whitelabel/sso",
-        icon: ShieldCheck,
+        title: "Webhooks",
+        url: "/whitelabel/webhooks",
+        icon: Webhook,
       },
       {
         title: "API Keys",
         url: "/whitelabel/api-keys",
         icon: KeyRound,
-      },
-      {
-        title: "Webhooks",
-        url: "/whitelabel/webhooks",
-        icon: Webhook,
       },
       {
         title: "Portal Users",

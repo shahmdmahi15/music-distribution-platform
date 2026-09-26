@@ -10,9 +10,30 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "100mb",
     },
   },
-  // output: "standalone",
-  // // If output is standalone add the packages in transpilePackages
-  // transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
+  async redirects() {
+    return [
+      {
+        source: "/whitelabel/branding",
+        destination: "/whitelabel/setup",
+        permanent: false,
+      },
+      {
+        source: "/whitelabel/theme",
+        destination: "/whitelabel/setup",
+        permanent: false,
+      },
+      {
+        source: "/whitelabel/domain",
+        destination: "/whitelabel/setup",
+        permanent: false,
+      },
+      {
+        source: "/whitelabel/sso",
+        destination: "/whitelabel/setup",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -204,7 +204,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </span>
               </div>
             </div>
-            <Link href="/whitelabel/branding">
+            <Link href="/whitelabel/setup">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -240,7 +240,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 {isDomainConfigured ? "Routing Active" : "Action Required"}
               </Badge>
             </div>
-            <Link href="/whitelabel/domain">
+            <Link href="/whitelabel/setup">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -602,7 +602,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </div>
               </div>
             </div>
-            <Link href="/whitelabel/branding">
+            <Link href="/whitelabel/setup">
               <Button variant="outline" size="sm" className="text-xs h-8">
                 {isBrandingComplete ? "Manage Assets" : "Configure"}
               </Button>
@@ -631,7 +631,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </div>
               </div>
             </div>
-            <Link href="/whitelabel/domain">
+            <Link href="/whitelabel/setup">
               <Button variant="outline" size="sm" className="text-xs h-8">
                 {isDomainConfigured ? "Manage DNS" : "Setup Domain"}
               </Button>

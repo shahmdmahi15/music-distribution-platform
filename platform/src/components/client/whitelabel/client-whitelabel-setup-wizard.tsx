@@ -9,6 +9,7 @@ import {
   UserCheck,
   Globe,
   Sparkles,
+  LayoutDashboard,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
@@ -1173,13 +1174,13 @@ NODE_ENV=production`;
               </div>
               <div className="flex items-center gap-1.5 pt-1">
                 <Button
-                  render={<Link href="/whitelabel/domain" />}
+                  render={<Link href="/whitelabel" />}
                   variant="outline"
                   size="sm"
                   className="text-[10px] h-6 px-2 gap-1 flex-1 font-mono"
                 >
                   <Globe className="w-2.5 h-2.5" />
-                  DNS Records &rarr;
+                  Console Overview &rarr;
                 </Button>
               </div>
             </div>
@@ -1199,34 +1200,34 @@ NODE_ENV=production`;
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {/* A. Identity & Branding */}
+            {/* A. Console Overview */}
             <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Palette className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <LayoutDashboard className="w-4 h-4" />
                   </div>
                   <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
-                    Menu &bull; Branding
+                    Menu &bull; Overview
                   </Badge>
                 </div>
-                <h3 className="text-sm font-bold text-foreground">Identity &amp; Brand Assets</h3>
+                <h3 className="text-sm font-bold text-foreground">Subsystem Overview &amp; Metrics</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Update primary &amp; dark mode logos, browser favicon, onboarding hero banner, support contact phone/email, and official social channels.
+                  Monitor live instance health, active SSL edge routing, SES mail deliverability, artist activity, and platform metrics in real-time.
                 </p>
               </div>
               <Button
-                render={<Link href="/whitelabel/branding" />}
+                render={<Link href="/whitelabel" />}
                 variant="outline"
                 size="sm"
                 className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
               >
-                <span>Customize Branding</span>
+                <span>View Console Overview</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </Button>
             </div>
 
-            {/* B. Theme Customizer */}
+            {/* B. Setup Wizard */}
             <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1234,75 +1235,21 @@ NODE_ENV=production`;
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
-                    Menu &bull; Theme
+                    Menu &bull; Setup Wizard
                   </Badge>
                 </div>
-                <h3 className="text-sm font-bold text-foreground">Theme &amp; Typography</h3>
+                <h3 className="text-sm font-bold text-foreground">Infrastructure &amp; Brand Wizard</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Tailor primary and accent colors, select from 16 curated Google font presets, set component border radius, card style, and dark mode defaults.
+                  Re-run infrastructure provisioning, update brand logos, colors, custom domains, or rotate AWS and Cloudflare API keys seamlessly.
                 </p>
               </div>
               <Button
-                render={<Link href="/whitelabel/theme" />}
+                render={<Link href="/whitelabel/setup" />}
                 variant="outline"
                 size="sm"
                 className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
               >
-                <span>Customize Theme</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Button>
-            </div>
-
-            {/* C. Domain & DNS */}
-            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
-                    Menu &bull; Domain &amp; DNS
-                  </Badge>
-                </div>
-                <h3 className="text-sm font-bold text-foreground">Domain &amp; DNS Management</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Monitor custom domain bindings, verify DKIM/SPF mail records, manage Cloudflare DNS zones, and run automated health checks.
-                </p>
-              </div>
-              <Button
-                render={<Link href="/whitelabel/domain" />}
-                variant="outline"
-                size="sm"
-                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
-              >
-                <span>Manage Domains &amp; DNS</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Button>
-            </div>
-
-            {/* D. Credentials & SSO */}
-            <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-card/80 transition-all flex flex-col justify-between space-y-3 group">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
-                    Menu &bull; Credentials &amp; SSO
-                  </Badge>
-                </div>
-                <h3 className="text-sm font-bold text-foreground">Authentication &amp; Security</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Configure Google and GitHub OAuth credentials, enforce mandatory 2FA across all artist portals, and tune session timeouts.
-                </p>
-              </div>
-              <Button
-                render={<Link href="/whitelabel/sso" />}
-                variant="outline"
-                size="sm"
-                className="w-full text-xs h-8 justify-between font-semibold group-hover:border-primary/50 group-hover:text-primary"
-              >
-                <span>Configure SSO &amp; Security</span>
+                <span>Open Setup Wizard</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </Button>
             </div>
