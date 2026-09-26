@@ -40,6 +40,7 @@ import {
 import {
   ValidateCloudCredentialsDto,
   StartCloudProvisioningDto,
+  SaveCloudCredentialsDto,
 } from '../dto/client-cloud-provisioning.dto';
 import * as crypto from 'crypto';
 
@@ -64,7 +65,10 @@ export class WhitelabelProvisioningService {
    * Validates both AWS IAM credentials and Cloudflare API token permissions
    * before starting any infrastructure provisioning.
    */
-  async validateCloudCredentials(dto: ValidateCloudCredentialsDto) {
+  async validateCloudCredentials(
+    dto: ValidateCloudCredentialsDto,
+    userId?: string,
+  ) {
     const checks: {
       aws: boolean;
       cloudflare: boolean;
@@ -147,10 +151,85 @@ export class WhitelabelProvisioningService {
       );
     }
 
+    // Auto-persist validated credentials to DB if userId is available
+    if (userId) {
+      const cleanBase = dto.cloudflareBaseDomain.trim().toLowerCase();
+      await this.prismaService.whiteLabel.updateMany({
+        where: {
+          subscription: { subscriberId: userId },
+        },
+        data: {
+          awsRegion: dto.awsRegion.trim(),
+          awsAccessKeyId: dto.awsAccessKeyId.trim(),
+          awsSecretAccessKey: dto.awsSecretAccessKey.trim(),
+          cloudflareApiToken: dto.cloudflareApiToken.trim(),
+          cloudflareZoneId: dto.cloudflareZoneId.trim(),
+          cloudflareBaseDomain: cleanBase,
+          customDomain: `backstage.${cleanBase}`,
+          subdomain: 'backstage',
+          senderEmail: `noreply@mail.${cleanBase}`,
+        },
+      });
+    }
+
     return {
       valid: true,
-      message: 'All cloud credentials successfully validated.',
+      message: 'All cloud credentials successfully validated and saved.',
       checks,
+    };
+  }
+
+  /**
+   * Securely saves AWS and Cloudflare credentials to the tenant record.
+   */
+  async saveCloudCredentials(userId: string, dto: SaveCloudCredentialsDto) {
+    const whiteLabel = await this.prismaService.whiteLabel.findFirst({
+      where: {
+        subscription: {
+          subscriberId: userId,
+        },
+      },
+    });
+
+    if (!whiteLabel) {
+      throw new NotFoundException(
+        'No WhiteLabel application found for this account.',
+      );
+    }
+
+    const cleanBaseDomain = dto.cloudflareBaseDomain.trim().toLowerCase();
+    const targetCustomDomain = `backstage.${cleanBaseDomain}`;
+    const targetBucketName =
+      dto.bucketName?.trim().toLowerCase() ||
+      `rmit-music-${whiteLabel.code.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const senderEmail =
+      dto.senderEmail?.trim().toLowerCase() ||
+      `noreply@mail.${cleanBaseDomain}`;
+
+    const updated = await this.prismaService.whiteLabel.update({
+      where: { id: whiteLabel.id },
+      data: {
+        awsRegion: dto.awsRegion.trim(),
+        awsAccessKeyId: dto.awsAccessKeyId.trim(),
+        awsSecretAccessKey: dto.awsSecretAccessKey.trim(),
+        bucketName: targetBucketName,
+        senderEmail: senderEmail,
+        cloudflareApiToken: dto.cloudflareApiToken.trim(),
+        cloudflareZoneId: dto.cloudflareZoneId.trim(),
+        cloudflareBaseDomain: cleanBaseDomain,
+        customDomain: targetCustomDomain,
+        subdomain: 'backstage',
+        ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
+        ...(dto.instanceType ? { awsInstanceType: dto.instanceType.trim() } : {}),
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Cloud infrastructure credentials saved securely to your tenant profile.',
+      whiteLabelId: updated.id,
+      customDomain: updated.customDomain,
+      senderEmail: updated.senderEmail,
     };
   }
 
@@ -173,22 +252,22 @@ export class WhitelabelProvisioningService {
       );
     }
 
-    // First validate credentials
-    await this.validateCloudCredentials(dto);
+    // First validate credentials and auto-persist to DB
+    await this.validateCloudCredentials(dto, userId);
 
-    // Default custom domain if not provided
-    const targetCustomDomain =
-      dto.customDomain?.trim() ||
-      `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`;
+    // Subdomain is permanently backstage locked
+    const cleanBaseDomain = dto.cloudflareBaseDomain.trim().toLowerCase();
+    const targetCustomDomain = `backstage.${cleanBaseDomain}`;
 
     // Default S3 bucket name if not provided
     const targetBucketName =
       dto.bucketName?.trim().toLowerCase() ||
       `rmit-music-${whiteLabel.code.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
 
+    // Dedicated SES mailing domain is mail.<customdomain>
     const senderEmail =
       dto.senderEmail?.trim().toLowerCase() ||
-      `releases@${dto.cloudflareBaseDomain.trim().toLowerCase()}`;
+      `noreply@mail.${cleanBaseDomain}`;
 
     const initialLog: ProvisioningLogEntry = {
       timestamp: new Date().toISOString(),
@@ -202,15 +281,17 @@ export class WhitelabelProvisioningService {
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: whiteLabel.id },
       data: {
-        awsRegion: dto.awsRegion,
-        awsAccessKeyId: dto.awsAccessKeyId,
-        awsSecretAccessKey: dto.awsSecretAccessKey,
+        awsRegion: dto.awsRegion.trim(),
+        awsAccessKeyId: dto.awsAccessKeyId.trim(),
+        awsSecretAccessKey: dto.awsSecretAccessKey.trim(),
         bucketName: targetBucketName,
         senderEmail: senderEmail,
-        cloudflareApiToken: dto.cloudflareApiToken,
-        cloudflareZoneId: dto.cloudflareZoneId,
-        cloudflareBaseDomain: dto.cloudflareBaseDomain,
+        cloudflareApiToken: dto.cloudflareApiToken.trim(),
+        cloudflareZoneId: dto.cloudflareZoneId.trim(),
+        cloudflareBaseDomain: cleanBaseDomain,
         customDomain: targetCustomDomain,
+        subdomain: 'backstage',
+        ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
         awsInstanceType: dto.instanceType || 't4g.medium',
         provisioningStatus: ProvisioningStatus.CREDENTIALS_VALIDATED,
         provisioningProgress: 15,
@@ -409,16 +490,18 @@ export class WhitelabelProvisioningService {
       );
 
       // =========================================================================
-      // STAGE 2: SES DOMAIN IDENTITY + CLOUDFLARE DKIM/SPF AUTO-WIRING (Progress: 50%)
+      // STAGE 2: SES MAILING DOMAIN (mail.<customdomain>) + CLOUDFLARE DKIM/SPF/MX (Progress: 50%)
       // =========================================================================
+      const mailDomain = `mail.${baseDomain}`;
+
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `Registering SES domain identity for "${baseDomain}" and auto-wiring Cloudflare DNS...`,
+        `Registering SES domain identity for mailing domain "${mailDomain}" and auto-wiring Cloudflare DNS...`,
         'INFO',
         ProvisioningStatus.SES_CONFIGURED,
         50,
-        'Configuring SES Domain Identity & auto-injecting DKIM to Cloudflare',
+        `Configuring SES Mailing Domain (${mailDomain}) & auto-injecting DKIM to Cloudflare`,
       );
 
       const ses = new SESv2Client({ region, credentials });
@@ -427,14 +510,14 @@ export class WhitelabelProvisioningService {
       try {
         const sesRes = await ses.send(
           new CreateEmailIdentityCommand({
-            EmailIdentity: baseDomain,
+            EmailIdentity: mailDomain,
           }),
         );
         dkimTokens = sesRes.DkimAttributes?.Tokens || [];
       } catch (err: any) {
         const existing = await ses.send(
           new GetEmailIdentityCommand({
-            EmailIdentity: baseDomain,
+            EmailIdentity: mailDomain,
           }),
         );
         dkimTokens = existing.DkimAttributes?.Tokens || [];
@@ -443,13 +526,13 @@ export class WhitelabelProvisioningService {
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `SES domain identity registered. Retrieved ${dkimTokens.length} DKIM authentication tokens.`,
+        `SES mailing domain "${mailDomain}" registered. Retrieved ${dkimTokens.length} DKIM authentication tokens.`,
         'SUCCESS',
       );
 
-      // Auto-inject 3 DKIM CNAMEs into Cloudflare DNS
+      // Auto-inject 3 DKIM CNAMEs into Cloudflare DNS for mailDomain
       for (const token of dkimTokens) {
-        const dkimCname = `${token}._domainkey.${baseDomain}`;
+        const dkimCname = `${token}._domainkey.${mailDomain}`;
         const dkimTarget = `${token}.dkim.amazonses.com`;
 
         await this.upsertCloudflareDnsRecord(
@@ -462,7 +545,38 @@ export class WhitelabelProvisioningService {
         );
       }
 
-      // Auto-inject SPF TXT record into Cloudflare DNS
+      // Auto-inject SPF TXT record for mailDomain
+      await this.upsertCloudflareDnsRecord(
+        cfToken,
+        zoneId,
+        'TXT',
+        mailDomain,
+        'v=spf1 include:amazonses.com ~all',
+        false,
+      );
+
+      // Auto-inject MX feedback routing record for mailDomain
+      await this.upsertCloudflareDnsRecord(
+        cfToken,
+        zoneId,
+        'MX',
+        mailDomain,
+        `feedback-smtp.${region}.amazonses.com`,
+        false,
+        10,
+      );
+
+      // Auto-inject DMARC TXT record for mailDomain
+      await this.upsertCloudflareDnsRecord(
+        cfToken,
+        zoneId,
+        'TXT',
+        `_dmarc.${mailDomain}`,
+        'v=DMARC1; p=none;',
+        false,
+      );
+
+      // Auto-inject SPF TXT record into Cloudflare DNS for root baseDomain as well
       await this.upsertCloudflareDnsRecord(
         cfToken,
         zoneId,
@@ -483,7 +597,7 @@ export class WhitelabelProvisioningService {
       await this.appendLog(
         whiteLabelId,
         'SES',
-        `3 DKIM CNAMEs and SPF TXT record automatically injected into Cloudflare DNS with 0 manual steps!`,
+        `Dedicated mailing domain "${mailDomain}" ready! 3 DKIM CNAMEs, SPF TXT, MX feedback routing, and DMARC auto-configured.`,
         'SUCCESS',
       );
 
@@ -854,10 +968,11 @@ systemctl restart nginx
   private async upsertCloudflareDnsRecord(
     token: string,
     zoneId: string,
-    type: 'A' | 'CNAME' | 'TXT',
+    type: 'A' | 'CNAME' | 'TXT' | 'MX',
     name: string,
     content: string,
     proxied: boolean,
+    priority?: number,
   ) {
     const listRes = await fetch(
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&type=${type}`,
@@ -871,6 +986,17 @@ systemctl restart nginx
     const listData = (await listRes.json()) as any;
     const existingRecord = listData?.result?.[0];
 
+    const bodyPayload: any = {
+      type,
+      name,
+      content,
+      proxied: type === 'MX' ? false : proxied,
+      ttl: proxied ? 1 : 3600,
+    };
+    if (type === 'MX' && priority !== undefined) {
+      bodyPayload.priority = priority;
+    }
+
     if (existingRecord) {
       await fetch(
         `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${existingRecord.id}`,
@@ -880,13 +1006,7 @@ systemctl restart nginx
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            type,
-            name,
-            content,
-            proxied,
-            ttl: proxied ? 1 : 3600,
-          }),
+          body: JSON.stringify(bodyPayload),
         },
       );
     } else {
@@ -898,13 +1018,7 @@ systemctl restart nginx
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            type,
-            name,
-            content,
-            proxied,
-            ttl: proxied ? 1 : 3600,
-          }),
+          body: JSON.stringify(bodyPayload),
         },
       );
     }

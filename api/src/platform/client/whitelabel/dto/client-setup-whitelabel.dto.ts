@@ -216,4 +216,16 @@ export class ClientSetupWhiteLabelDto {
   @IsOptional()
   @IsString()
   senderEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  awsAccessKeyId?: string;
+
+  @IsOptional()
+  @IsString()
+  awsSecretAccessKey?: string;
+
+  @IsOptional()
+  @IsString()
+  cloudflareApiToken?: string;
 }

@@ -93,4 +93,63 @@ export class StartCloudProvisioningDto extends ValidateCloudCredentialsDto {
     typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
   )
   customDomain?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
+  )
+  subdomain?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
+  elasticIpv4?: string;
+}
+
+export class SaveCloudCredentialsDto extends ValidateCloudCredentialsDto {
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
+  )
+  subdomain?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
+  )
+  @MaxLength(63)
+  bucketName?: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: 'Sender email must be a valid email address.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
+  )
+  senderEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
+  instanceType?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
+  elasticIpv4?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
+  )
+  customDomain?: string;
 }

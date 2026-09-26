@@ -964,8 +964,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         socialFacebook: wl.socialFacebook,
         socialLinkedin: wl.socialLinkedin,
         socialTiktok: wl.socialTiktok,
+        awsRegion: wl.awsRegion || 'ap-southeast-1',
+        awsAccessKeyId: wl.awsAccessKeyId || null,
+        awsSecretAccessKey: wl.awsSecretAccessKey || null,
+        cloudflareApiToken: wl.cloudflareApiToken || null,
         cloudflareZoneId: wl.cloudflareZoneId || null,
         cloudflareBaseDomain: wl.cloudflareBaseDomain || null,
+        senderEmail: wl.senderEmail || null,
         hasCloudflareCredentials: Boolean(
           wl.cloudflareApiToken &&
           wl.cloudflareZoneId &&
@@ -1121,10 +1126,24 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         ...(dto.cloudflareBaseDomain !== undefined &&
           dto.cloudflareBaseDomain.trim() !== '' && {
             cloudflareBaseDomain: dto.cloudflareBaseDomain.trim().toLowerCase(),
+            customDomain: dto.customDomain?.trim() || `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`,
+            subdomain: 'backstage',
+          }),
+        ...(dto.cloudflareApiToken !== undefined &&
+          dto.cloudflareApiToken.trim() !== '' && {
+            cloudflareApiToken: dto.cloudflareApiToken.trim(),
           }),
         ...(dto.awsRegion !== undefined &&
           dto.awsRegion.trim() !== '' && {
             awsRegion: dto.awsRegion.trim(),
+          }),
+        ...(dto.awsAccessKeyId !== undefined &&
+          dto.awsAccessKeyId.trim() !== '' && {
+            awsAccessKeyId: dto.awsAccessKeyId.trim(),
+          }),
+        ...(dto.awsSecretAccessKey !== undefined &&
+          dto.awsSecretAccessKey.trim() !== '' && {
+            awsSecretAccessKey: dto.awsSecretAccessKey.trim(),
           }),
         ...(dto.awsInstanceType !== undefined &&
           dto.awsInstanceType.trim() !== '' && {

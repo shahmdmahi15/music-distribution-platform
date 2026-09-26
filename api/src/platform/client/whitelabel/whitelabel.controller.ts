@@ -34,6 +34,7 @@ import { WhitelabelProvisioningService } from './provisioning/whitelabel-provisi
 import {
   ValidateCloudCredentialsDto,
   StartCloudProvisioningDto,
+  SaveCloudCredentialsDto,
 } from './dto/client-cloud-provisioning.dto';
 
 @Controller('whitelabel')
@@ -400,8 +401,19 @@ export class ClientWhitelabelController {
 
   // Multi-Cloud Infrastructure Automation (AWS EC2, S3, SES + Cloudflare)
   @Post('provision/validate')
-  async validateCloudCredentials(@Body() dto: ValidateCloudCredentialsDto) {
-    return await this.provisioningService.validateCloudCredentials(dto);
+  async validateCloudCredentials(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ValidateCloudCredentialsDto,
+  ) {
+    return await this.provisioningService.validateCloudCredentials(dto, userId);
+  }
+
+  @Post('provision/credentials')
+  async saveCloudCredentials(
+    @CurrentUser('id') userId: string,
+    @Body() dto: SaveCloudCredentialsDto,
+  ) {
+    return await this.provisioningService.saveCloudCredentials(userId, dto);
   }
 
   @Post('provision/start')

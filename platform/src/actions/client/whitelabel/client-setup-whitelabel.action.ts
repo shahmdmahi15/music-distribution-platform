@@ -46,6 +46,9 @@ export interface ClientSetupWhiteLabelInput {
   awsRegion?: string;
   awsInstanceType?: string;
   senderEmail?: string;
+  awsAccessKeyId?: string;
+  awsSecretAccessKey?: string;
+  cloudflareApiToken?: string;
 }
 
 export async function clientSetupWhiteLabelAction(

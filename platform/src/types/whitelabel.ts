@@ -253,8 +253,13 @@ export interface WhiteLabelBranding {
   socialFacebook?: string | null;
   socialLinkedin?: string | null;
   socialTiktok?: string | null;
+  awsRegion?: string | null;
+  awsAccessKeyId?: string | null;
+  awsSecretAccessKey?: string | null;
+  cloudflareApiToken?: string | null;
   cloudflareZoneId?: string | null;
   cloudflareBaseDomain?: string | null;
+  senderEmail?: string | null;
   hasCloudflareCredentials?: boolean;
   expectedCustomDomain?: string | null;
   awsInstanceId?: string | null;

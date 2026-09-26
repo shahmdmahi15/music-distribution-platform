@@ -49,6 +49,7 @@ import {
   Award,
   Headphones,
   Loader2,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ import { clientCreateApiKeyAction } from "@/actions/client/whitelabel/client-api
 import {
   clientValidateCloudCredentialsAction,
   clientStartCloudProvisioningAction,
+  clientSaveCloudCredentialsAction,
 } from "@/actions/client/whitelabel/client-cloud-provisioning.action";
 import { ClientCloudProvisioningTerminal } from "./client-cloud-provisioning-terminal";
 import Link from "next/link";
@@ -470,9 +472,15 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
   const [deploymentMode, setDeploymentMode] = useState<"automated" | "manual">(
     "automated",
   );
-  const [awsAccessKeyId, setAwsAccessKeyId] = useState("");
-  const [awsSecretAccessKey, setAwsSecretAccessKey] = useState("");
-  const [awsRegion, setAwsRegion] = useState("ap-southeast-1");
+  const [awsAccessKeyId, setAwsAccessKeyId] = useState(
+    branding.awsAccessKeyId || "",
+  );
+  const [awsSecretAccessKey, setAwsSecretAccessKey] = useState(
+    branding.awsSecretAccessKey || "",
+  );
+  const [awsRegion, setAwsRegion] = useState(
+    branding.awsRegion || "ap-southeast-1",
+  );
   const [instanceType, setInstanceType] = useState(
     branding.awsInstanceType || "t4g.medium",
   );
@@ -481,24 +489,85 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
       `rmit-music-${branding.code.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
   );
   const [senderEmail, setSenderEmail] = useState(
-    branding.supportEmail || `releases@${branding.cloudflareBaseDomain || "yourdomain.com"}`,
+    branding.senderEmail ||
+      (branding.cloudflareBaseDomain
+        ? `noreply@mail.${branding.cloudflareBaseDomain.toLowerCase()}`
+        : "noreply@mail.yourdomain.com"),
   );
   const [elasticIpv4, setElasticIpv4] = useState(
     branding.awsElasticIp || branding.elasticIpv4 || "",
   );
   const [showAwsSecret, setShowAwsSecret] = useState(false);
 
-  const [cloudflareApiToken, setCloudflareApiToken] = useState("");
+  const [cloudflareApiToken, setCloudflareApiToken] = useState(
+    branding.cloudflareApiToken || "",
+  );
   const [cloudflareZoneId, setCloudflareZoneId] = useState(
     branding.cloudflareZoneId || "",
   );
   const [cloudflareBaseDomain, setCloudflareBaseDomain] = useState(
     branding.cloudflareBaseDomain || "",
   );
-  const [portalSubdomain, setPortalSubdomain] = useState(
-    branding.subdomain || "backstage",
-  );
+  // Subdomain is permanently locked to "backstage"
+  const portalSubdomain = "backstage";
   const [showCfToken, setShowCfToken] = useState(false);
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
+
+  const handleBaseDomainChange = (val: string) => {
+    const clean = val.trim().toLowerCase();
+    setCloudflareBaseDomain(clean);
+    if (!senderEmail || senderEmail.includes("@mail.")) {
+      setSenderEmail(`noreply@mail.${clean || "yourdomain.com"}`);
+    }
+  };
+
+  const handleSaveCloudCredentials = async () => {
+    if (!awsAccessKeyId.trim() || !awsSecretAccessKey.trim()) {
+      toast.error("Please enter both AWS Access Key ID and Secret Access Key.");
+      return;
+    }
+    if (
+      !cloudflareApiToken.trim() ||
+      !cloudflareZoneId.trim() ||
+      !cloudflareBaseDomain.trim()
+    ) {
+      toast.error(
+        "Please enter Cloudflare API Token, Zone ID, and Base Domain.",
+      );
+      return;
+    }
+
+    setIsSavingCredentials(true);
+    try {
+      const res = await clientSaveCloudCredentialsAction({
+        awsAccessKeyId: awsAccessKeyId.trim(),
+        awsSecretAccessKey: awsSecretAccessKey.trim(),
+        awsRegion,
+        instanceType,
+        bucketName: bucketName.trim() || undefined,
+        senderEmail: senderEmail.trim() || undefined,
+        cloudflareApiToken: cloudflareApiToken.trim(),
+        cloudflareZoneId: cloudflareZoneId.trim(),
+        cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase(),
+        subdomain: "backstage",
+        elasticIpv4: elasticIpv4.trim() || undefined,
+      });
+
+      if (res.success) {
+        toast.success(
+          "AWS and Cloudflare credentials saved securely to your tenant profile!",
+        );
+      } else {
+        toast.error(res.message || "Failed to save cloud credentials.");
+      }
+    } catch (err: any) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save credentials.",
+      );
+    } finally {
+      setIsSavingCredentials(false);
+    }
+  };
 
   const [isValidatingCloud, setIsValidatingCloud] = useState(false);
   const [cloudValidationResult, setCloudValidationResult] = useState<{
@@ -611,7 +680,8 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         cloudflareApiToken: cloudflareApiToken.trim(),
         cloudflareZoneId: cloudflareZoneId.trim(),
         cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase(),
-        subdomain: portalSubdomain.trim().toLowerCase() || "backstage",
+        subdomain: "backstage",
+        elasticIpv4: elasticIpv4.trim() || undefined,
       });
 
       if (res.success) {
@@ -734,8 +804,11 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         bucketName: bucketName.trim() || undefined,
         elasticIpv4: elasticIpv4.trim() || undefined,
         cloudflareZoneId: cloudflareZoneId.trim() || undefined,
-        cloudflareBaseDomain: cloudflareBaseDomain.trim() || undefined,
+        cloudflareBaseDomain: cloudflareBaseDomain.trim().toLowerCase() || undefined,
+        cloudflareApiToken: cloudflareApiToken.trim() || undefined,
         awsRegion: awsRegion || undefined,
+        awsAccessKeyId: awsAccessKeyId.trim() || undefined,
+        awsSecretAccessKey: awsSecretAccessKey.trim() || undefined,
         awsInstanceType: instanceType || undefined,
         senderEmail: senderEmail.trim() || undefined,
         onboardingDetails: {
@@ -3245,32 +3318,95 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                               id="cloudflareBaseDomain"
                               value={cloudflareBaseDomain}
                               onChange={(e) =>
-                                setCloudflareBaseDomain(e.target.value)
+                                handleBaseDomainChange(e.target.value)
                               }
                               placeholder="royalmusic.com"
                               className="text-xs h-9 font-mono"
                             />
+                            <p className="text-[10px] text-muted-foreground">
+                              Your apex domain registered or active in Cloudflare.
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Label
+                                htmlFor="portalSubdomain"
+                                className="text-xs font-medium"
+                              >
+                                Portal Subdomain Prefix
+                              </Label>
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] bg-muted/80 text-muted-foreground border-border font-mono gap-1"
+                              >
+                                <Lock className="w-2.5 h-2.5" />
+                                Locked &bull; backstage
+                              </Badge>
+                            </div>
+                            <Input
+                              id="portalSubdomain"
+                              value="backstage"
+                              disabled
+                              readOnly
+                              className="text-xs h-9 font-mono bg-muted/60 cursor-not-allowed opacity-90 font-medium"
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                              Target Portal:{" "}
+                              <code className="text-primary font-mono font-semibold">
+                                https://backstage.
+                                {cloudflareBaseDomain || "yourdomain.com"}
+                              </code>{" "}
+                              (Permanently locked).
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Label
+                                htmlFor="sesMailingDomain"
+                                className="text-xs font-medium"
+                              >
+                                SES Mailing Domain
+                              </Label>
+                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono gap-1">
+                                <Mail className="w-2.5 h-2.5" />
+                                mail.{cloudflareBaseDomain || "customdomain"}
+                              </Badge>
+                            </div>
+                            <Input
+                              id="sesMailingDomain"
+                              value={`mail.${cloudflareBaseDomain || "yourdomain.com"}`}
+                              disabled
+                              readOnly
+                              className="text-xs h-9 font-mono bg-muted/60 cursor-not-allowed opacity-90 font-medium"
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                              SES identity auto-wires 3 DKIM CNAMEs, SPF TXT, MX feedback routing, and DMARC for{" "}
+                              <code className="text-emerald-500 font-mono font-semibold">
+                                mail.{cloudflareBaseDomain || "yourdomain.com"}
+                              </code>
+                              .
+                            </p>
                           </div>
 
                           <div className="space-y-1">
                             <Label
-                              htmlFor="portalSubdomain"
+                              htmlFor="senderEmail"
                               className="text-xs font-medium"
                             >
-                              Portal Subdomain Prefix
+                              Notification Sender Email (SES)
                             </Label>
                             <Input
-                              id="portalSubdomain"
-                              value={portalSubdomain}
-                              onChange={(e) =>
-                                setPortalSubdomain(e.target.value)
-                              }
-                              placeholder="backstage"
+                              id="senderEmail"
+                              type="email"
+                              value={senderEmail}
+                              onChange={(e) => setSenderEmail(e.target.value)}
+                              placeholder={`noreply@mail.${cloudflareBaseDomain || "yourdomain.com"}`}
                               className="text-xs h-9 font-mono"
                             />
                             <p className="text-[10px] text-muted-foreground">
-                              Target: {portalSubdomain || "backstage"}.
-                              {cloudflareBaseDomain || "yourdomain.com"}
+                              From address for artist invites, royalty statements, and transactional alerts.
                             </p>
                           </div>
                         </div>
@@ -3317,26 +3453,49 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
                       {/* Action Triggers */}
                       <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/60">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleValidateCloudCredentials}
-                          disabled={isValidatingCloud}
-                          className="text-xs h-9 gap-1.5"
-                        >
-                          {isValidatingCloud ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              Validating IAM &amp; Cloudflare...
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                              Pre-Flight Validate Credentials
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleValidateCloudCredentials}
+                            disabled={isValidatingCloud}
+                            className="text-xs h-9 gap-1.5"
+                          >
+                            {isValidatingCloud ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                Validating IAM &amp; Cloudflare...
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                                Pre-Flight Validate Credentials
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleSaveCloudCredentials}
+                            disabled={isSavingCredentials}
+                            className="text-xs h-9 gap-1.5 font-medium"
+                          >
+                            {isSavingCredentials ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Saving Credentials...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-3.5 h-3.5 text-foreground" />
+                                Save Credentials
+                              </>
+                            )}
+                          </Button>
+                        </div>
 
                         <Button
                           type="button"
@@ -3522,11 +3681,21 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-border/80 text-[11px] text-muted-foreground flex items-center justify-between">
-                  <span>Primary Portal Endpoint:</span>
-                  <span className="font-mono text-primary font-semibold">
-                    {deployedDomain ? `https://${deployedDomain}` : portalHost}
-                  </span>
+                <div className="pt-3 border-t border-border/80 text-[11px] text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span>Portal Endpoint:</span>
+                    <span className="font-mono text-primary font-semibold">
+                      {cloudflareBaseDomain ? `https://backstage.${cloudflareBaseDomain}` : (deployedDomain ? `https://${deployedDomain}` : portalHost)}
+                    </span>
+                  </div>
+                  {cloudflareBaseDomain && (
+                    <div className="flex items-center gap-1.5">
+                      <span>SES Mail Domain:</span>
+                      <span className="font-mono text-emerald-500 font-semibold">
+                        mail.{cloudflareBaseDomain}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
