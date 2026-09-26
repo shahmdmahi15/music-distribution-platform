@@ -1045,7 +1045,22 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    // 2. Persist All Setup Configurations into Platform API Database
+    // 2. Validate Mandatory Logo Uploads
+    const finalLogoUrl = dto.logoUrl?.trim() || wl.logoUrl;
+    const finalLogoDarkUrl = dto.logoDarkUrl?.trim() || wl.logoDarkUrl;
+
+    if (!finalLogoUrl) {
+      throw new BadRequestException(
+        'Light Mode Logo is mandatory. Please upload your primary brand logo.',
+      );
+    }
+    if (!finalLogoDarkUrl) {
+      throw new BadRequestException(
+        'Dark Mode Logo is mandatory. Please upload your dark mode brand logo.',
+      );
+    }
+
+    // 3. Persist All Setup Configurations into Platform API Database
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
       data: {
@@ -1076,8 +1091,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         cardStyle: dto.cardStyle || 'modern',
         navbarStyle: dto.navbarStyle || 'glass',
         userSignupModel: dto.userSignupModel || wl.userSignupModel,
-        logoUrl: dto.logoUrl?.trim() || null,
-        logoDarkUrl: dto.logoDarkUrl?.trim() || null,
+        logoUrl: finalLogoUrl,
+        logoDarkUrl: finalLogoDarkUrl,
         faviconUrl: dto.faviconUrl?.trim() || null,
         bannerUrl: dto.bannerUrl?.trim() || null,
         socialInstagram: dto.socialInstagram?.trim() || null,

@@ -645,6 +645,17 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
       }
     }
 
+    if (step === 4) {
+      if (!logoUrl.trim()) {
+        toast.error("Light Mode Brand Logo is mandatory. Please upload your brand logo.");
+        return;
+      }
+      if (!logoDarkUrl.trim()) {
+        toast.error("Dark Mode Brand Logo is mandatory. Please upload your dark mode brand logo.");
+        return;
+      }
+    }
+
     if (step === 5 && !hasExistingOwner) {
       if (!ownerEmail.trim() || !ownerPassword.trim()) {
         toast.error("Please configure the Owner account email and password.");
@@ -668,6 +679,17 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
   };
 
   const handleFinalSubmit = async () => {
+    if (!logoUrl.trim()) {
+      toast.error("Light Mode Brand Logo is mandatory. Please upload your logo in Step 4.");
+      setStep(4);
+      return;
+    }
+    if (!logoDarkUrl.trim()) {
+      toast.error("Dark Mode Brand Logo is mandatory. Please upload your dark mode logo in Step 4.");
+      setStep(4);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const computedCustomDomain =
@@ -1887,16 +1909,17 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                   <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Light Mode Brand Logo
+                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          <span>Light Mode Brand Logo</span>
+                          <span className="text-destructive font-bold">*</span>
                         </Label>
                         {logoUrl ? (
                           <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
                             S3 Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
-                            Recommended
+                          <Badge variant="destructive" className="text-[9px] font-bold">
+                            Mandatory *
                           </Badge>
                         )}
                       </div>
@@ -1984,16 +2007,17 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                   <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-2">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Dark Mode Brand Logo
+                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          <span>Dark Mode Brand Logo</span>
+                          <span className="text-destructive font-bold">*</span>
                         </Label>
                         {logoDarkUrl ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-border border-emerald-500/30 text-[9px] font-mono">
                             S3 Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
-                            Recommended
+                          <Badge variant="destructive" className="text-[9px] font-bold">
+                            Mandatory *
                           </Badge>
                         )}
                       </div>
