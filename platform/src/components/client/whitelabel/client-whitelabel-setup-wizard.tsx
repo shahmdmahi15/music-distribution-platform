@@ -36,6 +36,19 @@ import {
   Terminal,
   Zap,
   AlertTriangle,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
+  FileText,
+  Layers,
+  Radio,
+  Share2,
+  Disc,
+  Network,
+  Briefcase,
+  Award,
+  Headphones,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,9 +58,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   WhiteLabelBranding,
   WhiteLabelSignupModel,
+  WhiteLabelBusinessType,
   ProvisioningStatus,
 } from "@/types/whitelabel";
-import { clientSetupWhiteLabelAction } from "@/actions/client/whitelabel/client-setup-whitelabel.action";
+import {
+  clientSetupWhiteLabelAction,
+  ClientSetupWhiteLabelInput,
+} from "@/actions/client/whitelabel/client-setup-whitelabel.action";
+import { clientUploadBrandingAssetAction } from "@/actions/client/whitelabel/client-upload-branding-asset.action";
 import { clientCreateApiKeyAction } from "@/actions/client/whitelabel/client-api-keys.action";
 import {
   clientValidateCloudCredentialsAction,
@@ -220,22 +238,104 @@ export function ClientWhiteLabelSetupWizard({
     }
   }, [themeFont]);
 
+  // Business Type Archetype (Record Label, Distributor/Aggregator, Music Publisher, Referrer)
+  const [businessType, setBusinessType] = useState<WhiteLabelBusinessType>(
+    branding.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+  );
+
+  // Business Type Specific Operational Parameters
+  // 1. Record Label
+  const [isrcPrefix, setIsrcPrefix] = useState("QM");
+  const [catalogPrefix, setCatalogPrefix] = useState(
+    `${branding.code ? branding.code.slice(0, 4).toUpperCase() : "RM"}-CAT`,
+  );
+  const [pLineText, setPLineText] = useState(
+    `℗ ${new Date().getFullYear()} ${branding.name || "Royal Music"}. All master recording rights reserved.`,
+  );
+
+  // 2. Distributor / Aggregator
+  const [aggregationCapacity, setAggregationCapacity] = useState("unlimited");
+  const [commissionRate, setCommissionRate] = useState("15");
+  const [deliveryProtocol, setDeliveryProtocol] = useState("DDEX_ERN_38");
+
+  // 3. Music Publisher
+  const [ipiCaeNumber, setIpiCaeNumber] = useState("");
+  const [primaryPro, setPrimaryPro] = useState("BMI");
+  const [cLineText, setCLineText] = useState(
+    `© ${new Date().getFullYear()} ${branding.name || "Royal Music"} Publishing. All composition rights reserved.`,
+  );
+
+  // 4. Referrer / Agency Partner
+  const [referralNetworkCode, setReferralNetworkCode] = useState(
+    `${branding.code ? branding.code.slice(0, 4).toUpperCase() : "AGY"}-SCOUT`,
+  );
+  const [attributionWindowDays, setAttributionWindowDays] = useState("60");
+  const [commissionBounty, setCommissionBounty] = useState("10");
+
   // Registration Model
   const [signupModel, setSignupModel] = useState<WhiteLabelSignupModel>(
     branding.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
   );
 
-  // Brand Assets & SEO
+  // Brand Assets & S3 Uploading State
+  const [uploadingAsset, setUploadingAsset] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState(branding.logoUrl || "");
   const [logoDarkUrl, setLogoDarkUrl] = useState(branding.logoDarkUrl || "");
   const [faviconUrl, setFaviconUrl] = useState(branding.faviconUrl || "");
   const [bannerUrl, setBannerUrl] = useState(branding.bannerUrl || "");
 
-  // Social Links
+  // Comprehensive Social Links & Online Presence
   const [instagram, setInstagram] = useState(branding.socialInstagram || "");
   const [twitter, setTwitter] = useState(branding.socialTwitter || "");
-  const [spotify, setSpotify] = useState(branding.socialSpotify || "");
   const [youtube, setYoutube] = useState(branding.socialYoutube || "");
+  const [spotify, setSpotify] = useState(branding.socialSpotify || "");
+  const [tiktok, setTiktok] = useState(branding.socialTiktok || "");
+  const [facebook, setFacebook] = useState(branding.socialFacebook || "");
+  const [linkedin, setLinkedin] = useState(branding.socialLinkedin || "");
+  const [website, setWebsite] = useState(branding.companyWebsite || "");
+
+  // S3 Asset Upload Handler
+  const handleAssetUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    assetType: "logo" | "logoDark" | "favicon" | "banner",
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be under 5MB.");
+      return;
+    }
+
+    setUploadingAsset(assetType);
+    const toastId = toast.loading(`Uploading ${assetType} to S3 storage...`);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("assetType", assetType);
+
+      const res = await clientUploadBrandingAssetAction(uploadFormData);
+      if (res.success && res.assetUrl) {
+        toast.success(
+          res.message || `${assetType} uploaded to S3 successfully!`,
+          { id: toastId },
+        );
+        if (assetType === "logo") setLogoUrl(res.assetUrl);
+        else if (assetType === "logoDark") setLogoDarkUrl(res.assetUrl);
+        else if (assetType === "favicon") setFaviconUrl(res.assetUrl);
+        else if (assetType === "banner") setBannerUrl(res.assetUrl);
+      } else {
+        toast.error(res.message || `Failed to upload ${assetType}.`, {
+          id: toastId,
+        });
+      }
+    } catch {
+      toast.error(`Error uploading ${assetType} to S3.`, { id: toastId });
+    } finally {
+      setUploadingAsset(null);
+      e.target.value = "";
+    }
+  };
 
   // Owner Account Creation
   const [ownerFirstName, setOwnerFirstName] = useState(user.firstName || "");
@@ -533,8 +633,10 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
           ? `${portalSubdomain.trim() || "backstage"}.${cloudflareBaseDomain.trim().toLowerCase()}`
           : undefined);
 
-      const payload = {
+      const payload: ClientSetupWhiteLabelInput = {
         name: name.trim(),
+        businessType,
+        companyWebsite: website.trim() || undefined,
         tagline: tagline.trim() || undefined,
         description: description.trim() || undefined,
         supportEmail: supportEmail.trim(),
@@ -560,6 +662,9 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         socialTwitter: twitter.trim() || undefined,
         socialSpotify: spotify.trim() || undefined,
         socialYoutube: youtube.trim() || undefined,
+        socialTiktok: tiktok.trim() || undefined,
+        socialFacebook: facebook.trim() || undefined,
+        socialLinkedin: linkedin.trim() || undefined,
         customDomain: computedCustomDomain,
         bucketName: bucketName.trim() || undefined,
         elasticIpv4: elasticIpv4.trim() || undefined,
@@ -568,6 +673,29 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
         awsRegion: awsRegion || undefined,
         awsInstanceType: instanceType || undefined,
         senderEmail: senderEmail.trim() || undefined,
+        onboardingDetails: {
+          businessModel: businessType,
+          ...(businessType === WhiteLabelBusinessType.RECORD_LABEL && {
+            isrcPrefix: isrcPrefix.trim(),
+            catalogPrefix: catalogPrefix.trim(),
+            pLineText: pLineText.trim(),
+          }),
+          ...(businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && {
+            aggregationCapacity,
+            commissionRate: parseFloat(commissionRate) || 15,
+            deliveryProtocol,
+          }),
+          ...(businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && {
+            ipiCaeNumber: ipiCaeNumber.trim(),
+            primaryPro,
+            cLineText: cLineText.trim(),
+          }),
+          ...(businessType === WhiteLabelBusinessType.REFERRER && {
+            referralNetworkCode: referralNetworkCode.trim(),
+            attributionWindowDays: parseInt(attributionWindowDays) || 60,
+            commissionBounty: parseFloat(commissionBounty) || 10,
+          }),
+        },
       };
 
       const res = await clientSetupWhiteLabelAction(payload);
@@ -727,24 +855,386 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
       {/* Main Wizard Form Card */}
       <Card className="border-border/80 shadow-md">
         <CardContent className="p-6 sm:p-8 space-y-6">
-          {/* STEP 1: Brand Identity & Contacts */}
+          {/* STEP 1: Brand Identity & Business Model */}
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                   <Building2 className="w-3.5 h-3.5" />
-                  Step 1: Brand Identity
+                  Step 1: Business Model &amp; Brand Identity
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
-                  Define Your Portal Brand &amp; Public Identity
+                  Select Business Archetype &amp; Portal Brand
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Review your verified brand name, configure public support
-                  contacts, and copyright information. All data is persisted to
-                  the database and automatically reflected on your portal.
+                  Choose your organization&apos;s music operating model according to global industry standards (IFPI, DDEX, CISAC). The portal will dynamically tailor its workflows, ISRC/catalog pipelines, and rights systems.
                 </p>
               </div>
 
+              {/* 4 Business Types Selector */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Music Business Operating Model</span>
+                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                    4 Industry Archetypes
+                  </Badge>
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Archetype 1: Record Label */}
+                  <div
+                    onClick={() => setBusinessType(WhiteLabelBusinessType.RECORD_LABEL)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                      businessType === WhiteLabelBusinessType.RECORD_LABEL
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
+                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
+                          <Disc className="w-4 h-4" />
+                        </div>
+                        {businessType === WhiteLabelBusinessType.RECORD_LABEL && (
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Record Label</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                          Master recordings, artist contracts, release schedules &amp; IFPI ISRC pipelines.
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                      IFPI / RIAA Standard
+                    </Badge>
+                  </div>
+
+                  {/* Archetype 2: Distributor / Aggregator */}
+                  <div
+                    onClick={() => setBusinessType(WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                      businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
+                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                          <Network className="w-4 h-4" />
+                        </div>
+                        {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Distributor / Aggregator</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                          Multi-tenant DSP delivery, DDEX ERN batch pipelines &amp; aggregated accounting.
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                      DDEX ERN 3.8 / 4.2
+                    </Badge>
+                  </div>
+
+                  {/* Archetype 3: Music Publisher */}
+                  <div
+                    onClick={() => setBusinessType(WhiteLabelBusinessType.MUSIC_PUBLISHER)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                      businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
+                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-500 flex items-center justify-center">
+                          <Headphones className="w-4 h-4" />
+                        </div>
+                        {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && (
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Music Publisher</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                          Composition rights, CWR catalog, mechanical sync licensing &amp; PRO collection.
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                      CISAC / PRO / CWR
+                    </Badge>
+                  </div>
+
+                  {/* Archetype 4: Referrer / Agency */}
+                  <div
+                    onClick={() => setBusinessType(WhiteLabelBusinessType.REFERRER)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2.5 relative flex flex-col justify-between ${
+                      businessType === WhiteLabelBusinessType.REFERRER
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-xs"
+                        : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                          <Briefcase className="w-4 h-4" />
+                        </div>
+                        {businessType === WhiteLabelBusinessType.REFERRER && (
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Referrer / Partner</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                          A&amp;R talent scout networks, partner onboarding attribution &amp; revenue share bounties.
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] w-fit font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                      Agency Bounty Network
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Standards & Industry Parameters based on Business Type */}
+              <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground">
+                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && "Record Label Standards (IFPI & Master Rights)"}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && "Distributor & Aggregation Infrastructure (DDEX / DSP)"}
+                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && "Publishing & Composition Rights Standards (CISAC / PRO)"}
+                      {businessType === WhiteLabelBusinessType.REFERRER && "Partner Referral & Scout Network Configuration"}
+                    </span>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    Auto-Configured Protocol
+                  </Badge>
+                </div>
+
+                {/* 1. Record Label Fields */}
+                {businessType === WhiteLabelBusinessType.RECORD_LABEL && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <Label htmlFor="isrcPrefix" className="text-[11px] font-medium">
+                        ISRC Registrant Prefix (2-5 Chars)
+                      </Label>
+                      <Input
+                        id="isrcPrefix"
+                        value={isrcPrefix}
+                        onChange={(e) => setIsrcPrefix(e.target.value.toUpperCase())}
+                        placeholder="e.g. QM or US-S1Z"
+                        className="text-xs h-8 font-mono uppercase bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">National ISRC Agency assigned code</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="catalogPrefix" className="text-[11px] font-medium">
+                        Catalog Number Prefix
+                      </Label>
+                      <Input
+                        id="catalogPrefix"
+                        value={catalogPrefix}
+                        onChange={(e) => setCatalogPrefix(e.target.value.toUpperCase())}
+                        placeholder="e.g. RM-CAT"
+                        className="text-xs h-8 font-mono uppercase bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Master release catalog index prefix</p>
+                    </div>
+
+                    <div className="space-y-1 md:col-span-1">
+                      <Label htmlFor="pLineText" className="text-[11px] font-medium">
+                        Default P-Line Master Copyright
+                      </Label>
+                      <Input
+                        id="pLineText"
+                        value={pLineText}
+                        onChange={(e) => setPLineText(e.target.value)}
+                        placeholder={`℗ ${new Date().getFullYear()} ${name}. All rights reserved.`}
+                        className="text-xs h-8 bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Phonogram / Master Sound recording notice</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Distributor Fields */}
+                {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <Label htmlFor="deliveryProtocol" className="text-[11px] font-medium">
+                        DDEX ERN Delivery Protocol
+                      </Label>
+                      <select
+                        id="deliveryProtocol"
+                        value={deliveryProtocol}
+                        onChange={(e) => setDeliveryProtocol(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
+                      >
+                        <option value="DDEX_ERN_38">DDEX ERN 3.8.2 (Global DSP Universal)</option>
+                        <option value="DDEX_ERN_42">DDEX ERN 4.2 (Next-Gen Hi-Res & Spatial)</option>
+                        <option value="SFTP_DIRECT">Direct SFTP / Cloud Storage Ingestion</option>
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">Standardized electronic release notice</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="aggregationCapacity" className="text-[11px] font-medium">
+                        Catalog Scale &amp; Ingestion Capacity
+                      </Label>
+                      <select
+                        id="aggregationCapacity"
+                        value={aggregationCapacity}
+                        onChange={(e) => setAggregationCapacity(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
+                      >
+                        <option value="starter_10k">Tier 1: Up to 10,000 Catalog Tracks</option>
+                        <option value="pro_100k">Tier 2: Up to 100,000 Catalog Tracks</option>
+                        <option value="unlimited">Tier 3: Unlimited Enterprise Scale</option>
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">High-throughput distribution buffer</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="commissionRate" className="text-[11px] font-medium">
+                        Standard Distribution Fee / Commission (%)
+                      </Label>
+                      <Input
+                        id="commissionRate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(e.target.value)}
+                        placeholder="15"
+                        className="text-xs h-8 bg-background font-mono"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Default distributor cut deducted on royalties</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Music Publisher Fields */}
+                {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <Label htmlFor="primaryPro" className="text-[11px] font-medium">
+                        Primary PRO Affiliation (Global Standard)
+                      </Label>
+                      <select
+                        id="primaryPro"
+                        value={primaryPro}
+                        onChange={(e) => setPrimaryPro(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
+                      >
+                        <option value="BMI">BMI (Broadcast Music, Inc. - USA)</option>
+                        <option value="ASCAP">ASCAP (USA)</option>
+                        <option value="SESAC">SESAC (USA)</option>
+                        <option value="PRS">PRS for Music / MCPS (UK)</option>
+                        <option value="SACEM">SACEM (France)</option>
+                        <option value="GEMA">GEMA (Germany)</option>
+                        <option value="SOCAN">SOCAN (Canada)</option>
+                        <option value="APRA_AMCOS">APRA AMCOS (Australia / NZ)</option>
+                        <option value="OTHER">Other National Society</option>
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">Performance rights collecting society</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="ipiCaeNumber" className="text-[11px] font-medium">
+                        IPI / CAE Number (9-11 Digits)
+                      </Label>
+                      <Input
+                        id="ipiCaeNumber"
+                        value={ipiCaeNumber}
+                        onChange={(e) => setIpiCaeNumber(e.target.value)}
+                        placeholder="e.g. 00123456789"
+                        className="text-xs h-8 font-mono bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">CISAC Interested Parties Information</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="cLineText" className="text-[11px] font-medium">
+                        Default C-Line Publishing Notice
+                      </Label>
+                      <Input
+                        id="cLineText"
+                        value={cLineText}
+                        onChange={(e) => setCLineText(e.target.value)}
+                        placeholder={`© ${new Date().getFullYear()} ${name} Publishing. All rights reserved.`}
+                        className="text-xs h-8 bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Composition &amp; lyrical copyright line</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Referrer Fields */}
+                {businessType === WhiteLabelBusinessType.REFERRER && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <Label htmlFor="referralNetworkCode" className="text-[11px] font-medium">
+                        Agency Scout / Partner Network Code
+                      </Label>
+                      <Input
+                        id="referralNetworkCode"
+                        value={referralNetworkCode}
+                        onChange={(e) => setReferralNetworkCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. AGY-SCOUT"
+                        className="text-xs h-8 font-mono uppercase bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Identifies recruited labels and catalogs</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="attributionWindowDays" className="text-[11px] font-medium">
+                        Attribution Tracking Window
+                      </Label>
+                      <select
+                        id="attributionWindowDays"
+                        value={attributionWindowDays}
+                        onChange={(e) => setAttributionWindowDays(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg px-2 h-8 text-xs text-foreground font-medium"
+                      >
+                        <option value="30">30 Days Attribution</option>
+                        <option value="60">60 Days Attribution (Industry Standard)</option>
+                        <option value="90">90 Days Extended Attribution</option>
+                        <option value="365">365 Days Annual Tracking</option>
+                        <option value="lifetime">Lifetime / Perpetual Catalog Attribution</option>
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">Cookie &amp; account referral tracking duration</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="commissionBounty" className="text-[11px] font-medium">
+                        Referral Revenue Bounty Split (%)
+                      </Label>
+                      <Input
+                        id="commissionBounty"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={commissionBounty}
+                        onChange={(e) => setCommissionBounty(e.target.value)}
+                        placeholder="10"
+                        className="text-xs h-8 bg-background font-mono"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Partner bounty earned per successful payout</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Brand Information & Contact Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <div className="flex items-center justify-between">
@@ -1249,101 +1739,556 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
             </div>
           )}
 
-          {/* STEP 4: Brand Assets & SEO */}
+          {/* STEP 4: Brand Assets & Global Online Presence */}
           {step === 4 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-semibold">
                   <Globe className="w-3.5 h-3.5" />
-                  Step 4: Brand Assets &amp; SEO
+                  Step 4: Brand Assets &amp; Global Online Presence
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
-                  Logos, Favicons &amp; Social Links
+                  Direct S3 Bucket Media Assets &amp; Social Channels
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Provide asset URLs. If you prefer to upload files directly,
-                  you can also use the Branding asset uploader in the Platform
-                  Console after setup.
+                  Upload your brand logos, favicon, and portal hero banner directly to the platform&apos;s dedicated AWS S3 bucket. Connect your official social profiles and streaming channels to display across release footers, smart links, and artist portals.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="logoUrl" className="text-xs font-medium">
-                    Light Mode Logo URL
+              {/* S3 Media Asset Uploader Cards */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    <span>Brand Media Assets (Direct S3 Bucket Storage)</span>
                   </Label>
-                  <Input
-                    id="logoUrl"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://cdn.example.com/logo-light.png"
-                    className="text-xs h-9"
-                  />
+                  <Badge variant="outline" className="text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-mono">
+                    Direct S3 Upload Enabled
+                  </Badge>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="logoDarkUrl" className="text-xs font-medium">
-                    Dark Mode Logo URL
-                  </Label>
-                  <Input
-                    id="logoDarkUrl"
-                    value={logoDarkUrl}
-                    onChange={(e) => setLogoDarkUrl(e.target.value)}
-                    placeholder="https://cdn.example.com/logo-dark.png"
-                    className="text-xs h-9"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* 1. Light Mode Logo */}
+                  <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Light Mode Brand Logo
+                        </Label>
+                        {logoUrl ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                            S3 Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                            Recommended
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        High-contrast dark/colored logo for light backgrounds (PNG, SVG, WEBP &bull; Max 5MB).
+                      </p>
+                    </div>
+
+                    <input
+                      id="upload-asset-logo"
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "logo")}
+                    />
+
+                    {logoUrl ? (
+                      <div className="space-y-2">
+                        <div className="h-20 w-full rounded-lg border border-border/80 bg-white p-2 flex items-center justify-center overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={logoUrl}
+                            alt="Light Logo Preview"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("upload-asset-logo")?.click()}
+                            disabled={uploadingAsset === "logo"}
+                            className="text-xs h-7 gap-1 flex-1"
+                          >
+                            {uploadingAsset === "logo" ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            Replace File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setLogoUrl("")}
+                            className="text-xs h-7 text-destructive hover:text-destructive px-2"
+                            title="Remove Logo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("upload-asset-logo")?.click()}
+                        disabled={uploadingAsset === "logo"}
+                        className="w-full border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-muted/40 rounded-lg p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all text-center"
+                      >
+                        {uploadingAsset === "logo" ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-semibold text-foreground">
+                          {uploadingAsset === "logo" ? "Uploading to S3..." : "Upload Light Logo to S3"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Click to browse or drop file</span>
+                      </button>
+                    )}
+
+                    <div className="pt-1">
+                      <Input
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="Or direct URL: https://..."
+                        className="text-[11px] h-7 font-mono bg-muted/30"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2. Dark Mode Logo */}
+                  <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Dark Mode Brand Logo
+                        </Label>
+                        {logoDarkUrl ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                            S3 Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                            Recommended
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        White or light mark for dark mode navigation and backdrops (PNG, SVG, WEBP &bull; Max 5MB).
+                      </p>
+                    </div>
+
+                    <input
+                      id="upload-asset-logoDark"
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "logoDark")}
+                    />
+
+                    {logoDarkUrl ? (
+                      <div className="space-y-2">
+                        <div className="h-20 w-full rounded-lg border border-border/80 bg-zinc-950 p-2 flex items-center justify-center overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={logoDarkUrl}
+                            alt="Dark Logo Preview"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("upload-asset-logoDark")?.click()}
+                            disabled={uploadingAsset === "logoDark"}
+                            className="text-xs h-7 gap-1 flex-1"
+                          >
+                            {uploadingAsset === "logoDark" ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            Replace File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setLogoDarkUrl("")}
+                            className="text-xs h-7 text-destructive hover:text-destructive px-2"
+                            title="Remove Dark Logo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("upload-asset-logoDark")?.click()}
+                        disabled={uploadingAsset === "logoDark"}
+                        className="w-full border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-muted/40 rounded-lg p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all text-center"
+                      >
+                        {uploadingAsset === "logoDark" ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-semibold text-foreground">
+                          {uploadingAsset === "logoDark" ? "Uploading to S3..." : "Upload Dark Logo to S3"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Click to browse or drop file</span>
+                      </button>
+                    )}
+
+                    <div className="pt-1">
+                      <Input
+                        value={logoDarkUrl}
+                        onChange={(e) => setLogoDarkUrl(e.target.value)}
+                        placeholder="Or direct URL: https://..."
+                        className="text-[11px] h-7 font-mono bg-muted/30"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3. Browser Favicon */}
+                  <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Browser Favicon (.ico / .png)
+                        </Label>
+                        {faviconUrl ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                            S3 Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                            Optional
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Browser tab icon and bookmark icon (32x32px or 64x64px square).
+                      </p>
+                    </div>
+
+                    <input
+                      id="upload-asset-favicon"
+                      type="file"
+                      accept="image/x-icon,image/png,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "favicon")}
+                    />
+
+                    {faviconUrl ? (
+                      <div className="space-y-2">
+                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 p-2 flex items-center justify-center overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={faviconUrl}
+                            alt="Favicon Preview"
+                            className="w-8 h-8 object-contain"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("upload-asset-favicon")?.click()}
+                            disabled={uploadingAsset === "favicon"}
+                            className="text-xs h-7 gap-1 flex-1"
+                          >
+                            {uploadingAsset === "favicon" ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            Replace File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFaviconUrl("")}
+                            className="text-xs h-7 text-destructive hover:text-destructive px-2"
+                            title="Remove Favicon"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("upload-asset-favicon")?.click()}
+                        disabled={uploadingAsset === "favicon"}
+                        className="w-full border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-muted/40 rounded-lg p-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all text-center"
+                      >
+                        {uploadingAsset === "favicon" ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-semibold text-foreground">
+                          {uploadingAsset === "favicon" ? "Uploading..." : "Upload Favicon (.ico / .png)"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">Square icon 32x32px or 64x64px</span>
+                      </button>
+                    )}
+
+                    <div className="pt-1">
+                      <Input
+                        value={faviconUrl}
+                        onChange={(e) => setFaviconUrl(e.target.value)}
+                        placeholder="Or direct URL: https://..."
+                        className="text-[11px] h-7 font-mono bg-muted/30"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4. Hero / Portal Banner */}
+                  <div className="p-4 rounded-xl border border-border bg-card space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Hero Portal Banner
+                        </Label>
+                        {bannerUrl ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                            S3 Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                            Optional
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Wide landscape banner for login screen and artist home (1920x600px &bull; Max 5MB).
+                      </p>
+                    </div>
+
+                    <input
+                      id="upload-asset-banner"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleAssetUpload(e, "banner")}
+                    />
+
+                    {bannerUrl ? (
+                      <div className="space-y-2">
+                        <div className="h-16 w-full rounded-lg border border-border/80 bg-muted/30 overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={bannerUrl}
+                            alt="Banner Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("upload-asset-banner")?.click()}
+                            disabled={uploadingAsset === "banner"}
+                            className="text-xs h-7 gap-1 flex-1"
+                          >
+                            {uploadingAsset === "banner" ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Upload className="w-3 h-3" />
+                            )}
+                            Replace File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBannerUrl("")}
+                            className="text-xs h-7 text-destructive hover:text-destructive px-2"
+                            title="Remove Banner"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("upload-asset-banner")?.click()}
+                        disabled={uploadingAsset === "banner"}
+                        className="w-full border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-muted/40 rounded-lg p-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all text-center"
+                      >
+                        {uploadingAsset === "banner" ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-semibold text-foreground">
+                          {uploadingAsset === "banner" ? "Uploading..." : "Upload Hero Banner"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">1920x600px wide landscape</span>
+                      </button>
+                    )}
+
+                    <div className="pt-1">
+                      <Input
+                        value={bannerUrl}
+                        onChange={(e) => setBannerUrl(e.target.value)}
+                        placeholder="Or direct URL: https://..."
+                        className="text-[11px] h-7 font-mono bg-muted/30"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comprehensive Social Media & Online Presence Grid */}
+              <div className="p-4 sm:p-5 rounded-xl border border-border bg-card space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-primary" />
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">
+                        Global Online Presence &amp; Social Links
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground">
+                        Embedded in public landing pages, artist portals, release smartlinks, and email receipts.
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    8 Channels Supported
+                  </Badge>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="faviconUrl" className="text-xs font-medium">
-                    Favicon URL (.ico / .png)
-                  </Label>
-                  <Input
-                    id="faviconUrl"
-                    value={faviconUrl}
-                    onChange={(e) => setFaviconUrl(e.target.value)}
-                    placeholder="https://cdn.example.com/favicon.ico"
-                    className="text-xs h-9"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* 1. Official Website */}
+                  <div className="space-y-1">
+                    <Label htmlFor="website" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Globe className="w-3 h-3 text-primary" /> Official Website
+                    </Label>
+                    <Input
+                      id="website"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://yourlabel.com"
+                      className="text-xs h-8"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="bannerUrl" className="text-xs font-medium">
-                    Hero Banner URL (Optional)
-                  </Label>
-                  <Input
-                    id="bannerUrl"
-                    value={bannerUrl}
-                    onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://cdn.example.com/banner.jpg"
-                    className="text-xs h-9"
-                  />
-                </div>
+                  {/* 2. Instagram */}
+                  <div className="space-y-1">
+                    <Label htmlFor="instagram" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Share2 className="w-3 h-3 text-pink-500" /> Instagram
+                    </Label>
+                    <Input
+                      id="instagram"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      placeholder="https://instagram.com/yourlabel"
+                      className="text-xs h-8"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="instagram" className="text-xs font-medium">
-                    Instagram Handle / URL
-                  </Label>
-                  <Input
-                    id="instagram"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    placeholder="https://instagram.com/yourlabel"
-                    className="text-xs h-9"
-                  />
-                </div>
+                  {/* 3. Twitter / X */}
+                  <div className="space-y-1">
+                    <Label htmlFor="twitter" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Share2 className="w-3 h-3 text-sky-500" /> Twitter / X
+                    </Label>
+                    <Input
+                      id="twitter"
+                      value={twitter}
+                      onChange={(e) => setTwitter(e.target.value)}
+                      placeholder="https://x.com/yourlabel"
+                      className="text-xs h-8"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="twitter" className="text-xs font-medium">
-                    Twitter / X Handle / URL
-                  </Label>
-                  <Input
-                    id="twitter"
-                    value={twitter}
-                    onChange={(e) => setTwitter(e.target.value)}
-                    placeholder="https://x.com/yourlabel"
-                    className="text-xs h-9"
-                  />
+                  {/* 4. YouTube */}
+                  <div className="space-y-1">
+                    <Label htmlFor="youtube" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Radio className="w-3 h-3 text-red-500" /> YouTube Channel
+                    </Label>
+                    <Input
+                      id="youtube"
+                      value={youtube}
+                      onChange={(e) => setYoutube(e.target.value)}
+                      placeholder="https://youtube.com/@yourlabel"
+                      className="text-xs h-8"
+                    />
+                  </div>
+
+                  {/* 5. Spotify */}
+                  <div className="space-y-1">
+                    <Label htmlFor="spotify" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Music className="w-3 h-3 text-emerald-500" /> Spotify Profile
+                    </Label>
+                    <Input
+                      id="spotify"
+                      value={spotify}
+                      onChange={(e) => setSpotify(e.target.value)}
+                      placeholder="https://open.spotify.com/user/..."
+                      className="text-xs h-8"
+                    />
+                  </div>
+
+                  {/* 6. TikTok */}
+                  <div className="space-y-1">
+                    <Label htmlFor="tiktok" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Music className="w-3 h-3 text-purple-500" /> TikTok
+                    </Label>
+                    <Input
+                      id="tiktok"
+                      value={tiktok}
+                      onChange={(e) => setTiktok(e.target.value)}
+                      placeholder="https://tiktok.com/@yourlabel"
+                      className="text-xs h-8"
+                    />
+                  </div>
+
+                  {/* 7. Facebook */}
+                  <div className="space-y-1">
+                    <Label htmlFor="facebook" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Globe className="w-3 h-3 text-blue-500" /> Facebook Page
+                    </Label>
+                    <Input
+                      id="facebook"
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      placeholder="https://facebook.com/yourlabel"
+                      className="text-xs h-8"
+                    />
+                  </div>
+
+                  {/* 8. LinkedIn */}
+                  <div className="space-y-1">
+                    <Label htmlFor="linkedin" className="text-[11px] font-medium flex items-center gap-1 text-foreground">
+                      <Briefcase className="w-3 h-3 text-blue-600" /> LinkedIn
+                    </Label>
+                    <Input
+                      id="linkedin"
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/company/..."
+                      className="text-xs h-8"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -2347,6 +3292,36 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </div>
                   </div>
                   <div>
+                    <span className="text-muted-foreground">Business Archetype:</span>
+                    <div className="font-semibold text-primary mt-0.5 flex items-center gap-1">
+                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && "Record Label (IFPI)"}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && "Distributor (DDEX)"}
+                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && "Music Publisher (PRO)"}
+                      {businessType === WhiteLabelBusinessType.REFERRER && "Referrer Network"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Industry Metadata:</span>
+                    <div className="font-mono text-[11px] text-foreground mt-0.5 truncate">
+                      {businessType === WhiteLabelBusinessType.RECORD_LABEL && `ISRC: ${isrcPrefix || "QM"} • Cat: ${catalogPrefix || "RM-CAT"}`}
+                      {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && `${deliveryProtocol} • Cut: ${commissionRate}%`}
+                      {businessType === WhiteLabelBusinessType.MUSIC_PUBLISHER && `PRO: ${primaryPro} • IPI: ${ipiCaeNumber || "Assigned"}`}
+                      {businessType === WhiteLabelBusinessType.REFERRER && `Code: ${referralNetworkCode} • Bounty: ${commissionBounty}%`}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">S3 Brand Assets:</span>
+                    <div className="font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      {[logoUrl, logoDarkUrl, faviconUrl, bannerUrl].filter(Boolean).length} / 4 S3 Assets Ready
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Social Presence:</span>
+                    <div className="font-semibold text-foreground mt-0.5">
+                      {[website, instagram, twitter, youtube, spotify, tiktok, facebook, linkedin].filter(Boolean).length} Channels Active
+                    </div>
+                  </div>
+                  <div>
                     <span className="text-muted-foreground">
                       Support Email:
                     </span>
@@ -2369,7 +3344,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Theme & Font:</span>
+                    <span className="text-muted-foreground">Theme &amp; Font:</span>
                     <div className="font-semibold text-foreground mt-0.5 capitalize">
                       {themeMode} &bull; {themeFont} ({primaryColor})
                     </div>

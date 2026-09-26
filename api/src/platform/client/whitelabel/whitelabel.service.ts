@@ -16,7 +16,7 @@ import {
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { CreateWhiteLabelDto } from './dto/create-whitelabel.dto';
 import { UpdateBrandingDto } from 'src/platform/dto/update-branding.dto';
-import { Prisma, WhiteLabelStatus } from 'src/generated/prisma/client';
+import { Prisma, WhiteLabelStatus, WhiteLabelBusinessType } from 'src/generated/prisma/client';
 import { RedisService } from 'src/lib/redis/redis.service';
 import * as crypto from 'node:crypto';
 import * as dns from 'node:dns/promises';
@@ -1051,6 +1051,16 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         // Brand name is permanent and immutable once approved in the partner contract
         name: wl.name || dto.name.trim(),
+        businessType: dto.businessType || wl.businessType || WhiteLabelBusinessType.RECORD_LABEL,
+        companyWebsite: dto.companyWebsite?.trim() || wl.companyWebsite,
+        ...(dto.onboardingDetails
+          ? {
+              onboardingDetails: {
+                ...(typeof wl.onboardingDetails === 'object' && wl.onboardingDetails ? (wl.onboardingDetails as Record<string, any>) : {}),
+                ...dto.onboardingDetails,
+              },
+            }
+          : {}),
         tagline: dto.tagline?.trim() || null,
         description: dto.description?.trim() || null,
         supportEmail: dto.supportEmail.trim().toLowerCase(),

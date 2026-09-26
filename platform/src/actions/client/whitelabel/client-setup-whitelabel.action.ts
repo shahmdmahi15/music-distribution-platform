@@ -3,10 +3,13 @@
 import { env } from "@/env";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { WhiteLabelBranding, WhiteLabelSignupModel } from "@/types/whitelabel";
+import { WhiteLabelBranding, WhiteLabelSignupModel, WhiteLabelBusinessType } from "@/types/whitelabel";
 
 export interface ClientSetupWhiteLabelInput {
   name: string;
+  businessType?: WhiteLabelBusinessType;
+  companyWebsite?: string;
+  onboardingDetails?: Record<string, any>;
   tagline?: string;
   description?: string;
   supportEmail: string;
