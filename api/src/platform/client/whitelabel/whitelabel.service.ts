@@ -1049,14 +1049,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
       data: {
-        name: dto.name.trim(),
+        // Brand name is permanent and immutable once approved in the partner contract
+        name: wl.name || dto.name.trim(),
         tagline: dto.tagline?.trim() || null,
         description: dto.description?.trim() || null,
         supportEmail: dto.supportEmail.trim().toLowerCase(),
         supportPhone: dto.supportPhone?.trim() || null,
         copyrightText:
           dto.copyrightText?.trim() ||
-          `© ${new Date().getFullYear()} ${dto.name.trim()}. All rights reserved.`,
+          `© ${new Date().getFullYear()} ${wl.name || dto.name.trim()}. All rights reserved.`,
         primaryColor: dto.primaryColor || '#6366f1',
         accentColor: dto.accentColor || '#ec4899',
         themeRadius: dto.themeRadius || '0.5rem',

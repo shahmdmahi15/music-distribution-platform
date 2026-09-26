@@ -26,6 +26,7 @@ import {
   Copy,
   ExternalLink,
   Music,
+  Shield,
   ShieldCheck,
   UserPlus,
   Cloud,
@@ -131,8 +132,8 @@ export function ClientWhiteLabelSetupWizard({
   const [step, setStep] = useState(1);
   const totalSteps = 8;
 
-  // Form State
-  const [name, setName] = useState(branding.name || "");
+  // Form State - Brand name is permanent and immutable from the tenant contract
+  const name = branding.name || "";
   const [tagline, setTagline] = useState(branding.tagline || "");
   const [description, setDescription] = useState(branding.description || "");
   const [supportEmail, setSupportEmail] = useState(
@@ -672,7 +673,7 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
                   Define Your Portal Brand &amp; Public Identity
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Enter your label or distributor brand name, public support
+                  Review your verified brand name, configure public support
                   contacts, and copyright information. All data is persisted to
                   the database and automatically reflected on your portal.
                 </p>
@@ -680,17 +681,28 @@ INTERNAL_API_SECRET="rmit_internal_${branding.code.toLowerCase().replace(/[^a-z0
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="brandName" className="text-xs font-medium">
-                    Portal / Brand Name{" "}
-                    <span className="text-destructive">*</span>
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                      Portal / Brand Name
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-muted/60 text-muted-foreground font-mono"
+                    >
+                      Permanent • Locked
+                    </Badge>
+                  </div>
                   <Input
                     id="brandName"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Royal Music Distribution"
-                    className="text-xs h-9"
+                    value={branding.name || name}
+                    disabled
+                    readOnly
+                    className="text-xs h-9 bg-muted/50 cursor-not-allowed opacity-90 font-medium font-mono"
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    Brand name is permanently registered to your tenant contract and cannot be modified.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2">
