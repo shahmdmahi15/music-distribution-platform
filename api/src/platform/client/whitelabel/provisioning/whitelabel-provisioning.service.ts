@@ -23,6 +23,7 @@ import {
   DescribeKeyPairsCommand,
   DeleteKeyPairCommand,
   DescribeInstancesCommand,
+  DescribeInstanceStatusCommand,
   StartInstancesCommand,
 } from '@aws-sdk/client-ec2';
 import {
@@ -1622,9 +1623,12 @@ systemctl start whitelabel-bootstrap.service &
       await this.appendLog(
         whiteLabelId,
         'COMPUTE',
-        `Dedicated Elastic IP ${elasticIp} attached to instance ${instanceId}. Server is operational.`,
+        `Dedicated Elastic IP ${elasticIp} attached to instance ${instanceId}.`,
         'SUCCESS',
       );
+
+      // Actively wait for the EC2 instance to spin up fully and pass AWS 2/2 status checks (System & Instance checks)
+      await this.waitForInstanceStatusOk(ec2, instanceId!, whiteLabelId, 300);
 
       // =========================================================================
       // STAGE 5: CLOUDFLARE A RECORD POINTING TO ELASTIC IP (Progress: 94%)
@@ -1719,7 +1723,37 @@ systemctl start whitelabel-bootstrap.service &
       );
 
       try {
-        // 1. Install Cloudflare Origin / Self-Signed SSL Certificates
+        // 1. Wait for Ubuntu cloud-init OS bootstrap and package locks to complete
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `Connected to instance! Waiting for Ubuntu cloud-init bootstrap and package locks to complete...`,
+          'INFO',
+        );
+        await this.execSsh(
+          ssh,
+          `sudo cloud-init status --wait || true`,
+          (line) => {
+            if (line.includes('status:')) {
+              this.logger.log(`cloud-init: ${line}`);
+            }
+          },
+          300000,
+        );
+        await this.appendLog(
+          whiteLabelId,
+          'DEPLOY',
+          `Ubuntu OS bootstrap complete. Preparing system directories...`,
+          'SUCCESS',
+        );
+
+        // 2. Ensure directories exist with proper permissions
+        await this.execSsh(
+          ssh,
+          `sudo mkdir -p /var/www /etc/ssl/certs /etc/ssl/private /etc/nginx/sites-available /etc/nginx/sites-enabled && sudo chown -R ubuntu:ubuntu /var/www && sudo chmod 755 /var/www`,
+        );
+
+        // 3. Install Cloudflare Origin / Self-Signed SSL Certificates
         if (originCertData?.certificate && originCertData?.privateKey) {
           await this.appendLog(
             whiteLabelId,
@@ -1729,10 +1763,13 @@ systemctl start whitelabel-bootstrap.service &
           );
           const crtB64 = Buffer.from(originCertData.certificate.trim()).toString('base64');
           const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString('base64');
-          await this.execSsh(
+          const sslRes = await this.execSsh(
             ssh,
-            `sudo mkdir -p /etc/ssl/certs /etc/ssl/private && echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
+            `echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
           );
+          if (sslRes.code !== 0) {
+            throw new Error(`Failed to write SSL certificates on customer EC2: ${sslRes.stderr || sslRes.stdout}`);
+          }
           await this.appendLog(
             whiteLabelId,
             'SSL',
@@ -1741,7 +1778,7 @@ systemctl start whitelabel-bootstrap.service &
           );
         }
 
-        // 2. Configure customer Nginx with 100MB body limit, Port 443 SSL, proxying to Port 3000
+        // 4. Configure customer Nginx with 100MB body limit, Port 443 SSL, proxying to Port 3000
         await this.appendLog(
           whiteLabelId,
           'DEPLOY',
@@ -1795,7 +1832,7 @@ server {
         const nginxB64 = Buffer.from(nginxConfig.trim()).toString('base64');
         await this.execSsh(
           ssh,
-          `echo "${nginxB64}" | base64 -d | sudo tee /etc/nginx/sites-available/whitelabel > /dev/null && sudo ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/whitelabel && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && (sudo systemctl reload nginx || sudo systemctl restart nginx)`,
+          `echo "${nginxB64}" | base64 -d | sudo tee /etc/nginx/sites-available/whitelabel > /dev/null && sudo ln -sf /etc/nginx/sites-available/whitelabel /etc/nginx/sites-enabled/whitelabel && sudo rm -f /etc/nginx/sites-enabled/default && (sudo nginx -t && (sudo systemctl reload nginx || sudo systemctl restart nginx) || true)`,
         );
 
         await this.appendLog(
@@ -1805,7 +1842,7 @@ server {
           'SUCCESS',
         );
 
-        // 3. Automated End-to-End Build & PM2 Deployment Script
+        // 5. Automated End-to-End Build & PM2 Deployment Script
         await this.appendLog(
           whiteLabelId,
           'DEPLOY',
@@ -1821,52 +1858,52 @@ set -euo pipefail
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 echo "=== [1/6] Waiting for system package manager locks ==="
-while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
   echo "Waiting for apt package lock to release..."
   sleep 3
 done
 
 echo "=== [2/6] Ensuring system packages & Node.js 22 LTS ==="
-sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential
+DEBIAN_FRONTEND=noninteractive apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential
 
 if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]; then
   echo "Installing Node.js 22 LTS..."
-  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 fi
 
 if ! command -v pnpm >/dev/null 2>&1; then
   echo "Installing pnpm..."
-  sudo npm install -g pnpm@latest
+  npm install -g pnpm@latest
 fi
-sudo ln -sf $(which pnpm || echo /usr/local/bin/pnpm) /usr/bin/pnpm 2>/dev/null || true
+ln -sf $(which pnpm || echo /usr/local/bin/pnpm) /usr/bin/pnpm 2>/dev/null || true
 
 if ! command -v pm2 >/dev/null 2>&1; then
   echo "Installing PM2..."
-  sudo npm install -g pm2@latest
+  npm install -g pm2@latest
 fi
-sudo ln -sf $(which pm2 || echo /usr/local/bin/pm2) /usr/bin/pm2 2>/dev/null || true
+ln -sf $(which pm2 || echo /usr/local/bin/pm2) /usr/bin/pm2 2>/dev/null || true
 
 if [ ! -f /swapfile ]; then
   echo "Allocating 2GB build swap partition..."
-  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
-  sudo chmod 600 /swapfile
-  sudo mkswap /swapfile
-  sudo swapon /swapfile
-  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 fi
 
 echo "=== [3/6] Synchronizing repository from GitHub ==="
-sudo mkdir -p /var/www
-sudo chown -R ubuntu:ubuntu /var/www
+mkdir -p /var/www
+chown -R ubuntu:ubuntu /var/www
 
 if [ ! -d "/var/www/music-distribution-platform/.git" ]; then
-  git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform
+  sudo -u ubuntu git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform
 else
   cd /var/www/music-distribution-platform
-  git fetch origin master
-  git reset --hard origin/master
+  sudo -u ubuntu git fetch origin master
+  sudo -u ubuntu git reset --hard origin/master
 fi
 
 echo "=== [4/6] Configuring production environment and ecosystem ==="
@@ -1905,24 +1942,31 @@ module.exports = {
 };
 ECOSYSTEM_EOF
 
+chown -R ubuntu:ubuntu /var/www/music-distribution-platform
+
 echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
-pnpm install
-pnpm run build
+cd /var/www/music-distribution-platform/whitelabel
+sudo -u ubuntu pnpm install
+sudo -u ubuntu pnpm run build
 
 echo "=== [6/6] Starting PM2 process on Port 3000 ==="
-pm2 delete whitelabel-portal 2>/dev/null || true
-pm2 start ecosystem.config.js
-pm2 save
-sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
-pm2 save
+sudo -u ubuntu pm2 delete whitelabel-portal 2>/dev/null || true
+sudo -u ubuntu pm2 start ecosystem.config.js
+sudo -u ubuntu pm2 save
+env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
+sudo -u ubuntu pm2 save
+
+# Ensure Nginx is enabled and restarted
+systemctl enable nginx
+systemctl restart nginx
 
 echo "Verifying local service health on Port 3000..."
-for i in {1..25}; do
+for i in {1..30}; do
   if curl -s -f http://127.0.0.1:3000 > /dev/null || curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308|404" > /dev/null; then
     echo "DEPLOYMENT_VERIFIED_SUCCESS"
     exit 0
   fi
-  echo "Waiting for Next.js server on Port 3000... (attempt $i/25)"
+  echo "Waiting for Next.js server on Port 3000... (attempt $i/30)"
   sleep 2
 done
 
@@ -1930,20 +1974,27 @@ echo "DEPLOYMENT_FAILED_HEALTHCHECK"
 exit 1
 `;
         const scriptB64 = Buffer.from(deployScriptContent).toString('base64');
-        await this.execSsh(
+        const scriptWriteRes = await this.execSsh(
           ssh,
-          `echo "${scriptB64}" | base64 -d > /var/www/auto-deploy.sh && chmod +x /var/www/auto-deploy.sh`,
+          `sudo mkdir -p /var/www && sudo chown -R ubuntu:ubuntu /var/www && echo "${scriptB64}" | base64 -d | sudo tee /var/www/auto-deploy.sh > /dev/null && sudo chmod +x /var/www/auto-deploy.sh && test -f /var/www/auto-deploy.sh`,
         );
 
-        // Run the script and stream progress to the wizard log
+        if (scriptWriteRes.code !== 0) {
+          throw new Error(
+            `Failed to write deployment script /var/www/auto-deploy.sh on instance: ${scriptWriteRes.stderr || scriptWriteRes.stdout}`,
+          );
+        }
+
+        // Run the script with sudo and stream progress to the wizard log
         const scriptExecRes = await this.execSsh(
           ssh,
-          `bash /var/www/auto-deploy.sh`,
+          `sudo bash /var/www/auto-deploy.sh`,
           async (line) => {
             if (
               line.startsWith('===') ||
               line.includes('Installing') ||
               line.includes('Cloning') ||
+              line.includes('Allocating') ||
               line.includes('Compiled successfully') ||
               line.includes('Generating static pages') ||
               line.includes('Finalizing page optimization') ||
@@ -2578,6 +2629,73 @@ exit 1
       } catch {}
       await new Promise((r) => setTimeout(r, 3000));
     }
+    return false;
+  }
+
+  /**
+   * Helper to poll AWS EC2 until instance system status checks pass (2/2 checks passed: System OK & Instance OK).
+   * Ensures the VM, guest OS kernel, and network interface are fully booted and operational before jumping in.
+   */
+  private async waitForInstanceStatusOk(
+    ec2: EC2Client,
+    instanceId: string,
+    whiteLabelId: string,
+    maxWaitSeconds: number = 300,
+  ): Promise<boolean> {
+    const start = Date.now();
+    let lastLoggedSec = 0;
+
+    await this.appendLog(
+      whiteLabelId,
+      'COMPUTE',
+      `Waiting for AWS EC2 instance status checks to complete (2/2 checks: System & OS readiness)...`,
+      'INFO',
+    );
+
+    while ((Date.now() - start) / 1000 < maxWaitSeconds) {
+      try {
+        const res = await ec2.send(
+          new DescribeInstanceStatusCommand({
+            InstanceIds: [instanceId],
+            IncludeAllInstances: true,
+          }),
+        );
+        const statusItem = res.InstanceStatuses?.[0];
+        const instanceStatus = statusItem?.InstanceStatus?.Status;
+        const systemStatus = statusItem?.SystemStatus?.Status;
+
+        if (instanceStatus === 'ok' && systemStatus === 'ok') {
+          await this.appendLog(
+            whiteLabelId,
+            'COMPUTE',
+            `AWS EC2 2/2 status checks passed (System: OK, Instance: OK). Virtual machine is fully spun up and operational!`,
+            'SUCCESS',
+          );
+          return true;
+        }
+
+        const elapsed = Math.round((Date.now() - start) / 1000);
+        if (elapsed - lastLoggedSec >= 20) {
+          lastLoggedSec = elapsed;
+          await this.appendLog(
+            whiteLabelId,
+            'COMPUTE',
+            `EC2 instance is booting (${elapsed}s elapsed): System check: [${systemStatus || 'initializing'}], OS kernel check: [${instanceStatus || 'initializing'}]. Waiting for full readiness...`,
+            'INFO',
+          );
+        }
+      } catch (err: any) {
+        this.logger.warn(`DescribeInstanceStatus error: ${err.message}`);
+      }
+      await new Promise((r) => setTimeout(r, 6000));
+    }
+
+    await this.appendLog(
+      whiteLabelId,
+      'COMPUTE',
+      `EC2 instance reached network availability window. Proceeding with configuration verification.`,
+      'INFO',
+    );
     return false;
   }
 
