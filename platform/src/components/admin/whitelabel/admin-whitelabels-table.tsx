@@ -1116,42 +1116,55 @@ export function AdminWhiteLabelsTable({
                       {/* 2. Domain & Cloud Routing */}
                       <TableCell>
                         <div className="space-y-1 min-w-[170px]">
-                          {wl.subdomain ? (
-                            <div className="flex items-center gap-1">
-                              <Globe className="h-3 w-3 text-primary shrink-0" />
-                              <span className="font-mono text-[11px] font-semibold text-foreground truncate">
-                                {wl.subdomain}.platform.royalmotionit.com
-                              </span>
+                          {wl.businessType === WhiteLabelBusinessType.REFERRER ? (
+                            <div className="space-y-1">
+                              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[10px] font-bold">
+                                Code: {wl.onboardingDetails?.referralNetworkCode || wl.onboardingDetails?.scoutAffiliateCodePrefix || `${wl.code}-REF`}
+                              </Badge>
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                15% Selling Cut • Min ৳60K BDT
+                              </div>
                             </div>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground italic">
-                              No subdomain set
-                            </span>
-                          )}
+                            <>
+                              {wl.subdomain ? (
+                                <div className="flex items-center gap-1">
+                                  <Globe className="h-3 w-3 text-primary shrink-0" />
+                                  <span className="font-mono text-[11px] font-semibold text-foreground truncate">
+                                    {wl.subdomain}.platform.royalmotionit.com
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground italic">
+                                  No subdomain set
+                                </span>
+                              )}
 
-                          <div className="flex flex-wrap items-center gap-1">
-                            {wl.customDomain && (
-                              <Badge
-                                variant="outline"
-                                className="text-[9px] font-mono px-1.5 py-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
-                              >
-                                {wl.customDomain}
-                              </Badge>
-                            )}
-                            {wl.elasticIpv4 ? (
-                              <Badge
-                                variant="outline"
-                                className="text-[9px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1"
-                              >
-                                <Server className="h-2.5 w-2.5" />
-                                {wl.elasticIpv4}
-                              </Badge>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">
-                                Cloudflare Managed Proxy
-                              </span>
-                            )}
-                          </div>
+                              <div className="flex flex-wrap items-center gap-1">
+                                {wl.customDomain && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-mono px-1.5 py-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                                  >
+                                    {wl.customDomain}
+                                  </Badge>
+                                )}
+                                {wl.elasticIpv4 ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1"
+                                  >
+                                    <Server className="h-2.5 w-2.5" />
+                                    {wl.elasticIpv4}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Cloudflare Managed Proxy
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </TableCell>
 

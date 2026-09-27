@@ -174,20 +174,30 @@ export function ClientWhiteLabelView({
             {whiteLabel.name}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
-            Your branded distribution ecosystem is running live. Manage custom
-            themes, domains, developer credentials, and ingestion pipelines
-            below.
+            {whiteLabel.businessType === "REFERRER"
+              ? "Your Referrer account is active with a 15% fixed commission on all Distribution Aggregator accounts referred (min ৳60,000 BDT). Manage your referral links, track leads, and configure payouts in your Referrer Hub."
+              : "Your branded distribution ecosystem is running live. Manage custom themes, domains, developer credentials, and ingestion pipelines below."}
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <Button
-            className="gap-2 text-xs font-bold shadow-sm"
-            render={<Link href="#" />}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Customize Theme
-          </Button>
+          {whiteLabel.businessType === "REFERRER" ? (
+            <Button
+              className="gap-2 text-xs font-bold shadow-sm"
+              render={<Link href="/referrer" />}
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Open Referrer Hub
+            </Button>
+          ) : (
+            <Button
+              className="gap-2 text-xs font-bold shadow-sm"
+              render={<Link href="/whitelabel" />}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Manage WhiteLabel
+            </Button>
+          )}
         </div>
       </div>
 

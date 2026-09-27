@@ -98,4 +98,7 @@ export class UpdateBrandingDto {
 
   @IsOptional()
   userSignupModel?: any;
+
+  @IsOptional()
+  onboardingDetails?: Record<string, any>;
 }

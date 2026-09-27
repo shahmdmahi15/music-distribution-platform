@@ -1888,6 +1888,16 @@ export function AdminWhiteLabelDetailsDialog({
                                 {whiteLabel.artists?.length || 0} In Pipeline
                               </span>
                             </div>
+                            {whiteLabel.onboardingDetails?.payoutAccountNumber && (
+                              <div>
+                                <span className="text-muted-foreground text-[10px] block">
+                                  Remittance Account / Mobile
+                                </span>
+                                <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
+                                  {whiteLabel.onboardingDetails?.payoutAccountNumber}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}

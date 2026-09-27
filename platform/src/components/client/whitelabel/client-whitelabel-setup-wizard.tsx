@@ -306,7 +306,7 @@ export function ClientWhiteLabelSetupWizard({
     (branding.onboardingDetails as any)?.attributionWindowDays?.toString() || "60",
   );
   const [preferredCommissionStructure, setPreferredCommissionStructure] = useState(
-    (branding.onboardingDetails as any)?.preferredCommissionStructure || "lifetime_rev_share",
+    (branding.onboardingDetails as any)?.preferredCommissionStructure || "selling_value_share",
   );
   const [commissionBounty, setCommissionBounty] = useState(
     (branding.onboardingDetails as any)?.commissionBountyRate?.toString() ||
@@ -2008,18 +2008,11 @@ NODE_ENV=production`;
                         <Label htmlFor="preferredCommissionStructure" className="text-[11px] font-medium">
                           Commission Structure
                         </Label>
-                        <select
-                          id="preferredCommissionStructure"
-                          value={preferredCommissionStructure}
-                          onChange={(e) => setPreferredCommissionStructure(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
-                        >
-                          <option value="selling_value_share">15% Selling Value Share (৳60K Min)</option>
-                          <option value="lifetime_rev_share">15% Lifetime Net Residual Share</option>
-                          <option value="upfront_bounty">15% Upfront Account Close Bounty</option>
-                          <option value="hybrid_tiered">Hybrid Tiered Bounty &amp; Share</option>
-                        </select>
-                        <p className="text-[10px] text-muted-foreground">Reward payout model</p>
+                        <div className="w-full bg-muted/60 border border-primary/30 rounded-lg px-2.5 h-8 text-xs text-primary font-bold flex items-center justify-between">
+                          <span>15% Selling Value Share</span>
+                          <span className="font-mono text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Min ৳60K</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Fixed 15% of gross closing value</p>
                       </div>
 
                       <div className="space-y-1">

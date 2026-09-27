@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { PaymentStatus, Subscription } from "@/types/subscription";
-import { WhiteLabelStatus } from "@/types/whitelabel";
+import { WhiteLabelBusinessType, WhiteLabelStatus } from "@/types/whitelabel";
 import {
   House,
   LayoutDashboard,
@@ -22,6 +22,7 @@ import {
   Webhook,
   Users,
   UserCheck,
+  Share2,
 } from "lucide-react";
 
 interface SimpleNavigationItem {
@@ -172,6 +173,45 @@ const onboardingNavigations: SimpleNavigationGroup[] = [
   },
 ];
 
+// 4. Focused navigation for Referrer Partners (No WhiteLabel website / infrastructure needed)
+const referrerNavigations: SimpleNavigationGroup[] = [
+  {
+    name: "Dashboard",
+    items: [
+      {
+        title: "Overview",
+        url: "/",
+        icon: House,
+      },
+    ],
+  },
+  {
+    name: "Referrals",
+    items: [
+      {
+        title: "Referrer Hub",
+        url: "/referrer",
+        icon: Share2,
+      },
+    ],
+  },
+  {
+    name: "Account",
+    items: [
+      {
+        title: "Profile",
+        url: "/profile",
+        icon: UserPen,
+      },
+      {
+        title: "Active Sessions",
+        url: "/sessions",
+        icon: ShieldPlus,
+      },
+    ],
+  },
+];
+
 export function ClientSidebarContent({
   subscription,
 }: {
@@ -190,11 +230,16 @@ export function ClientSidebarContent({
         ?.isSetupCompleted,
   );
 
-  const navigations = !isApprovedAndPaid
-    ? onboardingNavigations
-    : isSetupCompleted
-      ? activeNavigations
-      : setupPendingNavigations;
+  const isReferrer =
+    subscription?.whiteLabel?.businessType === WhiteLabelBusinessType.REFERRER;
+
+  const navigations = isReferrer
+    ? referrerNavigations
+    : !isApprovedAndPaid
+      ? onboardingNavigations
+      : isSetupCompleted
+        ? activeNavigations
+        : setupPendingNavigations;
 
   return (
     <SidebarContent>

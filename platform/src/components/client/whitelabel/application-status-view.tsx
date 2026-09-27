@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Building2,
@@ -1224,13 +1225,23 @@ export function WhiteLabelApplicationStatusView({
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between text-xs">
+              <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <span className="text-muted-foreground text-[11px]">
                   Guaranteed Min Payout: <strong className="text-foreground font-mono">৳9,000 BDT</strong> per Distribution Aggregator account sold
                 </span>
-                <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
-                  Uncapped Maximum
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
+                    Uncapped Maximum
+                  </Badge>
+                  <Button
+                    render={<Link href="/referrer" />}
+                    size="xs"
+                    className="h-7 text-xs font-semibold gap-1"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Open Referrer Hub
+                  </Button>
+                </div>
               </div>
 
               {whiteLabel.onboardingDetails?.discoveryChannels &&

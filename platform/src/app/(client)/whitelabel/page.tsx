@@ -53,6 +53,10 @@ export default async function WhiteLabelOverviewPage() {
     );
   }
 
+  if (brandingResult.branding.businessType === "REFERRER") {
+    redirect("/referrer");
+  }
+
   if (
     !brandingResult.branding.isSetupComplete &&
     !brandingResult.branding.isSetupCompleted

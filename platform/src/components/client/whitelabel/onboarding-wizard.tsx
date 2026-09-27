@@ -139,13 +139,6 @@ const SCOUT_CATEGORIES = [
   { id: "industry_influencer", label: "Industry Creator / Community Leader" },
 ];
 
-const COMMISSION_PREFERENCES = [
-  { id: "selling_value_share", label: "15% Account Selling Value Share (Min Selling Price: ৳60K BDT)" },
-  { id: "lifetime_rev_share", label: "15% Lifetime Net Residual Share" },
-  { id: "upfront_bounty", label: "15% Upfront Account Close Bounty" },
-  { id: "hybrid_tiered", label: "Hybrid 15% Share & Performance Escalation" },
-];
-
 const TERRITORY_OPTIONS = [
   "Global Worldwide",
   "North America (US & Canada)",
@@ -375,7 +368,7 @@ export function WhiteLabelOnboardingWizard({
       projectedAnnualReferrals: 10,
       projectedPipelineCatalogSize: 500,
       targetTerritories: ["North America (US & Canada)"],
-      preferredCommissionStructure: "lifetime_rev_share",
+      preferredCommissionStructure: "selling_value_share",
       discoveryChannels: [
         "Studio Sessions & Productions",
         "Live Showcases & Tours",
@@ -1610,44 +1603,59 @@ export function WhiteLabelOnboardingWizard({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Preferred Commission Incentive Model
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span>Referral Commission Policy</span>
+                      <span className="text-[10px] text-primary font-bold uppercase tracking-wider">Fixed 15% Share</span>
                     </Label>
-                    <select
-                      value={
-                        formData.onboardingDetails
-                          ?.preferredCommissionStructure || "selling_value_share"
-                      }
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "preferredCommissionStructure",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
-                    >
-                      {COMMISSION_PREFERENCES.map((pref) => (
-                        <option key={pref.id} value={pref.id}>
-                          {pref.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="w-full h-9.5 rounded-lg border border-primary/30 bg-primary/10 px-3 flex items-center justify-between text-xs font-semibold text-primary">
+                      <span>15% Commission of Gross Selling Value</span>
+                      <span className="font-mono text-[11px] bg-primary/20 px-2 py-0.5 rounded text-primary">Min: ৳60K BDT</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Distribution Aggregator Referral Terms Banner */}
-                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-1.5">
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-primary">
-                      Distribution Aggregator Referral Standard: 15% Share
+                    <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Distribution Aggregator Referral Standard: 15% Fixed Share
                     </span>
                     <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
-                      Min ৳60,000 BDT
+                      Min ৳60,000 BDT Deal
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Referrers receive <strong className="text-foreground">15% of the total selling price</strong> for every Distribution Aggregator WhiteLabel account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with no maximum ceiling — you earn 15% on whatever deal value you negotiate and close!
+                    Referrers earn strictly <strong className="text-foreground">15% of the total selling price</strong> for every Distribution Aggregator WhiteLabel account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with no maximum ceiling — you earn 15% on whatever deal value you negotiate and close!
                   </p>
+
+                  {/* Interactive Simulation */}
+                  <div className="pt-2 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="text-[11px] text-muted-foreground">
+                      <span>Simulate deal closing value:</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground">৳</span>
+                        <Input
+                          type="number"
+                          min={60000}
+                          step={5000}
+                          value={formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000}
+                          onChange={(e) =>
+                            updateOnboardingDetail(
+                              "simulatedDealPriceBdt",
+                              Math.max(60000, Number(e.target.value) || 60000)
+                            )
+                          }
+                          className="w-28 h-7 text-xs font-mono font-bold bg-background text-right"
+                        />
+                      </div>
+                      <div className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 whitespace-nowrap">
+                        Your 15% Cut: ৳{Math.round(((formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000) * 0.15)).toLocaleString()} BDT
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

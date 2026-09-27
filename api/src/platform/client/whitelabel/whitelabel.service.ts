@@ -1127,7 +1127,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           dto.cloudflareBaseDomain.trim() !== '' && {
             cloudflareBaseDomain: dto.cloudflareBaseDomain.trim().toLowerCase(),
             customDomain: dto.customDomain?.trim() || `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`,
-            subdomain: 'backstage',
+            subdomain: wl.subdomain || 'backstage',
           }),
         ...(dto.cloudflareApiToken !== undefined &&
           dto.cloudflareApiToken.trim() !== '' && {
@@ -1286,6 +1286,14 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           dto.socialTiktok !== undefined ? dto.socialTiktok : undefined,
         userSignupModel:
           dto.userSignupModel !== undefined ? dto.userSignupModel : undefined,
+        ...(dto.onboardingDetails
+          ? {
+              onboardingDetails: {
+                ...(typeof subscription.whiteLabel.onboardingDetails === 'object' && subscription.whiteLabel.onboardingDetails ? (subscription.whiteLabel.onboardingDetails as Record<string, any>) : {}),
+                ...dto.onboardingDetails,
+              },
+            }
+          : {}),
       },
     });
 
