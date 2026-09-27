@@ -51,25 +51,15 @@ const navigations = [
     items: [
       {
         title: "WhiteLabels",
-        url: "#",
+        url: "/admin/whitelabels",
         icon: Disc3,
-        items: [
-          {
-            title: "Instances & Vetting",
-            url: "/admin/whitelabels",
-          },
-        ],
+        items: [],
       },
       {
         title: "Referrers",
-        url: "#",
+        url: "/admin/referrers",
         icon: HeartHandshake,
-        items: [
-          {
-            title: "Partners & Bounty",
-            url: "/admin/referrers",
-          },
-        ],
+        items: [],
       },
       {
         title: "Users",

@@ -37,7 +37,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    client_max_body_size 500M;
+    client_max_body_size 100M;
     client_body_buffer_size 128k;
 
     gzip on;
@@ -92,7 +92,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    client_max_body_size 50M;
+    client_max_body_size 100M;
 
     gzip on;
     gzip_types text/plain text/css application/json application/javascript application/x-javascript text/xml application/xml application/xml+rss text/javascript;
