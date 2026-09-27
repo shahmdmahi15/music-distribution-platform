@@ -64,17 +64,21 @@ import {
   WhiteLabelSignupModel,
 } from "@/types/whitelabel";
 
-const BUSINESS_TYPES = [
+export type OnboardingTrack = "DISTRIBUTOR" | "REFERRER";
+
+export const ONBOARDING_TRACKS = [
   {
-    id: WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+    id: "DISTRIBUTOR" as OnboardingTrack,
     label: "Distributor / Aggregator",
+    badge: "Distribution Platform",
     description:
       "High-volume catalog ingestion, multi-tenant sub-labels, DDEX ERN 4.3 feeds, and automated anti-fraud QC.",
     icon: Layers,
   },
   {
-    id: WhiteLabelBusinessType.REFERRER,
+    id: "REFERRER" as OnboardingTrack,
     label: "Referrer Partner",
+    badge: "Bounty Program",
     description:
       "Refer Distribution Aggregator accounts to earn 15% commission of gross selling price (Min deal: ৳60,000 BDT). Managed at /referrer.",
     icon: Users,
@@ -199,6 +203,7 @@ export interface RosterArtist {
 }
 
 export interface OnboardingDraftData {
+  track?: OnboardingTrack;
   name?: string;
   businessType?: WhiteLabelBusinessType;
   companyWebsite?: string;
@@ -262,10 +267,14 @@ export function WhiteLabelOnboardingWizard({
 
   // Form State
   const [formData, setFormData] = useState({
+    // Account Track: "DISTRIBUTOR" | "REFERRER"
+    track: (((initialDraft as any)?.track ||
+      ((initialDraft as any)?.businessType === "REFERRER"
+        ? "REFERRER"
+        : "DISTRIBUTOR")) as OnboardingTrack),
     // Step 1: Corporate Profile
     name: initialDraft?.name || "",
-    businessType:
-      initialDraft?.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+    businessType: WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     companyWebsite: initialDraft?.companyWebsite || "",
     country: initialDraft?.country || "",
     yearsInBusiness: initialDraft?.yearsInBusiness ?? 1,
@@ -376,7 +385,7 @@ export function WhiteLabelOnboardingWizard({
   // Auto-slugify company name to unique subdomain via Cloudflare check
   const debounceNameRef = useRef<NodeJS.Timeout | null>(null);
   const handleNameChange = (name: string) => {
-    if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+    if (formData.track === "REFERRER") {
       setFormData((prev) => ({
         ...prev,
         name,
@@ -429,7 +438,7 @@ export function WhiteLabelOnboardingWizard({
   // Subdomain live checker with debounce
   const debounceSubdomainRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+    if (formData.track === "REFERRER") {
       setSubdomainStatus({ checking: false, available: undefined });
       return;
     }
@@ -577,8 +586,7 @@ export function WhiteLabelOnboardingWizard({
     });
   };
 
-  const isReferrer =
-    formData.businessType === WhiteLabelBusinessType.REFERRER;
+  const isReferrer = formData.track === "REFERRER";
   const maxSteps = isReferrer ? 4 : 6;
 
   const validateStep = (step: number) => {
@@ -972,23 +980,23 @@ export function WhiteLabelOnboardingWizard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Business Type Cards */}
+            {/* Account Model / Track Cards */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold">
-                Select Your Business Type
+                Select Your Onboarding Track
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {BUSINESS_TYPES.map((type) => {
+                {ONBOARDING_TRACKS.map((type) => {
                   const Icon = type.icon;
-                  const isSelected = formData.businessType === type.id;
+                  const isSelected = formData.track === type.id;
                   return (
                     <div
                       key={type.id}
                       onClick={() =>
                         setFormData((prev) => ({
                           ...prev,
-                          businessType: type.id,
-                          ...(type.id === WhiteLabelBusinessType.REFERRER
+                          track: type.id,
+                          ...(type.id === "REFERRER"
                             ? { desiredSubdomain: "", elasticIpv4: "" }
                             : {}),
                         }))
@@ -1030,16 +1038,15 @@ export function WhiteLabelOnboardingWizard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="companyName" className="text-xs font-semibold">
-                  Company / Organization Name{" "}
+                  {isReferrer ? "Partner / Agency Name" : "Company / Organization Name"}{" "}
                   <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="companyName"
                   placeholder={
-                    formData.businessType ===
-                    WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                      ? "e.g. Velocity Media Ingestion Group"
-                      : "e.g. Metro Talent Scout Agency"
+                    isReferrer
+                      ? "e.g. Metro Talent Scout Agency"
+                      : "e.g. Velocity Media Ingestion Group"
                   }
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
@@ -1169,15 +1176,13 @@ export function WhiteLabelOnboardingWizard({
               <div className="space-y-0.5">
                 <p className="font-bold text-foreground">
                   Configured for{" "}
-                  {BUSINESS_TYPES.find((t) => t.id === formData.businessType)
+                  {ONBOARDING_TRACKS.find((t) => t.id === formData.track)
                     ?.label || "Your Entity"}
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {formData.businessType ===
-                    WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                    "Your platform will activate DDEX ERN batch delivery, multi-tenant sub-labels, automated anti-fraud screening, and tiered commission accounting."}
-                  {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                    "Earn a fixed 15% commission on the gross selling value of referred Distribution Aggregator accounts (Min deal: ৳60,000 BDT). Managed at platform.royalmotionit.com/referrer."}
+                  {isReferrer
+                    ? "Earn a fixed 15% commission on the gross selling value of referred Distribution Aggregator accounts (Min deal: ৳60,000 BDT). Managed at platform.royalmotionit.com/referrer."
+                    : "Your platform will activate DDEX ERN batch delivery, multi-tenant sub-labels, automated anti-fraud screening, and tiered commission accounting."}
                 </p>
               </div>
             </div>
@@ -2366,18 +2371,10 @@ export function WhiteLabelOnboardingWizard({
               Step 5 of 6: Portfolio &amp; Roster Highlights
             </div>
             <CardTitle className="text-xl font-bold">
-              {formData.businessType ===
-                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                "Representative Sub-Labels & Catalogs"}
-              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                "Pipeline Referral Prospects & Target Clients"}
+              Representative Sub-Labels &amp; Catalogs
             </CardTitle>
             <CardDescription className="text-xs">
-              {formData.businessType ===
-                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                "Highlight 1 to 3 flagship sub-labels or catalog brands your aggregator will distribute."}
-              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                "Provide 1 to 3 flagship prospect partners or labels in your active onboarding pipeline."}
+              Highlight 1 to 3 flagship sub-labels or catalog brands your aggregator will distribute.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -2394,14 +2391,7 @@ export function WhiteLabelOnboardingWizard({
                     >
                       {idx + 1} of 3
                     </Badge>
-                    <span>
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                        `Sub-Label Partner #${idx + 1}`}
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.REFERRER &&
-                        `Pipeline Prospect #${idx + 1}`}
-                    </span>
+                    <span>Sub-Label Partner #{idx + 1}</span>
                   </div>
                   {idx === 0 && (
                     <span className="text-[10px] text-destructive font-semibold">

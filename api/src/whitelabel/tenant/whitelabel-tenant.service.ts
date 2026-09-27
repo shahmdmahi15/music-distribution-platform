@@ -124,15 +124,11 @@ export class WhitelabelTenantService {
             userManagement: true,
             royaltyAnalytics: true,
             themeCustomization: true,
-            directDistribution: whiteLabel.businessType !== 'REFERRER',
+            directDistribution: true,
             // Global Music Distribution & Aggregator Standards
-            subLabelMultiTenancy: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
-            ddexIngestionPipeline: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
-            antiFraudQualityControl: whiteLabel.businessType === 'DISTRIBUTOR_AGGREGATOR',
-            // Global Referrer & Talent Scout Network Standards
-            referralLinkGenerator: whiteLabel.businessType === 'REFERRER',
-            affiliateCommissionLedger: whiteLabel.businessType === 'REFERRER',
-            pipelineAnalytics: whiteLabel.businessType === 'REFERRER',
+            subLabelMultiTenancy: true,
+            ddexIngestionPipeline: true,
+            antiFraudQualityControl: true,
           },
         },
         theme: {

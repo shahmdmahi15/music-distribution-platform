@@ -91,11 +91,6 @@ const BUSINESS_TYPE_META: Record<
     badgeClass:
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   },
-  [WhiteLabelBusinessType.REFERRER]: {
-    label: "Referrer (15% Share)",
-    badgeClass:
-      "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  },
 };
 
 const LIFECYCLE_STEP_MAP: Record<string, number> = {
@@ -356,14 +351,11 @@ export function AdminWhiteLabelsTable({
     ];
 
     const rows = filteredItems.map((wl) => {
-      const isRef = wl.businessType === WhiteLabelBusinessType.REFERRER;
-      const focus = isRef
-        ? "Affiliate Partner (15% Share)"
-        : wl.onboardingDetails?.primaryGenre ||
-          wl.onboardingDetails?.ingestionProtocol ||
-          wl.onboardingDetails?.primaryProAffiliation ||
-          wl.onboardingDetails?.scoutNetworkCategory ||
-          "Multi-Genre";
+      const focus =
+        wl.onboardingDetails?.primaryGenre ||
+        wl.onboardingDetails?.ingestionProtocol ||
+        wl.onboardingDetails?.primaryProAffiliation ||
+        "Multi-Genre";
       return [
         wl.code,
         `"${(wl.name || "").replace(/"/g, '""')}"`,
@@ -371,20 +363,16 @@ export function AdminWhiteLabelsTable({
         wl.businessType,
         `"${wl.country || ""}"`,
         wl.isIncorporated ? "Yes" : "No",
-        isRef
-          ? "N/A (platform.royalmotionit.com/referrer)"
-          : wl.subdomain
-            ? `${wl.subdomain}.platform.royalmotionit.com`
-            : "",
-        isRef ? "N/A" : wl.customDomain || "",
-        isRef ? "N/A" : wl.elasticIpv4 || "",
+        wl.subdomain ? `${wl.subdomain}.platform.royalmotionit.com` : "",
+        wl.customDomain || "",
+        wl.elasticIpv4 || "",
         `"${wl.contactFirstName} ${wl.contactLastName}"`,
         wl.contactEmail,
-        isRef ? "N/A" : wl.catalogTrackCount || 0,
-        isRef ? "N/A" : wl.monthlyTrackDelivery || 0,
-        isRef ? "N/A" : wl.monthlyRevenueUsd || 0,
+        wl.catalogTrackCount || 0,
+        wl.monthlyTrackDelivery || 0,
+        wl.monthlyRevenueUsd || 0,
         `"${focus}"`,
-        isRef ? "N/A" : wl.userSignupModel,
+        wl.userSignupModel,
         wl.contractKey ? "Yes" : "No",
         wl.createdAt ? new Date(wl.createdAt).toISOString().split("T")[0] : "",
       ].join(",");
@@ -734,9 +722,6 @@ export function AdminWhiteLabelsTable({
               <SelectItem value={WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR}>
                 Distributors / Aggregators
               </SelectItem>
-              <SelectItem value={WhiteLabelBusinessType.REFERRER}>
-                Referrers / Agencies
-              </SelectItem>
             </SelectContent>
           </Select>
 
@@ -973,14 +958,7 @@ export function AdminWhiteLabelsTable({
                           {BUSINESS_TYPE_META[wl.businessType]?.label ||
                             wl.businessType}
                         </Badge>
-                        {wl.businessType === WhiteLabelBusinessType.REFERRER ? (
-                          <Badge
-                            variant="secondary"
-                            className="text-[9px] font-mono px-1.5 py-0 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
-                          >
-                            /referrer • {wl.onboardingDetails?.referralNetworkCode || `${wl.code}-REF`}
-                          </Badge>
-                        ) : wl.subdomain ? (
+                        {wl.subdomain ? (
                           <Badge
                             variant="secondary"
                             className="text-[9px] font-mono px-1.5 py-0"
@@ -991,26 +969,13 @@ export function AdminWhiteLabelsTable({
                       </div>
 
                       <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground">
-                        {wl.businessType === WhiteLabelBusinessType.REFERRER ? (
-                          <>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">
-                              15% Gross Bounty
-                            </span>
-                            <span className="font-semibold text-foreground">
-                              Min ৳60K BDT
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span>
-                              {wl.catalogTrackCount.toLocaleString()} tracks
-                            </span>
-                            <span className="font-semibold text-foreground">
-                              ${Number(wl.monthlyRevenueUsd || 0).toLocaleString()}
-                              /mo
-                            </span>
-                          </>
-                        )}
+                        <span>
+                          {wl.catalogTrackCount.toLocaleString()} tracks
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ${Number(wl.monthlyRevenueUsd || 0).toLocaleString()}
+                          /mo
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -1062,21 +1027,14 @@ export function AdminWhiteLabelsTable({
                   const hasCompletedPayment = payments.some(
                     (p) => p.status === "COMPLETED",
                   );
-                  const isRef =
-                    wl.businessType === WhiteLabelBusinessType.REFERRER;
-                  const focusLabel = isRef
-                    ? "Affiliate Partner"
-                    : wl.onboardingDetails?.primaryGenre ||
-                      wl.onboardingDetails?.ingestionProtocol?.replace(
-                        /_/g,
-                        " ",
-                      ) ||
-                      wl.onboardingDetails?.primaryProAffiliation ||
-                      wl.onboardingDetails?.scoutNetworkCategory?.replace(
-                        /_/g,
-                        " ",
-                      ) ||
-                      "Multi-Genre / All Genres";
+                  const focusLabel =
+                    wl.onboardingDetails?.primaryGenre ||
+                    wl.onboardingDetails?.ingestionProtocol?.replace(
+                      /_/g,
+                      " ",
+                    ) ||
+                    wl.onboardingDetails?.primaryProAffiliation ||
+                    "Multi-Genre / All Genres";
 
                   return (
                     <TableRow
@@ -1145,61 +1103,42 @@ export function AdminWhiteLabelsTable({
                       {/* 2. Domain & Cloud Routing */}
                       <TableCell>
                         <div className="space-y-1 min-w-[170px]">
-                          {isRef ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1">
-                                <Globe className="h-3 w-3 text-amber-500 shrink-0" />
-                                <span className="font-mono text-[10px] font-semibold text-foreground truncate">
-                                  platform.royalmotionit.com/referrer
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[9px] font-bold">
-                                  Ref: {wl.onboardingDetails?.referralNetworkCode || wl.onboardingDetails?.scoutAffiliateCodePrefix || `${wl.code}-REF`}
-                                </Badge>
-                                <span className="text-[9px] text-muted-foreground">Zero-Server</span>
-                              </div>
+                          {wl.subdomain ? (
+                            <div className="flex items-center gap-1">
+                              <Globe className="h-3 w-3 text-primary shrink-0" />
+                              <span className="font-mono text-[11px] font-semibold text-foreground truncate">
+                                {wl.subdomain}.platform.royalmotionit.com
+                              </span>
                             </div>
                           ) : (
-                            <>
-                              {wl.subdomain ? (
-                                <div className="flex items-center gap-1">
-                                  <Globe className="h-3 w-3 text-primary shrink-0" />
-                                  <span className="font-mono text-[11px] font-semibold text-foreground truncate">
-                                    {wl.subdomain}.platform.royalmotionit.com
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-[11px] text-muted-foreground italic">
-                                  No subdomain set
-                                </span>
-                              )}
-
-                              <div className="flex flex-wrap items-center gap-1">
-                                {wl.customDomain && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] font-mono px-1.5 py-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
-                                  >
-                                    {wl.customDomain}
-                                  </Badge>
-                                )}
-                                {wl.elasticIpv4 ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1"
-                                  >
-                                    <Server className="h-2.5 w-2.5" />
-                                    {wl.elasticIpv4}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Cloudflare Managed Proxy
-                                  </span>
-                                )}
-                              </div>
-                            </>
+                            <span className="text-[11px] text-muted-foreground italic">
+                              No subdomain set
+                            </span>
                           )}
+
+                          <div className="flex flex-wrap items-center gap-1">
+                            {wl.customDomain && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono px-1.5 py-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                              >
+                                {wl.customDomain}
+                              </Badge>
+                            )}
+                            {wl.elasticIpv4 ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1"
+                              >
+                                <Server className="h-2.5 w-2.5" />
+                                {wl.elasticIpv4}
+                              </Badge>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">
+                                Cloudflare Managed Proxy
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
 
@@ -1217,9 +1156,7 @@ export function AdminWhiteLabelsTable({
                               wl.businessType.replace(/_/g, " ")}
                           </Badge>
                           <div className="text-[10px] text-muted-foreground truncate max-w-[165px]">
-                            {isRef
-                              ? "Affiliate Network • 15% Share"
-                              : `${focusLabel} • ${wl.primaryCatalogLanguage || "EN"}`}
+                            {focusLabel} • {wl.primaryCatalogLanguage || "EN"}
                           </div>
                         </div>
                       </TableCell>
@@ -1241,49 +1178,24 @@ export function AdminWhiteLabelsTable({
 
                       {/* 5. Catalog & Revenue */}
                       <TableCell>
-                        {isRef ? (
-                          <div className="space-y-0.5 text-xs min-w-[130px]">
-                            <div className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                              <span>15% Gross Bounty</span>
-                            </div>
-                            <p className="text-[10px] text-foreground font-semibold">
-                              Min ৳60K BDT (৳9K Cut)
-                            </p>
-                            <p
-                              className="text-[10px] text-muted-foreground truncate max-w-[140px]"
-                              title={
-                                wl.onboardingDetails?.payoutMethod ||
-                                "Remittance"
-                              }
-                            >
-                              {wl.onboardingDetails?.payoutMethod ===
-                              "BANK_TRANSFER"
-                                ? `Bank: ${wl.onboardingDetails?.payoutBankName || "Configured"}`
-                                : wl.onboardingDetails?.payoutMethod
-                                  ? `${wl.onboardingDetails.payoutMethod}: ${wl.onboardingDetails?.payoutWalletNumber || "Wallet"}`
-                                  : "Remittance Pending"}
-                            </p>
+                        <div className="space-y-0.5 text-xs min-w-[130px]">
+                          <div className="font-bold text-foreground flex items-center gap-1">
+                            <span>
+                              {wl.catalogTrackCount.toLocaleString()} tracks
+                            </span>
                           </div>
-                        ) : (
-                          <div className="space-y-0.5 text-xs min-w-[130px]">
-                            <div className="font-bold text-foreground flex items-center gap-1">
-                              <span>
-                                {wl.catalogTrackCount.toLocaleString()} tracks
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                              $
-                              {Number(
-                                wl.monthlyRevenueUsd || 0,
-                              ).toLocaleString()}{" "}
-                              / mo
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              +{wl.monthlyTrackDelivery || 0}/mo •{" "}
-                              {wl.artists?.length || 0} roster
-                            </p>
-                          </div>
-                        )}
+                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                            $
+                            {Number(
+                              wl.monthlyRevenueUsd || 0,
+                            ).toLocaleString()}{" "}
+                            / mo
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            +{wl.monthlyTrackDelivery || 0}/mo •{" "}
+                            {wl.artists?.length || 0} roster
+                          </p>
+                        </div>
                       </TableCell>
 
                       {/* 6. Lifecycle & Readiness */}

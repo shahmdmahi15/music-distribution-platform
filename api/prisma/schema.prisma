@@ -40,7 +40,6 @@ enum PaymentStatus {
 
 enum WhiteLabelBusinessType {
   DISTRIBUTOR_AGGREGATOR
-  REFERRER
 }
 
 enum WhiteLabelSignupModel {

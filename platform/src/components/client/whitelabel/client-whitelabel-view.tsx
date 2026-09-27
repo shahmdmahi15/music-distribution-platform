@@ -90,7 +90,7 @@ export function ClientWhiteLabelView({
         referrer={referrer}
         onReapply={() => {
           setActiveDraft({
-            businessType: "REFERRER",
+            track: "REFERRER",
             name: referrer.name,
             companyWebsite: referrer.companyWebsite || "",
             country: referrer.country || "Bangladesh",
@@ -218,172 +218,22 @@ export function ClientWhiteLabelView({
             {whiteLabel.name}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
-            {whiteLabel.businessType === "REFERRER"
-              ? "Your Referrer account is active with a 15% fixed commission on all Distribution Aggregator accounts referred (min ৳60,000 BDT). Manage your referral links, track leads, and configure payouts in your Referrer Hub."
-              : "Your branded distribution ecosystem is running live. Manage custom themes, domains, developer credentials, and ingestion pipelines below."}
+            Your branded distribution ecosystem is running live. Manage custom themes, domains, developer credentials, and ingestion pipelines below.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {whiteLabel.businessType === "REFERRER" ? (
-            <Button
-              className="gap-2 text-xs font-bold shadow-sm"
-              render={<Link href="/referrer" />}
-            >
-              <ArrowUpRight className="h-3.5 w-3.5" />
-              Open Referrer Hub
-            </Button>
-          ) : (
-            <Button
-              className="gap-2 text-xs font-bold shadow-sm"
-              render={<Link href="/whitelabel" />}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Manage WhiteLabel
-            </Button>
-          )}
+          <Button
+            className="gap-2 text-xs font-bold shadow-sm"
+            render={<Link href="/whitelabel" />}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Manage WhiteLabel
+          </Button>
         </div>
       </div>
 
-      {/* Active Dashboard Body: Decoupled for Referrer vs Distributor Aggregator */}
-      {whiteLabel.businessType === "REFERRER" ? (
-        <div className="space-y-6">
-          {/* Referrer Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-border/60 shadow-sm">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Commission Share
-                  </span>
-                  <p className="text-2xl font-bold text-foreground">
-                    15%
-                  </p>
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    Of Gross Deal Selling Value
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 shadow-sm">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Min Deal Benchmark
-                  </span>
-                  <p className="text-2xl font-bold text-foreground">
-                    ৳60,000
-                  </p>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Min Bounty: ৳9,000 BDT
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 shadow-sm">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Attribution Code
-                  </span>
-                  <p className="text-xl font-bold font-mono text-foreground truncate max-w-[140px]">
-                    {whiteLabel.onboardingDetails?.referralNetworkCode ||
-                      whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
-                      whiteLabel.code}
-                  </p>
-                  <span className="text-[11px] text-primary font-medium">
-                    Active Link Tracking
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-                  <Share2 className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 shadow-sm">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Remittance Profile
-                  </span>
-                  <p className="text-base font-bold text-foreground truncate max-w-[140px]">
-                    {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
-                      ? (whiteLabel.onboardingDetails?.payoutBankName || "Bank Transfer")
-                      : (whiteLabel.onboardingDetails?.payoutMethod || "bKash")}
-                  </p>
-                  <span className="text-[11px] text-muted-foreground truncate block max-w-[140px] font-mono">
-                    {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
-                      ? (whiteLabel.onboardingDetails?.payoutAccountNumber || "Configured")
-                      : (whiteLabel.onboardingDetails?.payoutWalletNumber || whiteLabel.onboardingDetails?.payoutAccountNumber || "Configured")}
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  <KeyRound className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Action Navigation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link href="/referrer" className="block">
-              <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group h-full">
-                <CardHeader className="pb-3">
-                  <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit mb-2">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-base font-bold flex items-center justify-between">
-                    <span>Partner Control Panel</span>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Access your full affiliate command center at platform.royalmotionit.com/referrer. View deal conversions, client pipelines, and payout requests.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-xs text-muted-foreground pt-0 flex items-center justify-between">
-                  <span className="font-semibold text-primary font-mono">https://platform.royalmotionit.com/referrer</span>
-                  <Badge variant="outline" className="text-[10px] font-mono">Alias: /refferer</Badge>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Card className="border-border/60 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit mb-2">
-                  <Share2 className="h-5 w-5" />
-                </div>
-                <CardTitle className="text-base font-bold">
-                  <span>Your Referral Link</span>
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Share this direct attribution link with prospective Distribution Aggregators to earn 15% on deal closing.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0 text-xs">
-                <div className="p-2.5 rounded-lg border border-border bg-muted/30 font-mono text-[11px] truncate flex items-center justify-between">
-                  <span className="truncate">
-                    https://platform.royalmotionit.com/auth/register?ref={whiteLabel.onboardingDetails?.referralNetworkCode || whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix || whiteLabel.code}
-                  </span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Earn strictly 15% of the account selling value (Min deal: ৳60,000 BDT).
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      ) : (
-        /* DISTRIBUTOR AGGREGATOR VIEW */
-        <>
+      {/* DISTRIBUTOR AGGREGATOR VIEW */}
           {/* Metrics Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-border/60 shadow-sm">
@@ -580,8 +430,6 @@ export function ClientWhiteLabelView({
               </CardContent>
             </Card>
           )}
-        </>
-      )}
     </div>
   );
 }

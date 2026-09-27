@@ -44,7 +44,6 @@ const BUSINESS_TYPE_OPTIONS = [
     value: WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     label: "Distributor / Aggregator",
   },
-  { value: WhiteLabelBusinessType.REFERRER, label: "Referrer / Agency Partner" },
 ];
 
 export function ClientBrandingView({

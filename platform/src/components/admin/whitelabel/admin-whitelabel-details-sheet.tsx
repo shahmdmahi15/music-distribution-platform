@@ -365,12 +365,6 @@ export function AdminWhiteLabelDetailsDialog({
     : "";
   if (whiteLabel && currentSyncKey !== prevSyncKey) {
     setPrevSyncKey(currentSyncKey);
-    if (
-      whiteLabel.businessType === "REFERRER" &&
-      (activeTab === "artists" || activeTab === "branding")
-    ) {
-      setActiveTab("overview");
-    }
     setBrandingForm({
       name: whiteLabel.name || "",
       subdomain: whiteLabel.subdomain || "",
@@ -519,37 +513,21 @@ export function AdminWhiteLabelDetailsDialog({
         ? "Incorporated Entity"
         : "Sole Prop / Unincorporated",
     },
-    whiteLabel.businessType === "REFERRER"
-      ? {
-          label: "Attribution & Partner Details",
-          passed: Boolean(
-            whiteLabel.onboardingDetails?.referralNetworkCode ||
-              whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
-              whiteLabel.onboardingDetails?.scoutNetworkCategory,
-          ),
-          detail: `${whiteLabel.onboardingDetails?.referralNetworkCode || whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix || "SCOUT"} • 15% Share (Min ৳60K)`,
-        }
-      : {
-          label: "Catalog & Roster Verification",
-          passed: Boolean(
-            (whiteLabel.artists && whiteLabel.artists.length > 0) ||
-              whiteLabel.catalogTrackCount > 0,
-          ),
-          detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
-        },
-    whiteLabel.businessType === "REFERRER"
-      ? {
-          label: "Referral Partner Hub",
-          passed: true,
-          detail: "platform.royalmotionit.com/referrer (No Subdomain Required)",
-        }
-      : {
-          label: "Subdomain & Routing Architecture",
-          passed: Boolean(whiteLabel.subdomain),
-          detail: whiteLabel.subdomain
-            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-            : "Missing Subdomain",
-        },
+    {
+      label: "Catalog & Roster Verification",
+      passed: Boolean(
+        (whiteLabel.artists && whiteLabel.artists.length > 0) ||
+          whiteLabel.catalogTrackCount > 0,
+      ),
+      detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
+    },
+    {
+      label: "Subdomain & Routing Architecture",
+      passed: Boolean(whiteLabel.subdomain),
+      detail: whiteLabel.subdomain
+        ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+        : "Missing Subdomain",
+    },
     {
       label: "Executed Legal Contract PDF",
       passed: Boolean(whiteLabel.contractKey),
@@ -958,54 +936,35 @@ export function AdminWhiteLabelDetailsDialog({
         hasSampleBasedCovers: Boolean(dossierForm.hasSampleBasedCovers),
         onboardingDetails: {
           ...(whiteLabel.onboardingDetails || {}),
-          ...(dossierForm.businessType === "REFERRER"
-            ? {
-                referralNetworkCode: dossierForm.referralNetworkCode,
-                payoutMethod: dossierForm.payoutMethod,
-                payoutBankName: dossierForm.payoutBankName,
-                payoutAccountName: dossierForm.payoutAccountName,
-                payoutAccountNumber: dossierForm.payoutAccountNumber,
-                payoutBranchDistrict: dossierForm.payoutBranchDistrict,
-                payoutBankBranch: dossierForm.payoutBankBranch,
-                payoutBankRouting: dossierForm.payoutBankRouting,
-                payoutSwiftCode: dossierForm.payoutSwiftCode,
-                payoutWalletNumber: dossierForm.payoutWalletNumber,
-                referralCommissionRate: 15,
-                dealBenchmarkBdt: 60000,
-                minGuaranteedBountyBdt: 9000,
-                operatingHub: "platform.royalmotionit.com/referrer",
-              }
-            : {
-                primaryGenre: dossierForm.primaryGenre,
-                labelType: dossierForm.labelType,
-                masterRoyaltySplitStandard:
-                  dossierForm.masterRoyaltySplitStandard,
-                isrcRegistrantCode: dossierForm.isrcRegistrantCode,
-                isrcPrefix: dossierForm.isrcRegistrantCode,
-                dolbyAtmosReady: dossierForm.dolbyAtmosReady,
-                estimatedLaunchTimeline: dossierForm.estimatedLaunchTimeline,
-                subLabelsCount: Number(dossierForm.subLabelsCount) || 0,
-                independentArtistsRepresented:
-                  Number(dossierForm.independentArtistsRepresented) || 0,
-                ingestionProtocol: dossierForm.ingestionProtocol,
-                antiFraudInspectionRequired:
-                  dossierForm.antiFraudInspectionRequired,
-                publishingCompanyType: dossierForm.publishingCompanyType,
-                primaryProAffiliation: dossierForm.primaryProAffiliation,
-                ipiCaeNumber: dossierForm.ipiCaeNumber,
-                theMlcMemberCode: dossierForm.theMlcMemberCode,
-                musicalWorksCount: Number(dossierForm.musicalWorksCount) || 0,
-                songwritersRepresentedCount:
-                  Number(dossierForm.songwritersRepresentedCount) || 0,
-                cwrExchangeEnabled: dossierForm.cwrExchangeEnabled,
-                scoutNetworkCategory: dossierForm.scoutNetworkCategory,
-                projectedAnnualReferrals:
-                  Number(dossierForm.projectedAnnualReferrals) || 0,
-                projectedPipelineCatalogSize:
-                  Number(dossierForm.projectedPipelineCatalogSize) || 0,
-                preferredCommissionStructure:
-                  dossierForm.preferredCommissionStructure,
-              }),
+          primaryGenre: dossierForm.primaryGenre,
+          labelType: dossierForm.labelType,
+          masterRoyaltySplitStandard:
+            dossierForm.masterRoyaltySplitStandard,
+          isrcRegistrantCode: dossierForm.isrcRegistrantCode,
+          isrcPrefix: dossierForm.isrcRegistrantCode,
+          dolbyAtmosReady: dossierForm.dolbyAtmosReady,
+          estimatedLaunchTimeline: dossierForm.estimatedLaunchTimeline,
+          subLabelsCount: Number(dossierForm.subLabelsCount) || 0,
+          independentArtistsRepresented:
+            Number(dossierForm.independentArtistsRepresented) || 0,
+          ingestionProtocol: dossierForm.ingestionProtocol,
+          antiFraudInspectionRequired:
+            dossierForm.antiFraudInspectionRequired,
+          publishingCompanyType: dossierForm.publishingCompanyType,
+          primaryProAffiliation: dossierForm.primaryProAffiliation,
+          ipiCaeNumber: dossierForm.ipiCaeNumber,
+          theMlcMemberCode: dossierForm.theMlcMemberCode,
+          musicalWorksCount: Number(dossierForm.musicalWorksCount) || 0,
+          songwritersRepresentedCount:
+            Number(dossierForm.songwritersRepresentedCount) || 0,
+          cwrExchangeEnabled: dossierForm.cwrExchangeEnabled,
+          scoutNetworkCategory: dossierForm.scoutNetworkCategory,
+          projectedAnnualReferrals:
+            Number(dossierForm.projectedAnnualReferrals) || 0,
+          projectedPipelineCatalogSize:
+            Number(dossierForm.projectedPipelineCatalogSize) || 0,
+          preferredCommissionStructure:
+            dossierForm.preferredCommissionStructure,
         },
       });
 
@@ -1728,134 +1687,72 @@ export function AdminWhiteLabelDetailsDialog({
                       </div>
                       <div>
                         <span className="text-muted-foreground text-[10px] block">
-                          {whiteLabel.businessType === "REFERRER"
-                            ? "Referral Operations Hub"
-                            : "Managed Subdomain"}
+                          Managed Subdomain
                         </span>
                         <p className="font-mono font-bold text-primary truncate">
-                          {whiteLabel.businessType === "REFERRER"
-                            ? "platform.royalmotionit.com/referrer"
-                            : whiteLabel.subdomain
-                              ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                              : "Not Set"}
+                          {whiteLabel.subdomain
+                            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+                            : "Not Set"}
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground text-[10px] block">
-                          {whiteLabel.businessType === "REFERRER"
-                            ? "Referral Commission Model"
-                            : "Dedicated Elastic IPv4"}
+                          Dedicated Elastic IPv4
                         </span>
                         <p className="font-mono font-bold text-foreground">
-                          {whiteLabel.businessType === "REFERRER"
-                            ? "15% of Selling Price (Min ৳60,000)"
-                            : whiteLabel.elasticIpv4 || "Cloudflare Shared Proxy"}
+                          {whiteLabel.elasticIpv4 || "Cloudflare Shared Proxy"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Catalog vs Referrer Bounty Telemetry */}
-                {whiteLabel.businessType === "REFERRER" ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <BadgePercent className="h-3.5 w-3.5 text-amber-500" />
-                        Commercial Bounty & Remittance Framework
-                      </h4>
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] font-bold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      >
-                        15% Gross Share
-                      </Badge>
+                {/* Catalog & Financial Telemetry */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                    Catalog & Financial Telemetry
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                      <span className="text-muted-foreground text-[10px] block">
+                        Catalog Tracks
+                      </span>
+                      <p className="font-bold text-base text-foreground">
+                        {whiteLabel.catalogTrackCount.toLocaleString()}
+                      </p>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Bounty Commission
-                        </span>
-                        <p className="font-bold text-base text-amber-600 dark:text-amber-400 font-mono">
-                          15% Gross
-                        </p>
-                      </div>
 
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Baseline Deal Price
-                        </span>
-                        <p className="font-bold text-base text-foreground font-mono">
-                          ৳60,000 BDT
-                        </p>
-                      </div>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                      <span className="text-muted-foreground text-[10px] block">
+                        Monthly Delivery
+                      </span>
+                      <p className="font-bold text-base text-foreground">
+                        {whiteLabel.monthlyTrackDelivery.toLocaleString()} / mo
+                      </p>
+                    </div>
 
-                      <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Min Guaranteed Bounty
-                        </span>
-                        <p className="font-bold text-base text-emerald-600 dark:text-emerald-400 font-mono">
-                          ৳9,000 BDT
-                        </p>
-                      </div>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                      <span className="text-muted-foreground text-[10px] block">
+                        Monthly Revenue
+                      </span>
+                      <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                        $
+                        {Number(
+                          whiteLabel.monthlyRevenueUsd || 0,
+                        ).toLocaleString()}
+                      </p>
+                    </div>
 
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Operating Hub
-                        </span>
-                        <p className="font-bold text-xs text-primary font-mono truncate">
-                          /referrer
-                        </p>
-                      </div>
+                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                      <span className="text-muted-foreground text-[10px] block">
+                        Portal Signup Model
+                      </span>
+                      <p className="font-bold text-sm text-foreground">
+                        {whiteLabel.userSignupModel.replace(/_/g, " ")}
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                      Catalog & Financial Telemetry
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Catalog Tracks
-                        </span>
-                        <p className="font-bold text-base text-foreground">
-                          {whiteLabel.catalogTrackCount.toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Monthly Delivery
-                        </span>
-                        <p className="font-bold text-base text-foreground">
-                          {whiteLabel.monthlyTrackDelivery.toLocaleString()} / mo
-                        </p>
-                      </div>
-
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Monthly Revenue
-                        </span>
-                        <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
-                          $
-                          {Number(
-                            whiteLabel.monthlyRevenueUsd || 0,
-                          ).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                        <span className="text-muted-foreground text-[10px] block">
-                          Portal Signup Model
-                        </span>
-                        <p className="font-bold text-sm text-foreground">
-                          {whiteLabel.userSignupModel.replace(/_/g, " ")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 {/* Domain Architecture Dossier */}
                 {whiteLabel.onboardingDetails && (
@@ -1967,189 +1864,6 @@ export function AdminWhiteLabelDetailsDialog({
                         </div>
                       )}
 
-                      {whiteLabel.businessType === "REFERRER" && (
-                        <div className="space-y-3 text-xs">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Attribution Code
-                              </span>
-                              <span className="font-bold text-foreground font-mono uppercase">
-                                {whiteLabel.onboardingDetails?.referralNetworkCode ||
-                                  whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
-                                  `${whiteLabel.code}-REF`}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Operating Hub
-                              </span>
-                              <span className="font-bold text-primary font-mono text-[11px] truncate block">
-                                platform.royalmotionit.com/referrer
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Attribution Window
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails?.attributionWindowDays === "lifetime"
-                                  ? "Lifetime Perpetual"
-                                  : `${whiteLabel.onboardingDetails?.attributionWindowDays || 60} Days`}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Partner Referral Bounty
-                              </span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                                15% of Selling Price
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Baseline Account Price
-                              </span>
-                              <span className="font-bold text-foreground font-mono">
-                                ৳60,000 BDT (Min)
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Min Guaranteed Bounty
-                              </span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                                ৳9,000 BDT / Deal
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Remittance Method
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails?.payoutMethod || "BANK_TRANSFER"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Min Payout Trigger
-                              </span>
-                              <span className="font-bold text-foreground font-mono">
-                                ${whiteLabel.onboardingDetails?.minimumPayoutThresholdUsd ?? 100} USD
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
-                            {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
-                              <>
-                                {whiteLabel.onboardingDetails?.payoutBankName && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Bank Name
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {whiteLabel.onboardingDetails.payoutBankName}
-                                    </span>
-                                  </div>
-                                )}
-                                {(whiteLabel.onboardingDetails?.payoutAccountName ||
-                                  whiteLabel.onboardingDetails?.payoutAccountHolderName) && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Account Name
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {whiteLabel.onboardingDetails.payoutAccountName ||
-                                        whiteLabel.onboardingDetails.payoutAccountHolderName}
-                                    </span>
-                                  </div>
-                                )}
-                                {whiteLabel.onboardingDetails?.payoutAccountNumber && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Account Number
-                                    </span>
-                                    <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
-                                      {whiteLabel.onboardingDetails.payoutAccountNumber}
-                                    </span>
-                                  </div>
-                                )}
-                                {whiteLabel.onboardingDetails?.payoutBranchDistrict && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Branch District
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {whiteLabel.onboardingDetails.payoutBranchDistrict}
-                                    </span>
-                                  </div>
-                                )}
-                                {whiteLabel.onboardingDetails?.payoutBankBranch && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Branch Name
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {whiteLabel.onboardingDetails.payoutBankBranch}
-                                    </span>
-                                  </div>
-                                )}
-                                {whiteLabel.onboardingDetails?.payoutBankRouting && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Routing Number
-                                    </span>
-                                    <span className="font-bold text-foreground font-mono">
-                                      {whiteLabel.onboardingDetails.payoutBankRouting}
-                                    </span>
-                                  </div>
-                                )}
-                                {whiteLabel.onboardingDetails?.payoutSwiftCode && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Swift Code
-                                    </span>
-                                    <span className="font-bold text-foreground font-mono uppercase">
-                                      {whiteLabel.onboardingDetails.payoutSwiftCode}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                {(whiteLabel.onboardingDetails?.payoutAccountName ||
-                                  whiteLabel.onboardingDetails?.payoutAccountHolderName) && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      Account Holder Name
-                                    </span>
-                                    <span className="font-bold text-foreground">
-                                      {whiteLabel.onboardingDetails.payoutAccountName ||
-                                        whiteLabel.onboardingDetails.payoutAccountHolderName}
-                                    </span>
-                                  </div>
-                                )}
-                                {(whiteLabel.onboardingDetails?.payoutWalletNumber ||
-                                  whiteLabel.onboardingDetails?.payoutAccountNumber) && (
-                                  <div>
-                                    <span className="text-muted-foreground text-[10px] block">
-                                      {whiteLabel.onboardingDetails?.payoutMethod || "MFS"} Wallet Number
-                                    </span>
-                                    <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
-                                      {whiteLabel.onboardingDetails?.payoutWalletNumber ||
-                                        whiteLabel.onboardingDetails?.payoutAccountNumber}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -2224,9 +1938,6 @@ export function AdminWhiteLabelDetailsDialog({
                           <SelectItem value="DISTRIBUTOR_AGGREGATOR">
                             Distributor / Aggregator
                           </SelectItem>
-                          <SelectItem value="REFERRER">
-                            Referrer / Agency Partner
-                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2295,262 +2006,8 @@ export function AdminWhiteLabelDetailsDialog({
                   </div>
                 </div>
 
-                {/* Section 2: Catalog Telemetry vs Referrer Remittance Operations */}
-                {dossierForm.businessType === "REFERRER" ? (
-                  <div className="p-4 rounded-xl border border-amber-500/40 bg-card space-y-4">
-                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                      <h5 className="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                        <BadgePercent className="h-4 w-4" />
-                        2. Referrer Commercial Framework & Remittance Operations
-                      </h5>
-                      <Badge
-                        variant="outline"
-                        className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold"
-                      >
-                        15% Gross Bounty
-                      </Badge>
-                    </div>
-
-                    <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs text-muted-foreground leading-relaxed">
-                      Referrer partners earn a{" "}
-                      <strong className="text-foreground">
-                        fixed 15% commission
-                      </strong>{" "}
-                      on the gross selling price of every WhiteLabel Distribution
-                      Aggregator account referred (baseline minimum deal:{" "}
-                      <strong className="text-foreground">৳60,000 BDT</strong>;
-                      minimum guaranteed bounty:{" "}
-                      <strong className="text-foreground">৳9,000 BDT</strong>).
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold">
-                          Custom Referral Attribution Code
-                        </Label>
-                        <Input
-                          value={dossierForm.referralNetworkCode}
-                          onChange={(e) =>
-                            setDossierForm((p) => ({
-                              ...p,
-                              referralNetworkCode: e.target.value
-                                .toUpperCase()
-                                .replace(/[^A-Z0-9-]/g, ""),
-                            }))
-                          }
-                          placeholder="e.g. PARTNER-AGENCY"
-                          className="h-8 text-xs font-mono font-bold uppercase"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold">
-                          Payout / Remittance Method
-                        </Label>
-                        <Select
-                          value={dossierForm.payoutMethod}
-                          onValueChange={(val) =>
-                            setDossierForm((p) => ({
-                              ...p,
-                              payoutMethod: val,
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="h-8 text-xs font-semibold">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="BANK_TRANSFER">
-                              Bank Transfer (All 7 Fields)
-                            </SelectItem>
-                            <SelectItem value="BKASH">
-                              bKash Personal / Merchant
-                            </SelectItem>
-                            <SelectItem value="NAGAD">
-                              Nagad Personal / Merchant
-                            </SelectItem>
-                            <SelectItem value="ROCKET">
-                              Rocket Personal
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {dossierForm.payoutMethod === "BANK_TRANSFER" ? (
-                      <div className="space-y-3 pt-2 border-t border-border/40">
-                        <h6 className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                          <Landmark className="h-3.5 w-3.5 text-primary" />
-                          Bank Account Wire Details (7 Required Verification
-                          Fields)
-                        </h6>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Bank Name *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutBankName}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutBankName: e.target.value,
-                                }))
-                              }
-                              placeholder="e.g. Dutch-Bangla Bank"
-                              className="h-8 text-xs"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Account Holder Name *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutAccountName}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutAccountName: e.target.value,
-                                }))
-                              }
-                              placeholder="Legal Name on Bank Record"
-                              className="h-8 text-xs"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Account Number *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutAccountNumber}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutAccountNumber: e.target.value,
-                                }))
-                              }
-                              placeholder="e.g. 1234567890123"
-                              className="h-8 text-xs font-mono"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Branch District *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutBranchDistrict}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutBranchDistrict: e.target.value,
-                                }))
-                              }
-                              placeholder="e.g. Dhaka"
-                              className="h-8 text-xs"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Branch Name *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutBankBranch}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutBankBranch: e.target.value,
-                                }))
-                              }
-                              placeholder="e.g. Gulshan Branch"
-                              className="h-8 text-xs"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Routing Number *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutBankRouting}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutBankRouting: e.target.value,
-                                }))
-                              }
-                              placeholder="9-digit Routing Code"
-                              className="h-8 text-xs font-mono"
-                            />
-                          </div>
-
-                          <div className="space-y-1 sm:col-span-3">
-                            <Label className="text-xs font-semibold">
-                              Swift Code (BIC) *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutSwiftCode}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutSwiftCode: e.target.value.toUpperCase(),
-                                }))
-                              }
-                              placeholder="8 or 11 character SWIFT code"
-                              className="h-8 text-xs font-mono uppercase"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 pt-2 border-t border-border/40">
-                        <h6 className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                          <Wallet className="h-3.5 w-3.5 text-primary" />
-                          {dossierForm.payoutMethod} Mobile Financial Services
-                          Setup
-                        </h6>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              Account Holder Name *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutAccountName}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutAccountName: e.target.value,
-                                }))
-                              }
-                              placeholder="Account Registered Full Name"
-                              className="h-8 text-xs"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">
-                              {dossierForm.payoutMethod} Wallet Number *
-                            </Label>
-                            <Input
-                              value={dossierForm.payoutWalletNumber}
-                              onChange={(e) =>
-                                setDossierForm((p) => ({
-                                  ...p,
-                                  payoutWalletNumber: e.target.value,
-                                }))
-                              }
-                              placeholder="01XXXXXXXXX"
-                              className="h-8 text-xs font-mono"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
+                {/* Section 2: Catalog Telemetry, Genre & Portal Architecture */}
+                
                   <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
                     <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
                       2. Catalog Telemetry, Genre & Portal Architecture
@@ -2693,25 +2150,13 @@ export function AdminWhiteLabelDetailsDialog({
                       </div>
                     </div>
                   </div>
-                )}
 
                 {/* Section 3: Domain, Elastic IP & Compliance Switches */}
                 <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
                   <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
                     3. Network Routing & Compliance Switches
                   </h5>
-                  {dossierForm.businessType === "REFERRER" ? (
-                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
-                        <Globe className="h-3.5 w-3.5" />
-                        <span>Referral Partner - Centralized Platform Hub</span>
-                      </div>
-                      <p className="text-muted-foreground text-[11px] leading-relaxed">
-                        Referrer partners do not require separate subdomains or Elastic IPv4 server addresses. They manage lead attribution and payouts directly via{" "}
-                        <strong className="font-mono text-foreground">platform.royalmotionit.com/referrer</strong> with a guaranteed 15% revenue cut on referred Distribution Aggregator sales (min ৳60,000 BDT).
-                      </p>
-                    </div>
-                  ) : (
+                  
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs font-semibold">
@@ -2766,7 +2211,6 @@ export function AdminWhiteLabelDetailsDialog({
                         />
                       </div>
                     </div>
-                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
                     <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">

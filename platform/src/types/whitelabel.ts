@@ -1,6 +1,5 @@
 export enum WhiteLabelBusinessType {
   DISTRIBUTOR_AGGREGATOR = "DISTRIBUTOR_AGGREGATOR",
-  REFERRER = "REFERRER",
 }
 
 // Global Standard Onboarding Details: 1. Distributor / Aggregator

@@ -1051,35 +1051,12 @@ export class AdminWhitelabelService {
       }
     }
 
-    const isReferrer =
-      (dto.businessType ?? existing.businessType) ===
-      WhiteLabelBusinessType.REFERRER;
-
-    let mergedOnboardingDetails = dto.onboardingDetails
+    const mergedOnboardingDetails = dto.onboardingDetails
       ? {
           ...((existing.onboardingDetails as Record<string, any>) || {}),
           ...dto.onboardingDetails,
         }
       : (existing.onboardingDetails as Record<string, any>) || undefined;
-
-    if (isReferrer && mergedOnboardingDetails) {
-      const {
-        primaryGenre: _pg,
-        primaryGenresScouted: _pgs,
-        labelType: _lt,
-        publishingCompanyType: _pct,
-        ...restDetails
-      } = mergedOnboardingDetails;
-
-      mergedOnboardingDetails = {
-        ...restDetails,
-        businessType: WhiteLabelBusinessType.REFERRER,
-        referralCommissionRate: 15,
-        dealBenchmarkBdt: 60000,
-        minGuaranteedBountyBdt: 9000,
-        operatingHub: 'platform.royalmotionit.com/referrer',
-      };
-    }
 
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
@@ -1127,41 +1104,27 @@ export class AdminWhitelabelService {
         ...(dto.hasSampleBasedCovers !== undefined && {
           hasSampleBasedCovers: Boolean(dto.hasSampleBasedCovers),
         }),
-        ...(isReferrer
-          ? {
-              catalogTrackCount: 0,
-              monthlyTrackDelivery: 0,
-              monthlyRevenueUsd: 0,
-              subdomain: null,
-              customDomain: null,
-              elasticIpv4: null,
-              primaryColor: null,
-              accentColor: null,
-              userSignupModel: WhiteLabelSignupModel.INVITE_ONLY,
-            }
-          : {
-              ...(dto.catalogTrackCount !== undefined && {
-                catalogTrackCount: Number(dto.catalogTrackCount),
-              }),
-              ...(dto.monthlyTrackDelivery !== undefined && {
-                monthlyTrackDelivery: Number(dto.monthlyTrackDelivery),
-              }),
-              ...(dto.monthlyRevenueUsd !== undefined && {
-                monthlyRevenueUsd: Number(dto.monthlyRevenueUsd),
-              }),
-              ...(dto.userSignupModel !== undefined && {
-                userSignupModel: dto.userSignupModel,
-              }),
-              ...(dto.subdomain !== undefined && {
-                subdomain: dto.subdomain.toLowerCase().trim() || null,
-              }),
-              ...(dto.customDomain !== undefined && {
-                customDomain: dto.customDomain.toLowerCase().trim() || null,
-              }),
-              ...(dto.elasticIpv4 !== undefined && {
-                elasticIpv4: dto.elasticIpv4.trim() || null,
-              }),
-            }),
+        ...(dto.catalogTrackCount !== undefined && {
+          catalogTrackCount: Number(dto.catalogTrackCount),
+        }),
+        ...(dto.monthlyTrackDelivery !== undefined && {
+          monthlyTrackDelivery: Number(dto.monthlyTrackDelivery),
+        }),
+        ...(dto.monthlyRevenueUsd !== undefined && {
+          monthlyRevenueUsd: Number(dto.monthlyRevenueUsd),
+        }),
+        ...(dto.userSignupModel !== undefined && {
+          userSignupModel: dto.userSignupModel,
+        }),
+        ...(dto.subdomain !== undefined && {
+          subdomain: dto.subdomain.toLowerCase().trim() || null,
+        }),
+        ...(dto.customDomain !== undefined && {
+          customDomain: dto.customDomain.toLowerCase().trim() || null,
+        }),
+        ...(dto.elasticIpv4 !== undefined && {
+          elasticIpv4: dto.elasticIpv4.trim() || null,
+        }),
         ...(dto.statusReason !== undefined && {
           statusReason: dto.statusReason.trim() || null,
         }),

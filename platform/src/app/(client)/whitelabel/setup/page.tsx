@@ -57,10 +57,6 @@ export default async function WhiteLabelSetupPage() {
     );
   }
 
-  if (brandingResult.branding.businessType === "REFERRER") {
-    redirect("/referrer");
-  }
-
   const keys = keysResult.keys || [];
 
   return (

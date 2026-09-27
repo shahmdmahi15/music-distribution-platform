@@ -403,22 +403,7 @@ export function WhiteLabelApplicationStatusView({
                     <Copy className="h-4 w-4" />
                   )}
                 </button>
-                {whiteLabel.businessType === "REFERRER" ? (
-                  <Badge
-                    variant="secondary"
-                    onClick={() =>
-                      copyToClipboard(
-                        "platform.royalmotionit.com/referrer",
-                        "Referral Operations Hub",
-                      )
-                    }
-                    className="font-mono text-[11px] px-2.5 py-0.5 cursor-pointer hover:bg-muted gap-1.5"
-                    title="Click to copy Referrer Hub URL"
-                  >
-                    <Globe className="h-3 w-3 text-emerald-500" />
-                    platform.royalmotionit.com/referrer
-                  </Badge>
-                ) : whiteLabel.subdomain ? (
+                {whiteLabel.subdomain && (
                   <Badge
                     variant="secondary"
                     onClick={() =>
@@ -433,7 +418,7 @@ export function WhiteLabelApplicationStatusView({
                     <Globe className="h-3 w-3 text-primary" />
                     {whiteLabel.subdomain}.platform.royalmotionit.com
                   </Badge>
-                ) : null}
+                )}
               </div>
               <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="font-semibold text-foreground/90">
@@ -661,13 +646,9 @@ export function WhiteLabelApplicationStatusView({
           <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                {whiteLabel.businessType === "REFERRER" ? (
-                  <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
-                    ACTIVE &amp; OPERATIONAL
-                  </Badge>
-                ) : whiteLabel.isSetupComplete ||
-                  (whiteLabel as { isSetupCompleted?: boolean })
-                    .isSetupCompleted ? (
+                {whiteLabel.isSetupComplete ||
+                (whiteLabel as { isSetupCompleted?: boolean })
+                  .isSetupCompleted ? (
                   <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
                     ACTIVE &amp; OPERATIONAL
                   </Badge>
@@ -677,47 +658,27 @@ export function WhiteLabelApplicationStatusView({
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground font-mono">
-                  {whiteLabel.businessType === "REFERRER"
-                    ? "100% Platform-Hosted Hub"
-                    : "Cloudflare Automated DNS Active"}
+                  Cloudflare Automated DNS Active
                 </span>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                {whiteLabel.businessType === "REFERRER"
-                  ? "Your Referrer Partner account is active with 15% commission on all referred Distribution Aggregators (min ৳60,000 BDT). Manage your links, track referred clients, and monitor earnings in your Referrer Hub."
-                  : whiteLabel.isSetupComplete ||
-                    (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
-                    ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
-                    : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
+                {whiteLabel.isSetupComplete ||
+                (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
+                  ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
+                  : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
               </p>
-              {whiteLabel.businessType === "REFERRER" ? (
+              {whiteLabel.subdomain && (
                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-emerald-500" />
-                  https://platform.royalmotionit.com/referrer
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  https://{whiteLabel.subdomain}.platform.royalmotionit.com
                 </p>
-              ) : (
-                whiteLabel.subdomain && (
-                  <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
-                    <Globe className="h-3.5 w-3.5 text-primary" />
-                    https://{whiteLabel.subdomain}.platform.royalmotionit.com
-                  </p>
-                )
               )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {whiteLabel.businessType === "REFERRER" ? (
-                <Button
-                  size="sm"
-                  onClick={() => router.push("/referrer")}
-                  className="gap-1.5 text-xs h-10 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs"
-                >
-                  Open Referrer Hub
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              ) : whiteLabel.isSetupComplete ||
-                (whiteLabel as { isSetupCompleted?: boolean })
-                  .isSetupCompleted ? (
+              {whiteLabel.isSetupComplete ||
+              (whiteLabel as { isSetupCompleted?: boolean })
+                .isSetupCompleted ? (
                 <>
                   {whiteLabel.subdomain && (
                     <a
@@ -982,155 +943,30 @@ export function WhiteLabelApplicationStatusView({
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  {whiteLabel.businessType === "REFERRER"
-                    ? "Referral Operations Hub"
-                    : "Reserved Subdomain"}
+                  Reserved Subdomain
                 </span>
                 <span className="font-bold text-foreground font-mono text-[10.5px] truncate block pt-0.5">
-                  {whiteLabel.businessType === "REFERRER"
-                    ? "platform.royalmotionit.com/referrer"
-                    : whiteLabel.subdomain
-                      ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                      : "Pending Allocation"}
+                  {whiteLabel.subdomain
+                    ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+                    : "Pending Allocation"}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  {whiteLabel.businessType === "REFERRER"
-                    ? "Referral Commission Rate"
-                    : "Creator Access Model"}
+                  Creator Access Model
                 </span>
                 <span className="font-bold text-foreground capitalize block pt-0.5">
-                  {whiteLabel.businessType === "REFERRER"
-                    ? "15% of Selling Price (Min ৳60,000)"
-                    : (whiteLabel.userSignupModel || "INVITE_ONLY")
-                        .replace(/_/g, " ")
-                        .toLowerCase()}
+                  {(whiteLabel.userSignupModel || "INVITE_ONLY")
+                    .replace(/_/g, " ")
+                    .toLowerCase()}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Catalog Telemetry OR Referrer Remittance Profile */}
-        {whiteLabel.businessType === "REFERRER" ? (
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-emerald-500" />
-                  Partner Remittance &amp; Commercial Framework
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold"
-                >
-                  15% Fixed Cut
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-muted-foreground text-[10px] block">
-                    Commission Rate
-                  </span>
-                  <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                    15%
-                  </span>
-                  <span className="text-[10px] text-muted-foreground block">
-                    of gross sale
-                  </span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-muted-foreground text-[10px] block">
-                    Min Deal Price
-                  </span>
-                  <span className="font-bold text-sm text-foreground font-mono">
-                    ৳60,000
-                  </span>
-                  <span className="text-[10px] text-muted-foreground block">
-                    BDT baseline
-                  </span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                  <span className="text-muted-foreground text-[10px] block">
-                    Min Deal Bounty
-                  </span>
-                  <span className="font-bold text-sm text-emerald-500 font-mono">
-                    ৳9,000
-                  </span>
-                  <span className="text-[10px] text-muted-foreground block">
-                    BDT per closing
-                  </span>
-                </div>
-              </div>
-
-              {/* Remittance Information */}
-              <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                    <KeyRound className="h-3.5 w-3.5 text-primary" />
-                    Payout Remittance Method:{" "}
-                    <span className="text-primary font-mono font-bold">
-                      {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
-                        ? "Bank Transfer"
-                        : whiteLabel.onboardingDetails?.payoutMethod || "bKash"}
-                    </span>
-                  </span>
-                </div>
-
-                {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Bank Name</span>
-                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBankName || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Account Name</span>
-                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutAccountName || whiteLabel.onboardingDetails?.payoutAccountHolderName || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Account Number</span>
-                      <strong className="text-foreground font-mono">{whiteLabel.onboardingDetails?.payoutAccountNumber || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Branch District</span>
-                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBranchDistrict || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Branch Name</span>
-                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBankBranch || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">Routing / Swift</span>
-                      <strong className="text-foreground font-mono">{whiteLabel.onboardingDetails?.payoutBankRouting || "N/A"} / {whiteLabel.onboardingDetails?.payoutSwiftCode || "N/A"}</strong>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pt-1 text-[11px] flex items-center justify-between">
-                    <div>
-                      <span className="text-muted-foreground text-[10px] block">
-                        {whiteLabel.onboardingDetails?.payoutMethod || "MFS"} Wallet Number
-                      </span>
-                      <strong className="text-foreground font-mono text-sm">
-                        {whiteLabel.onboardingDetails?.payoutWalletNumber ||
-                          whiteLabel.onboardingDetails?.payoutAccountNumber ||
-                          "N/A"}
-                      </strong>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                      Verified for Remittance
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-border/60 shadow-sm">
+        {/* Catalog Telemetry & Operations */}
+        <Card className="border-border/60 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 <Music className="h-4 w-4 text-primary" />
@@ -1248,7 +1084,6 @@ export function WhiteLabelApplicationStatusView({
               </div>
             </CardContent>
           </Card>
-        )}
       </div>
 
       {/* Tailored Business Architecture & Domain Specifications */}
@@ -1273,152 +1108,85 @@ export function WhiteLabelApplicationStatusView({
           </div>
         </CardHeader>
         <CardContent className="p-5 text-xs space-y-4">
-          {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Managed Sub-Labels
-                  </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails?.subLabelsCount ?? 5} sub-labels
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Independent Creators
-                  </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails
-                      ?.independentArtistsRepresented ?? 40}{" "}
-                    artists
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Ingestion Protocol
-                  </span>
-                  <p className="font-bold text-foreground font-mono text-xs pt-0.5">
-                    {(
-                      whiteLabel.onboardingDetails?.ingestionProtocol ||
-                      whiteLabel.onboardingDetails?.ingestionStandard ||
-                      "DDEX_ERN_4_3"
-                    ).replace(/_/g, " ")}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    QC & Anti-Fraud
-                  </span>
-                  <p className="font-bold text-foreground text-xs pt-0.5">
-                    {whiteLabel.onboardingDetails
-                      ?.antiFraudInspectionRequired !== false
-                      ? "Fingerprinting + QC Active"
-                      : "Standard Verification"}
-                  </p>
-                </div>
-              </div>
-
-              {whiteLabel.onboardingDetails?.directDspAgreements &&
-                whiteLabel.onboardingDetails.directDspAgreements.length > 0 && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
-                    <span className="text-muted-foreground text-[11px] font-semibold block">
-                      Active Direct DSP Delivery Pipelines:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {whiteLabel.onboardingDetails.directDspAgreements.map(
-                        (feed: string) => (
-                          <Badge
-                            key={feed}
-                            variant="outline"
-                            className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5"
-                          >
-                            {feed}
-                          </Badge>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {whiteLabel.businessType === "REFERRER" && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Partner Model
-                  </span>
-                  <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                    Aggregator Referral Affiliate
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Commission Cut
-                  </span>
-                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm pt-0.5">
-                    15% Share
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Min Deal Benchmark
-                  </span>
-                  <p className="font-bold text-foreground font-mono text-sm pt-0.5">
-                    ৳60,000 BDT
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
-                  <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Baseline Deal Bounty
-                  </span>
-                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm pt-0.5">
-                    ৳9,000 BDT
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <span className="text-muted-foreground text-[11px]">
-                  Guaranteed Min Payout: <strong className="text-foreground font-mono">৳9,000 BDT</strong> per Distribution Aggregator account sold (Uncapped maximum)
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Managed Sub-Labels
                 </span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
-                    15% Uncapped
-                  </Badge>
-                  <Button
-                    render={<Link href="/referrer" />}
-                    size="xs"
-                    className="h-7 text-xs font-semibold gap-1"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Open Referrer Hub
-                  </Button>
-                </div>
+                <p className="font-bold text-foreground text-sm pt-0.5">
+                  {whiteLabel.onboardingDetails?.subLabelsCount ?? 5} sub-labels
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Independent Creators
+                </span>
+                <p className="font-bold text-foreground text-sm pt-0.5">
+                  {whiteLabel.onboardingDetails
+                    ?.independentArtistsRepresented ?? 40}{" "}
+                  artists
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  Ingestion Protocol
+                </span>
+                <p className="font-bold text-foreground font-mono text-xs pt-0.5">
+                  {(
+                    whiteLabel.onboardingDetails?.ingestionProtocol ||
+                    whiteLabel.onboardingDetails?.ingestionStandard ||
+                    "DDEX_ERN_4_3"
+                  ).replace(/_/g, " ")}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
+                <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
+                  QC & Anti-Fraud
+                </span>
+                <p className="font-bold text-foreground text-xs pt-0.5">
+                  {whiteLabel.onboardingDetails
+                    ?.antiFraudInspectionRequired !== false
+                    ? "Fingerprinting + QC Active"
+                    : "Standard Verification"}
+                </p>
               </div>
             </div>
-          )}
+
+            {whiteLabel.onboardingDetails?.directDspAgreements &&
+              whiteLabel.onboardingDetails.directDspAgreements.length > 0 && (
+                <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
+                  <span className="text-muted-foreground text-[11px] font-semibold block">
+                    Active Direct DSP Delivery Pipelines:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {whiteLabel.onboardingDetails.directDspAgreements.map(
+                      (feed: string) => (
+                        <Badge
+                          key={feed}
+                          variant="outline"
+                          className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5"
+                        >
+                          {feed}
+                        </Badge>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Submitted Portfolio / Sub-Labels (Distributor Aggregators Only) */}
-      {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" &&
-        whiteLabel.artists &&
+      {/* Submitted Portfolio / Sub-Labels (Distributor Aggregators) */}
+      {whiteLabel.artists &&
         whiteLabel.artists.length > 0 && (
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" ? (
-                  <Building2 className="h-4 w-4 text-primary" />
-                ) : (
-                  <Share2 className="h-4 w-4 text-primary" />
-                )}
-                {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                  ? "Submitted Sub-Labels & Ingestion Catalogs"
-                  : "Client & Talent Pipeline Prospects"}
+                <Building2 className="h-4 w-4 text-primary" />
+                Submitted Sub-Labels & Ingestion Catalogs
               </CardTitle>
               <Badge variant="secondary" className="font-mono text-[10px]">
                 {whiteLabel.artists.length}{" "}
@@ -1433,18 +1201,9 @@ export function WhiteLabelApplicationStatusView({
           <CardContent className="space-y-2.5 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {whiteLabel.artists.map((item, idx) => {
-                const igLabel =
-                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                    ? "Territory:"
-                    : "Prospect Status:";
-                const spotifyLabel =
-                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                    ? "Sub-Label Website / Catalog"
-                    : "Portfolio / Music Link";
-                const youtubeLabel =
-                  whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                    ? "Genre Focus:"
-                    : "Pipeline Category:";
+                const igLabel = "Territory:";
+                const spotifyLabel = "Sub-Label Website / Catalog";
+                const youtubeLabel = "Genre Focus:";
 
                 return (
                   <div

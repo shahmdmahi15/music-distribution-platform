@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { PaymentStatus, Subscription } from "@/types/subscription";
-import { WhiteLabelBusinessType, WhiteLabelStatus } from "@/types/whitelabel";
+import { WhiteLabelStatus } from "@/types/whitelabel";
 import {
   House,
   LayoutDashboard,
@@ -231,7 +231,7 @@ export function ClientSidebarContent({
   );
 
   const isReferrer =
-    subscription?.whiteLabel?.businessType === WhiteLabelBusinessType.REFERRER;
+    pathname.startsWith("/referrer") || pathname.startsWith("/refferer");
 
   const navigations = isReferrer
     ? referrerNavigations

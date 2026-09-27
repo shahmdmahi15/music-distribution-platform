@@ -443,27 +443,23 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const isReferrer = dto.businessType === WhiteLabelBusinessType.REFERRER;
-
     // Automatically slugify desired subdomain or brand name to unique subdomain (verifying Cloudflare DNS + DB)
     let finalSubdomain: string | null = null;
-    if (!isReferrer) {
-      const preferredSubdomainBase = dto.desiredSubdomain?.trim() || dto.name;
-      if (
-        subscription.whiteLabel?.subdomain &&
-        (subscription.whiteLabel.subdomain === dto.desiredSubdomain?.trim() ||
-          subscription.whiteLabel.name === dto.name)
-      ) {
-        finalSubdomain = subscription.whiteLabel.subdomain;
-      } else {
-        finalSubdomain = await this.generateUniqueSubdomain(
-          preferredSubdomainBase,
-          subscription.whiteLabel?.id,
-        );
-      }
+    const preferredSubdomainBase = dto.desiredSubdomain?.trim() || dto.name;
+    if (
+      subscription.whiteLabel?.subdomain &&
+      (subscription.whiteLabel.subdomain === dto.desiredSubdomain?.trim() ||
+        subscription.whiteLabel.name === dto.name)
+    ) {
+      finalSubdomain = subscription.whiteLabel.subdomain;
+    } else {
+      finalSubdomain = await this.generateUniqueSubdomain(
+        preferredSubdomainBase,
+        subscription.whiteLabel?.id,
+      );
     }
 
-    const cleanElasticIpv4 = !isReferrer && dto.elasticIpv4 ? dto.elasticIpv4.trim() : null;
+    const cleanElasticIpv4 = dto.elasticIpv4 ? dto.elasticIpv4.trim() : null;
 
     // 2. If WhiteLabel already exists
     if (subscription.whiteLabel) {
@@ -509,23 +505,11 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      let sanitizedOnboardingDetails = dto.onboardingDetails;
-      if (isReferrer && sanitizedOnboardingDetails) {
-        const {
-          primaryGenre,
-          primaryGenresScouted,
-          labelType,
-          publishingCompanyType,
-          ...cleaned
-        } = sanitizedOnboardingDetails as any;
-        sanitizedOnboardingDetails = cleaned;
-      }
-
       const updated = await this.prismaService.whiteLabel.update({
         where: { id: subscription.whiteLabel.id },
         data: {
           name: dto.name,
-          businessType: dto.businessType,
+          businessType: dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
           companyWebsite: dto.companyWebsite,
           country: dto.country,
           yearsInBusiness: dto.yearsInBusiness ?? 0,
@@ -535,27 +519,27 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           contactLastName: dto.contactLastName,
           contactEmail: dto.contactEmail,
           contactLinkedIn: dto.contactLinkedIn,
-          catalogTrackCount: isReferrer ? 0 : (dto.catalogTrackCount ?? 0),
-          monthlyTrackDelivery: isReferrer ? 0 : (dto.monthlyTrackDelivery ?? 0),
-          monthlyRevenueUsd: isReferrer ? null : dto.monthlyRevenueUsd,
-          hasDirectDeals: isReferrer ? false : (dto.hasDirectDeals ?? false),
-          currentDistributors: isReferrer ? [] : (dto.currentDistributors ?? []),
-          royaltySolutions: isReferrer ? [] : (dto.royaltySolutions ?? []),
-          primaryCatalogLanguage: isReferrer ? 'en' : (dto.primaryCatalogLanguage ?? 'en'),
-          wantsCatalogMigration: isReferrer ? false : (dto.wantsCatalogMigration ?? false),
-          hasSampleBasedCovers: isReferrer ? false : (dto.hasSampleBasedCovers ?? false),
-          userSignupModel: isReferrer ? WhiteLabelSignupModel.INVITE_ONLY : dto.userSignupModel,
+          catalogTrackCount: dto.catalogTrackCount ?? 0,
+          monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
+          monthlyRevenueUsd: dto.monthlyRevenueUsd,
+          hasDirectDeals: dto.hasDirectDeals ?? false,
+          currentDistributors: dto.currentDistributors ?? [],
+          royaltySolutions: dto.royaltySolutions ?? [],
+          primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
+          wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
+          hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
+          userSignupModel: dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
           privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
           marketingConsent: dto.marketingConsent ?? false,
-          ...(sanitizedOnboardingDetails ? { onboardingDetails: sanitizedOnboardingDetails } : {}),
-          subdomain: isReferrer ? null : finalSubdomain,
-          elasticIpv4: isReferrer ? null : finalElasticIpv4,
-          primaryColor: isReferrer ? null : (dto.primaryColor || '#6366f1'),
+          ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
+          subdomain: finalSubdomain,
+          elasticIpv4: finalElasticIpv4,
+          primaryColor: dto.primaryColor || '#6366f1',
           status: WhiteLabelStatus.PENDING,
           statusReason: null,
           reviewedAt: null,
           artists: {
-            create: isReferrer ? [] : artistData,
+            create: artistData,
           },
         },
         include: {
@@ -565,7 +549,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      if (!isReferrer && finalSubdomain) {
+      if (finalSubdomain) {
         await this.cloudflareDnsService.provisionSubdomain(
           finalSubdomain,
           cleanElasticIpv4 || undefined,
@@ -588,21 +572,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       CodePrefix.WHITELABEL,
     );
 
-    let sanitizedOnboardingDetails = dto.onboardingDetails;
-    if (isReferrer && sanitizedOnboardingDetails) {
-      const {
-        primaryGenre,
-        primaryGenresScouted,
-        labelType,
-        publishingCompanyType,
-        ...cleaned
-      } = sanitizedOnboardingDetails as any;
-      sanitizedOnboardingDetails = cleaned;
-    }
-
     const artistData: Prisma.WhiteLabelTopArtistCreateWithoutWhiteLabelInput[] =
       [];
-    if (!isReferrer && dto.topArtists && dto.topArtists.length > 0) {
+    if (dto.topArtists && dto.topArtists.length > 0) {
       for (let i = 0; i < dto.topArtists.length; i++) {
         const artist = dto.topArtists[i];
         const artistCode = await generateUniqueCode(
@@ -626,10 +598,10 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         code: whiteLabelCode,
         name: dto.name,
-        businessType: dto.businessType,
-        subdomain: isReferrer ? null : finalSubdomain,
-        elasticIpv4: isReferrer ? null : cleanElasticIpv4,
-        primaryColor: isReferrer ? null : (dto.primaryColor || '#6366f1'),
+        businessType: dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+        subdomain: finalSubdomain,
+        elasticIpv4: cleanElasticIpv4,
+        primaryColor: dto.primaryColor || '#6366f1',
         companyWebsite: dto.companyWebsite,
         country: dto.country,
         yearsInBusiness: dto.yearsInBusiness ?? 0,
@@ -639,19 +611,19 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         contactLastName: dto.contactLastName,
         contactEmail: dto.contactEmail,
         contactLinkedIn: dto.contactLinkedIn,
-        catalogTrackCount: isReferrer ? 0 : (dto.catalogTrackCount ?? 0),
-        monthlyTrackDelivery: isReferrer ? 0 : (dto.monthlyTrackDelivery ?? 0),
-        monthlyRevenueUsd: isReferrer ? null : dto.monthlyRevenueUsd,
-        hasDirectDeals: isReferrer ? false : (dto.hasDirectDeals ?? false),
-        currentDistributors: isReferrer ? [] : (dto.currentDistributors ?? []),
-        royaltySolutions: isReferrer ? [] : (dto.royaltySolutions ?? []),
-        primaryCatalogLanguage: isReferrer ? 'en' : (dto.primaryCatalogLanguage ?? 'en'),
-        wantsCatalogMigration: isReferrer ? false : (dto.wantsCatalogMigration ?? false),
-        hasSampleBasedCovers: isReferrer ? false : (dto.hasSampleBasedCovers ?? false),
-        userSignupModel: isReferrer ? WhiteLabelSignupModel.INVITE_ONLY : dto.userSignupModel,
+        catalogTrackCount: dto.catalogTrackCount ?? 0,
+        monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
+        monthlyRevenueUsd: dto.monthlyRevenueUsd,
+        hasDirectDeals: dto.hasDirectDeals ?? false,
+        currentDistributors: dto.currentDistributors ?? [],
+        royaltySolutions: dto.royaltySolutions ?? [],
+        primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
+        wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
+        hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
+        userSignupModel: dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
         privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
         marketingConsent: dto.marketingConsent ?? false,
-        ...(sanitizedOnboardingDetails ? { onboardingDetails: sanitizedOnboardingDetails } : {}),
+        ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
         status: WhiteLabelStatus.PENDING,
         subscriptionId: subscription.id,
         artists: {
@@ -665,7 +637,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    if (!isReferrer && finalSubdomain) {
+    if (finalSubdomain) {
       await this.cloudflareDnsService.provisionSubdomain(
         finalSubdomain,
         cleanElasticIpv4 || undefined,
