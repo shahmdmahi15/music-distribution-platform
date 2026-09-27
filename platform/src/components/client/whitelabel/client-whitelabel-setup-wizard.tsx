@@ -983,7 +983,7 @@ NODE_ENV=production`;
     const businessLabel = "Distributor / Aggregator";
 
     return (
-      <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
+      <div className="w-full max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
         {/* 1. Hero Status & Confirmation Banner */}
         <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-background p-6 sm:p-8 shadow-lg">
           <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -1389,7 +1389,7 @@ NODE_ENV=production`;
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-6">
       {/* Re-Configuration Back Banner */}
       {isAlreadyConfigured && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10">

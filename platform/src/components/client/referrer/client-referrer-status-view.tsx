@@ -53,7 +53,7 @@ export function ClientReferrerStatusView({
   const isActive = referrer.status === ReferrerStatus.ACTIVE;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 py-6">
+    <div className="w-full space-y-6 animate-in fade-in-50 duration-300">
       {/* Status Hero Card */}
       <Card
         className={`border shadow-sm overflow-hidden ${

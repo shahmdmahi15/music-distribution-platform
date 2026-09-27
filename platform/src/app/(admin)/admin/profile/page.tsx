@@ -10,7 +10,7 @@ export default async function AdminProfilePage() {
 
   if (!res.success || !res.user) {
     return (
-      <div className="p-6 md:p-8 max-w-4xl mx-auto">
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Authentication Error</AlertTitle>

@@ -51,7 +51,7 @@ export default async function ClientSessionsPage() {
 
   if (!sessionsRes.success) {
     return (
-      <div className="p-6 md:p-8 max-w-4xl mx-auto">
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Error Loading Sessions</AlertTitle>
