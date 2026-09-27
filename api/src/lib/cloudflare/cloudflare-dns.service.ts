@@ -72,6 +72,10 @@ export class CloudflareDnsService {
     const cleanSub = subdomain.trim().toLowerCase();
     const fqdn = `${cleanSub}.${this.baseDomain}`;
 
+    if (['backstage', 'platform', 'api', 'www', 'root'].includes(cleanSub)) {
+      return false;
+    }
+
     if (!this.apiToken || !this.zoneId) {
       // In dev or unconfigured environment, treat as empty so local dev continues smoothly
       return true;
@@ -240,6 +244,20 @@ export class CloudflareDnsService {
   ): Promise<CloudflareDnsResult> {
     const cleanSub = subdomain.trim().toLowerCase();
     const fqdn = `${cleanSub}.${this.baseDomain}`;
+
+    if (['backstage', 'platform', 'api', 'www', 'root'].includes(cleanSub)) {
+      this.logger.warn(
+        `[CloudflareDnsService] Blocked attempt to provision reserved subdomain "${cleanSub}.${this.baseDomain}". Auto-cleaning any existing record...`,
+      );
+      await this.deprovisionSubdomain(cleanSub);
+      return {
+        success: false,
+        configured: false,
+        fqdn,
+        message: `Subdomain "${cleanSub}" is a reserved system keyword and cannot be provisioned as a WhiteLabel subdomain on ${this.baseDomain}.`,
+      };
+    }
+
     const cleanTarget = targetHostOrIp?.trim();
 
     if (!cleanTarget) {

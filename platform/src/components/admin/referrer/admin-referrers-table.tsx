@@ -63,6 +63,9 @@ interface AdminReferrersTableProps {
       total: number;
       pending: number;
       underReview: number;
+      processing?: number;
+      contracted?: number;
+      paid?: number;
       active: number;
       suspended: number;
       rejected: number;
@@ -317,6 +320,9 @@ export function AdminReferrersTable({ initialData }: AdminReferrersTableProps) {
               <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value={ReferrerStatus.PENDING}>Pending</SelectItem>
               <SelectItem value={ReferrerStatus.UNDER_REVIEW}>Under Review</SelectItem>
+              <SelectItem value={ReferrerStatus.PROCESSING}>Processing</SelectItem>
+              <SelectItem value={ReferrerStatus.CONTRACTED}>Contracted</SelectItem>
+              <SelectItem value={ReferrerStatus.PAID}>Commercial Paid</SelectItem>
               <SelectItem value={ReferrerStatus.ACTIVE}>Active</SelectItem>
               <SelectItem value={ReferrerStatus.SUSPENDED}>Suspended</SelectItem>
               <SelectItem value={ReferrerStatus.REJECTED}>Rejected</SelectItem>
@@ -594,6 +600,12 @@ export function AdminReferrersTable({ initialData }: AdminReferrersTableProps) {
                         className={`text-[10px] font-semibold uppercase tracking-wider ${
                           ref.status === ReferrerStatus.ACTIVE
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                            : ref.status === ReferrerStatus.PAID
+                            ? "bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30"
+                            : ref.status === ReferrerStatus.CONTRACTED
+                            ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                            : ref.status === ReferrerStatus.PROCESSING
+                            ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
                             : ref.status === ReferrerStatus.UNDER_REVIEW
                             ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
                             : ref.status === ReferrerStatus.PENDING

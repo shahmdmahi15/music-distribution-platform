@@ -1,9 +1,12 @@
 export enum ReferrerStatus {
   PENDING = "PENDING",
   UNDER_REVIEW = "UNDER_REVIEW",
+  PROCESSING = "PROCESSING",
+  REJECTED = "REJECTED",
+  CONTRACTED = "CONTRACTED",
+  PAID = "PAID",
   ACTIVE = "ACTIVE",
   SUSPENDED = "SUSPENDED",
-  REJECTED = "REJECTED",
 }
 
 export interface ReferrerDocument {

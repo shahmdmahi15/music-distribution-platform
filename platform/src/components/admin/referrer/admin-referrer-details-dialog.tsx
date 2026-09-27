@@ -37,6 +37,7 @@ import {
   Search,
   Sparkles,
   AlertTriangle,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +99,35 @@ export function AdminReferrerDetailsDialog({
   onRefresh,
 }: AdminReferrerDetailsDialogProps) {
   if (!referrer) return null;
+
+  const REFERRER_STAGES = [
+    { key: ReferrerStatus.PENDING, label: "Application", step: 1 },
+    { key: ReferrerStatus.UNDER_REVIEW, label: "Review", step: 2 },
+    { key: ReferrerStatus.PROCESSING, label: "Processing", step: 3 },
+    { key: ReferrerStatus.CONTRACTED, label: "Contracted", step: 4 },
+    { key: ReferrerStatus.PAID, label: "Commercial Paid", step: 5 },
+    { key: ReferrerStatus.ACTIVE, label: "Active", step: 6 },
+  ];
+
+  const getReferrerStageNum = (status: ReferrerStatus): number => {
+    switch (status) {
+      case ReferrerStatus.PENDING:
+        return 1;
+      case ReferrerStatus.UNDER_REVIEW:
+        return 2;
+      case ReferrerStatus.PROCESSING:
+        return 3;
+      case ReferrerStatus.CONTRACTED:
+        return 4;
+      case ReferrerStatus.PAID:
+        return 5;
+      case ReferrerStatus.ACTIVE:
+      case ReferrerStatus.SUSPENDED:
+        return 6;
+      default:
+        return 1;
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -453,12 +483,18 @@ export function AdminReferrerDetailsDialog({
               </div>
 
               {/* Status Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Badge
                   variant="outline"
                   className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider ${
                     referrer.status === ReferrerStatus.ACTIVE
                       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      : referrer.status === ReferrerStatus.PAID
+                      ? "bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30"
+                      : referrer.status === ReferrerStatus.CONTRACTED
+                      ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                      : referrer.status === ReferrerStatus.PROCESSING
+                      ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
                       : referrer.status === ReferrerStatus.UNDER_REVIEW
                       ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
                       : referrer.status === ReferrerStatus.PENDING
@@ -471,29 +507,67 @@ export function AdminReferrerDetailsDialog({
                   {referrer.status}
                 </Badge>
 
+                {/* Step 1: PENDING -> UNDER_REVIEW */}
                 {referrer.status === ReferrerStatus.PENDING && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="h-8 text-xs border-blue-500/40 text-blue-600 hover:bg-blue-500/10 gap-1"
+                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1 shadow-xs font-semibold"
                     onClick={() => handleStatusChangeClick(ReferrerStatus.UNDER_REVIEW)}
                   >
-                    <Clock className="h-3 w-3" />
-                    Review
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Mark Under Review</span>
                   </Button>
                 )}
 
-                {referrer.status !== ReferrerStatus.ACTIVE && (
+                {/* Step 2: UNDER_REVIEW -> PROCESSING */}
+                {referrer.status === ReferrerStatus.UNDER_REVIEW && (
                   <Button
                     size="sm"
-                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                    onClick={() => handleStatusChangeClick(ReferrerStatus.ACTIVE)}
+                    className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white gap-1 shadow-xs font-semibold"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.PROCESSING)}
                   >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Approve
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Approve KYB &amp; Mark Processing</span>
                   </Button>
                 )}
 
+                {/* Step 3: PROCESSING -> CONTRACTED */}
+                {referrer.status === ReferrerStatus.PROCESSING && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white gap-1 shadow-xs font-semibold"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.CONTRACTED)}
+                  >
+                    <FileSignature className="h-3.5 w-3.5" />
+                    <span>Issue Agreement &amp; Mark Contracted</span>
+                  </Button>
+                )}
+
+                {/* Step 4: CONTRACTED -> PAID */}
+                {referrer.status === ReferrerStatus.CONTRACTED && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white gap-1 shadow-xs font-semibold"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.PAID)}
+                  >
+                    <Coins className="h-3.5 w-3.5" />
+                    <span>Confirm Terms &amp; Mark Paid</span>
+                  </Button>
+                )}
+
+                {/* Step 5: PAID -> ACTIVE */}
+                {referrer.status === ReferrerStatus.PAID && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-xs font-semibold"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.ACTIVE)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Activate Partner Console</span>
+                  </Button>
+                )}
+
+                {/* Step 6: ACTIVE -> SUSPENDED */}
                 {referrer.status === ReferrerStatus.ACTIVE && (
                   <Button
                     size="sm"
@@ -502,24 +576,87 @@ export function AdminReferrerDetailsDialog({
                     onClick={() => handleStatusChangeClick(ReferrerStatus.SUSPENDED)}
                   >
                     <ShieldAlert className="h-3 w-3" />
-                    Suspend
+                    <span>Suspend Partner</span>
                   </Button>
                 )}
 
-                {referrer.status !== ReferrerStatus.REJECTED && (
+                {/* SUSPENDED -> REACTIVATE */}
+                {referrer.status === ReferrerStatus.SUSPENDED && (
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs text-destructive hover:bg-destructive/10 gap-1"
-                    onClick={() => handleStatusChangeClick(ReferrerStatus.REJECTED)}
+                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-xs font-semibold"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.ACTIVE)}
                   >
-                    <XCircle className="h-3 w-3" />
-                    Reject
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Reactivate Partner</span>
                   </Button>
                 )}
+
+                {/* REJECTED -> REOPEN */}
+                {referrer.status === ReferrerStatus.REJECTED && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-blue-500/40 text-blue-600 hover:bg-blue-500/10 gap-1"
+                    onClick={() => handleStatusChangeClick(ReferrerStatus.UNDER_REVIEW)}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    <span>Reopen Application</span>
+                  </Button>
+                )}
+
+                {/* Generic Decline Option for unapproved accounts */}
+                {referrer.status !== ReferrerStatus.ACTIVE &&
+                  referrer.status !== ReferrerStatus.SUSPENDED &&
+                  referrer.status !== ReferrerStatus.REJECTED && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs text-destructive hover:bg-destructive/10 gap-1"
+                      onClick={() => handleStatusChangeClick(ReferrerStatus.REJECTED)}
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      <span>Decline</span>
+                    </Button>
+                  )}
               </div>
             </div>
           </DialogHeader>
+
+          {/* 6-Stage Visual Stepper Bar */}
+          <div className="px-5 sm:px-6 py-2.5 bg-muted/40 border-b border-border/60 shrink-0">
+            <div className="flex items-center justify-between gap-1 overflow-x-auto text-[11px]">
+              {REFERRER_STAGES.map((s, idx) => {
+                const currentNum = getReferrerStageNum(referrer.status);
+                const isCompleted = currentNum > s.step;
+                const isCurrent = currentNum === s.step && referrer.status !== ReferrerStatus.REJECTED;
+                const isDeclined = currentNum === s.step && referrer.status === ReferrerStatus.REJECTED;
+
+                return (
+                  <div key={s.key} className="flex items-center gap-1.5 shrink-0">
+                    <div
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full font-medium transition-all ${
+                        isCompleted
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold"
+                          : isCurrent
+                          ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                          : isDeclined
+                          ? "bg-rose-500/15 text-rose-600 font-bold"
+                          : "text-muted-foreground/60"
+                      }`}
+                    >
+                      <span className="font-mono text-[10px]">{s.step}.</span>
+                      <span>{s.label}</span>
+                      {isCompleted && <CheckCircle2 className="h-3 w-3" />}
+                    </div>
+                    {idx < REFERRER_STAGES.length - 1 && (
+                      <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Navigation Tabs */}
           <Tabs
@@ -561,7 +698,7 @@ export function AdminReferrerDetailsDialog({
             </div>
 
             {/* Scrollable Tab Panels */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 pb-20 space-y-6">
               {/* TAB 1: OVERVIEW & 15% TERMS */}
               <TabsContent value="overview" className="m-0 space-y-6">
                 {/* 15% Commercial Framework Banner */}
@@ -1743,6 +1880,12 @@ export function AdminReferrerDetailsDialog({
                     ? "bg-emerald-600 text-white"
                     : targetStatus === ReferrerStatus.UNDER_REVIEW
                     ? "bg-blue-600 text-white"
+                    : targetStatus === ReferrerStatus.PROCESSING
+                    ? "bg-purple-600 text-white"
+                    : targetStatus === ReferrerStatus.CONTRACTED
+                    ? "bg-indigo-600 text-white"
+                    : targetStatus === ReferrerStatus.PAID
+                    ? "bg-teal-600 text-white"
                     : targetStatus === ReferrerStatus.SUSPENDED
                     ? "bg-orange-600 text-white"
                     : targetStatus === ReferrerStatus.REJECTED
@@ -1759,6 +1902,9 @@ export function AdminReferrerDetailsDialog({
               <p className="font-semibold text-foreground">
                 {targetStatus === ReferrerStatus.ACTIVE && "Account Activation Impact:"}
                 {targetStatus === ReferrerStatus.UNDER_REVIEW && "Review Queue Impact:"}
+                {targetStatus === ReferrerStatus.PROCESSING && "Processing & Legal Setup:"}
+                {targetStatus === ReferrerStatus.CONTRACTED && "Contract Executed:"}
+                {targetStatus === ReferrerStatus.PAID && "Commercial Verification:"}
                 {targetStatus === ReferrerStatus.SUSPENDED && "Suspension Impact:"}
                 {targetStatus === ReferrerStatus.REJECTED && "Rejection Notice:"}
               </p>
@@ -1767,6 +1913,12 @@ export function AdminReferrerDetailsDialog({
                   "The partner will be authorized to access their Referrer Console, track attribution via their custom referral code, and earn 15% revenue share bounties on closed deals."}
                 {targetStatus === ReferrerStatus.UNDER_REVIEW &&
                   "Transitions this partner into active compliance vetting. The applicant will see their status updated to Under Review in their client dashboard."}
+                {targetStatus === ReferrerStatus.PROCESSING &&
+                  "Marks the partner application as under commercial processing and agreement preparation."}
+                {targetStatus === ReferrerStatus.CONTRACTED &&
+                  "Confirms the partner referral agreement has been formally issued and executed by both parties."}
+                {targetStatus === ReferrerStatus.PAID &&
+                  "Confirms partner commercial account verification, onboarding fees or deposit cleared."}
                 {targetStatus === ReferrerStatus.SUSPENDED &&
                   "Temporarily suspends attribution tracking and commission disbursements for this partner until further administrative review."}
                 {targetStatus === ReferrerStatus.REJECTED &&
@@ -1823,6 +1975,21 @@ export function AdminReferrerDetailsDialog({
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Confirm Activation
+                </>
+              ) : targetStatus === ReferrerStatus.PROCESSING ? (
+                <>
+                  <Clock className="h-3.5 w-3.5" />
+                  Confirm Processing
+                </>
+              ) : targetStatus === ReferrerStatus.CONTRACTED ? (
+                <>
+                  <FileSignature className="h-3.5 w-3.5" />
+                  Confirm Contracted
+                </>
+              ) : targetStatus === ReferrerStatus.PAID ? (
+                <>
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Confirm Paid & Verified
                 </>
               ) : targetStatus === ReferrerStatus.REJECTED ? (
                 <>

@@ -166,6 +166,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     'api',
     'app',
     'auth',
+    'backstage',
     'billing',
     'cdn',
     'dashboard',
@@ -1144,7 +1145,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           dto.cloudflareBaseDomain.trim() !== '' && {
             cloudflareBaseDomain: dto.cloudflareBaseDomain.trim().toLowerCase(),
             customDomain: dto.customDomain?.trim() || `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`,
-            subdomain: wl.subdomain || 'backstage',
+            subdomain: wl.subdomain && wl.subdomain !== 'backstage' ? wl.subdomain : this.slugifyBrandName(wl.name),
           }),
         ...(dto.cloudflareApiToken !== undefined &&
           dto.cloudflareApiToken.trim() !== '' && {
@@ -2959,6 +2960,21 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     let verifiedCount = 0;
     for (const wl of whiteLabels) {
       try {
+        if (wl.subdomain === 'backstage' || !wl.subdomain) {
+          const correctSlug = this.slugifyBrandName(wl.name);
+          this.logger.warn(
+            `[PeriodicDomainCheck] WhiteLabel "${wl.name}" (${wl.id}) had invalid subdomain "${wl.subdomain}". Auto-correcting to "${correctSlug}" and purging "backstage" DNS from Cloudflare...`,
+          );
+          await this.prismaService.whiteLabel.update({
+            where: { id: wl.id },
+            data: { subdomain: correctSlug },
+          });
+          wl.subdomain = correctSlug;
+          await this.cloudflareDnsService.deprovisionSubdomain('backstage');
+          await this.redisService.del(`whitelabel:subdomain_resolve:backstage`);
+          await this.redisService.del(`whitelabel:subdomain_resolve:${correctSlug.toLowerCase()}`);
+        }
+
         const report = await this.evaluateFullDomainHealth(wl);
         if (report.allConnected) verifiedCount++;
       } catch (err: any) {

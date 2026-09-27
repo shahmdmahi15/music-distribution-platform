@@ -580,9 +580,12 @@ model WhiteLabelApiKey {
 enum ReferrerStatus {
   PENDING
   UNDER_REVIEW
+  PROCESSING
+  REJECTED
+  CONTRACTED
+  PAID
   ACTIVE
   SUSPENDED
-  REJECTED
 }
 
 model Referrer {
