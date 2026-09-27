@@ -1103,6 +1103,9 @@ export class AdminWhitelabelService {
         ...(dto.contactEmail !== undefined && {
           contactEmail: dto.contactEmail.trim(),
         }),
+        ...(dto.contactWhatsApp !== undefined && {
+          contactWhatsApp: dto.contactWhatsApp.trim() || null,
+        }),
         ...(dto.contactLinkedIn !== undefined && {
           contactLinkedIn: dto.contactLinkedIn.trim() || null,
         }),

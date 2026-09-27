@@ -51,6 +51,7 @@ export interface Referrer {
   contactLastName: string;
   contactEmail: string;
   contactPhone?: string | null;
+  contactWhatsApp?: string | null;
   contactLinkedIn?: string | null;
 
   // Commercial Terms (Fixed 15% Share)

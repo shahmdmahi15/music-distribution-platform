@@ -9,7 +9,7 @@ export interface ClientApplyReferrerPayload {
   name: string;
   referralCode?: string;
   companyWebsite?: string;
-  country?: string;
+  country: string;
   yearsInBusiness?: number;
   isIncorporated?: boolean;
   incorporationDocUrl?: string;
@@ -17,6 +17,7 @@ export interface ClientApplyReferrerPayload {
   contactLastName: string;
   contactEmail: string;
   contactPhone?: string;
+  contactWhatsApp: string;
   contactLinkedIn?: string;
   payoutMethod: string; // 'BANK_TRANSFER' | 'BKASH' | 'NAGAD' | 'ROCKET'
   bankName?: string;

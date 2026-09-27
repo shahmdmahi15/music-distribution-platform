@@ -132,13 +132,13 @@ export class CreateWhiteLabelDto {
   companyWebsite?: string;
 
   // Country/Region
-  @IsOptional()
-  @IsString()
+  @IsNotEmpty({ message: 'Country is required.' })
+  @IsString({ message: 'Country must be a string.' })
   @MaxLength(128)
   @Transform(({ value }: TransformFnParams) =>
     typeof value === 'string' ? value.trim() : value,
   )
-  country?: string;
+  country!: string;
 
   // Years in business
   @IsOptional()
@@ -185,6 +185,15 @@ export class CreateWhiteLabelDto {
     typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
   contactEmail!: string;
+
+  // WhatsApp Number
+  @IsNotEmpty({ message: 'WhatsApp number is required.' })
+  @IsString({ message: 'WhatsApp number must be a string.' })
+  @MaxLength(32, { message: 'WhatsApp number must not exceed 32 characters.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  contactWhatsApp!: string;
 
   // LinkedIn Handle / Profile
   @IsOptional()

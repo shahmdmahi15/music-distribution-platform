@@ -57,6 +57,10 @@ export class AdminUpdateApplicationDto {
 
   @IsOptional()
   @IsString()
+  contactWhatsApp?: string;
+
+  @IsOptional()
+  @IsString()
   contactLinkedIn?: string;
 
   @IsOptional()

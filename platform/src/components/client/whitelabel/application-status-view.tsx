@@ -888,6 +888,13 @@ export function WhiteLabelApplicationStatusView({
                 <Mail className="h-3 w-3 text-primary" />
                 {whiteLabel.contactEmail}
               </a>
+              {whiteLabel.contactWhatsApp && (
+                <div className="pt-0.5">
+                  <span className="text-[11px] text-foreground font-mono inline-flex items-center gap-1">
+                    <span className="text-muted-foreground">WhatsApp:</span> {whiteLabel.contactWhatsApp}
+                  </span>
+                </div>
+              )}
               {whiteLabel.contactLinkedIn && (
                 <div className="pt-0.5">
                   <a

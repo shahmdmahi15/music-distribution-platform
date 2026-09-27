@@ -271,6 +271,7 @@ export function AdminWhiteLabelDetailsDialog({
     contactFirstName: whiteLabel?.contactFirstName || "",
     contactLastName: whiteLabel?.contactLastName || "",
     contactEmail: whiteLabel?.contactEmail || "",
+    contactWhatsApp: whiteLabel?.contactWhatsApp || "",
     contactLinkedIn: whiteLabel?.contactLinkedIn || "",
     catalogTrackCount: whiteLabel?.catalogTrackCount ?? 0,
     monthlyTrackDelivery: whiteLabel?.monthlyTrackDelivery ?? 0,
@@ -396,6 +397,7 @@ export function AdminWhiteLabelDetailsDialog({
       contactFirstName: whiteLabel.contactFirstName || "",
       contactLastName: whiteLabel.contactLastName || "",
       contactEmail: whiteLabel.contactEmail || "",
+      contactWhatsApp: whiteLabel.contactWhatsApp || "",
       contactLinkedIn: whiteLabel.contactLinkedIn || "",
       catalogTrackCount: whiteLabel.catalogTrackCount ?? 0,
       monthlyTrackDelivery: whiteLabel.monthlyTrackDelivery ?? 0,
@@ -922,6 +924,7 @@ export function AdminWhiteLabelDetailsDialog({
         contactFirstName: dossierForm.contactFirstName,
         contactLastName: dossierForm.contactLastName,
         contactEmail: dossierForm.contactEmail,
+        contactWhatsApp: dossierForm.contactWhatsApp,
         contactLinkedIn: dossierForm.contactLinkedIn,
         catalogTrackCount: Number(dossierForm.catalogTrackCount) || 0,
         monthlyTrackDelivery: Number(dossierForm.monthlyTrackDelivery) || 0,
@@ -1642,6 +1645,14 @@ export function AdminWhiteLabelDetailsDialog({
                           {whiteLabel.contactEmail}
                         </a>
                       </div>
+                      <div>
+                        <span className="text-muted-foreground text-[10px] block">
+                          WhatsApp Number
+                        </span>
+                        <p className="font-mono text-foreground text-xs font-semibold">
+                          {whiteLabel.contactWhatsApp || "Not provided"}
+                        </p>
+                      </div>
                       {whiteLabel.contactLinkedIn && (
                         <div className="col-span-2">
                           <span className="text-muted-foreground text-[10px] block">
@@ -2000,6 +2011,23 @@ export function AdminWhiteLabelDetailsDialog({
                             contactEmail: e.target.value,
                           }))
                         }
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">
+                        WhatsApp Number
+                      </Label>
+                      <Input
+                        value={dossierForm.contactWhatsApp}
+                        onChange={(e) =>
+                          setDossierForm((p) => ({
+                            ...p,
+                            contactWhatsApp: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g. +1 234 567 8900"
                         className="h-8 text-xs font-mono"
                       />
                     </div>

@@ -20,9 +20,9 @@ export class CreateReferrerApplicationDto {
   @IsString()
   companyWebsite?: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Country is required.' })
   @IsString()
-  country?: string;
+  country: string;
 
   @IsOptional()
   @IsNumber()
@@ -47,6 +47,10 @@ export class CreateReferrerApplicationDto {
   @IsNotEmpty()
   @IsEmail()
   contactEmail: string;
+
+  @IsNotEmpty({ message: 'WhatsApp number is required.' })
+  @IsString()
+  contactWhatsApp: string;
 
   @IsOptional()
   @IsString()

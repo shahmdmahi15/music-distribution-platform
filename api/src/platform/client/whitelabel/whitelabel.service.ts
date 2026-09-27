@@ -518,6 +518,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           contactFirstName: dto.contactFirstName,
           contactLastName: dto.contactLastName,
           contactEmail: dto.contactEmail,
+          contactWhatsApp: dto.contactWhatsApp,
           contactLinkedIn: dto.contactLinkedIn,
           catalogTrackCount: dto.catalogTrackCount ?? 0,
           monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
@@ -615,6 +616,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         contactFirstName: dto.contactFirstName,
         contactLastName: dto.contactLastName,
         contactEmail: dto.contactEmail,
+        contactWhatsApp: dto.contactWhatsApp,
         contactLinkedIn: dto.contactLinkedIn,
         catalogTrackCount: dto.catalogTrackCount ?? 0,
         monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
@@ -948,6 +950,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         contactFirstName: wl.contactFirstName,
         contactLastName: wl.contactLastName,
         contactEmail: wl.contactEmail,
+        contactWhatsApp: wl.contactWhatsApp,
         contactLinkedIn: wl.contactLinkedIn,
         onboardingDetails: wl.onboardingDetails,
         subdomain: wl.subdomain,
@@ -1272,6 +1275,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           dto.contactLastName !== undefined ? dto.contactLastName : undefined,
         contactEmail:
           dto.contactEmail !== undefined ? dto.contactEmail : undefined,
+        contactWhatsApp:
+          dto.contactWhatsApp !== undefined ? dto.contactWhatsApp : undefined,
         contactLinkedIn:
           dto.contactLinkedIn !== undefined ? dto.contactLinkedIn : undefined,
         primaryColor:

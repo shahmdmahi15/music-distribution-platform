@@ -55,6 +55,10 @@ export class UpdateReferrerDossierDto {
 
   @IsOptional()
   @IsString()
+  contactWhatsApp?: string;
+
+  @IsOptional()
+  @IsString()
   contactLinkedIn?: string;
 
   // Commercial Terms

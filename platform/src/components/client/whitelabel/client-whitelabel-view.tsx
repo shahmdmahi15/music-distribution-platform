@@ -101,6 +101,7 @@ export function ClientWhiteLabelView({
             contactLastName: referrer.contactLastName,
             contactEmail: referrer.contactEmail,
             contactPhone: referrer.contactPhone || "",
+            contactWhatsApp: referrer.contactWhatsApp || "",
             contactLinkedIn: referrer.contactLinkedIn || "",
             onboardingDetails: {
               referralNetworkCode: referrer.referralCode,
@@ -160,6 +161,7 @@ export function ClientWhiteLabelView({
             contactFirstName: whiteLabel.contactFirstName || user.firstName,
             contactLastName: whiteLabel.contactLastName || user.lastName,
             contactEmail: whiteLabel.contactEmail || user.email,
+            contactWhatsApp: whiteLabel.contactWhatsApp || "",
             contactLinkedIn: whiteLabel.contactLinkedIn || "",
             catalogTrackCount: whiteLabel.catalogTrackCount,
             monthlyTrackDelivery: whiteLabel.monthlyTrackDelivery,

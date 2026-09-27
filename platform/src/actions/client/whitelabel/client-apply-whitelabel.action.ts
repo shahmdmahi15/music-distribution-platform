@@ -12,13 +12,14 @@ export interface ApplyWhiteLabelPayload {
   elasticIpv4?: string;
   primaryColor?: string;
   companyWebsite?: string;
-  country?: string;
+  country: string;
   yearsInBusiness?: number;
   isIncorporated?: boolean;
   incorporationDocUrl?: string;
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
+  contactWhatsApp: string;
   contactLinkedIn?: string;
   catalogTrackCount?: number;
   monthlyTrackDelivery?: number;

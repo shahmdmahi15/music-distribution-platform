@@ -358,6 +358,7 @@ model WhiteLabel {
   contactFirstName        String?
   contactLastName         String?
   contactEmail            String?
+  contactWhatsApp         String?
   contactLinkedIn         String?
 
   // Catalog & Operational Telemetry
@@ -605,6 +606,7 @@ model Referrer {
   contactLastName  String
   contactEmail     String
   contactPhone     String?
+  contactWhatsApp  String?
   contactLinkedIn  String?
 
   // Commercial Terms (Fixed 15% Share)

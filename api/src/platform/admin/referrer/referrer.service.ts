@@ -276,6 +276,7 @@ export class AdminReferrerService {
         contactLastName: dto.contactLastName,
         contactEmail: dto.contactEmail,
         contactPhone: dto.contactPhone,
+        contactWhatsApp: dto.contactWhatsApp,
         contactLinkedIn: dto.contactLinkedIn,
         commissionRate: dto.commissionRate,
         dealBenchmarkBdt: dto.dealBenchmarkBdt,

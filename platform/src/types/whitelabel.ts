@@ -120,6 +120,7 @@ export interface WhiteLabel {
   contactFirstName: string;
   contactLastName: string;
   contactEmail: string;
+  contactWhatsApp?: string | null;
   contactLinkedIn?: string | null;
   catalogTrackCount: number;
   monthlyTrackDelivery: number;
@@ -233,6 +234,7 @@ export interface WhiteLabelBranding {
   contactFirstName?: string | null;
   contactLastName?: string | null;
   contactEmail?: string | null;
+  contactWhatsApp?: string | null;
   contactLinkedIn?: string | null;
   onboardingDetails?: Record<string, any> | null;
   subdomain?: string | null;

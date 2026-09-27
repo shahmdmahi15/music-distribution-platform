@@ -219,6 +219,7 @@ export interface OnboardingDraftData {
   contactFirstName?: string;
   contactLastName?: string;
   contactEmail?: string;
+  contactWhatsApp?: string;
   contactLinkedIn?: string;
   catalogTrackCount?: number;
   monthlyTrackDelivery?: number;
@@ -293,6 +294,7 @@ export function WhiteLabelOnboardingWizard({
     contactFirstName: initialDraft?.contactFirstName || user.firstName || "",
     contactLastName: initialDraft?.contactLastName || user.lastName || "",
     contactEmail: initialDraft?.contactEmail || user.email || "",
+    contactWhatsApp: initialDraft?.contactWhatsApp || "",
     contactLinkedIn: initialDraft?.contactLinkedIn || "",
 
     // Step 4: Catalog & Distribution Operations
@@ -599,6 +601,10 @@ export function WhiteLabelOnboardingWizard({
         );
         return false;
       }
+      if (!formData.country.trim()) {
+        toast.error("Please enter your country / territory.");
+        return false;
+      }
     }
 
     if (isReferrer) {
@@ -615,6 +621,10 @@ export function WhiteLabelOnboardingWizard({
           !formData.contactEmail.includes("@")
         ) {
           toast.error("Please provide a valid work email.");
+          return false;
+        }
+        if (!formData.contactWhatsApp.trim()) {
+          toast.error("Please provide a WhatsApp number for the key contact.");
           return false;
         }
       }
@@ -735,6 +745,10 @@ export function WhiteLabelOnboardingWizard({
           toast.error("Please provide a valid contact email.");
           return false;
         }
+        if (!formData.contactWhatsApp.trim()) {
+          toast.error("Please provide your WhatsApp number.");
+          return false;
+        }
       }
       if (step === 5) {
         const firstItem = formData.topArtists[0];
@@ -795,7 +809,7 @@ export function WhiteLabelOnboardingWizard({
           name: formData.name,
           referralCode: formData.onboardingDetails?.referralNetworkCode || undefined,
           companyWebsite: formData.companyWebsite || undefined,
-          country: formData.country || "Bangladesh",
+          country: formData.country.trim(),
           yearsInBusiness: formData.yearsInBusiness || 0,
           isIncorporated: formData.isIncorporated || false,
           incorporationDocUrl: formData.incorporationDocUrl || undefined,
@@ -804,6 +818,7 @@ export function WhiteLabelOnboardingWizard({
           contactEmail: formData.contactEmail,
           contactPhone:
             (formData.onboardingDetails as any)?.contactPhone || undefined,
+          contactWhatsApp: formData.contactWhatsApp.trim(),
           contactLinkedIn: formData.contactLinkedIn || undefined,
           payoutMethod,
           bankName: formData.onboardingDetails?.payoutBankName?.trim() || undefined,
@@ -834,6 +849,8 @@ export function WhiteLabelOnboardingWizard({
       } else {
         res = await clientApplyWhiteLabelAction({
           ...formData,
+          country: formData.country.trim(),
+          contactWhatsApp: formData.contactWhatsApp.trim(),
           desiredSubdomain: formData.desiredSubdomain,
           elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
           primaryColor: formData.primaryColor,
@@ -1079,11 +1096,11 @@ export function WhiteLabelOnboardingWizard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="country" className="text-xs font-semibold">
-                  Primary Country / Jurisdiction
+                  Primary Country / Jurisdiction <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="country"
-                  placeholder="e.g. United States, United Kingdom, Canada, France"
+                  placeholder="e.g. United States, United Kingdom, Canada, France, Bangladesh"
                   value={formData.country}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -1460,19 +1477,19 @@ export function WhiteLabelOnboardingWizard({
 
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="contactLinkedIn"
+                  htmlFor="contactWhatsApp"
                   className="text-xs font-semibold"
                 >
-                  LinkedIn Profile / Representative Handle
+                  WhatsApp Number <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="contactLinkedIn"
-                  placeholder="https://linkedin.com/in/username"
-                  value={formData.contactLinkedIn}
+                  id="contactWhatsApp"
+                  placeholder="e.g. +1 234 567 8900 or +880 1712 345678"
+                  value={formData.contactWhatsApp}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      contactLinkedIn: e.target.value,
+                      contactWhatsApp: e.target.value,
                     }))
                   }
                   className="h-9.5 text-xs font-mono"
@@ -1987,7 +2004,16 @@ export function WhiteLabelOnboardingWizard({
                   </strong>
                 </div>
 
-                <div className="sm:col-span-2">
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    WhatsApp Number
+                  </span>
+                  <strong className="text-foreground truncate block font-mono">
+                    {formData.contactWhatsApp || "N/A"}
+                  </strong>
+                </div>
+
+                <div>
                   <span className="text-muted-foreground text-[10px] block">
                     Work Email
                   </span>
@@ -2567,6 +2593,15 @@ export function WhiteLabelOnboardingWizard({
                   </span>
                   <strong className="text-foreground truncate block">
                     {formData.contactFirstName} {formData.contactLastName}
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    WhatsApp Number
+                  </span>
+                  <strong className="text-foreground truncate block font-mono">
+                    {formData.contactWhatsApp || "N/A"}
                   </strong>
                 </div>
               </div>

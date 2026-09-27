@@ -73,6 +73,7 @@ export function ClientBrandingView({
     contactFirstName: initialBranding.contactFirstName || "",
     contactLastName: initialBranding.contactLastName || "",
     contactEmail: initialBranding.contactEmail || "",
+    contactWhatsApp: initialBranding.contactWhatsApp || "",
     contactLinkedIn: initialBranding.contactLinkedIn || "",
 
     // Support Contacts & Legal Notices
@@ -840,6 +841,23 @@ export function ClientBrandingView({
                   }
                   placeholder="jane.doe@yourlabel.com"
                   className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  WhatsApp Number <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={formData.contactWhatsApp}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      contactWhatsApp: e.target.value,
+                    })
+                  }
+                  placeholder="+1 234 567 8900"
+                  className="text-xs font-mono"
                 />
               </div>
 

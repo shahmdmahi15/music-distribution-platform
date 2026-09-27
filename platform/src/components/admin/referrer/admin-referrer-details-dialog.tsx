@@ -128,6 +128,7 @@ export function AdminReferrerDetailsDialog({
     contactLastName: referrer.contactLastName,
     contactEmail: referrer.contactEmail,
     contactPhone: referrer.contactPhone || "",
+    contactWhatsApp: referrer.contactWhatsApp || "",
     payoutMethod: referrer.payoutMethod || "BANK_TRANSFER",
     bankName: referrer.bankName || "",
     accountName: referrer.accountName || "",
@@ -579,9 +580,23 @@ export function AdminReferrerDetailsDialog({
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Phone / WhatsApp:</span>
-                        <span className="font-mono text-foreground">
-                          {referrer.contactPhone || "Not provided"}
+                        <span className="text-muted-foreground">WhatsApp Number:</span>
+                        <span className="font-mono text-foreground font-semibold">
+                          {referrer.contactWhatsApp || referrer.contactPhone || "Not provided"}
+                        </span>
+                      </div>
+                      {referrer.contactPhone && referrer.contactPhone !== referrer.contactWhatsApp && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Contact Phone:</span>
+                          <span className="font-mono text-foreground">
+                            {referrer.contactPhone}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Country:</span>
+                        <span className="font-semibold text-foreground">
+                          {referrer.country || "Not specified"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">

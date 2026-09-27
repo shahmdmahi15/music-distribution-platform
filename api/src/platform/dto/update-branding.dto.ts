@@ -44,6 +44,10 @@ export class UpdateBrandingDto {
 
   @IsOptional()
   @IsString()
+  contactWhatsApp?: string;
+
+  @IsOptional()
+  @IsString()
   contactLinkedIn?: string;
 
   @IsOptional()
