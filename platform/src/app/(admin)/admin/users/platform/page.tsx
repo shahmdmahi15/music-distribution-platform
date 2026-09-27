@@ -102,7 +102,7 @@ export default async function AdminPlatformUsersPage({
   const currentUserRole = meRes.user?.role;
 
   return (
-    <div className="w-full min-w-0 p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0 p-6 md:p-8 space-y-8">
       {/* Page Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 text-primary">

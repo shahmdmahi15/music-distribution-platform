@@ -28,7 +28,7 @@ export default async function ReferrerPage() {
     if (referrerStatus.status === "ACTIVE") {
       const activeReferrer = referrerMe.referrer || referrerStatus.referrer;
       return (
-        <div className="w-full max-w-7xl mx-auto min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">
+        <div className="w-full min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">
           <ReferrerDashboardView referrer={activeReferrer} user={me.user} />
         </div>
       );
@@ -36,7 +36,7 @@ export default async function ReferrerPage() {
 
     // If PENDING, UNDER_REVIEW, REJECTED, or SUSPENDED, show Status View
     return (
-      <div className="w-full max-w-7xl mx-auto min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">
+      <div className="w-full min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">
         <ClientReferrerStatusView referrer={referrerStatus.referrer} />
       </div>
     );

@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 
 export default function AdminWhiteLabelUsersPage() {
   return (
-    <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">

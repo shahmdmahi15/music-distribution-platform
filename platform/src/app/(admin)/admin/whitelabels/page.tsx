@@ -13,7 +13,7 @@ export default async function AdminWhiteLabelsPage() {
   const data = await adminGetWhiteLabelsAction({ limit: 100 });
 
   return (
-    <div className="max-w-[1440px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Enterprise Header Banner */}
       <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card/95 to-primary/5 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="space-y-1.5">
