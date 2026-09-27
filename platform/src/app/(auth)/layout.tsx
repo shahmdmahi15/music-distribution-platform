@@ -49,7 +49,7 @@ export default async function AuthLayout({
   return (
     <div className="h-screen h-[100dvh] max-h-screen w-full overflow-hidden flex flex-col lg:grid lg:grid-cols-12 bg-background selection:bg-primary/20">
       {/* Left Column - Enterprise Trust & Distribution Infrastructure (visible on lg+) */}
-      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-6 xl:p-8 2xl:p-10 overflow-hidden border-r border-border/70 bg-muted/20 h-full">
+      <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-6 xl:p-8 2xl:p-10 overflow-y-auto overflow-x-hidden border-r border-border/70 bg-muted/20 h-full min-h-0 custom-scrollbar">
         {/* Subtle background ambient gradients */}
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/5 blur-[140px] pointer-events-none" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-emerald-500/5 blur-[140px] pointer-events-none" />
@@ -155,33 +155,43 @@ export default async function AuthLayout({
         </div>
       </div>
 
-      {/* Right Column - Children Pages (Login, Register, MFA, Password Reset) */}
-      <div className="flex-1 lg:col-span-7 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative overflow-hidden bg-background h-full">
+      {/* Right Column - Children Pages (Login, Register, MFA, Password Reset) with Smooth Inner Scroll */}
+      <div className="flex-1 lg:col-span-7 relative h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar bg-background">
         {/* Glow behind forms */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
-        {/* Floating Theme Toggle */}
-        <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
-          <ThemeToggle />
+        {/* Top Floating / Sticky Action Bar */}
+        <div className="sticky top-0 z-30 w-full flex items-center justify-between p-4 sm:p-5 pointer-events-none bg-gradient-to-b from-background via-background/90 to-transparent backdrop-blur-[2px]">
+          {/* Small screen brand logo */}
+          <div className="lg:hidden flex items-center gap-2 pointer-events-auto">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm group-hover:scale-105 transition-all">
+                <Disc3 className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="font-heading font-bold text-sm tracking-tight text-foreground block leading-none">
+                  RoyalMotionIT
+                </span>
+                <span className="text-[9px] font-mono text-muted-foreground uppercase">
+                  Distribution Portal
+                </span>
+              </div>
+            </Link>
+          </div>
+          <div className="hidden lg:block" />
+
+          {/* Floating Theme Toggle */}
+          <div className="pointer-events-auto">
+            <ThemeToggle />
+          </div>
         </div>
 
-        {/* Small screen brand logo */}
-        <div className="lg:hidden absolute top-4 left-4 sm:top-5 sm:left-5 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Disc3 className="h-4 w-4" />
-          </div>
-          <div>
-            <span className="font-heading font-bold text-sm tracking-tight text-foreground block leading-none">
-              RoyalMotionIT
-            </span>
-            <span className="text-[9px] font-mono text-muted-foreground uppercase">
-              Distribution Portal
-            </span>
+        {/* Inner Scrollable Center Viewport */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-12 sm:pb-16 w-full min-h-0">
+          <div className="w-full max-w-md relative z-10 my-auto py-2">
+            {children}
           </div>
         </div>
-
-        {/* Main card wrapper for forms - strictly constrained, centered */}
-        <div className="w-full max-w-md relative z-10 my-auto">{children}</div>
       </div>
     </div>
   );
