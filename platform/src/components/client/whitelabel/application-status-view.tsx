@@ -1216,15 +1216,21 @@ export function WhiteLabelApplicationStatusView({
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Commission Structure
+                    Referral Commission Cut
                   </span>
-                  <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                    {(
-                      whiteLabel.onboardingDetails
-                        ?.preferredCommissionStructure || "lifetime_rev_share"
-                    ).replace(/_/g, " ")}
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs pt-0.5">
+                    15% of Selling Price (Min ৳60K BDT)
                   </p>
                 </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground text-[11px]">
+                  Guaranteed Min Payout: <strong className="text-foreground font-mono">৳9,000 BDT</strong> per Distribution Aggregator account sold
+                </span>
+                <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
+                  Uncapped Maximum
+                </Badge>
               </div>
 
               {whiteLabel.onboardingDetails?.discoveryChannels &&

@@ -140,9 +140,10 @@ const SCOUT_CATEGORIES = [
 ];
 
 const COMMISSION_PREFERENCES = [
-  { id: "lifetime_rev_share", label: "Lifetime % Net Revenue Share (Residual)" },
-  { id: "upfront_bounty", label: "Upfront Bounty Per Activated Client" },
-  { id: "hybrid_tiered", label: "Hybrid Tiered Performance (Bounty + Rev Share)" },
+  { id: "selling_value_share", label: "15% Account Selling Value Share (Min Selling Price: ৳60K BDT)" },
+  { id: "lifetime_rev_share", label: "15% Lifetime Net Residual Share" },
+  { id: "upfront_bounty", label: "15% Upfront Account Close Bounty" },
+  { id: "hybrid_tiered", label: "Hybrid 15% Share & Performance Escalation" },
 ];
 
 const TERRITORY_OPTIONS = [
@@ -1615,7 +1616,7 @@ export function WhiteLabelOnboardingWizard({
                     <select
                       value={
                         formData.onboardingDetails
-                          ?.preferredCommissionStructure || "lifetime_rev_share"
+                          ?.preferredCommissionStructure || "selling_value_share"
                       }
                       onChange={(e) =>
                         updateOnboardingDetail(
@@ -1632,6 +1633,21 @@ export function WhiteLabelOnboardingWizard({
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Distribution Aggregator Referral Terms Banner */}
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-primary">
+                      Distribution Aggregator Referral Standard: 15% Share
+                    </span>
+                    <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                      Min ৳60,000 BDT
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Referrers receive <strong className="text-foreground">15% of the total selling price</strong> for every Distribution Aggregator WhiteLabel account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with no maximum ceiling — you earn 15% on whatever deal value you negotiate and close!
+                  </p>
                 </div>
 
                 <div className="space-y-2">

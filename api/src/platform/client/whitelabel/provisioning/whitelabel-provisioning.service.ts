@@ -57,6 +57,8 @@ import * as crypto from 'crypto';
 import { Client as SshClient } from 'ssh2';
 import * as forge from 'node-forge';
 
+import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
+
 interface ProvisioningLogEntry {
   timestamp: string;
   step: string;
@@ -72,6 +74,7 @@ export class WhitelabelProvisioningService {
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
+    private readonly cloudflareDnsService: CloudflareDnsService,
   ) {}
 
   /**
@@ -179,7 +182,6 @@ export class WhitelabelProvisioningService {
           cloudflareZoneId: dto.cloudflareZoneId.trim(),
           cloudflareBaseDomain: cleanBase,
           customDomain: `backstage.${cleanBase}`,
-          subdomain: 'backstage',
           senderEmail: `noreply@mail.${cleanBase}`,
         },
       });
@@ -231,7 +233,6 @@ export class WhitelabelProvisioningService {
         cloudflareZoneId: dto.cloudflareZoneId.trim(),
         cloudflareBaseDomain: cleanBaseDomain,
         customDomain: targetCustomDomain,
-        subdomain: 'backstage',
         ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
         ...(dto.instanceType ? { awsInstanceType: dto.instanceType.trim() } : {}),
         ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
@@ -305,7 +306,6 @@ export class WhitelabelProvisioningService {
         cloudflareZoneId: dto.cloudflareZoneId.trim(),
         cloudflareBaseDomain: cleanBaseDomain,
         customDomain: targetCustomDomain,
-        subdomain: 'backstage',
         ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
         ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
         ...(dto.cloudflareOriginKey ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() } : {}),
@@ -418,6 +418,11 @@ export class WhitelabelProvisioningService {
     const zoneId = wl.cloudflareZoneId!;
     const cfToken = wl.cloudflareApiToken!;
     const customDomain = wl.customDomain || `backstage.${baseDomain}`;
+    const tenantSubdomain =
+      wl.subdomain && wl.subdomain !== 'backstage' ? wl.subdomain : null;
+    const platformSubdomainFqdn = tenantSubdomain
+      ? `${tenantSubdomain}.platform.royalmotionit.com`
+      : '';
 
     try {
       // =========================================================================
@@ -1056,7 +1061,7 @@ if [ ! -f /etc/ssl/certs/whitelabel_origin.crt ]; then
     -keyout /etc/ssl/private/whitelabel_origin.key \\
     -out /etc/ssl/certs/whitelabel_origin.crt \\
     -subj "/C=US/ST=Cloud/L=Origin/O=${escapedWlName}/CN=${customDomain}" \\
-    -addext "subjectAltName = DNS:${customDomain},DNS:*.${baseDomain},DNS:${baseDomain}"
+    -addext "subjectAltName = DNS:${customDomain},DNS:*.${baseDomain},DNS:${baseDomain}${platformSubdomainFqdn ? `,DNS:${platformSubdomainFqdn}` : ''}"
 fi
 `;
 
@@ -1345,6 +1350,53 @@ chmod 755 /var/www
         'SUCCESS',
       );
 
+      // Point the platform subdomain provided as a CNAME to backstage.customdomain
+      // so both backstage.customdomain and [subdomain].platform.royalmotionit.com can access the WhiteLabel portal
+      const tenantRecord = await this.prismaService.whiteLabel.findUnique({
+        where: { id: whiteLabelId },
+        select: { subdomain: true },
+      });
+      const tenantSubdomain =
+        tenantRecord?.subdomain && tenantRecord.subdomain !== 'backstage'
+          ? tenantRecord.subdomain
+          : wl.subdomain && wl.subdomain !== 'backstage'
+            ? wl.subdomain
+            : null;
+
+      if (tenantSubdomain) {
+        await this.appendLog(
+          whiteLabelId,
+          'DNS',
+          `Configuring CNAME for platform subdomain: "${tenantSubdomain}.platform.royalmotionit.com" -> "${customDomain}"...`,
+          'INFO',
+        );
+
+        try {
+          const cnameResult = await this.cloudflareDnsService.provisionSubdomain(
+            tenantSubdomain,
+            customDomain,
+          );
+          if (cnameResult.success) {
+            await this.appendLog(
+              whiteLabelId,
+              'DNS',
+              `CNAME active: "${cnameResult.fqdn}" now points to "${customDomain}". Both "${customDomain}" and "${cnameResult.fqdn}" can be used to access the WhiteLabel portal!`,
+              'SUCCESS',
+            );
+          }
+        } catch (cnameErr: any) {
+          this.logger.warn(
+            `Could not point platform subdomain CNAME to ${customDomain}: ${cnameErr.message}`,
+          );
+          await this.appendLog(
+            whiteLabelId,
+            'DNS',
+            `Notice: Platform subdomain CNAME could not be automatically set: ${cnameErr.message}. Primary custom domain "${customDomain}" is fully active.`,
+            'WARN',
+          );
+        }
+      }
+
       // =========================================================================
       // STAGE 6: SECURE SSH DEPLOYMENT & PORT 3000 RUNTIME ORCHESTRATION
       // =========================================================================
@@ -1452,17 +1504,21 @@ chmod 755 /var/www
           'INFO',
         );
 
+        const serverNames = [customDomain, platformSubdomainFqdn, baseDomain, `*.${baseDomain}`]
+          .filter(Boolean)
+          .join(' ');
+
         const nginxConfig = `server {
     listen 80;
     listen [::]:80;
-    server_name ${customDomain};
+    server_name ${serverNames};
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name ${customDomain};
+    server_name ${serverNames};
 
     ssl_certificate /etc/ssl/certs/whitelabel_origin.crt;
     ssl_certificate_key /etc/ssl/private/whitelabel_origin.key;

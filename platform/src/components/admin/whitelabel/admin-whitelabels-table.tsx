@@ -92,7 +92,7 @@ const BUSINESS_TYPE_META: Record<
       "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   },
   [WhiteLabelBusinessType.REFERRER]: {
-    label: "Referrer / Agency Partner",
+    label: "Referrer (15% Share)",
     badgeClass:
       "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
   },

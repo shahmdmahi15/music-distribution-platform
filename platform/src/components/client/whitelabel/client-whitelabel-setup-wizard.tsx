@@ -311,7 +311,10 @@ export function ClientWhiteLabelSetupWizard({
   const [commissionBounty, setCommissionBounty] = useState(
     (branding.onboardingDetails as any)?.commissionBountyRate?.toString() ||
       (branding.onboardingDetails as any)?.commissionBounty?.toString() ||
-      "10",
+      "15",
+  );
+  const [dealSellingPriceBdt, setDealSellingPriceBdt] = useState<number>(
+    Number((branding.onboardingDetails as any)?.simulatedSellingPriceBdt) || 60000,
   );
   const [payoutMethod, setPayoutMethod] = useState(
     (branding.onboardingDetails as any)?.payoutMethod || "WISE",
@@ -900,8 +903,13 @@ NODE_ENV=production`;
             scoutNetworkCategory,
             attributionWindowDays: attributionWindowDays === "lifetime" ? "lifetime" : (parseInt(attributionWindowDays) || 60),
             preferredCommissionStructure,
-            commissionBountyRate: parseFloat(commissionBounty) || 10,
-            commissionBounty: parseFloat(commissionBounty) || 10,
+            commissionBountyRate: 15,
+            commissionBounty: 15,
+            referrerCommissionPercentage: 15,
+            minimumAccountSellingPriceBdt: 60000,
+            simulatedSellingPriceBdt: Math.max(60000, dealSellingPriceBdt),
+            referrerShareBdt: Math.round(Math.max(60000, dealSellingPriceBdt) * 0.15),
+            platformShareBdt: Math.round(Math.max(60000, dealSellingPriceBdt) * 0.85),
             payoutMethod,
             minimumPayoutThresholdUsd: parseFloat(minimumPayoutThresholdUsd) || 100,
           }),
@@ -1901,6 +1909,100 @@ NODE_ENV=production`;
                       </div>
                     </div>
 
+                    {/* Distribution Aggregator Referral Terms Banner */}
+                    <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Distribution Aggregator Account Referral Policy
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold"
+                        >
+                          15% Fixed Referral Share
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Referrers earn strictly <strong className="text-foreground">15% of the total selling value</strong> for every Distribution Aggregator account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with <strong className="text-foreground">no maximum limit</strong> — sell at whatever value you can negotiate and retain 15% of the gross sale!
+                      </p>
+
+                      {/* Interactive BDT Commission Calculator */}
+                      <div className="mt-2 pt-2 border-t border-primary/20 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <Label htmlFor="dealSellingPriceBdt" className="text-[11px] font-semibold text-foreground">
+                            Simulate Closing Deal Value (BDT):
+                          </Label>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-foreground">৳</span>
+                            <Input
+                              id="dealSellingPriceBdt"
+                              type="number"
+                              min={60000}
+                              step={5000}
+                              value={dealSellingPriceBdt}
+                              onChange={(e) => setDealSellingPriceBdt(Math.max(0, Number(e.target.value) || 0))}
+                              className="w-32 h-7.5 text-xs font-mono font-bold bg-background"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          <span className="text-[10px] text-muted-foreground font-medium">Quick Presets:</span>
+                          {[
+                            { label: "৳60K BDT (Min Baseline)", value: 60000 },
+                            { label: "৳80K BDT (Pro)", value: 80000 },
+                            { label: "৳100K BDT (Advanced)", value: 100000 },
+                            { label: "৳150K BDT (Enterprise)", value: 150000 },
+                            { label: "৳200K BDT (Fleet)", value: 200000 },
+                          ].map((p) => (
+                            <button
+                              key={p.value}
+                              type="button"
+                              onClick={() => setDealSellingPriceBdt(p.value)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all border ${
+                                dealSellingPriceBdt === p.value
+                                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                                  : "border-border/60 hover:bg-muted/40 text-muted-foreground"
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Profit Split Result Card */}
+                        <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                          <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                            <span className="text-[10px] text-muted-foreground block font-medium">Selling Value</span>
+                            <span className="text-xs font-extrabold text-foreground font-mono">
+                              ৳{dealSellingPriceBdt.toLocaleString()} BDT
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-bold">
+                              Referrer Cut (15%)
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                              ৳{Math.round(dealSellingPriceBdt * 0.15).toLocaleString()} BDT
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-primary/10 border border-primary/30">
+                            <span className="text-[10px] text-primary block font-medium">Platform Share (85%)</span>
+                            <span className="text-xs font-extrabold text-primary font-mono">
+                              ৳{Math.round(dealSellingPriceBdt * 0.85).toLocaleString()} BDT
+                            </span>
+                          </div>
+                        </div>
+                        {dealSellingPriceBdt < 60000 && (
+                          <p className="text-[10.5px] text-amber-500 font-medium">
+                            ⚠️ Note: ৳60,000 BDT is the mandatory minimum baseline selling price for Distribution Aggregator accounts.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <div className="space-y-1">
                         <Label htmlFor="preferredCommissionStructure" className="text-[11px] font-medium">
@@ -1912,8 +2014,9 @@ NODE_ENV=production`;
                           onChange={(e) => setPreferredCommissionStructure(e.target.value)}
                           className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
                         >
-                          <option value="lifetime_rev_share">Lifetime Recurring Rev-Share</option>
-                          <option value="upfront_bounty">Upfront Acquisition Bounty</option>
+                          <option value="selling_value_share">15% Selling Value Share (৳60K Min)</option>
+                          <option value="lifetime_rev_share">15% Lifetime Net Residual Share</option>
+                          <option value="upfront_bounty">15% Upfront Account Close Bounty</option>
                           <option value="hybrid_tiered">Hybrid Tiered Bounty &amp; Share</option>
                         </select>
                         <p className="text-[10px] text-muted-foreground">Reward payout model</p>
@@ -1921,24 +2024,25 @@ NODE_ENV=production`;
 
                       <div className="space-y-1">
                         <Label htmlFor="commissionBounty" className="text-[11px] font-medium">
-                          Partner Bounty / Rev-Share (%)
+                          Partner Share (%)
                         </Label>
                         <Input
                           id="commissionBounty"
                           type="number"
-                          min="0"
+                          min="15"
                           max="100"
                           value={commissionBounty}
                           onChange={(e) => setCommissionBounty(e.target.value)}
-                          placeholder="10"
-                          className="text-xs h-8 bg-background font-mono"
+                          placeholder="15"
+                          disabled
+                          className="text-xs h-8 bg-muted font-mono cursor-not-allowed opacity-90 font-bold"
                         />
-                        <p className="text-[10px] text-muted-foreground">Percentage earned on royalty profits</p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Fixed 15% on selling price</p>
                       </div>
 
                       <div className="space-y-1">
                         <Label htmlFor="minimumPayoutThresholdUsd" className="text-[11px] font-medium">
-                          Min Payout Threshold ($)
+                          Min Payout Trigger ($)
                         </Label>
                         <Input
                           id="minimumPayoutThresholdUsd"
@@ -4383,7 +4487,7 @@ NODE_ENV=production`;
                     <span className="text-muted-foreground">Industry Metadata:</span>
                     <div className="font-mono text-[11px] text-foreground mt-0.5 truncate">
                       {businessType === WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && `${deliveryProtocol} • Cut: ${commissionRate}% • ${isrcModel}`}
-                      {businessType === WhiteLabelBusinessType.REFERRER && `Code: ${referralNetworkCode} • Bounty: ${commissionBounty}% • ${payoutMethod}`}
+                      {businessType === WhiteLabelBusinessType.REFERRER && `Code: ${referralNetworkCode} • 15% Share (Min ৳60K BDT) • ${payoutMethod}`}
                     </div>
                   </div>
                   <div>

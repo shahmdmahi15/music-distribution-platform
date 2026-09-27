@@ -37,7 +37,8 @@ api.interceptors.request.use(async (config) => {
     if (
       hostParts.length > 2 &&
       hostWithoutPort !== "localhost" &&
-      hostWithoutPort !== "127.0.0.1"
+      hostWithoutPort !== "127.0.0.1" &&
+      hostParts[0].toLowerCase() !== "backstage"
     ) {
       config.headers["x-whitelabel-subdomain"] = hostParts[0];
     }

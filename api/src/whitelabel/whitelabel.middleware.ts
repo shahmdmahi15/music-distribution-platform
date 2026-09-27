@@ -162,13 +162,6 @@ export class WhitelabelMiddleware implements NestMiddleware {
             whiteLabel = await this.prismaService.whiteLabel.findUnique({
               where: { id: tenantIdHeader.trim() },
             });
-          } else if (
-            typeof subdomainHeader === 'string' &&
-            subdomainHeader.trim()
-          ) {
-            whiteLabel = await this.prismaService.whiteLabel.findFirst({
-              where: { subdomain: subdomainHeader.trim().toLowerCase() },
-            });
           } else if (typeof domainHeader === 'string' && domainHeader.trim()) {
             const dom = domainHeader.trim().toLowerCase();
             const subFromDom = dom.endsWith('.platform.royalmotionit.com')
@@ -178,10 +171,19 @@ export class WhitelabelMiddleware implements NestMiddleware {
               where: {
                 OR: [
                   { customDomain: dom },
+                  { customDomain: `backstage.${dom}` },
                   { subdomain: dom },
                   { subdomain: subFromDom },
                 ],
               },
+            });
+          } else if (
+            typeof subdomainHeader === 'string' &&
+            subdomainHeader.trim() &&
+            subdomainHeader.trim().toLowerCase() !== 'backstage'
+          ) {
+            whiteLabel = await this.prismaService.whiteLabel.findFirst({
+              where: { subdomain: subdomainHeader.trim().toLowerCase() },
             });
           } else {
             // Resolve from host or first approved

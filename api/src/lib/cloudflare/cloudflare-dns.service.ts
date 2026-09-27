@@ -230,22 +230,27 @@ export class CloudflareDnsService {
   /**
    * Automatically provisions or updates a DNS record on Cloudflare
    * for a WhiteLabel subdomain: [subdomain].platform.royalmotionit.com
-   * If elasticIpv4 is provided, provisions an 'A' record pointing to the hosted server IP.
-   * Otherwise provisions a CNAME record.
+   * If targetHostOrIp is an IPv4, provisions an 'A' record pointing to the server IP.
+   * If targetHostOrIp is a domain (e.g. backstage.customdomain.com), provisions a 'CNAME' record pointing to it.
+   * Otherwise provisions a CNAME record to the platform default target.
    */
   async provisionSubdomain(
     subdomain: string,
-    elasticIpv4?: string,
+    targetHostOrIp?: string,
   ): Promise<CloudflareDnsResult> {
     const cleanSub = subdomain.trim().toLowerCase();
     const fqdn = `${cleanSub}.${this.baseDomain}`;
-    const cleanIp = elasticIpv4?.trim();
+    const cleanTarget = targetHostOrIp?.trim();
     const isIpRouting = Boolean(
-      cleanIp && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanIp),
+      cleanTarget && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanTarget),
     );
 
-    const recordType = isIpRouting ? 'A' : 'CNAME';
-    const recordContent = isIpRouting ? cleanIp! : this.targetCname;
+    const recordType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
+    const recordContent = isIpRouting
+      ? cleanTarget!
+      : cleanTarget
+        ? cleanTarget.toLowerCase()
+        : this.targetCname;
     const initialShouldProxy =
       this.shouldProxySubdomain &&
       (isIpRouting ? this.isIpProxyable(recordContent) : true);
@@ -435,7 +440,7 @@ export class CloudflareDnsService {
    */
   async verifySubdomainDns(
     subdomain: string,
-    elasticIpv4?: string,
+    targetHostOrIp?: string,
   ): Promise<{
     success: boolean;
     fqdn: string;
@@ -448,13 +453,17 @@ export class CloudflareDnsService {
   }> {
     const cleanSub = subdomain.trim().toLowerCase();
     const fqdn = `${cleanSub}.${this.baseDomain}`;
-    const cleanIp = elasticIpv4?.trim();
+    const cleanTarget = targetHostOrIp?.trim();
     const isIpRouting = Boolean(
-      cleanIp && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanIp),
+      cleanTarget && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanTarget),
     );
 
     const expectedType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
-    const expectedContent = isIpRouting ? cleanIp! : this.targetCname;
+    const expectedContent = isIpRouting
+      ? cleanTarget!
+      : cleanTarget
+        ? cleanTarget.toLowerCase()
+        : this.targetCname;
 
     if (!this.apiToken || !this.zoneId) {
       return {
@@ -466,7 +475,7 @@ export class CloudflareDnsService {
         proxied: true,
         status: 'ACTIVE',
         message: isIpRouting
-          ? `Elastic IP ${cleanIp} A-record active and verified (simulated).`
+          ? `Elastic IP ${cleanTarget} A-record active and verified (simulated).`
           : `Subdomain DNS record for ${fqdn} active and verified (simulated).`,
       };
     }
@@ -514,7 +523,7 @@ export class CloudflareDnsService {
           proxied: isProxied,
           status: 'ACTIVE',
           message: isIpRouting
-            ? `Hosted Server Elastic IP A-record is active pointing to ${cleanIp} [${isProxied ? 'Orange Cloud Proxied' : 'DNS-only'}].`
+            ? `Hosted Server Elastic IP A-record is active pointing to ${cleanTarget} [${isProxied ? 'Orange Cloud Proxied' : 'DNS-only'}].`
             : `Platform subdomain routing is active pointing to ${expectedContent} [${isProxied ? 'Orange Cloud Proxied' : 'DNS-only'}].`,
         };
       }

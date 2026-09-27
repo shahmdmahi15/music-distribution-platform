@@ -31,10 +31,16 @@ export interface ReferrerOnboardingData {
   projectedMonthlyReferrals?: number;
   discoveryChannels?: string[];
   attributionWindowDays?: number | "lifetime";
-  preferredCommissionStructure?: "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
+  preferredCommissionStructure?: "selling_value_share" | "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
   commissionBountyRate?: number;
   minimumPayoutThresholdUsd?: number;
   payoutMethod?: "WIRE_ACH" | "WISE" | "PAYPAL" | "USDT_CRYPTO" | "STRIPE_CONNECT";
+  // Distribution Aggregator Referral Terms (15% share, 60K BDT minimum selling price)
+  minimumAccountSellingPriceBdt?: number; // Standard baseline: 60,000 BDT
+  simulatedSellingPriceBdt?: number; // Target selling price negotiated (min: 60,000 BDT)
+  referrerCommissionPercentage?: number; // Fixed at 15%
+  referrerShareBdt?: number; // 15% of selling price
+  platformShareBdt?: number; // 85% of selling price
 }
 
 export enum WhiteLabelUserRole {

@@ -209,6 +209,7 @@ export function AdminWhiteLabelDetailsDialog({
     receiptReference: "",
     adminNotes: "",
   });
+  const [bdtCalcAmount, setBdtCalcAmount] = useState<number>(60000);
 
   // Contract Modal State
   const [showContractModal, setShowContractModal] = useState(false);
@@ -751,6 +752,21 @@ export function AdminWhiteLabelDetailsDialog({
     let discount = paymentForm.discount;
 
     switch (preset) {
+      case "DIST_60K_BDT":
+        ends.setFullYear(now.getFullYear() + 1);
+        amount = 500;
+        discount = 0;
+        break;
+      case "DIST_100K_BDT":
+        ends.setFullYear(now.getFullYear() + 1);
+        amount = 850;
+        discount = 0;
+        break;
+      case "DIST_150K_BDT":
+        ends.setFullYear(now.getFullYear() + 1);
+        amount = 1250;
+        discount = 0;
+        break;
       case "14_DAY_TRIAL":
         ends.setDate(now.getDate() + 14);
         amount = 0;
@@ -1823,12 +1839,10 @@ export function AdminWhiteLabelDetailsDialog({
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Rev-Share Bounty
+                                Partner Referral Cut
                               </span>
-                              <span className="font-bold text-foreground font-mono">
-                                {whiteLabel.onboardingDetails?.commissionBountyRate ??
-                                  whiteLabel.onboardingDetails?.commissionBounty ??
-                                  10}% Split
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                                15% of Selling Price
                               </span>
                             </div>
                           </div>
@@ -1836,21 +1850,18 @@ export function AdminWhiteLabelDetailsDialog({
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Commission Model
+                                Baseline Account Price
                               </span>
-                              <span className="font-bold text-foreground capitalize">
-                                {(
-                                  whiteLabel.onboardingDetails?.preferredCommissionStructure ||
-                                  "lifetime_rev_share"
-                                ).replace(/_/g, " ")}
+                              <span className="font-bold text-foreground font-mono">
+                                ৳60,000 BDT (Min)
                               </span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Payout Threshold
+                                Min Guaranteed Bounty
                               </span>
-                              <span className="font-bold text-foreground font-mono">
-                                ${whiteLabel.onboardingDetails?.minimumPayoutThresholdUsd ?? 100} USD
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                                ৳9,000 BDT / Deal
                               </span>
                             </div>
                             <div>
@@ -1859,6 +1870,14 @@ export function AdminWhiteLabelDetailsDialog({
                               </span>
                               <span className="font-bold text-foreground">
                                 {whiteLabel.onboardingDetails?.payoutMethod || "Wise Business"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground text-[10px] block">
+                                Min Payout Trigger
+                              </span>
+                              <span className="font-bold text-foreground font-mono">
+                                ${whiteLabel.onboardingDetails?.minimumPayoutThresholdUsd ?? 100} USD
                               </span>
                             </div>
                             <div>
@@ -2588,6 +2607,9 @@ export function AdminWhiteLabelDetailsDialog({
                               <span className="font-extrabold text-sm text-foreground">
                                 ${(pay.amount || 0).toLocaleString()} USD
                               </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                (~৳{((pay.amount || 0) * 120).toLocaleString()} BDT)
+                              </span>
                               {pay.discount > 0 && (
                                 <Badge
                                   variant="secondary"
@@ -3117,13 +3139,13 @@ export function AdminWhiteLabelDetailsDialog({
               </Label>
               <div className="grid grid-cols-4 gap-1.5">
                 {[
-                  { id: "14_DAY_TRIAL", label: "14d Trial ($0)" },
-                  { id: "30_DAY_TRIAL", label: "30d Trial ($0)" },
-                  { id: "1_MONTH", label: "1 Month ($149)" },
-                  { id: "3_MONTHS", label: "3 Months ($399)" },
-                  { id: "6_MONTHS", label: "6 Months ($749)" },
+                  { id: "DIST_60K_BDT", label: "Aggregator (৳60K BDT)" },
+                  { id: "DIST_100K_BDT", label: "Aggregator (৳100K BDT)" },
+                  { id: "DIST_150K_BDT", label: "Aggregator (৳150K BDT)" },
                   { id: "1_YEAR", label: "1 Year ($1,200)" },
-                  { id: "2_YEARS", label: "2 Years ($2,200)" },
+                  { id: "6_MONTHS", label: "6 Months ($749)" },
+                  { id: "3_MONTHS", label: "3 Months ($399)" },
+                  { id: "30_DAY_TRIAL", label: "30d Trial ($0)" },
                   { id: "CUSTOM", label: "Custom Deal" },
                 ].map((pkg) => (
                   <button
@@ -3140,6 +3162,64 @@ export function AdminWhiteLabelDetailsDialog({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Referrer 15% Selling Price Split Calculator */}
+            <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                  <Share2 className="h-3.5 w-3.5" />
+                  Referrer 15% Commission Split (Distribution Aggregator Deal)
+                </span>
+                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[9px] font-bold">
+                  Min ৳60K BDT
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground font-semibold">
+                    Simulate Deal Closing Price (BDT)
+                  </Label>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="font-mono text-xs font-bold text-foreground">৳</span>
+                    <Input
+                      type="number"
+                      min={60000}
+                      step={5000}
+                      value={bdtCalcAmount}
+                      onChange={(e) => {
+                        const val = Math.max(0, Number(e.target.value) || 0);
+                        setBdtCalcAmount(val);
+                      }}
+                      className="h-8 text-xs font-mono font-bold bg-background"
+                    />
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-background/80 border border-border/50 space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Referrer Share (15%):</span>
+                    <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                      ৳{Math.round(bdtCalcAmount * 0.15).toLocaleString()} BDT
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-primary font-medium">Platform Share (85%):</span>
+                    <span className="font-mono font-extrabold text-primary">
+                      ৳{Math.round(bdtCalcAmount * 0.85).toLocaleString()} BDT
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {bdtCalcAmount < 60000 ? (
+                <p className="text-[10px] text-amber-500 font-medium">
+                  ⚠️ Minimum allowed selling price for Distribution Aggregator accounts is ৳60,000 BDT (Min Referrer payout: ৳9,000 BDT).
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">
+                  Policy rule: Referrer receives exactly 15% of the deal closing value. Baseline minimum is ৳60,000 BDT with uncapped upside.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
