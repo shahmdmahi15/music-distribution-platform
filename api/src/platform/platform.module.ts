@@ -8,10 +8,12 @@ import { ProfileModule as AdminProfileModule } from './admin/profile/profile.mod
 import { SessionModule as AdminSessionModule } from './admin/session/session.module';
 import { PlatformUsersModule as AdminPlatformUsersModule } from './admin/platform-users/platform-users.module';
 import { AdminWhitelabelModule } from './admin/whitelabel/whitelabel.module';
+import { AdminReferrerModule } from './admin/referrer/referrer.module';
 import { ProfileModule as ClientProfileModule } from './client/profile/profile.module';
 import { SessionModule as ClientSessionModule } from './client/session/session.module';
 import { SubscriptionModule as ClientSubscriptionModule } from './client/subscription/subscription.module';
 import { ClientWhitelabelModule } from './client/whitelabel/whitelabel.module';
+import { ClientReferrerModule } from './client/referrer/referrer.module';
 
 @Module({
   imports: [
@@ -45,6 +47,10 @@ import { ClientWhitelabelModule } from './client/whitelabel/whitelabel.module';
                 path: '',
                 module: AdminWhitelabelModule,
               },
+              {
+                path: '',
+                module: AdminReferrerModule,
+              },
             ],
           },
           {
@@ -65,6 +71,10 @@ import { ClientWhitelabelModule } from './client/whitelabel/whitelabel.module';
               {
                 path: '',
                 module: ClientWhitelabelModule,
+              },
+              {
+                path: '',
+                module: ClientReferrerModule,
               },
             ],
           },
