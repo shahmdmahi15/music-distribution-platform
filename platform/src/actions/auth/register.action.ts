@@ -75,6 +75,7 @@ export async function lookupReferralCodeAction(code: string): Promise<{
   message?: string;
   referrerName?: string;
   referralCode?: string;
+  status?: string;
 }> {
   try {
     if (!code || !code.trim()) {
@@ -88,6 +89,7 @@ export async function lookupReferralCodeAction(code: string): Promise<{
       message: res.data.message,
       referrerName: res.data.referrerName,
       referralCode: res.data.referralCode,
+      status: res.data.status,
     };
   } catch (error) {
     return { success: false, valid: false, message: "Unable to verify partner code" };

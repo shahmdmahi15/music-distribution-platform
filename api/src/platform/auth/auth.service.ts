@@ -28,6 +28,7 @@ import {
   PlatformUserRole,
   PaymentStatus,
   WhiteLabelStatus,
+  ReferrerStatus,
 } from 'src/generated/prisma/enums';
 
 const AUTH_MAX_FAILED_ATTEMPTS = 5;
@@ -83,10 +84,26 @@ export class AuthService {
         select: { id: true, referralCode: true, status: true },
       });
 
-      if (referrer) {
-        referredByReferralCode = referrer.referralCode;
-        referredByReferrerId = referrer.id;
+      if (!referrer) {
+        throw new BadRequestException(
+          'The provided partner referral code was not found.',
+        );
       }
+
+      if (referrer.status === ReferrerStatus.SUSPENDED) {
+        throw new BadRequestException(
+          'This partner referral account is suspended and cannot be used.',
+        );
+      }
+
+      if (referrer.status !== ReferrerStatus.ACTIVE) {
+        throw new BadRequestException(
+          'This partner referral account is not yet active. Referral codes can only be used once the partner is active.',
+        );
+      }
+
+      referredByReferralCode = referrer.referralCode;
+      referredByReferrerId = referrer.id;
     }
 
     let newUser;
@@ -866,6 +883,22 @@ export class AuthService {
       return {
         valid: false,
         message: 'Partner referral code not found.',
+      };
+    }
+
+    if (referrer.status === ReferrerStatus.SUSPENDED) {
+      return {
+        valid: false,
+        message: 'This partner referral account is suspended and cannot be used.',
+        status: referrer.status,
+      };
+    }
+
+    if (referrer.status !== ReferrerStatus.ACTIVE) {
+      return {
+        valid: false,
+        message: 'This partner referral code is pending onboarding and is not yet active.',
+        status: referrer.status,
       };
     }
 

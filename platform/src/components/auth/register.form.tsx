@@ -60,6 +60,7 @@ export function RegisterForm() {
     name?: string;
     code?: string;
     message?: string;
+    referrerStatus?: string;
   }>({ status: "idle" });
 
   const verifyCode = async (code: string) => {
@@ -75,11 +76,13 @@ export function RegisterForm() {
         status: "valid",
         name: res.referrerName,
         code: res.referralCode,
+        referrerStatus: res.status,
       });
     } else {
       setVerifiedReferrer({
         status: "invalid",
-        message: res.message || "Partner referral code not found",
+        message: res.message || "Partner referral code not found or inactive",
+        referrerStatus: res.status,
       });
     }
   };
@@ -138,6 +141,20 @@ export function RegisterForm() {
     },
     onSubmit: async ({ value, formApi }) => {
       try {
+        if (value.referralCode && value.referralCode.trim()) {
+          if (verifiedReferrer.status === "invalid") {
+            toast.error(
+              verifiedReferrer.message ||
+                "The partner referral code is invalid or not active. Please clear it or enter an active code.",
+            );
+            return;
+          }
+          if (verifiedReferrer.status === "checking") {
+            toast.info("Verifying partner code, please try again in a moment.");
+            return;
+          }
+        }
+
         const result = await registerAction(value);
 
         if (!result.success) {
@@ -573,10 +590,17 @@ export function RegisterForm() {
                           )}
 
                           {verifiedReferrer.status === "invalid" && (
-                            <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3 shrink-0" />
-                              <span>Referral code not recognized. You may leave this blank if you don&apos;t have a code.</span>
-                            </p>
+                            <div className="flex items-start gap-1.5 p-2 rounded-lg bg-rose-500/10 border border-rose-500/25 text-[11px] text-rose-600 dark:text-rose-400">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                              <div className="space-y-0.5">
+                                <p className="font-medium">
+                                  {verifiedReferrer.message || "Invalid or inactive partner referral code."}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Only active partner codes can be applied. You may clear this field if you do not have an active partner code.
+                                </p>
+                              </div>
+                            </div>
                           )}
 
                           {verifiedReferrer.status === "idle" && !field.state.value && (

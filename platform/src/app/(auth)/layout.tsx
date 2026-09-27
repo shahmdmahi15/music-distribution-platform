@@ -155,15 +155,15 @@ export default async function AuthLayout({
         </div>
       </div>
 
-      {/* Right Column - Children Pages (Login, Register, MFA, Password Reset) with Smooth Inner Scroll */}
-      <div className="flex-1 lg:col-span-7 relative h-full min-h-0 flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar bg-background">
+      {/* Right Column - Children Pages (Login, Register, MFA, Password Reset) with Clean Spacing & Smooth Inner Scroll */}
+      <div className="flex-1 lg:col-span-7 relative h-full min-h-0 flex flex-col bg-background">
         {/* Glow behind forms */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
-        {/* Top Floating / Sticky Action Bar */}
-        <div className="sticky top-0 z-30 w-full flex items-center justify-between p-4 sm:p-5 pointer-events-none bg-gradient-to-b from-background via-background/90 to-transparent backdrop-blur-[2px]">
+        {/* Top Header Action Bar (Fixed, never overlaps or blurs form cards) */}
+        <div className="shrink-0 z-20 w-full flex items-center justify-between px-6 py-4 sm:px-8 sm:py-5 border-b border-border/30 lg:border-none">
           {/* Small screen brand logo */}
-          <div className="lg:hidden flex items-center gap-2 pointer-events-auto">
+          <div className="lg:hidden flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2 group">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm group-hover:scale-105 transition-all">
                 <Disc3 className="h-4 w-4" />
@@ -180,16 +180,18 @@ export default async function AuthLayout({
           </div>
           <div className="hidden lg:block" />
 
-          {/* Floating Theme Toggle */}
-          <div className="pointer-events-auto">
+          {/* Theme Toggle */}
+          <div>
             <ThemeToggle />
           </div>
         </div>
 
-        {/* Inner Scrollable Center Viewport */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-12 sm:pb-16 w-full min-h-0">
-          <div className="w-full max-w-md relative z-10 my-auto py-2">
-            {children}
+        {/* Dedicated Scrollable Viewport with Ample Top & Bottom Space */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+            <div className="w-full max-w-md relative z-10 my-auto">
+              {children}
+            </div>
           </div>
         </div>
       </div>
