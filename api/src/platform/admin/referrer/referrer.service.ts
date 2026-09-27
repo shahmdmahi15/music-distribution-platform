@@ -344,6 +344,12 @@ export class AdminReferrerService {
         contractFileSize: file.size,
         contractUploadedAt: new Date(),
         contractUploadedBy: adminEmail || 'Administrator',
+        status:
+          referrer.status === ReferrerStatus.PENDING ||
+          referrer.status === ReferrerStatus.UNDER_REVIEW ||
+          referrer.status === ReferrerStatus.PROCESSING
+            ? ReferrerStatus.CONTRACTED
+            : referrer.status,
       },
     });
 
