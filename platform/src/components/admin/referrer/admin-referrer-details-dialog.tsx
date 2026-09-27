@@ -48,7 +48,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -445,7 +444,7 @@ export function AdminReferrerDetailsDialog({
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         {/* SUPER ROBUST WIDE DIALOG: w-full max-w-[96vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl */}
-        <DialogContent className="w-full max-w-[96vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogContent className="w-full max-w-[96vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden bg-card text-card-foreground border-border/80 shadow-2xl rounded-2xl">
           {/* Header */}
           <DialogHeader className="p-5 sm:p-6 bg-gradient-to-r from-card via-card/95 to-amber-500/5 border-b border-border/70 shrink-0">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -664,32 +663,32 @@ export function AdminReferrerDetailsDialog({
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <div className="px-5 border-b border-border/60 bg-muted/20 shrink-0">
-              <TabsList className="bg-transparent h-12 p-0 gap-6">
+            <div className="px-5 border-b border-border/70 bg-muted/30 shrink-0">
+              <TabsList variant="line" className="bg-transparent h-11 p-0 gap-6 border-none">
                 <TabsTrigger
                   value="overview"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-1 text-xs font-semibold gap-1.5"
+                  className="data-active:bg-transparent data-active:text-primary data-active:border-b-2 data-active:border-primary border-b-2 border-transparent rounded-none h-11 px-1 text-xs font-semibold gap-1.5 shadow-none focus-visible:ring-0 after:hidden"
                 >
                   <Percent className="h-3.5 w-3.5" />
                   Overview & 15% Terms
                 </TabsTrigger>
                 <TabsTrigger
                   value="remittance"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-1 text-xs font-semibold gap-1.5"
+                  className="data-active:bg-transparent data-active:text-primary data-active:border-b-2 data-active:border-primary border-b-2 border-transparent rounded-none h-11 px-1 text-xs font-semibold gap-1.5 shadow-none focus-visible:ring-0 after:hidden"
                 >
                   <Landmark className="h-3.5 w-3.5" />
                   Bank Remittance Dossier
                 </TabsTrigger>
                 <TabsTrigger
                   value="deals"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-1 text-xs font-semibold gap-1.5"
+                  className="data-active:bg-transparent data-active:text-primary data-active:border-b-2 data-active:border-primary border-b-2 border-transparent rounded-none h-11 px-1 text-xs font-semibold gap-1.5 shadow-none focus-visible:ring-0 after:hidden"
                 >
                   <Coins className="h-3.5 w-3.5" />
                   Deals & Bounties ({totalDeals})
                 </TabsTrigger>
                 <TabsTrigger
                   value="contract"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-1 text-xs font-semibold gap-1.5"
+                  className="data-active:bg-transparent data-active:text-primary data-active:border-b-2 data-active:border-primary border-b-2 border-transparent rounded-none h-11 px-1 text-xs font-semibold gap-1.5 shadow-none focus-visible:ring-0 after:hidden"
                 >
                   <FileSignature className="h-3.5 w-3.5" />
                   Contract & Legal Docs
@@ -1702,14 +1701,14 @@ export function AdminReferrerDetailsDialog({
           </Tabs>
 
           {/* Footer */}
-          <DialogFooter className="p-4 px-6 bg-muted/20 border-t border-border/60 shrink-0 flex items-center justify-between">
+          <div className="p-4 px-6 bg-card border-t border-border/70 shrink-0 flex items-center justify-between">
             <span className="text-[11px] text-muted-foreground font-mono">
               Created {formatDate(referrer.createdAt)}
             </span>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close Dialog
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1834,7 +1833,7 @@ export function AdminReferrerDetailsDialog({
             </div>
           </div>
 
-          <DialogFooter className="p-4 px-5 bg-muted/20 border-t border-border/60">
+          <div className="p-4 px-5 bg-card border-t border-border/60 flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1851,7 +1850,7 @@ export function AdminReferrerDetailsDialog({
               <Coins className="h-3.5 w-3.5" />
               {isCreatingDeal ? "Recording Deal..." : "Confirm & Record Deal"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1950,7 +1949,7 @@ export function AdminReferrerDetailsDialog({
             )}
           </div>
 
-          <DialogFooter className="p-4 px-5 bg-muted/20 border-t border-border/60">
+          <div className="p-4 px-5 bg-card border-t border-border/60 flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -2000,7 +1999,7 @@ export function AdminReferrerDetailsDialog({
                 <>Confirm Transition</>
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>

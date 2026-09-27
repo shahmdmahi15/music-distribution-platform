@@ -73,6 +73,22 @@ export class AuthService {
       CodePrefix.PLATFORM_USER,
     );
 
+    let referredByReferralCode: string | null = null;
+    let referredByReferrerId: string | null = null;
+
+    if (dto.referralCode && dto.referralCode.trim()) {
+      const cleanRefCode = dto.referralCode.trim().toUpperCase();
+      const referrer = await this.prismaService.referrer.findUnique({
+        where: { referralCode: cleanRefCode },
+        select: { id: true, referralCode: true, status: true },
+      });
+
+      if (referrer) {
+        referredByReferralCode = referrer.referralCode;
+        referredByReferrerId = referrer.id;
+      }
+    }
+
     let newUser;
     try {
       newUser = await this.prismaService.platformUser.create({
@@ -82,6 +98,8 @@ export class AuthService {
           passwordHash: hashedPassword,
           firstName: dto.firstName,
           lastName: dto.lastName,
+          referredByReferralCode,
+          referredByReferrerId,
         },
       });
     } catch (error) {
@@ -822,6 +840,40 @@ export class AuthService {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
+    };
+  }
+
+  async lookupReferralCode(rawCode: string) {
+    if (!rawCode || !rawCode.trim()) {
+      return {
+        valid: false,
+        message: 'Referral code is required.',
+      };
+    }
+
+    const cleanCode = rawCode.trim().toUpperCase();
+    const referrer = await this.prismaService.referrer.findUnique({
+      where: { referralCode: cleanCode },
+      select: {
+        id: true,
+        referralCode: true,
+        name: true,
+        status: true,
+      },
+    });
+
+    if (!referrer) {
+      return {
+        valid: false,
+        message: 'Partner referral code not found.',
+      };
+    }
+
+    return {
+      valid: true,
+      referralCode: referrer.referralCode,
+      referrerName: referrer.name,
+      status: referrer.status,
     };
   }
 }

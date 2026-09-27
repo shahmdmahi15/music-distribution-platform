@@ -27,6 +27,13 @@ export const registerSchema = z
       ),
 
     confirmPassword: z.string("Confirm password must be a string").trim(),
+
+    referralCode: z
+      .string()
+      .trim()
+      .max(64, "Referral code must be at most 64 characters long")
+      .optional()
+      .or(z.literal("")),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

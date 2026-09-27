@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -33,6 +34,13 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 900_000 } })
   async register(@Body() dto: RegisterDto) {
     return await this.authService.register(dto);
+  }
+
+  @Get('referral-lookup/:code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async lookupReferralCode(@Param('code') code: string) {
+    return await this.authService.lookupReferralCode(code);
   }
 
   @Post('verify')

@@ -158,6 +158,7 @@ model PlatformUser {
   email                       String  @unique
   passwordHash                String?
   image                       String?
+  referredByReferralCode      String?
   failedLoginAttempts         Int     @default(0)
   failedVerificationAttempts  Int     @default(0)
   failedPasswordResetAttempts Int     @default(0)
@@ -171,8 +172,10 @@ model PlatformUser {
   role PlatformUserRole @default(CLIENT)
 
   // Foreign Keys
+  referredByReferrerId String?
 
   // Parent Relations
+  referredByReferrer Referrer? @relation("ReferredUsers", fields: [referredByReferrerId], references: [id], onDelete: SetNull)
 
   // Child Relations
   oAuthAccounts OAuthAccount[]
@@ -650,8 +653,9 @@ model Referrer {
   userId String       @unique
   user   PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  documents ReferrerDocument[]
-  deals     ReferrerDeal[]
+  documents     ReferrerDocument[]
+  deals         ReferrerDeal[]
+  referredUsers PlatformUser[]     @relation("ReferredUsers")
 
   // Timestamps
   createdAt DateTime @default(now())

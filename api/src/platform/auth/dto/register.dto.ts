@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MinLength,
   MaxLength,
@@ -46,4 +47,12 @@ export class RegisterDto {
       'Password must contain at least one uppercase letter, one lowercase letter, and one number or special character.',
   })
   password!: string;
+
+  @IsOptional()
+  @IsString({ message: 'Referral code must be a string.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : (value as unknown),
+  )
+  @MaxLength(64, { message: 'Referral code must be at most 64 characters long.' })
+  referralCode?: string;
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { RegisterInput, registerSchema } from "@/schemas/auth/register.schema";
-import { registerAction } from "@/actions/auth/register.action";
+import { registerAction, lookupReferralCodeAction } from "@/actions/auth/register.action";
 import { toast } from "sonner";
 import {
   Field,
@@ -31,15 +31,58 @@ import {
   Mail,
   User,
   ShieldAlert,
+  HeartHandshake,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
+
+  const urlRefCode = useMemo(() => {
+    return (
+      searchParams.get("ref") ||
+      searchParams.get("referrer") ||
+      searchParams.get("referral") ||
+      ""
+    ).trim().toUpperCase();
+  }, [searchParams]);
+
+  const [verifiedReferrer, setVerifiedReferrer] = useState<{
+    status: "idle" | "checking" | "valid" | "invalid";
+    name?: string;
+    code?: string;
+    message?: string;
+  }>({ status: "idle" });
+
+  const verifyCode = async (code: string) => {
+    const clean = code.trim().toUpperCase();
+    if (!clean) {
+      setVerifiedReferrer({ status: "idle" });
+      return;
+    }
+    setVerifiedReferrer((prev) => ({ ...prev, status: "checking" }));
+    const res = await lookupReferralCodeAction(clean);
+    if (res.success && res.valid) {
+      setVerifiedReferrer({
+        status: "valid",
+        name: res.referrerName,
+        code: res.referralCode,
+      });
+    } else {
+      setVerifiedReferrer({
+        status: "invalid",
+        message: res.message || "Partner referral code not found",
+      });
+    }
+  };
 
   // Real-time password criteria assessment
   const passwordCriteria = useMemo(() => {
@@ -88,6 +131,7 @@ export function RegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      referralCode: urlRefCode || "",
     } as RegisterInput,
     validators: {
       onSubmit: registerSchema,
@@ -129,6 +173,13 @@ export function RegisterForm() {
       }
     },
   });
+
+  useEffect(() => {
+    if (urlRefCode) {
+      form.setFieldValue("referralCode", urlRefCode);
+      verifyCode(urlRefCode);
+    }
+  }, [urlRefCode]);
 
   return (
     <Card className="glass-card shadow-2xl border-border/80 bg-card/90 backdrop-blur-xl">
@@ -440,6 +491,100 @@ export function RegisterForm() {
                               )}
                             </button>
                           </div>
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+
+                  {/* Partner Referral Attribution Code (Optional, auto-populates from URL query or manual entry) */}
+                  <form.Field name="referralCode">
+                    {(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched && !field.state.meta.isValid;
+                      return (
+                        <Field data-invalid={isInvalid} className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between">
+                            <FieldLabel
+                              htmlFor={field.name}
+                              className="text-[11px] font-medium text-foreground flex items-center gap-1.5"
+                            >
+                              <HeartHandshake className="h-3 w-3 text-amber-500" />
+                              <span>Partner Referral Code</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">
+                                (Optional)
+                              </span>
+                            </FieldLabel>
+                            {field.state.value && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  field.handleChange("");
+                                  setVerifiedReferrer({ status: "idle" });
+                                }}
+                                className="text-[10px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="relative">
+                            <Input
+                              id={field.name}
+                              name={field.name}
+                              type="text"
+                              autoComplete="off"
+                              spellCheck={false}
+                              disabled={isSubmitting}
+                              placeholder="e.g. TECH-AGENCY (or leave blank)"
+                              value={field.state.value || ""}
+                              onBlur={field.handleBlur}
+                              onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                field.handleChange(val);
+                                verifyCode(val);
+                              }}
+                              className="h-8 sm:h-8.5 text-xs font-mono uppercase tracking-wider pr-8"
+                            />
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                              {verifiedReferrer.status === "checking" && (
+                                <Spinner className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                              )}
+                              {verifiedReferrer.status === "valid" && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              )}
+                              {verifiedReferrer.status === "invalid" && (
+                                <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Verification State Banner / Helper */}
+                          {verifiedReferrer.status === "valid" && (
+                            <div className="flex items-center gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-600 dark:text-emerald-400">
+                              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                Referred by <strong>{verifiedReferrer.name}</strong> ({verifiedReferrer.code})
+                              </span>
+                            </div>
+                          )}
+
+                          {verifiedReferrer.status === "invalid" && (
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 shrink-0" />
+                              <span>Referral code not recognized. You may leave this blank if you don&apos;t have a code.</span>
+                            </p>
+                          )}
+
+                          {verifiedReferrer.status === "idle" && !field.state.value && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Joining via an affiliate link? Your code auto-populates here, or you can enter it manually.
+                            </p>
+                          )}
+
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
                           )}
