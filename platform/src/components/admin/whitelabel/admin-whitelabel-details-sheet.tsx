@@ -1912,27 +1912,108 @@ export function AdminWhiteLabelDetailsDialog({
                                 {whiteLabel.artists?.length || 0} In Pipeline
                               </span>
                             </div>
-                            {whiteLabel.onboardingDetails?.payoutAccountHolderName && (
-                              <div>
-                                <span className="text-muted-foreground text-[10px] block">
-                                  Account Holder Name
-                                </span>
-                                <span className="font-bold text-foreground">
-                                  {whiteLabel.onboardingDetails.payoutAccountHolderName}
-                                </span>
-                              </div>
-                            )}
-                            {whiteLabel.onboardingDetails?.payoutAccountNumber && (
-                              <div>
-                                <span className="text-muted-foreground text-[10px] block">
-                                  {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
-                                    ? "Bank Account Number"
-                                    : "Wallet Mobile Number"}
-                                </span>
-                                <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
-                                  {whiteLabel.onboardingDetails?.payoutAccountNumber}
-                                </span>
-                              </div>
+                            {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
+                              <>
+                                {whiteLabel.onboardingDetails?.payoutBankName && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Bank Name
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {whiteLabel.onboardingDetails.payoutBankName}
+                                    </span>
+                                  </div>
+                                )}
+                                {(whiteLabel.onboardingDetails?.payoutAccountName ||
+                                  whiteLabel.onboardingDetails?.payoutAccountHolderName) && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Account Name
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {whiteLabel.onboardingDetails.payoutAccountName ||
+                                        whiteLabel.onboardingDetails.payoutAccountHolderName}
+                                    </span>
+                                  </div>
+                                )}
+                                {whiteLabel.onboardingDetails?.payoutAccountNumber && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Account Number
+                                    </span>
+                                    <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
+                                      {whiteLabel.onboardingDetails.payoutAccountNumber}
+                                    </span>
+                                  </div>
+                                )}
+                                {whiteLabel.onboardingDetails?.payoutBranchDistrict && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Branch District
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {whiteLabel.onboardingDetails.payoutBranchDistrict}
+                                    </span>
+                                  </div>
+                                )}
+                                {whiteLabel.onboardingDetails?.payoutBankBranch && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Branch Name
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {whiteLabel.onboardingDetails.payoutBankBranch}
+                                    </span>
+                                  </div>
+                                )}
+                                {whiteLabel.onboardingDetails?.payoutBankRouting && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Routing Number
+                                    </span>
+                                    <span className="font-bold text-foreground font-mono">
+                                      {whiteLabel.onboardingDetails.payoutBankRouting}
+                                    </span>
+                                  </div>
+                                )}
+                                {whiteLabel.onboardingDetails?.payoutSwiftCode && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Swift Code
+                                    </span>
+                                    <span className="font-bold text-foreground font-mono uppercase">
+                                      {whiteLabel.onboardingDetails.payoutSwiftCode}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {(whiteLabel.onboardingDetails?.payoutAccountName ||
+                                  whiteLabel.onboardingDetails?.payoutAccountHolderName) && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      Account Holder Name
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {whiteLabel.onboardingDetails.payoutAccountName ||
+                                        whiteLabel.onboardingDetails.payoutAccountHolderName}
+                                    </span>
+                                  </div>
+                                )}
+                                {(whiteLabel.onboardingDetails?.payoutWalletNumber ||
+                                  whiteLabel.onboardingDetails?.payoutAccountNumber) && (
+                                  <div>
+                                    <span className="text-muted-foreground text-[10px] block">
+                                      {whiteLabel.onboardingDetails?.payoutMethod || "MFS"} Wallet Number
+                                    </span>
+                                    <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
+                                      {whiteLabel.onboardingDetails?.payoutWalletNumber ||
+                                        whiteLabel.onboardingDetails?.payoutAccountNumber}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>

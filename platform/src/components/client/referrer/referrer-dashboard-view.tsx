@@ -85,13 +85,34 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
   const [payoutMethod, setPayoutMethod] = useState<string>(
     onboardingDetails.payoutMethod || "BKASH",
   );
+  const [payoutBankName, setPayoutBankName] = useState<string>(
+    onboardingDetails.payoutBankName || "",
+  );
   const [payoutAccountName, setPayoutAccountName] = useState<string>(
-    onboardingDetails.payoutAccountHolderName ||
-      onboardingDetails.payoutAccountName ||
+    onboardingDetails.payoutAccountName ||
+      onboardingDetails.payoutAccountHolderName ||
       `${user.firstName || ""} ${user.lastName || ""}`.trim(),
   );
   const [payoutAccountNumber, setPayoutAccountNumber] = useState<string>(
     onboardingDetails.payoutAccountNumber || "",
+  );
+  const [payoutWalletNumber, setPayoutWalletNumber] = useState<string>(
+    onboardingDetails.payoutWalletNumber ||
+      (onboardingDetails.payoutMethod !== "BANK_TRANSFER"
+        ? onboardingDetails.payoutAccountNumber || ""
+        : ""),
+  );
+  const [payoutBranchDistrict, setPayoutBranchDistrict] = useState<string>(
+    onboardingDetails.payoutBranchDistrict || "",
+  );
+  const [payoutBankBranch, setPayoutBankBranch] = useState<string>(
+    onboardingDetails.payoutBankBranch || "",
+  );
+  const [payoutBankRouting, setPayoutBankRouting] = useState<string>(
+    onboardingDetails.payoutBankRouting || "",
+  );
+  const [payoutSwiftCode, setPayoutSwiftCode] = useState<string>(
+    onboardingDetails.payoutSwiftCode || "",
   );
   const [isSavingPayout, setIsSavingPayout] = useState(false);
 
@@ -204,30 +225,64 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
   // Save payout settings
   const handleSavePayoutSettings = async () => {
     if (payoutMethod === "BANK_TRANSFER") {
+      if (!payoutBankName.trim()) {
+        toast.error("Please enter the Bank Name.");
+        return;
+      }
       if (!payoutAccountName.trim()) {
-        toast.error("Please enter the Account Holder Name for bank transfer.");
+        toast.error("Please enter the Account Name.");
         return;
       }
       if (!payoutAccountNumber.trim()) {
-        toast.error("Please enter your Bank Account Number.");
+        toast.error("Please enter the Bank Account Number.");
+        return;
+      }
+      if (!payoutBranchDistrict.trim()) {
+        toast.error("Please enter the Branch District.");
+        return;
+      }
+      if (!payoutBankBranch.trim()) {
+        toast.error("Please enter the Branch Name.");
+        return;
+      }
+      if (!payoutBankRouting.trim()) {
+        toast.error("Please enter the Routing Number.");
+        return;
+      }
+      if (!payoutSwiftCode.trim()) {
+        toast.error("Please enter the Swift Code.");
         return;
       }
     } else {
-      if (!payoutAccountNumber.trim()) {
-        toast.error("Please enter your wallet mobile number.");
+      const activeWallet = (payoutWalletNumber || payoutAccountNumber).trim();
+      if (!activeWallet) {
+        toast.error(`Please enter your ${payoutMethod} Wallet Mobile Number.`);
         return;
       }
     }
 
     setIsSavingPayout(true);
     try {
+      const activeWallet = (payoutWalletNumber || payoutAccountNumber).trim();
       const res = await clientUpdateBrandingAction({
         onboardingDetails: {
           ...onboardingDetails,
           payoutMethod,
-          payoutAccountName,
-          payoutAccountHolderName: payoutAccountName,
-          payoutAccountNumber,
+          payoutBankName: payoutBankName.trim(),
+          payoutAccountName: payoutAccountName.trim(),
+          payoutAccountHolderName: payoutAccountName.trim(),
+          payoutAccountNumber:
+            payoutMethod === "BANK_TRANSFER"
+              ? payoutAccountNumber.trim()
+              : activeWallet,
+          payoutWalletNumber:
+            payoutMethod !== "BANK_TRANSFER"
+              ? activeWallet
+              : onboardingDetails.payoutWalletNumber || "",
+          payoutBranchDistrict: payoutBranchDistrict.trim(),
+          payoutBankBranch: payoutBankBranch.trim(),
+          payoutBankRouting: payoutBankRouting.trim(),
+          payoutSwiftCode: payoutSwiftCode.trim().toUpperCase(),
           simulatedDealPriceBdt: dealPrice,
         },
       });
@@ -931,61 +986,161 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
                 </div>
 
                 {/* Account Details Form */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-4 pt-2">
                   {payoutMethod === "BANK_TRANSFER" ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label
-                          htmlFor="payoutAccountName"
-                          className="text-xs font-semibold flex items-center gap-1"
-                        >
-                          <span>Account Holder Name</span>
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="payoutAccountName"
-                          value={payoutAccountName}
-                          onChange={(e) => setPayoutAccountName(e.target.value)}
-                          placeholder="e.g. Md. Tanvir Hasan"
-                          className="text-xs h-9"
-                        />
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankName"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Bank Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankName"
+                            value={payoutBankName}
+                            onChange={(e) => setPayoutBankName(e.target.value)}
+                            placeholder="e.g. Dutch-Bangla Bank"
+                            className="text-xs h-9"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutAccountName"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Account Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutAccountName"
+                            value={payoutAccountName}
+                            onChange={(e) => setPayoutAccountName(e.target.value)}
+                            placeholder="e.g. Shah Md. Mahi"
+                            className="text-xs h-9"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutAccountNumber"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Account Number</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutAccountNumber"
+                            value={payoutAccountNumber}
+                            onChange={(e) =>
+                              setPayoutAccountNumber(e.target.value.trim())
+                            }
+                            placeholder="e.g. 2050XXXXXXXXXXXXX"
+                            className="text-xs font-mono h-9"
+                          />
+                        </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <Label
-                          htmlFor="payoutAccountNumber"
-                          className="text-xs font-semibold flex items-center gap-1"
-                        >
-                          <span>Bank Account Number</span>
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="payoutAccountNumber"
-                          value={payoutAccountNumber}
-                          onChange={(e) =>
-                            setPayoutAccountNumber(e.target.value.trim())
-                          }
-                          placeholder="e.g. 2050XXXXXXXXXXXXX"
-                          className="text-xs font-mono h-9"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBranchDistrict"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Branch District</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBranchDistrict"
+                            value={payoutBranchDistrict}
+                            onChange={(e) => setPayoutBranchDistrict(e.target.value)}
+                            placeholder="e.g. Dhaka"
+                            className="text-xs h-9"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankBranch"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Branch Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankBranch"
+                            value={payoutBankBranch}
+                            onChange={(e) => setPayoutBankBranch(e.target.value)}
+                            placeholder="e.g. Dhanmondi Branch"
+                            className="text-xs h-9"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankRouting"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Routing Number</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankRouting"
+                            value={payoutBankRouting}
+                            onChange={(e) =>
+                              setPayoutBankRouting(e.target.value.trim())
+                            }
+                            placeholder="e.g. 090260123"
+                            className="text-xs font-mono h-9"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutSwiftCode"
+                            className="text-xs font-semibold flex items-center gap-1"
+                          >
+                            <span>Swift Code</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutSwiftCode"
+                            value={payoutSwiftCode}
+                            onChange={(e) =>
+                              setPayoutSwiftCode(e.target.value.toUpperCase().trim())
+                            }
+                            placeholder="e.g. DBBLBDDH"
+                            className="text-xs font-mono uppercase h-9"
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-1">
                       <Label
-                        htmlFor="payoutAccountNumber"
+                        htmlFor="payoutWalletNumber"
                         className="text-xs font-semibold flex items-center gap-1"
                       >
-                        <span>{payoutMethod} Wallet Mobile Number</span>
+                        <span>
+                          {payoutMethod === "NAGAD"
+                            ? "Nagad Wallet Number"
+                            : payoutMethod === "ROCKET"
+                              ? "Rocket Wallet Number"
+                              : "bKash Wallet Number"}
+                        </span>
                         <span className="text-destructive">*</span>
                       </Label>
                       <Input
-                        id="payoutAccountNumber"
-                        value={payoutAccountNumber}
-                        onChange={(e) =>
-                          setPayoutAccountNumber(e.target.value.trim())
-                        }
-                        placeholder="e.g. 017XXXXXXXX"
+                        id="payoutWalletNumber"
+                        value={payoutWalletNumber || payoutAccountNumber}
+                        onChange={(e) => {
+                          setPayoutWalletNumber(e.target.value.trim());
+                          setPayoutAccountNumber(e.target.value.trim());
+                        }}
+                        placeholder="e.g. 017XXXXXXXX / 018XXXXXXXX"
                         className="text-xs font-mono h-9"
                       />
                     </div>

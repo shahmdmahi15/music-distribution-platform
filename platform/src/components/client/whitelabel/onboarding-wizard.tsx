@@ -603,31 +603,60 @@ export function WhiteLabelOnboardingWizard({
         const payoutMethod =
           formData.onboardingDetails?.payoutMethod || "BKASH";
         if (!payoutMethod) {
-          toast.error("Please select a preferred commission payout method.");
+          toast.error("Please select a commission payout method.");
           return false;
         }
 
-        const payoutAccount =
-          formData.onboardingDetails?.payoutAccountNumber?.trim();
-
         if (payoutMethod === "BANK_TRANSFER") {
-          const accountHolder =
+          const bankName = formData.onboardingDetails?.payoutBankName?.trim();
+          const accountName =
+            formData.onboardingDetails?.payoutAccountName?.trim() ||
             formData.onboardingDetails?.payoutAccountHolderName?.trim();
-          if (!accountHolder) {
-            toast.error(
-              "Please enter the Account Holder Name for bank transfer.",
-            );
+          const accountNo =
+            formData.onboardingDetails?.payoutAccountNumber?.trim();
+          const branchDistrict =
+            formData.onboardingDetails?.payoutBranchDistrict?.trim();
+          const branchName =
+            formData.onboardingDetails?.payoutBankBranch?.trim();
+          const routingNumber =
+            formData.onboardingDetails?.payoutBankRouting?.trim();
+          const swiftCode =
+            formData.onboardingDetails?.payoutSwiftCode?.trim();
+
+          if (!bankName) {
+            toast.error("Please enter the Bank Name.");
             return false;
           }
-          if (!payoutAccount) {
-            toast.error(
-              "Please enter the Bank Account Number for bank transfer.",
-            );
+          if (!accountName) {
+            toast.error("Please enter the Account Name.");
+            return false;
+          }
+          if (!accountNo) {
+            toast.error("Please enter the Bank Account Number.");
+            return false;
+          }
+          if (!branchDistrict) {
+            toast.error("Please enter the Branch District.");
+            return false;
+          }
+          if (!branchName) {
+            toast.error("Please enter the Branch Name.");
+            return false;
+          }
+          if (!routingNumber) {
+            toast.error("Please enter the Routing Number.");
+            return false;
+          }
+          if (!swiftCode) {
+            toast.error("Please enter the Swift Code.");
             return false;
           }
         } else {
           // MFS: bKash, Nagad, Rocket
-          if (!payoutAccount) {
+          const walletNumber =
+            formData.onboardingDetails?.payoutWalletNumber?.trim() ||
+            formData.onboardingDetails?.payoutAccountNumber?.trim();
+          if (!walletNumber) {
             toast.error(
               `Please enter your ${
                 payoutMethod === "BKASH"
@@ -635,7 +664,7 @@ export function WhiteLabelOnboardingWizard({
                   : payoutMethod === "NAGAD"
                     ? "Nagad"
                     : "Rocket"
-              } mobile number.`,
+              } wallet number.`,
             );
             return false;
           }
@@ -1242,83 +1271,222 @@ export function WhiteLabelOnboardingWizard({
                   </div>
 
                   {formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
-                    <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label
-                          htmlFor="payoutAccountHolderName"
-                          className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                        >
-                          <span>Account Holder Name</span>
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="payoutAccountHolderName"
-                          placeholder="e.g. Shah Md. Mahi"
-                          value={
-                            formData.onboardingDetails?.payoutAccountHolderName ||
-                            ""
-                          }
-                          onChange={(e) =>
-                            updateOnboardingDetail(
-                              "payoutAccountHolderName",
-                              e.target.value,
-                            )
-                          }
-                          className="h-9 text-xs"
-                        />
+                    <div className="pt-2 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankName"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Bank Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankName"
+                            placeholder="e.g. Dutch-Bangla Bank"
+                            value={
+                              formData.onboardingDetails?.payoutBankName || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutBankName",
+                                e.target.value,
+                              )
+                            }
+                            className="h-9 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutAccountName"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Account Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutAccountName"
+                            placeholder="e.g. Shah Md. Mahi"
+                            value={
+                              formData.onboardingDetails?.payoutAccountName ||
+                              formData.onboardingDetails
+                                ?.payoutAccountHolderName ||
+                              ""
+                            }
+                            onChange={(e) => {
+                              updateOnboardingDetail(
+                                "payoutAccountName",
+                                e.target.value,
+                              );
+                              updateOnboardingDetail(
+                                "payoutAccountHolderName",
+                                e.target.value,
+                              );
+                            }}
+                            className="h-9 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutAccountNumber"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Account Number</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutAccountNumber"
+                            placeholder="e.g. 2050XXXXXXXXXXXXX"
+                            value={
+                              formData.onboardingDetails
+                                ?.payoutAccountNumber || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutAccountNumber",
+                                e.target.value.trim(),
+                              )
+                            }
+                            className="h-9 text-xs font-mono"
+                          />
+                        </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <Label
-                          htmlFor="payoutAccNumber"
-                          className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                        >
-                          <span>Bank Account Number</span>
-                          <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="payoutAccNumber"
-                          placeholder="e.g. 2050XXXXXXXXXXXXX"
-                          value={
-                            formData.onboardingDetails?.payoutAccountNumber || ""
-                          }
-                          onChange={(e) =>
-                            updateOnboardingDetail(
-                              "payoutAccountNumber",
-                              e.target.value.trim(),
-                            )
-                          }
-                          className="h-9 text-xs font-mono"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBranchDistrict"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Branch District</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBranchDistrict"
+                            placeholder="e.g. Dhaka"
+                            value={
+                              formData.onboardingDetails
+                                ?.payoutBranchDistrict || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutBranchDistrict",
+                                e.target.value,
+                              )
+                            }
+                            className="h-9 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankBranch"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Branch Name</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankBranch"
+                            placeholder="e.g. Dhanmondi Branch"
+                            value={
+                              formData.onboardingDetails?.payoutBankBranch || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutBankBranch",
+                                e.target.value,
+                              )
+                            }
+                            className="h-9 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutBankRouting"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Routing Number</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutBankRouting"
+                            placeholder="e.g. 090260123"
+                            value={
+                              formData.onboardingDetails?.payoutBankRouting || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutBankRouting",
+                                e.target.value.trim(),
+                              )
+                            }
+                            className="h-9 text-xs font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor="payoutSwiftCode"
+                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                          >
+                            <span>Swift Code</span>
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="payoutSwiftCode"
+                            placeholder="e.g. DBBLBDDH"
+                            value={
+                              formData.onboardingDetails?.payoutSwiftCode || ""
+                            }
+                            onChange={(e) =>
+                              updateOnboardingDetail(
+                                "payoutSwiftCode",
+                                e.target.value.toUpperCase().trim(),
+                              )
+                            }
+                            className="h-9 text-xs font-mono uppercase"
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="pt-2 space-y-1">
                       <Label
-                        htmlFor="payoutAccNumber"
+                        htmlFor="payoutWalletNumber"
                         className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
                       >
                         <span>
                           {formData.onboardingDetails?.payoutMethod === "NAGAD"
-                            ? "Nagad Wallet Mobile Number"
-                            : formData.onboardingDetails?.payoutMethod === "ROCKET"
-                              ? "Rocket Wallet Mobile Number"
-                              : "bKash Wallet Mobile Number"}
+                            ? "Nagad Wallet Number"
+                            : formData.onboardingDetails?.payoutMethod ===
+                                "ROCKET"
+                              ? "Rocket Wallet Number"
+                              : "bKash Wallet Number"}
                         </span>
                         <span className="text-destructive">*</span>
                       </Label>
                       <Input
-                        id="payoutAccNumber"
-                        placeholder="e.g. 017XXXXXXXX"
+                        id="payoutWalletNumber"
+                        placeholder="e.g. 017XXXXXXXX / 018XXXXXXXX"
                         value={
-                          formData.onboardingDetails?.payoutAccountNumber || ""
+                          formData.onboardingDetails?.payoutWalletNumber ||
+                          formData.onboardingDetails?.payoutAccountNumber ||
+                          ""
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          updateOnboardingDetail(
+                            "payoutWalletNumber",
+                            e.target.value.trim(),
+                          );
                           updateOnboardingDetail(
                             "payoutAccountNumber",
                             e.target.value.trim(),
-                          )
-                        }
+                          );
+                        }}
                         className="h-9 text-xs font-mono"
                       />
                     </div>
@@ -2384,7 +2552,11 @@ export function WhiteLabelOnboardingWizard({
                       `${formData.onboardingDetails?.subLabelsCount || 5} labels`}
                     {formData.businessType ===
                       WhiteLabelBusinessType.REFERRER &&
-                      `${formData.onboardingDetails?.referralNetworkCode || formData.onboardingDetails?.scoutAffiliateCodePrefix || (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "ASSIGNED")} (${formData.onboardingDetails?.payoutMethod || "bKash"})`}
+                      `${formData.onboardingDetails?.referralNetworkCode || formData.onboardingDetails?.scoutAffiliateCodePrefix || (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "ASSIGNED")} (${
+                        formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                          ? `Bank: ${formData.onboardingDetails?.payoutBankName || "Bank"} (${formData.onboardingDetails?.payoutAccountNumber || ""})`
+                          : `${formData.onboardingDetails?.payoutMethod || "bKash"}: ${formData.onboardingDetails?.payoutWalletNumber || formData.onboardingDetails?.payoutAccountNumber || ""}`
+                      })`}
                   </strong>
                 </div>
 

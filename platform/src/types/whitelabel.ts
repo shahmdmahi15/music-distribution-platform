@@ -37,8 +37,15 @@ export interface ReferrerOnboardingData {
   commissionBountyRate?: number;
   minimumPayoutThresholdUsd?: number;
   payoutMethod?: "BKASH" | "NAGAD" | "ROCKET" | "BANK_TRANSFER" | "WIRE_ACH" | "WISE" | "PAYPAL" | "USDT_CRYPTO" | "STRIPE_CONNECT" | string;
-  payoutAccountNumber?: string;
+  payoutBankName?: string;
+  payoutAccountName?: string;
   payoutAccountHolderName?: string;
+  payoutAccountNumber?: string;
+  payoutWalletNumber?: string;
+  payoutBranchDistrict?: string;
+  payoutBankBranch?: string;
+  payoutBankRouting?: string;
+  payoutSwiftCode?: string;
   // Distribution Aggregator Referral Terms (15% share, 60K BDT minimum selling price)
   minimumAccountSellingPriceBdt?: number; // Standard baseline: 60,000 BDT
   simulatedSellingPriceBdt?: number; // Target selling price negotiated (min: 60,000 BDT)
