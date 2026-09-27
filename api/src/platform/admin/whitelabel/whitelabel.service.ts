@@ -41,14 +41,12 @@ export class AdminWhitelabelService {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 50));
     const skip = (page - 1) * limit;
 
-    const where: Prisma.WhiteLabelWhereInput = {};
+    const where: Prisma.WhiteLabelWhereInput = {
+      businessType: query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+    };
 
     if (query.status) {
       where.status = query.status;
-    }
-
-    if (query.businessType) {
-      where.businessType = query.businessType;
     }
 
     if (query.search && query.search.trim()) {
@@ -108,6 +106,9 @@ export class AdminWhitelabelService {
       this.prismaService.whiteLabel.count({ where }),
       this.prismaService.whiteLabel.groupBy({
         by: ['status'],
+        where: {
+          businessType: query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+        },
         _count: { _all: true },
       }),
     ]);

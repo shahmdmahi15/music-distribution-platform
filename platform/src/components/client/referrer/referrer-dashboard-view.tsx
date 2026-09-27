@@ -38,7 +38,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { WhiteLabelBranding } from "@/types/whitelabel";
+import { Referrer } from "@/types/referrer";
 import { clientUpdateBrandingAction } from "@/actions/client/whitelabel/client-update-branding.action";
+import { clientApplyReferrerAction } from "@/actions/client/referrer/client-apply-referrer.action";
 
 interface ReferredDeal {
   id: string;
@@ -53,7 +55,8 @@ interface ReferredDeal {
 }
 
 interface ReferrerDashboardViewProps {
-  branding: WhiteLabelBranding;
+  branding?: WhiteLabelBranding;
+  referrer?: Referrer;
   user: {
     id: string;
     email: string;
@@ -62,12 +65,13 @@ interface ReferrerDashboardViewProps {
   };
 }
 
-export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewProps) {
-  const onboardingDetails = (branding.onboardingDetails as Record<string, any>) || {};
+export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDashboardViewProps) {
+  const onboardingDetails = (referrer?.onboardingDetails as Record<string, any>) || (branding?.onboardingDetails as Record<string, any>) || {};
   const referralCode =
+    referrer?.referralCode ||
     onboardingDetails.referralNetworkCode ||
     onboardingDetails.scoutAffiliateCodePrefix ||
-    branding.code ||
+    branding?.code ||
     `REF-${user.id.slice(-6).toUpperCase()}`;
 
   // Referral link
@@ -76,43 +80,47 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
 
   // Deal simulation state
   const [dealPrice, setDealPrice] = useState<number>(
-    onboardingDetails.simulatedDealPriceBdt && onboardingDetails.simulatedDealPriceBdt >= 60000
+    referrer?.dealBenchmarkBdt ||
+    (onboardingDetails.simulatedDealPriceBdt && onboardingDetails.simulatedDealPriceBdt >= 60000
       ? Number(onboardingDetails.simulatedDealPriceBdt)
-      : 60000,
+      : 60000),
   );
 
   // Remittance configuration state
   const [payoutMethod, setPayoutMethod] = useState<string>(
-    onboardingDetails.payoutMethod || "BKASH",
+    referrer?.payoutMethod || onboardingDetails.payoutMethod || "BANK_TRANSFER",
   );
   const [payoutBankName, setPayoutBankName] = useState<string>(
-    onboardingDetails.payoutBankName || "",
+    referrer?.bankName || onboardingDetails.payoutBankName || "",
   );
   const [payoutAccountName, setPayoutAccountName] = useState<string>(
-    onboardingDetails.payoutAccountName ||
+    referrer?.accountName ||
+      onboardingDetails.payoutAccountName ||
       onboardingDetails.payoutAccountHolderName ||
       `${user.firstName || ""} ${user.lastName || ""}`.trim(),
   );
   const [payoutAccountNumber, setPayoutAccountNumber] = useState<string>(
-    onboardingDetails.payoutAccountNumber || "",
+    referrer?.accountNumber || onboardingDetails.payoutAccountNumber || "",
   );
   const [payoutWalletNumber, setPayoutWalletNumber] = useState<string>(
-    onboardingDetails.payoutWalletNumber ||
+    referrer?.walletNumber ||
+      onboardingDetails.payoutWalletNumber ||
+      (referrer?.payoutMethod !== "BANK_TRANSFER" && referrer?.accountNumber ? referrer.accountNumber : "") ||
       (onboardingDetails.payoutMethod !== "BANK_TRANSFER"
         ? onboardingDetails.payoutAccountNumber || ""
         : ""),
   );
   const [payoutBranchDistrict, setPayoutBranchDistrict] = useState<string>(
-    onboardingDetails.payoutBranchDistrict || "",
+    referrer?.branchDistrict || onboardingDetails.payoutBranchDistrict || "",
   );
   const [payoutBankBranch, setPayoutBankBranch] = useState<string>(
-    onboardingDetails.payoutBankBranch || "",
+    referrer?.branchName || onboardingDetails.payoutBankBranch || "",
   );
   const [payoutBankRouting, setPayoutBankRouting] = useState<string>(
-    onboardingDetails.payoutBankRouting || "",
+    referrer?.routingNumber || onboardingDetails.payoutBankRouting || "",
   );
   const [payoutSwiftCode, setPayoutSwiftCode] = useState<string>(
-    onboardingDetails.payoutSwiftCode || "",
+    referrer?.swiftCode || onboardingDetails.payoutSwiftCode || "",
   );
   const [isSavingPayout, setIsSavingPayout] = useState(false);
 
@@ -264,28 +272,54 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
     setIsSavingPayout(true);
     try {
       const activeWallet = (payoutWalletNumber || payoutAccountNumber).trim();
-      const res = await clientUpdateBrandingAction({
-        onboardingDetails: {
-          ...onboardingDetails,
+      let res;
+      if (referrer) {
+        res = await clientApplyReferrerAction({
+          name: referrer.name,
+          referralCode: referrer.referralCode,
+          contactFirstName: referrer.contactFirstName,
+          contactLastName: referrer.contactLastName,
+          contactEmail: referrer.contactEmail,
+          contactPhone: referrer.contactPhone || undefined,
+          contactLinkedIn: referrer.contactLinkedIn || undefined,
           payoutMethod,
-          payoutBankName: payoutBankName.trim(),
-          payoutAccountName: payoutAccountName.trim(),
-          payoutAccountHolderName: payoutAccountName.trim(),
-          payoutAccountNumber:
-            payoutMethod === "BANK_TRANSFER"
-              ? payoutAccountNumber.trim()
-              : activeWallet,
-          payoutWalletNumber:
-            payoutMethod !== "BANK_TRANSFER"
-              ? activeWallet
-              : onboardingDetails.payoutWalletNumber || "",
-          payoutBranchDistrict: payoutBranchDistrict.trim(),
-          payoutBankBranch: payoutBankBranch.trim(),
-          payoutBankRouting: payoutBankRouting.trim(),
-          payoutSwiftCode: payoutSwiftCode.trim().toUpperCase(),
-          simulatedDealPriceBdt: dealPrice,
-        },
-      });
+          bankName: payoutMethod === "BANK_TRANSFER" ? payoutBankName.trim() : undefined,
+          accountName: payoutMethod === "BANK_TRANSFER" ? payoutAccountName.trim() : undefined,
+          accountNumber: payoutMethod === "BANK_TRANSFER" ? payoutAccountNumber.trim() : undefined,
+          branchDistrict: payoutMethod === "BANK_TRANSFER" ? payoutBranchDistrict.trim() : undefined,
+          branchName: payoutMethod === "BANK_TRANSFER" ? payoutBankBranch.trim() : undefined,
+          routingNumber: payoutMethod === "BANK_TRANSFER" ? payoutBankRouting.trim() : undefined,
+          swiftCode: payoutMethod === "BANK_TRANSFER" ? payoutSwiftCode.trim().toUpperCase() : undefined,
+          walletNumber: payoutMethod !== "BANK_TRANSFER" ? activeWallet : undefined,
+          onboardingDetails: {
+            ...onboardingDetails,
+            simulatedDealPriceBdt: dealPrice,
+          },
+        });
+      } else {
+        res = await clientUpdateBrandingAction({
+          onboardingDetails: {
+            ...onboardingDetails,
+            payoutMethod,
+            payoutBankName: payoutBankName.trim(),
+            payoutAccountName: payoutAccountName.trim(),
+            payoutAccountHolderName: payoutAccountName.trim(),
+            payoutAccountNumber:
+              payoutMethod === "BANK_TRANSFER"
+                ? payoutAccountNumber.trim()
+                : activeWallet,
+            payoutWalletNumber:
+              payoutMethod !== "BANK_TRANSFER"
+                ? activeWallet
+                : onboardingDetails.payoutWalletNumber || "",
+            payoutBranchDistrict: payoutBranchDistrict.trim(),
+            payoutBankBranch: payoutBankBranch.trim(),
+            payoutBankRouting: payoutBankRouting.trim(),
+            payoutSwiftCode: payoutSwiftCode.trim().toUpperCase(),
+            simulatedDealPriceBdt: dealPrice,
+          },
+        });
+      }
 
       if (res.success) {
         toast.success("Payout & remittance configuration saved successfully!");
@@ -321,7 +355,7 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
               </Badge>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {branding.name || `${user.firstName || "Partner"} Network`} Referrer Hub
+              {referrer?.name || branding?.name || `${user.firstName || "Partner"} Network`} Referrer Hub
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
               Earn strictly <strong className="text-foreground">15% of the total selling price</strong> for every Distribution Aggregator WhiteLabel account you refer. Zero server setup or domain maintenance required on your end — simply refer and collect your commissions.
@@ -525,7 +559,7 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
                       className="text-xs h-8 gap-1.5"
                       onClick={() => {
                         const subject = "Exclusive Music Distribution Platform Onboarding";
-                        const body = `Hi,\n\nI recommend launching your digital music distribution business with RoyalMotionIT's Distribution Aggregator platform. It comes with dedicated AWS compute, S3 Audio Vault, and DDEX delivery feeds.\n\nSign up with my referral link to get priority verification:\n${referralUrl}\n\nBest regards,\n${branding.name || user.firstName || "Partner"}`;
+                        const body = `Hi,\n\nI recommend launching your digital music distribution business with RoyalMotionIT's Distribution Aggregator platform. It comes with dedicated AWS compute, S3 Audio Vault, and DDEX delivery feeds.\n\nSign up with my referral link to get priority verification:\n${referralUrl}\n\nBest regards,\n${referrer?.name || branding?.name || user.firstName || "Partner"}`;
                         window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                       }}
                     >

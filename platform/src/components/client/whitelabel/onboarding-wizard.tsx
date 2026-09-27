@@ -52,6 +52,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { clientApplyWhiteLabelAction } from "@/actions/client/whitelabel/client-apply-whitelabel.action";
+import { clientApplyReferrerAction } from "@/actions/client/referrer/client-apply-referrer.action";
 import { clientCheckSubdomainAction } from "@/actions/client/whitelabel/client-subdomain-check.action";
 import { clientSuggestSubdomainAction } from "@/actions/client/whitelabel/client-domain.action";
 import {
@@ -772,75 +773,78 @@ export function WhiteLabelOnboardingWizard({
           );
       const cleanedElasticIpv4 = formData.elasticIpv4?.trim();
 
-      const res = await clientApplyWhiteLabelAction({
-        ...formData,
-        desiredSubdomain: isReferrer ? undefined : formData.desiredSubdomain,
-        elasticIpv4: isReferrer
-          ? undefined
-          : cleanedElasticIpv4
-            ? cleanedElasticIpv4
-            : undefined,
-        primaryColor: isReferrer ? undefined : formData.primaryColor,
-        topArtists: validArtists,
-        catalogTrackCount: isReferrer ? 0 : formData.catalogTrackCount,
-        monthlyTrackDelivery: isReferrer ? 0 : formData.monthlyTrackDelivery,
-        monthlyRevenueUsd: isReferrer ? 0 : formData.monthlyRevenueUsd,
-        hasDirectDeals: isReferrer ? false : formData.hasDirectDeals,
-        currentDistributors: isReferrer ? [] : formData.currentDistributors,
-        royaltySolutions: isReferrer ? [] : formData.royaltySolutions,
-        wantsCatalogMigration: isReferrer ? false : formData.wantsCatalogMigration,
-        hasSampleBasedCovers: isReferrer ? false : formData.hasSampleBasedCovers,
-        userSignupModel: isReferrer
-          ? WhiteLabelSignupModel.INVITE_ONLY
-          : formData.userSignupModel,
-        onboardingDetails: isReferrer
-          ? {
-              referralNetworkCode:
-                formData.onboardingDetails?.referralNetworkCode ||
-                (formData.name
-                  ? formData.name
-                      .toUpperCase()
-                      .replace(/[^A-Z0-9]/g, "-")
-                      .slice(0, 15)
-                  : "AGY-SCOUT"),
-              payoutMethod: formData.onboardingDetails?.payoutMethod || "BKASH",
-              payoutBankName:
-                formData.onboardingDetails?.payoutBankName?.trim() || "",
-              payoutAccountName: (
-                formData.onboardingDetails?.payoutAccountName ||
-                formData.onboardingDetails?.payoutAccountHolderName ||
-                ""
-              ).trim(),
-              payoutAccountHolderName: (
-                formData.onboardingDetails?.payoutAccountName ||
-                formData.onboardingDetails?.payoutAccountHolderName ||
-                ""
-              ).trim(),
-              payoutAccountNumber:
-                formData.onboardingDetails?.payoutAccountNumber?.trim() || "",
-              payoutWalletNumber:
-                formData.onboardingDetails?.payoutWalletNumber?.trim() || "",
-              payoutBranchDistrict:
-                formData.onboardingDetails?.payoutBranchDistrict?.trim() || "",
-              payoutBankBranch:
-                formData.onboardingDetails?.payoutBankBranch?.trim() || "",
-              payoutBankRouting:
-                formData.onboardingDetails?.payoutBankRouting?.trim() || "",
-              payoutSwiftCode: (
-                formData.onboardingDetails?.payoutSwiftCode || ""
-              )
-                .trim()
-                .toUpperCase(),
-              commissionPercentage: 15,
-              minimumAccountSellingPriceBdt: 60000,
-              simulatedDealPriceBdt:
-                formData.onboardingDetails?.simulatedDealPriceBdt || 60000,
-            }
-          : {
-              ...formData.onboardingDetails,
-              estimatedLaunchTimeline: formData.estimatedLaunchTimeline,
-            },
-      });
+      let res;
+      if (isReferrer) {
+        const payoutMethod =
+          formData.onboardingDetails?.payoutMethod || "BANK_TRANSFER";
+        const accountHolderName = (
+          formData.onboardingDetails?.payoutAccountName ||
+          formData.onboardingDetails?.payoutAccountHolderName ||
+          `${formData.contactFirstName} ${formData.contactLastName}`
+        ).trim();
+
+        res = await clientApplyReferrerAction({
+          name: formData.name,
+          referralCode: formData.onboardingDetails?.referralNetworkCode || undefined,
+          companyWebsite: formData.companyWebsite || undefined,
+          country: formData.country || "Bangladesh",
+          yearsInBusiness: formData.yearsInBusiness || 0,
+          isIncorporated: formData.isIncorporated || false,
+          incorporationDocUrl: formData.incorporationDocUrl || undefined,
+          contactFirstName: formData.contactFirstName,
+          contactLastName: formData.contactLastName,
+          contactEmail: formData.contactEmail,
+          contactPhone:
+            (formData.onboardingDetails as any)?.contactPhone || undefined,
+          contactLinkedIn: formData.contactLinkedIn || undefined,
+          payoutMethod,
+          bankName: formData.onboardingDetails?.payoutBankName?.trim() || undefined,
+          accountName: accountHolderName || undefined,
+          accountNumber:
+            formData.onboardingDetails?.payoutAccountNumber?.trim() || undefined,
+          branchDistrict:
+            formData.onboardingDetails?.payoutBranchDistrict?.trim() || undefined,
+          branchName:
+            formData.onboardingDetails?.payoutBankBranch?.trim() || undefined,
+          routingNumber:
+            formData.onboardingDetails?.payoutBankRouting?.trim() || undefined,
+          swiftCode: (
+            formData.onboardingDetails?.payoutSwiftCode || ""
+          )
+            .trim()
+            .toUpperCase() || undefined,
+          walletNumber:
+            formData.onboardingDetails?.payoutWalletNumber?.trim() || undefined,
+          onboardingDetails: {
+            commissionPercentage: 15,
+            minimumAccountSellingPriceBdt: 60000,
+            simulatedDealPriceBdt:
+              formData.onboardingDetails?.simulatedDealPriceBdt || 60000,
+            ...formData.onboardingDetails,
+          },
+        });
+      } else {
+        res = await clientApplyWhiteLabelAction({
+          ...formData,
+          desiredSubdomain: formData.desiredSubdomain,
+          elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
+          primaryColor: formData.primaryColor,
+          topArtists: validArtists,
+          catalogTrackCount: formData.catalogTrackCount,
+          monthlyTrackDelivery: formData.monthlyTrackDelivery,
+          monthlyRevenueUsd: formData.monthlyRevenueUsd,
+          hasDirectDeals: formData.hasDirectDeals,
+          currentDistributors: formData.currentDistributors,
+          royaltySolutions: formData.royaltySolutions,
+          wantsCatalogMigration: formData.wantsCatalogMigration,
+          hasSampleBasedCovers: formData.hasSampleBasedCovers,
+          userSignupModel: formData.userSignupModel,
+          onboardingDetails: {
+            ...formData.onboardingDetails,
+            estimatedLaunchTimeline: formData.estimatedLaunchTimeline,
+          },
+        });
+      }
 
       if (res.success) {
         toast.success(res.message);

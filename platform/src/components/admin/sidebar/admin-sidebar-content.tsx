@@ -61,6 +61,17 @@ const navigations = [
         ],
       },
       {
+        title: "Referrers",
+        url: "#",
+        icon: HeartHandshake,
+        items: [
+          {
+            title: "Partners & Bounty",
+            url: "/admin/referrers",
+          },
+        ],
+      },
+      {
         title: "Users",
         url: "#",
         icon: Users,

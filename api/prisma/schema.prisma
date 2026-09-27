@@ -179,6 +179,7 @@ model PlatformUser {
   oAuthAccounts OAuthAccount[]
   sessions      Session[]
   subscription  PlatformSubscription?
+  referrer      Referrer?
 
   // Timestamps
   lastLoginAt DateTime?
@@ -575,3 +576,121 @@ model WhiteLabelApiKey {
   @@index([whiteLabelId, isActive])
   @@index([keyHash])
 }
+
+enum ReferrerStatus {
+  PENDING
+  UNDER_REVIEW
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+model Referrer {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code         String  @unique // System generated code, e.g. REF-2026-XXXX
+  referralCode String  @unique // Custom referral attribution code (e.g. TECH-AGENCY)
+  name         String  // Partner Agency / Entity Name
+
+  // Agency & Corporate Profile
+  companyWebsite      String?
+  country             String?
+  yearsInBusiness     Int      @default(0)
+  isIncorporated      Boolean  @default(false)
+  incorporationDocUrl String?
+
+  // Primary Contact & Representative
+  contactFirstName String
+  contactLastName  String
+  contactEmail     String
+  contactPhone     String?
+  contactLinkedIn  String?
+
+  // Commercial Terms (Fixed 15% Share)
+  commissionRate         Float  @default(15.0) // 15% of deal selling value
+  dealBenchmarkBdt       Int    @default(60000) // ৳60,000 BDT minimum deal
+  minGuaranteedBountyBdt Int    @default(9000)  // ৳9,000 BDT minimum bounty
+  operatingHub           String @default("platform.royalmotionit.com/referrer")
+
+  // Remittance Configuration
+  payoutMethod   String  @default("BANK_TRANSFER") // BANK_TRANSFER, BKASH, NAGAD, ROCKET
+  bankName       String?
+  accountName    String?
+  accountNumber  String?
+  branchDistrict String?
+  branchName     String?
+  routingNumber  String?
+  swiftCode      String?
+  walletNumber   String?
+
+  // Lifecycle & Status
+  status       ReferrerStatus @default(PENDING)
+  statusReason String?
+  approvedAt   DateTime?
+  reviewedAt   DateTime?
+
+  // Contract Information
+  contractKey        String?
+  contractFileName   String?
+  contractFileSize   Int?
+  contractUploadedAt DateTime?
+  contractUploadedBy String?
+
+  // Additional Meta & Dossier
+  onboardingDetails Json?
+  adminNotes        String?
+
+  // Foreign Keys & Relations
+  userId String       @unique
+  user   PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documents ReferrerDocument[]
+  deals     ReferrerDeal[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReferrerDocument {
+  id       String @id @default(cuid())
+  code     String @unique
+  name     String
+  fileKey  String
+  fileName String
+  fileSize Int
+  mimeType String
+  docType  String @default("OTHER")
+
+  referrerId String
+  referrer   Referrer @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([referrerId])
+}
+
+model ReferrerDeal {
+  id                String @id @default(cuid())
+  code              String @unique
+  clientName        String
+  clientEmail       String?
+  sellingPriceBdt   Int // e.g. 75000
+  referrerBountyBdt Int // 15% of selling price, e.g. 11250
+  status            String @default("PENDING") // PENDING, PAID, CANCELLED
+
+  referrerId String
+  referrer   Referrer @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([referrerId])
+}
+

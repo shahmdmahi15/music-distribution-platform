@@ -11,6 +11,9 @@ export enum CodePrefix {
   WHITELABEL_PARTNER = 'RMIT-PRT-',
   WHITELABEL_ARTIST = 'RMIT-ART-',
   WHITELABEL_DOCUMENT = 'RMIT-DOC-',
+  REFERRER = 'RMIT-REF-',
+  REFERRER_DOCUMENT = 'RMIT-RDOC-',
+  REFERRER_DEAL = 'RMIT-DEAL-',
 }
 
 export type CodeModel =
@@ -23,7 +26,10 @@ export type CodeModel =
   | 'oAuthAccount'
   | 'whiteLabelPartner'
   | 'whiteLabelTopArtist'
-  | 'whiteLabelDocument';
+  | 'whiteLabelDocument'
+  | 'referrer'
+  | 'referrerDocument'
+  | 'referrerDeal';
 
 /**
  * Sequence backing each model's human-readable code.
@@ -42,6 +48,9 @@ const CODE_SEQUENCES: Record<CodeModel, string> = {
   whiteLabelPartner: 'whitelabelpartner_code_seq',
   whiteLabelTopArtist: 'whitelabeltopartist_code_seq',
   whiteLabelDocument: 'whitelabeldocument_code_seq',
+  referrer: 'referrer_code_seq',
+  referrerDocument: 'referrerdocument_code_seq',
+  referrerDeal: 'referrerdeal_code_seq',
 };
 
 export async function generateUniqueCode(

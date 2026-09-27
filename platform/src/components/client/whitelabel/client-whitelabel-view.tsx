@@ -5,6 +5,8 @@ import { ClientOnboardingWelcome } from "./client-onboarding-welcome";
 import { WhiteLabelOnboardingWizard } from "./onboarding-wizard";
 import { WhiteLabelApplicationStatusView } from "./application-status-view";
 import { WhiteLabelStatus } from "@/types/whitelabel";
+import { Referrer } from "@/types/referrer";
+import { ClientReferrerStatusView } from "@/components/client/referrer/client-referrer-status-view";
 import { Subscription, PaymentStatus } from "@/types/subscription";
 import {
   Disc3,
@@ -40,11 +42,13 @@ interface ClientWhiteLabelViewProps {
     lastName: string;
   };
   subscription?: Subscription | null;
+  referrer?: Referrer | null;
 }
 
 export function ClientWhiteLabelView({
   user,
   subscription,
+  referrer,
 }: ClientWhiteLabelViewProps) {
   const [showWizard, setShowWizard] = useState(false);
   const [activeDraft, setActiveDraft] = useState<Record<
@@ -79,7 +83,45 @@ export function ClientWhiteLabelView({
     );
   }
 
-  // If no application submitted yet, show the high-trust Welcome Launchpad
+  // If user has applied as Referrer and not a WhiteLabel distributor
+  if (referrer && !whiteLabel) {
+    return (
+      <ClientReferrerStatusView
+        referrer={referrer}
+        onReapply={() => {
+          setActiveDraft({
+            businessType: "REFERRER",
+            name: referrer.name,
+            companyWebsite: referrer.companyWebsite || "",
+            country: referrer.country || "Bangladesh",
+            yearsInBusiness: referrer.yearsInBusiness,
+            isIncorporated: referrer.isIncorporated,
+            incorporationDocUrl: referrer.incorporationDocUrl || "",
+            contactFirstName: referrer.contactFirstName,
+            contactLastName: referrer.contactLastName,
+            contactEmail: referrer.contactEmail,
+            contactPhone: referrer.contactPhone || "",
+            contactLinkedIn: referrer.contactLinkedIn || "",
+            onboardingDetails: {
+              referralNetworkCode: referrer.referralCode,
+              payoutMethod: referrer.payoutMethod,
+              payoutBankName: referrer.bankName || "",
+              payoutAccountName: referrer.accountName || "",
+              payoutAccountNumber: referrer.accountNumber || "",
+              payoutBranchDistrict: referrer.branchDistrict || "",
+              payoutBankBranch: referrer.branchName || "",
+              payoutBankRouting: referrer.routingNumber || "",
+              payoutSwiftCode: referrer.swiftCode || "",
+              payoutWalletNumber: referrer.walletNumber || "",
+            },
+          });
+          setShowWizard(true);
+        }}
+      />
+    );
+  }
+
+  // If no WhiteLabel application submitted yet, show the high-trust Welcome Launchpad
   if (!whiteLabel) {
     return (
       <ClientOnboardingWelcome

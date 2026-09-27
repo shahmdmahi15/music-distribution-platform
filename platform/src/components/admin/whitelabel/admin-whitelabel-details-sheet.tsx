@@ -3647,7 +3647,7 @@ export function AdminWhiteLabelDetailsDialog({
 
       {/* Record Offline Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="sm:max-w-[480px] z-[60]">
+        <DialogContent className="sm:max-w-4xl z-[60] max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" />
@@ -3659,241 +3659,261 @@ export function AdminWhiteLabelDetailsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
-            {/* Package Preset Quick Selector */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Billing Plan Package Preset
-              </Label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { id: "DIST_60K_BDT", label: "Aggregator (৳60K BDT)" },
-                  { id: "DIST_100K_BDT", label: "Aggregator (৳100K BDT)" },
-                  { id: "DIST_150K_BDT", label: "Aggregator (৳150K BDT)" },
-                  { id: "1_YEAR", label: "1 Year ($1,200)" },
-                  { id: "6_MONTHS", label: "6 Months ($749)" },
-                  { id: "3_MONTHS", label: "3 Months ($399)" },
-                  { id: "30_DAY_TRIAL", label: "30d Trial ($0)" },
-                  { id: "CUSTOM", label: "Custom Deal" },
-                ].map((pkg) => (
-                  <button
-                    key={pkg.id}
-                    type="button"
-                    onClick={() => applyPackagePreset(pkg.id)}
-                    className={`px-2 py-1.5 rounded-lg text-[11px] font-medium border transition-all text-center ${
-                      selectedPreset === pkg.id
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                        : "border-border/60 hover:border-border hover:bg-muted/30 text-muted-foreground"
-                    }`}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 py-2 text-xs">
+            {/* Left Column: Presets & 15% Split Calculator */}
+            <div className="space-y-4">
+              {/* Package Preset Quick Selector */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Billing Plan Package Preset
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {[
+                    { id: "DIST_60K_BDT", label: "Aggregator (৳60K BDT)" },
+                    { id: "DIST_100K_BDT", label: "Aggregator (৳100K BDT)" },
+                    { id: "DIST_150K_BDT", label: "Aggregator (৳150K BDT)" },
+                    { id: "1_YEAR", label: "1 Year ($1,200)" },
+                    { id: "6_MONTHS", label: "6 Months ($749)" },
+                    { id: "3_MONTHS", label: "3 Months ($399)" },
+                    { id: "30_DAY_TRIAL", label: "30d Trial ($0)" },
+                    { id: "CUSTOM", label: "Custom Deal" },
+                  ].map((pkg) => (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => applyPackagePreset(pkg.id)}
+                      className={`px-2 py-2 rounded-lg text-[11px] font-medium border transition-all text-center ${
+                        selectedPreset === pkg.id
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
+                          : "border-border/60 hover:border-border hover:bg-muted/30 text-muted-foreground"
+                      }`}
+                    >
+                      {pkg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Referrer 15% Selling Price Split Calculator */}
+              <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                    <Share2 className="h-3.5 w-3.5" />
+                    Referrer 15% Commission Split (Aggregator Deal)
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="border-primary/40 bg-primary/10 text-primary font-mono text-[9px] font-bold"
                   >
-                    {pkg.label}
-                  </button>
-                ))}
+                    Min ৳60K BDT
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground font-semibold">
+                      Simulate Deal Closing Price (BDT)
+                    </Label>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        ৳
+                      </span>
+                      <Input
+                        type="number"
+                        min={60000}
+                        step={5000}
+                        value={bdtCalcAmount}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setBdtCalcAmount(val);
+                        }}
+                        className="h-8 text-xs font-mono font-bold bg-background"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-background/80 border border-border/50 space-y-1">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        Referrer Share (15%):
+                      </span>
+                      <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                        ৳{Math.round(bdtCalcAmount * 0.15).toLocaleString()} BDT
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-primary font-medium">
+                        Platform Share (85%):
+                      </span>
+                      <span className="font-mono font-extrabold text-primary">
+                        ৳{Math.round(bdtCalcAmount * 0.85).toLocaleString()} BDT
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {bdtCalcAmount < 60000 ? (
+                  <p className="text-[10px] text-amber-500 font-medium">
+                    ⚠️ Minimum allowed selling price for Distribution Aggregator
+                    accounts is ৳60,000 BDT (Min Referrer payout: ৳9,000 BDT).
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground">
+                    Policy rule: Referrer receives exactly 15% of the deal
+                    closing value. Baseline minimum is ৳60,000 BDT with uncapped
+                    upside.
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Referrer 15% Selling Price Split Calculator */}
-            <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-primary flex items-center gap-1.5">
-                  <Share2 className="h-3.5 w-3.5" />
-                  Referrer 15% Commission Split (Distribution Aggregator Deal)
-                </span>
-                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[9px] font-bold">
-                  Min ৳60K BDT
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground font-semibold">
-                    Simulate Deal Closing Price (BDT)
+            {/* Right Column: Amount, Dates, Method, Receipt, Notes */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Amount ($ USD) <span className="text-destructive">*</span>
                   </Label>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="font-mono text-xs font-bold text-foreground">৳</span>
-                    <Input
-                      type="number"
-                      min={60000}
-                      step={5000}
-                      value={bdtCalcAmount}
-                      onChange={(e) => {
-                        const val = Math.max(0, Number(e.target.value) || 0);
-                        setBdtCalcAmount(val);
-                      }}
-                      className="h-8 text-xs font-mono font-bold bg-background"
-                    />
-                  </div>
-                </div>
-                <div className="p-2 rounded-lg bg-background/80 border border-border/50 space-y-1">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Referrer Share (15%):</span>
-                    <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                      ৳{Math.round(bdtCalcAmount * 0.15).toLocaleString()} BDT
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-primary font-medium">Platform Share (85%):</span>
-                    <span className="font-mono font-extrabold text-primary">
-                      ৳{Math.round(bdtCalcAmount * 0.85).toLocaleString()} BDT
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {bdtCalcAmount < 60000 ? (
-                <p className="text-[10px] text-amber-500 font-medium">
-                  ⚠️ Minimum allowed selling price for Distribution Aggregator accounts is ৳60,000 BDT (Min Referrer payout: ৳9,000 BDT).
-                </p>
-              ) : (
-                <p className="text-[10px] text-muted-foreground">
-                  Policy rule: Referrer receives exactly 15% of the deal closing value. Baseline minimum is ৳60,000 BDT with uncapped upside.
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Amount ($ USD) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={paymentForm.amount}
-                  onChange={(e) =>
-                    setPaymentForm((prev) => ({
-                      ...prev,
-                      amount: Number(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Discount ($ USD)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={paymentForm.discount}
-                  onChange={(e) =>
-                    setPaymentForm((prev) => ({
-                      ...prev,
-                      discount: Number(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Start Date</Label>
-                <Input
-                  type="date"
-                  value={paymentForm.startsAt}
-                  onChange={(e) =>
-                    setPaymentForm((prev) => ({
-                      ...prev,
-                      startsAt: e.target.value,
-                    }))
-                  }
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  End Date (Expiration)
-                </Label>
-                <Input
-                  type="date"
-                  value={paymentForm.endsAt}
-                  onChange={(e) =>
-                    setPaymentForm((prev) => ({
-                      ...prev,
-                      endsAt: e.target.value,
-                    }))
-                  }
-                  className="h-9 text-xs"
-                />
-              </div>
-            </div>
-
-            {/* Payment Method & Receipt Reference */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Payment Method</Label>
-                <Select
-                  value={paymentForm.paymentMethod}
-                  onValueChange={(val) => {
-                    if (val) {
+                  <Input
+                    type="number"
+                    min={0}
+                    value={paymentForm.amount}
+                    onChange={(e) =>
                       setPaymentForm((prev) => ({
                         ...prev,
-                        paymentMethod: val,
-                      }));
+                        amount: Number(e.target.value) || 0,
+                      }))
                     }
-                  }}
-                >
-                  <SelectTrigger className="h-9 text-xs w-full">
-                    <SelectValue placeholder="Select method">
-                      {(val) =>
-                        paymentMethodLabels[val as string] ||
-                        val ||
-                        "Select method"
+                    className="h-9 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Discount ($ USD)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={paymentForm.discount}
+                    onChange={(e) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        discount: Number(e.target.value) || 0,
+                      }))
+                    }
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Start Date</Label>
+                  <Input
+                    type="date"
+                    value={paymentForm.startsAt}
+                    onChange={(e) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        startsAt: e.target.value,
+                      }))
+                    }
+                    className="h-9 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    End Date (Expiration)
+                  </Label>
+                  <Input
+                    type="date"
+                    value={paymentForm.endsAt}
+                    onChange={(e) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        endsAt: e.target.value,
+                      }))
+                    }
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Method & Receipt Reference */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Payment Method
+                  </Label>
+                  <Select
+                    value={paymentForm.paymentMethod}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setPaymentForm((prev) => ({
+                          ...prev,
+                          paymentMethod: val,
+                        }));
                       }
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HAND_TO_HAND">
-                      Hand-to-Hand (Cash / Direct)
-                    </SelectItem>
-                    <SelectItem value="BANK_TRANSFER">
-                      Direct Bank Wire / ACH
-                    </SelectItem>
-                    <SelectItem value="CASH">In-Person Cash</SelectItem>
-                    <SelectItem value="INVOICE">
-                      Corporate Invoice / PO
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs w-full">
+                      <SelectValue placeholder="Select method">
+                        {(val) =>
+                          paymentMethodLabels[val as string] ||
+                          val ||
+                          "Select method"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HAND_TO_HAND">
+                        Hand-to-Hand (Cash / Direct)
+                      </SelectItem>
+                      <SelectItem value="BANK_TRANSFER">
+                        Direct Bank Wire / ACH
+                      </SelectItem>
+                      <SelectItem value="CASH">In-Person Cash</SelectItem>
+                      <SelectItem value="INVOICE">
+                        Corporate Invoice / PO
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Receipt / Reference ID
+                  </Label>
+                  <Input
+                    placeholder="e.g. REC-2026-081 or Wire Ref"
+                    value={paymentForm.receiptReference}
+                    onChange={(e) =>
+                      setPaymentForm((prev) => ({
+                        ...prev,
+                        receiptReference: e.target.value,
+                      }))
+                    }
+                    className="h-9 text-xs font-mono"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  Receipt / Reference ID
+                  Admin Notes / Receipt Details
                 </Label>
                 <Input
-                  placeholder="e.g. REC-2026-081 or Wire Ref"
-                  value={paymentForm.receiptReference}
+                  placeholder="e.g. Received $1,200 hand-to-hand signed by representative"
+                  value={paymentForm.adminNotes}
                   onChange={(e) =>
                     setPaymentForm((prev) => ({
                       ...prev,
-                      receiptReference: e.target.value,
+                      adminNotes: e.target.value,
                     }))
                   }
-                  className="h-9 text-xs font-mono"
+                  className="h-9 text-xs"
                 />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Admin Notes / Receipt Details
-              </Label>
-              <Input
-                placeholder="e.g. Received $1,200 hand-to-hand signed by representative"
-                value={paymentForm.adminNotes}
-                onChange={(e) =>
-                  setPaymentForm((prev) => ({
-                    ...prev,
-                    adminNotes: e.target.value,
-                  }))
-                }
-                className="h-9 text-xs"
-              />
             </div>
           </div>
 
@@ -3920,7 +3940,7 @@ export function AdminWhiteLabelDetailsDialog({
 
       {/* Upload Executed Contract Modal */}
       <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
-        <DialogContent className="sm:max-w-[480px] z-[60]">
+        <DialogContent className="sm:max-w-xl z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 text-purple-600 dark:text-purple-400">
               <FileSignature className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -3977,7 +3997,7 @@ export function AdminWhiteLabelDetailsDialog({
 
       {/* Decline Application Reason Modal */}
       <Dialog open={showDeclineModal} onOpenChange={setShowDeclineModal}>
-        <DialogContent className="sm:max-w-[460px] z-[60]">
+        <DialogContent className="sm:max-w-xl z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-rose-600 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
@@ -4025,7 +4045,7 @@ export function AdminWhiteLabelDetailsDialog({
 
       {/* Suspend WhiteLabel Modal */}
       <Dialog open={showSuspendModal} onOpenChange={setShowSuspendModal}>
-        <DialogContent className="sm:max-w-[460px] z-[60]">
+        <DialogContent className="sm:max-w-xl z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-destructive flex items-center gap-2">
               <ShieldAlert className="h-5 w-5" />
@@ -4072,7 +4092,7 @@ export function AdminWhiteLabelDetailsDialog({
 
       {/* Upload Supplementary Document Modal */}
       <Dialog open={showDocModal} onOpenChange={setShowDocModal}>
-        <DialogContent className="sm:max-w-[460px] z-[60]">
+        <DialogContent className="sm:max-w-xl z-[60]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
