@@ -39,6 +39,7 @@ import {
   Share2,
   Award,
   Users,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1011,125 +1012,243 @@ export function WhiteLabelApplicationStatusView({
           </CardContent>
         </Card>
 
-        {/* Catalog & Distribution Telemetry */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Music className="h-4 w-4 text-primary" />
-              Catalog Telemetry & Operations
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-xs">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">
-                  Master Catalog
-                </span>
-                <span className="font-bold text-sm text-foreground">
-                  {Number(whiteLabel.catalogTrackCount || 0).toLocaleString()}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  tracks
-                </span>
+        {/* Catalog Telemetry OR Referrer Remittance Profile */}
+        {whiteLabel.businessType === "REFERRER" ? (
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  Partner Remittance &amp; Commercial Framework
+                </CardTitle>
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold"
+                >
+                  15% Fixed Cut
+                </Badge>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Commission Rate
+                  </span>
+                  <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                    15%
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    of gross sale
+                  </span>
+                </div>
 
-              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">
-                  Monthly Volume
-                </span>
-                <span className="font-bold text-sm text-foreground">
-                  {Number(whiteLabel.monthlyTrackDelivery || 0).toLocaleString()}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  tracks / mo
-                </span>
-              </div>
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Min Deal Price
+                  </span>
+                  <span className="font-bold text-sm text-foreground font-mono">
+                    ৳60,000
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    BDT baseline
+                  </span>
+                </div>
 
-              <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground text-[10px] block">
-                  Est. Revenue
-                </span>
-                <span className="font-bold text-sm text-foreground">
-                  ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  USD / mo
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-[10.5px]">
-              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground block">Direct Deals</span>
-                <span className="font-bold text-foreground">
-                  {whiteLabel.hasDirectDeals ? "Yes (Direct)" : "Via Aggregator"}
-                </span>
-              </div>
-              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground block">Migration</span>
-                <span className="font-bold text-foreground">
-                  {whiteLabel.wantsCatalogMigration ? "Requested" : "New Ingestion"}
-                </span>
-              </div>
-              <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
-                <span className="text-muted-foreground block">Language</span>
-                <span className="font-bold text-foreground">
-                  {whiteLabel.primaryCatalogLanguage || "English"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
-              <div className="space-y-1">
-                <span className="text-muted-foreground text-[11px] block font-medium">
-                  Current / Past Distributors:
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {whiteLabel.currentDistributors &&
-                  whiteLabel.currentDistributors.length > 0 ? (
-                    whiteLabel.currentDistributors.map((d) => (
-                      <Badge
-                        key={d}
-                        variant="secondary"
-                        className="text-[10px] py-0 px-2 font-normal"
-                      >
-                        {d}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      Direct / None Specified
-                    </span>
-                  )}
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Min Deal Bounty
+                  </span>
+                  <span className="font-bold text-sm text-emerald-500 font-mono">
+                    ৳9,000
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    BDT per closing
+                  </span>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <span className="text-muted-foreground text-[11px] block font-medium">
-                  Royalty Accounting Systems:
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {whiteLabel.royaltySolutions &&
-                  whiteLabel.royaltySolutions.length > 0 ? (
-                    whiteLabel.royaltySolutions.map((r) => (
-                      <Badge
-                        key={r}
-                        variant="outline"
-                        className="text-[10px] py-0 px-2 font-normal border-primary/30 text-primary bg-primary/5"
-                      >
-                        {r}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      Platform Native Ledger
+              {/* Remittance Information */}
+              <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                    <KeyRound className="h-3.5 w-3.5 text-primary" />
+                    Payout Remittance Method:{" "}
+                    <span className="text-primary font-mono font-bold">
+                      {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                        ? "Bank Transfer"
+                        : whiteLabel.onboardingDetails?.payoutMethod || "bKash"}
                     </span>
-                  )}
+                  </span>
+                </div>
+
+                {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Bank Name</span>
+                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBankName || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Account Name</span>
+                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutAccountName || whiteLabel.onboardingDetails?.payoutAccountHolderName || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Account Number</span>
+                      <strong className="text-foreground font-mono">{whiteLabel.onboardingDetails?.payoutAccountNumber || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Branch District</span>
+                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBranchDistrict || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Branch Name</span>
+                      <strong className="text-foreground">{whiteLabel.onboardingDetails?.payoutBankBranch || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">Routing / Swift</span>
+                      <strong className="text-foreground font-mono">{whiteLabel.onboardingDetails?.payoutBankRouting || "N/A"} / {whiteLabel.onboardingDetails?.payoutSwiftCode || "N/A"}</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-1 text-[11px] flex items-center justify-between">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] block">
+                        {whiteLabel.onboardingDetails?.payoutMethod || "MFS"} Wallet Number
+                      </span>
+                      <strong className="text-foreground font-mono text-sm">
+                        {whiteLabel.onboardingDetails?.payoutWalletNumber ||
+                          whiteLabel.onboardingDetails?.payoutAccountNumber ||
+                          "N/A"}
+                      </strong>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                      Verified for Remittance
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Music className="h-4 w-4 text-primary" />
+                Catalog Telemetry &amp; Operations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Master Catalog
+                  </span>
+                  <span className="font-bold text-sm text-foreground">
+                    {Number(whiteLabel.catalogTrackCount || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    tracks
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Monthly Volume
+                  </span>
+                  <span className="font-bold text-sm text-foreground">
+                    {Number(whiteLabel.monthlyTrackDelivery || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    tracks / mo
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Est. Revenue
+                  </span>
+                  <span className="font-bold text-sm text-foreground">
+                    ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    USD / mo
+                  </span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+
+              <div className="grid grid-cols-3 gap-2 text-[10.5px]">
+                <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground block">Direct Deals</span>
+                  <span className="font-bold text-foreground">
+                    {whiteLabel.hasDirectDeals ? "Yes (Direct)" : "Via Aggregator"}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground block">Migration</span>
+                  <span className="font-bold text-foreground">
+                    {whiteLabel.wantsCatalogMigration ? "Requested" : "New Ingestion"}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg border border-border/50 bg-muted/20">
+                  <span className="text-muted-foreground block">Language</span>
+                  <span className="font-bold text-foreground">
+                    {whiteLabel.primaryCatalogLanguage || "English"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-[11px] block font-medium">
+                    Current / Past Distributors:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {whiteLabel.currentDistributors &&
+                    whiteLabel.currentDistributors.length > 0 ? (
+                      whiteLabel.currentDistributors.map((d) => (
+                        <Badge
+                          key={d}
+                          variant="secondary"
+                          className="text-[10px] py-0 px-2 font-normal"
+                        >
+                          {d}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        Direct / None Specified
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-[11px] block font-medium">
+                    Royalty Accounting Systems:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {whiteLabel.royaltySolutions &&
+                    whiteLabel.royaltySolutions.length > 0 ? (
+                      whiteLabel.royaltySolutions.map((r) => (
+                        <Badge
+                          key={r}
+                          variant="outline"
+                          className="text-[10px] py-0 px-2 font-normal border-primary/30 text-primary bg-primary/5"
+                        >
+                          {r}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        Platform Native Ledger
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Tailored Business Architecture & Domain Specifications */}
@@ -1229,56 +1348,45 @@ export function WhiteLabelApplicationStatusView({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Scout Category
+                    Partner Model
                   </span>
                   <p className="font-bold text-foreground capitalize text-xs pt-0.5">
-                    {(
-                      whiteLabel.onboardingDetails?.scoutNetworkCategory ||
-                      "talent_scout"
-                    ).replace(/_/g, " ")}
+                    Aggregator Referral Affiliate
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Annual Referrals Target
+                    Commission Cut
                   </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {whiteLabel.onboardingDetails?.projectedAnnualReferrals ??
-                      10}{" "}
-                    partners / yr
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm pt-0.5">
+                    15% Share
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Pipeline Aggregate Size
+                    Min Deal Benchmark
                   </span>
-                  <p className="font-bold text-foreground text-sm pt-0.5">
-                    {(
-                      whiteLabel.onboardingDetails
-                        ?.projectedPipelineCatalogSize ??
-                      whiteLabel.onboardingDetails?.scoutingPipelineSize ??
-                      500
-                    ).toLocaleString()}{" "}
-                    tracks
+                  <p className="font-bold text-foreground font-mono text-sm pt-0.5">
+                    ৳60,000 BDT
                   </p>
                 </div>
                 <div className="p-3 rounded-xl border border-border/50 bg-muted/20">
                   <span className="text-muted-foreground text-[10px] block uppercase tracking-wider font-semibold">
-                    Referral Commission Cut
+                    Baseline Deal Bounty
                   </span>
-                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs pt-0.5">
-                    15% of Selling Price (Min ৳60K BDT)
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm pt-0.5">
+                    ৳9,000 BDT
                   </p>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <span className="text-muted-foreground text-[11px]">
-                  Guaranteed Min Payout: <strong className="text-foreground font-mono">৳9,000 BDT</strong> per Distribution Aggregator account sold
+                  Guaranteed Min Payout: <strong className="text-foreground font-mono">৳9,000 BDT</strong> per Distribution Aggregator account sold (Uncapped maximum)
                 </span>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
-                    Uncapped Maximum
+                    15% Uncapped
                   </Badge>
                   <Button
                     render={<Link href="/referrer" />}
@@ -1290,35 +1398,15 @@ export function WhiteLabelApplicationStatusView({
                   </Button>
                 </div>
               </div>
-
-              {whiteLabel.onboardingDetails?.discoveryChannels &&
-                whiteLabel.onboardingDetails.discoveryChannels.length > 0 && (
-                  <div className="p-3 rounded-xl border border-border/50 bg-muted/10 space-y-1.5">
-                    <span className="text-muted-foreground text-[11px] font-semibold block">
-                      Primary Talent Discovery Channels:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {whiteLabel.onboardingDetails.discoveryChannels.map(
-                        (ch: string) => (
-                          <Badge
-                            key={ch}
-                            variant="outline"
-                            className="text-[10px]"
-                          >
-                            {ch}
-                          </Badge>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Submitted Portfolio / Roster Entities */}
-      {whiteLabel.artists && whiteLabel.artists.length > 0 && (
+      {/* Submitted Portfolio / Sub-Labels (Distributor Aggregators Only) */}
+      {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" &&
+        whiteLabel.artists &&
+        whiteLabel.artists.length > 0 && (
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">

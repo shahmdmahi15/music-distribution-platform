@@ -42,6 +42,9 @@ import {
   Server,
   Edit3,
   CheckSquare,
+  BadgePercent,
+  Landmark,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -326,6 +329,33 @@ export function AdminWhiteLabelDetailsDialog({
     preferredCommissionStructure:
       whiteLabel?.onboardingDetails?.preferredCommissionStructure ||
       "lifetime_rev_share",
+    referralNetworkCode:
+      whiteLabel?.onboardingDetails?.referralNetworkCode ||
+      whiteLabel?.onboardingDetails?.scoutAffiliateCodePrefix ||
+      "",
+    payoutMethod:
+      whiteLabel?.onboardingDetails?.payoutMethod ||
+      "BANK_TRANSFER",
+    payoutBankName:
+      whiteLabel?.onboardingDetails?.payoutBankName || "",
+    payoutAccountName:
+      whiteLabel?.onboardingDetails?.payoutAccountName ||
+      whiteLabel?.onboardingDetails?.payoutAccountHolderName ||
+      "",
+    payoutAccountNumber:
+      whiteLabel?.onboardingDetails?.payoutAccountNumber || "",
+    payoutBranchDistrict:
+      whiteLabel?.onboardingDetails?.payoutBranchDistrict || "",
+    payoutBankBranch:
+      whiteLabel?.onboardingDetails?.payoutBankBranch || "",
+    payoutBankRouting:
+      whiteLabel?.onboardingDetails?.payoutBankRouting || "",
+    payoutSwiftCode:
+      whiteLabel?.onboardingDetails?.payoutSwiftCode || "",
+    payoutWalletNumber:
+      whiteLabel?.onboardingDetails?.payoutWalletNumber ||
+      whiteLabel?.onboardingDetails?.payoutAccountNumber ||
+      "",
   });
 
   // Synchronize forms whenever selected WhiteLabel changes or updates
@@ -335,6 +365,12 @@ export function AdminWhiteLabelDetailsDialog({
     : "";
   if (whiteLabel && currentSyncKey !== prevSyncKey) {
     setPrevSyncKey(currentSyncKey);
+    if (
+      whiteLabel.businessType === "REFERRER" &&
+      (activeTab === "artists" || activeTab === "branding")
+    ) {
+      setActiveTab("overview");
+    }
     setBrandingForm({
       name: whiteLabel.name || "",
       subdomain: whiteLabel.subdomain || "",
@@ -424,6 +460,33 @@ export function AdminWhiteLabelDetailsDialog({
       preferredCommissionStructure:
         whiteLabel.onboardingDetails?.preferredCommissionStructure ||
         "lifetime_rev_share",
+      referralNetworkCode:
+        whiteLabel.onboardingDetails?.referralNetworkCode ||
+        whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
+        "",
+      payoutMethod:
+        whiteLabel.onboardingDetails?.payoutMethod ||
+        "BANK_TRANSFER",
+      payoutBankName:
+        whiteLabel.onboardingDetails?.payoutBankName || "",
+      payoutAccountName:
+        whiteLabel.onboardingDetails?.payoutAccountName ||
+        whiteLabel.onboardingDetails?.payoutAccountHolderName ||
+        "",
+      payoutAccountNumber:
+        whiteLabel.onboardingDetails?.payoutAccountNumber || "",
+      payoutBranchDistrict:
+        whiteLabel.onboardingDetails?.payoutBranchDistrict || "",
+      payoutBankBranch:
+        whiteLabel.onboardingDetails?.payoutBankBranch || "",
+      payoutBankRouting:
+        whiteLabel.onboardingDetails?.payoutBankRouting || "",
+      payoutSwiftCode:
+        whiteLabel.onboardingDetails?.payoutSwiftCode || "",
+      payoutWalletNumber:
+        whiteLabel.onboardingDetails?.payoutWalletNumber ||
+        whiteLabel.onboardingDetails?.payoutAccountNumber ||
+        "",
     });
   }
 
@@ -895,33 +958,54 @@ export function AdminWhiteLabelDetailsDialog({
         hasSampleBasedCovers: Boolean(dossierForm.hasSampleBasedCovers),
         onboardingDetails: {
           ...(whiteLabel.onboardingDetails || {}),
-          primaryGenre: dossierForm.primaryGenre,
-          labelType: dossierForm.labelType,
-          masterRoyaltySplitStandard: dossierForm.masterRoyaltySplitStandard,
-          isrcRegistrantCode: dossierForm.isrcRegistrantCode,
-          isrcPrefix: dossierForm.isrcRegistrantCode,
-          dolbyAtmosReady: dossierForm.dolbyAtmosReady,
-          estimatedLaunchTimeline: dossierForm.estimatedLaunchTimeline,
-          subLabelsCount: Number(dossierForm.subLabelsCount) || 0,
-          independentArtistsRepresented:
-            Number(dossierForm.independentArtistsRepresented) || 0,
-          ingestionProtocol: dossierForm.ingestionProtocol,
-          antiFraudInspectionRequired: dossierForm.antiFraudInspectionRequired,
-          publishingCompanyType: dossierForm.publishingCompanyType,
-          primaryProAffiliation: dossierForm.primaryProAffiliation,
-          ipiCaeNumber: dossierForm.ipiCaeNumber,
-          theMlcMemberCode: dossierForm.theMlcMemberCode,
-          musicalWorksCount: Number(dossierForm.musicalWorksCount) || 0,
-          songwritersRepresentedCount:
-            Number(dossierForm.songwritersRepresentedCount) || 0,
-          cwrExchangeEnabled: dossierForm.cwrExchangeEnabled,
-          scoutNetworkCategory: dossierForm.scoutNetworkCategory,
-          projectedAnnualReferrals:
-            Number(dossierForm.projectedAnnualReferrals) || 0,
-          projectedPipelineCatalogSize:
-            Number(dossierForm.projectedPipelineCatalogSize) || 0,
-          preferredCommissionStructure:
-            dossierForm.preferredCommissionStructure,
+          ...(dossierForm.businessType === "REFERRER"
+            ? {
+                referralNetworkCode: dossierForm.referralNetworkCode,
+                payoutMethod: dossierForm.payoutMethod,
+                payoutBankName: dossierForm.payoutBankName,
+                payoutAccountName: dossierForm.payoutAccountName,
+                payoutAccountNumber: dossierForm.payoutAccountNumber,
+                payoutBranchDistrict: dossierForm.payoutBranchDistrict,
+                payoutBankBranch: dossierForm.payoutBankBranch,
+                payoutBankRouting: dossierForm.payoutBankRouting,
+                payoutSwiftCode: dossierForm.payoutSwiftCode,
+                payoutWalletNumber: dossierForm.payoutWalletNumber,
+                referralCommissionRate: 15,
+                dealBenchmarkBdt: 60000,
+                minGuaranteedBountyBdt: 9000,
+                operatingHub: "platform.royalmotionit.com/referrer",
+              }
+            : {
+                primaryGenre: dossierForm.primaryGenre,
+                labelType: dossierForm.labelType,
+                masterRoyaltySplitStandard:
+                  dossierForm.masterRoyaltySplitStandard,
+                isrcRegistrantCode: dossierForm.isrcRegistrantCode,
+                isrcPrefix: dossierForm.isrcRegistrantCode,
+                dolbyAtmosReady: dossierForm.dolbyAtmosReady,
+                estimatedLaunchTimeline: dossierForm.estimatedLaunchTimeline,
+                subLabelsCount: Number(dossierForm.subLabelsCount) || 0,
+                independentArtistsRepresented:
+                  Number(dossierForm.independentArtistsRepresented) || 0,
+                ingestionProtocol: dossierForm.ingestionProtocol,
+                antiFraudInspectionRequired:
+                  dossierForm.antiFraudInspectionRequired,
+                publishingCompanyType: dossierForm.publishingCompanyType,
+                primaryProAffiliation: dossierForm.primaryProAffiliation,
+                ipiCaeNumber: dossierForm.ipiCaeNumber,
+                theMlcMemberCode: dossierForm.theMlcMemberCode,
+                musicalWorksCount: Number(dossierForm.musicalWorksCount) || 0,
+                songwritersRepresentedCount:
+                  Number(dossierForm.songwritersRepresentedCount) || 0,
+                cwrExchangeEnabled: dossierForm.cwrExchangeEnabled,
+                scoutNetworkCategory: dossierForm.scoutNetworkCategory,
+                projectedAnnualReferrals:
+                  Number(dossierForm.projectedAnnualReferrals) || 0,
+                projectedPipelineCatalogSize:
+                  Number(dossierForm.projectedPipelineCatalogSize) || 0,
+                preferredCommissionStructure:
+                  dossierForm.preferredCommissionStructure,
+              }),
         },
       });
 
@@ -1473,18 +1557,18 @@ export function AdminWhiteLabelDetailsDialog({
                 <Edit3 className="h-3 w-3" />
                 Edit Dossier & Operations
               </button>
-              <button
-                onClick={() => setActiveTab("artists")}
-                className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
-                  activeTab === "artists"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR"
-                  ? `Sub-Labels & Catalogs (${whiteLabel.artists?.length || 0})`
-                  : `Prospect Pipeline (${whiteLabel.artists?.length || 0})`}
-              </button>
+              {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
+                <button
+                  onClick={() => setActiveTab("artists")}
+                  className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
+                    activeTab === "artists"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Sub-Labels & Catalogs ({whiteLabel.artists?.length || 0})
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab("documents")}
                 className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
@@ -1508,16 +1592,18 @@ export function AdminWhiteLabelDetailsDialog({
               >
                 Billing & Ledger ({paymentsList.length})
               </button>
-              <button
-                onClick={() => setActiveTab("branding")}
-                className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
-                  activeTab === "branding"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Branding & Cloud DNS
-              </button>
+              {whiteLabel.businessType === "DISTRIBUTOR_AGGREGATOR" && (
+                <button
+                  onClick={() => setActiveTab("branding")}
+                  className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 ${
+                    activeTab === "branding"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Branding & Cloud DNS
+                </button>
+              )}
             </div>
           </div>
 
@@ -1670,52 +1756,106 @@ export function AdminWhiteLabelDetailsDialog({
                   </div>
                 </div>
 
-                {/* Catalog & Distribution Telemetry */}
-                <div className="space-y-2">
-                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                    Catalog & Financial Telemetry
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">
-                        Catalog Tracks
-                      </span>
-                      <p className="font-bold text-base text-foreground">
-                        {whiteLabel.catalogTrackCount.toLocaleString()}
-                      </p>
+                {/* Catalog vs Referrer Bounty Telemetry */}
+                {whiteLabel.businessType === "REFERRER" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <BadgePercent className="h-3.5 w-3.5 text-amber-500" />
+                        Commercial Bounty & Remittance Framework
+                      </h4>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      >
+                        15% Gross Share
+                      </Badge>
                     </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Bounty Commission
+                        </span>
+                        <p className="font-bold text-base text-amber-600 dark:text-amber-400 font-mono">
+                          15% Gross
+                        </p>
+                      </div>
 
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">
-                        Monthly Delivery
-                      </span>
-                      <p className="font-bold text-base text-foreground">
-                        {whiteLabel.monthlyTrackDelivery.toLocaleString()} / mo
-                      </p>
-                    </div>
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Baseline Deal Price
+                        </span>
+                        <p className="font-bold text-base text-foreground font-mono">
+                          ৳60,000 BDT
+                        </p>
+                      </div>
 
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">
-                        Monthly Revenue
-                      </span>
-                      <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
-                        $
-                        {Number(
-                          whiteLabel.monthlyRevenueUsd || 0,
-                        ).toLocaleString()}
-                      </p>
-                    </div>
+                      <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Min Guaranteed Bounty
+                        </span>
+                        <p className="font-bold text-base text-emerald-600 dark:text-emerald-400 font-mono">
+                          ৳9,000 BDT
+                        </p>
+                      </div>
 
-                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
-                      <span className="text-muted-foreground text-[10px] block">
-                        Portal Signup Model
-                      </span>
-                      <p className="font-bold text-sm text-foreground">
-                        {whiteLabel.userSignupModel.replace(/_/g, " ")}
-                      </p>
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Operating Hub
+                        </span>
+                        <p className="font-bold text-xs text-primary font-mono truncate">
+                          /referrer
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                      Catalog & Financial Telemetry
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Catalog Tracks
+                        </span>
+                        <p className="font-bold text-base text-foreground">
+                          {whiteLabel.catalogTrackCount.toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Monthly Delivery
+                        </span>
+                        <p className="font-bold text-base text-foreground">
+                          {whiteLabel.monthlyTrackDelivery.toLocaleString()} / mo
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Monthly Revenue
+                        </span>
+                        <p className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                          $
+                          {Number(
+                            whiteLabel.monthlyRevenueUsd || 0,
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl border border-border/60 bg-muted/20 text-center">
+                        <span className="text-muted-foreground text-[10px] block">
+                          Portal Signup Model
+                        </span>
+                        <p className="font-bold text-sm text-foreground">
+                          {whiteLabel.userSignupModel.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Domain Architecture Dossier */}
                 {whiteLabel.onboardingDetails && (
@@ -1832,23 +1972,20 @@ export function AdminWhiteLabelDetailsDialog({
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Scout Network Code
+                                Attribution Code
                               </span>
                               <span className="font-bold text-foreground font-mono uppercase">
-                                {whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
-                                  whiteLabel.onboardingDetails?.referralNetworkCode ||
-                                  `${whiteLabel.code}-SCOUT`}
+                                {whiteLabel.onboardingDetails?.referralNetworkCode ||
+                                  whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
+                                  `${whiteLabel.code}-REF`}
                               </span>
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Partner Category
+                                Operating Hub
                               </span>
-                              <span className="font-bold text-foreground capitalize">
-                                {(
-                                  whiteLabel.onboardingDetails?.scoutNetworkCategory ||
-                                  "talent_scout"
-                                ).replace(/_/g, " ")}
+                              <span className="font-bold text-primary font-mono text-[11px] truncate block">
+                                platform.royalmotionit.com/referrer
                               </span>
                             </div>
                             <div>
@@ -1863,7 +2000,7 @@ export function AdminWhiteLabelDetailsDialog({
                             </div>
                             <div>
                               <span className="text-muted-foreground text-[10px] block">
-                                Partner Referral Cut
+                                Partner Referral Bounty
                               </span>
                               <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                                 15% of Selling Price
@@ -1893,7 +2030,7 @@ export function AdminWhiteLabelDetailsDialog({
                                 Remittance Method
                               </span>
                               <span className="font-bold text-foreground">
-                                {whiteLabel.onboardingDetails?.payoutMethod || "Wise Business"}
+                                {whiteLabel.onboardingDetails?.payoutMethod || "BANK_TRANSFER"}
                               </span>
                             </div>
                             <div>
@@ -1904,14 +2041,9 @@ export function AdminWhiteLabelDetailsDialog({
                                 ${whiteLabel.onboardingDetails?.minimumPayoutThresholdUsd ?? 100} USD
                               </span>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground text-[10px] block">
-                                Target Prospects
-                              </span>
-                              <span className="font-bold text-foreground">
-                                {whiteLabel.artists?.length || 0} In Pipeline
-                              </span>
-                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
                             {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
                               <>
                                 {whiteLabel.onboardingDetails?.payoutBankName && (
@@ -2163,149 +2295,405 @@ export function AdminWhiteLabelDetailsDialog({
                   </div>
                 </div>
 
-                {/* Section 2: Catalog, Genre & Portal Signup */}
-                <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
-                  <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
-                    2. Catalog Telemetry, Genre & Portal Architecture
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Primary Genre Focus
-                      </Label>
-                      <Select
-                        value={dossierForm.primaryGenre}
-                        onValueChange={(val) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            primaryGenre: val || "Multi-Genre / All Genres",
-                          }))
-                        }
+                {/* Section 2: Catalog Telemetry vs Referrer Remittance Operations */}
+                {dossierForm.businessType === "REFERRER" ? (
+                  <div className="p-4 rounded-xl border border-amber-500/40 bg-card space-y-4">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                      <h5 className="font-bold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                        <BadgePercent className="h-4 w-4" />
+                        2. Referrer Commercial Framework & Remittance Operations
+                      </h5>
+                      <Badge
+                        variant="outline"
+                        className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold"
                       >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GLOBAL_GENRE_OPTIONS.map((g) => (
-                            <SelectItem key={g} value={g}>
-                              {g}
+                        15% Gross Bounty
+                      </Badge>
+                    </div>
+
+                    <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs text-muted-foreground leading-relaxed">
+                      Referrer partners earn a{" "}
+                      <strong className="text-foreground">
+                        fixed 15% commission
+                      </strong>{" "}
+                      on the gross selling price of every WhiteLabel Distribution
+                      Aggregator account referred (baseline minimum deal:{" "}
+                      <strong className="text-foreground">৳60,000 BDT</strong>;
+                      minimum guaranteed bounty:{" "}
+                      <strong className="text-foreground">৳9,000 BDT</strong>).
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Custom Referral Attribution Code
+                        </Label>
+                        <Input
+                          value={dossierForm.referralNetworkCode}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              referralNetworkCode: e.target.value
+                                .toUpperCase()
+                                .replace(/[^A-Z0-9-]/g, ""),
+                            }))
+                          }
+                          placeholder="e.g. PARTNER-AGENCY"
+                          className="h-8 text-xs font-mono font-bold uppercase"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Payout / Remittance Method
+                        </Label>
+                        <Select
+                          value={dossierForm.payoutMethod}
+                          onValueChange={(val) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              payoutMethod: val,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs font-semibold">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BANK_TRANSFER">
+                              Bank Transfer (All 7 Fields)
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Primary Catalog Language
-                      </Label>
-                      <Select
-                        value={dossierForm.primaryCatalogLanguage}
-                        onValueChange={(val) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            primaryCatalogLanguage: val || "English",
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
-                            <SelectItem key={lang} value={lang}>
-                              {lang}
+                            <SelectItem value="BKASH">
+                              bKash Personal / Merchant
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            <SelectItem value="NAGAD">
+                              Nagad Personal / Merchant
+                            </SelectItem>
+                            <SelectItem value="ROCKET">
+                              Rocket Personal
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Creator Signup Model
-                      </Label>
-                      <Select
-                        value={dossierForm.userSignupModel}
-                        onValueChange={(val) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            userSignupModel: val as WhiteLabelSignupModel,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="INVITE_ONLY">
-                            Invite Only
-                          </SelectItem>
-                          <SelectItem value="ADMIN_APPROVAL">
-                            Admin Approval
-                          </SelectItem>
-                          <SelectItem value="OPEN_REGISTRATION">
-                            Open Registration
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {dossierForm.payoutMethod === "BANK_TRANSFER" ? (
+                      <div className="space-y-3 pt-2 border-t border-border/40">
+                        <h6 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                          <Landmark className="h-3.5 w-3.5 text-primary" />
+                          Bank Account Wire Details (7 Required Verification
+                          Fields)
+                        </h6>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Bank Name *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutBankName}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutBankName: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g. Dutch-Bangla Bank"
+                              className="h-8 text-xs"
+                            />
+                          </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Total Catalog Tracks
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={dossierForm.catalogTrackCount}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            catalogTrackCount: Number(e.target.value) || 0,
-                          }))
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Account Holder Name *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutAccountName}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutAccountName: e.target.value,
+                                }))
+                              }
+                              placeholder="Legal Name on Bank Record"
+                              className="h-8 text-xs"
+                            />
+                          </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Monthly Release Velocity
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={dossierForm.monthlyTrackDelivery}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            monthlyTrackDelivery: Number(e.target.value) || 0,
-                          }))
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Account Number *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutAccountNumber}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutAccountNumber: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g. 1234567890123"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Monthly Revenue ($ USD)
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={dossierForm.monthlyRevenueUsd}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            monthlyRevenueUsd: Number(e.target.value) || 0,
-                          }))
-                        }
-                        className="h-8 text-xs"
-                      />
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Branch District *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutBranchDistrict}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutBranchDistrict: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g. Dhaka"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Branch Name *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutBankBranch}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutBankBranch: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g. Gulshan Branch"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Routing Number *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutBankRouting}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutBankRouting: e.target.value,
+                                }))
+                              }
+                              placeholder="9-digit Routing Code"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1 sm:col-span-3">
+                            <Label className="text-xs font-semibold">
+                              Swift Code (BIC) *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutSwiftCode}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutSwiftCode: e.target.value.toUpperCase(),
+                                }))
+                              }
+                              placeholder="8 or 11 character SWIFT code"
+                              className="h-8 text-xs font-mono uppercase"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 pt-2 border-t border-border/40">
+                        <h6 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                          <Wallet className="h-3.5 w-3.5 text-primary" />
+                          {dossierForm.payoutMethod} Mobile Financial Services
+                          Setup
+                        </h6>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              Account Holder Name *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutAccountName}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutAccountName: e.target.value,
+                                }))
+                              }
+                              placeholder="Account Registered Full Name"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">
+                              {dossierForm.payoutMethod} Wallet Number *
+                            </Label>
+                            <Input
+                              value={dossierForm.payoutWalletNumber}
+                              onChange={(e) =>
+                                setDossierForm((p) => ({
+                                  ...p,
+                                  payoutWalletNumber: e.target.value,
+                                }))
+                              }
+                              placeholder="01XXXXXXXXX"
+                              className="h-8 text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                      2. Catalog Telemetry, Genre & Portal Architecture
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Primary Genre Focus
+                        </Label>
+                        <Select
+                          value={dossierForm.primaryGenre}
+                          onValueChange={(val) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              primaryGenre: val || "Multi-Genre / All Genres",
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GLOBAL_GENRE_OPTIONS.map((g) => (
+                              <SelectItem key={g} value={g}>
+                                {g}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Primary Catalog Language
+                        </Label>
+                        <Select
+                          value={dossierForm.primaryCatalogLanguage}
+                          onValueChange={(val) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              primaryCatalogLanguage: val || "English",
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
+                              <SelectItem key={lang} value={lang}>
+                                {lang}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Creator Signup Model
+                        </Label>
+                        <Select
+                          value={dossierForm.userSignupModel}
+                          onValueChange={(val) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              userSignupModel: val as WhiteLabelSignupModel,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="INVITE_ONLY">
+                              Invite Only
+                            </SelectItem>
+                            <SelectItem value="ADMIN_APPROVAL">
+                              Admin Approval
+                            </SelectItem>
+                            <SelectItem value="OPEN_REGISTRATION">
+                              Open Registration
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Total Catalog Tracks
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={dossierForm.catalogTrackCount}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              catalogTrackCount: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Monthly Release Velocity
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={dossierForm.monthlyTrackDelivery}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              monthlyTrackDelivery: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Monthly Revenue ($ USD)
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={dossierForm.monthlyRevenueUsd}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              monthlyRevenueUsd: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Section 3: Domain, Elastic IP & Compliance Switches */}
                 <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">

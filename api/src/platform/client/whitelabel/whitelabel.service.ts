@@ -509,6 +509,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      let sanitizedOnboardingDetails = dto.onboardingDetails;
+      if (isReferrer && sanitizedOnboardingDetails) {
+        const {
+          primaryGenre,
+          primaryGenresScouted,
+          labelType,
+          publishingCompanyType,
+          ...cleaned
+        } = sanitizedOnboardingDetails as any;
+        sanitizedOnboardingDetails = cleaned;
+      }
+
       const updated = await this.prismaService.whiteLabel.update({
         where: { id: subscription.whiteLabel.id },
         data: {
@@ -523,27 +535,27 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           contactLastName: dto.contactLastName,
           contactEmail: dto.contactEmail,
           contactLinkedIn: dto.contactLinkedIn,
-          catalogTrackCount: dto.catalogTrackCount ?? 0,
-          monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
-          monthlyRevenueUsd: dto.monthlyRevenueUsd,
-          hasDirectDeals: dto.hasDirectDeals ?? false,
-          currentDistributors: dto.currentDistributors ?? [],
-          royaltySolutions: dto.royaltySolutions ?? [],
-          primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
-          wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
-          hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
-          userSignupModel: dto.userSignupModel,
+          catalogTrackCount: isReferrer ? 0 : (dto.catalogTrackCount ?? 0),
+          monthlyTrackDelivery: isReferrer ? 0 : (dto.monthlyTrackDelivery ?? 0),
+          monthlyRevenueUsd: isReferrer ? null : dto.monthlyRevenueUsd,
+          hasDirectDeals: isReferrer ? false : (dto.hasDirectDeals ?? false),
+          currentDistributors: isReferrer ? [] : (dto.currentDistributors ?? []),
+          royaltySolutions: isReferrer ? [] : (dto.royaltySolutions ?? []),
+          primaryCatalogLanguage: isReferrer ? 'en' : (dto.primaryCatalogLanguage ?? 'en'),
+          wantsCatalogMigration: isReferrer ? false : (dto.wantsCatalogMigration ?? false),
+          hasSampleBasedCovers: isReferrer ? false : (dto.hasSampleBasedCovers ?? false),
+          userSignupModel: isReferrer ? WhiteLabelSignupModel.INVITE_ONLY : dto.userSignupModel,
           privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
           marketingConsent: dto.marketingConsent ?? false,
-          ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
+          ...(sanitizedOnboardingDetails ? { onboardingDetails: sanitizedOnboardingDetails } : {}),
           subdomain: isReferrer ? null : finalSubdomain,
           elasticIpv4: isReferrer ? null : finalElasticIpv4,
-          ...(dto.primaryColor ? { primaryColor: dto.primaryColor } : {}),
+          primaryColor: isReferrer ? null : (dto.primaryColor || '#6366f1'),
           status: WhiteLabelStatus.PENDING,
           statusReason: null,
           reviewedAt: null,
           artists: {
-            create: artistData,
+            create: isReferrer ? [] : artistData,
           },
         },
         include: {
@@ -576,9 +588,21 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       CodePrefix.WHITELABEL,
     );
 
+    let sanitizedOnboardingDetails = dto.onboardingDetails;
+    if (isReferrer && sanitizedOnboardingDetails) {
+      const {
+        primaryGenre,
+        primaryGenresScouted,
+        labelType,
+        publishingCompanyType,
+        ...cleaned
+      } = sanitizedOnboardingDetails as any;
+      sanitizedOnboardingDetails = cleaned;
+    }
+
     const artistData: Prisma.WhiteLabelTopArtistCreateWithoutWhiteLabelInput[] =
       [];
-    if (dto.topArtists && dto.topArtists.length > 0) {
+    if (!isReferrer && dto.topArtists && dto.topArtists.length > 0) {
       for (let i = 0; i < dto.topArtists.length; i++) {
         const artist = dto.topArtists[i];
         const artistCode = await generateUniqueCode(
@@ -605,7 +629,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         businessType: dto.businessType,
         subdomain: isReferrer ? null : finalSubdomain,
         elasticIpv4: isReferrer ? null : cleanElasticIpv4,
-        primaryColor: dto.primaryColor || '#6366f1',
+        primaryColor: isReferrer ? null : (dto.primaryColor || '#6366f1'),
         companyWebsite: dto.companyWebsite,
         country: dto.country,
         yearsInBusiness: dto.yearsInBusiness ?? 0,
@@ -615,19 +639,19 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         contactLastName: dto.contactLastName,
         contactEmail: dto.contactEmail,
         contactLinkedIn: dto.contactLinkedIn,
-        catalogTrackCount: dto.catalogTrackCount ?? 0,
-        monthlyTrackDelivery: dto.monthlyTrackDelivery ?? 0,
-        monthlyRevenueUsd: dto.monthlyRevenueUsd,
-        hasDirectDeals: dto.hasDirectDeals ?? false,
-        currentDistributors: dto.currentDistributors ?? [],
-        royaltySolutions: dto.royaltySolutions ?? [],
-        primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
-        wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
-        hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
-        userSignupModel: dto.userSignupModel,
+        catalogTrackCount: isReferrer ? 0 : (dto.catalogTrackCount ?? 0),
+        monthlyTrackDelivery: isReferrer ? 0 : (dto.monthlyTrackDelivery ?? 0),
+        monthlyRevenueUsd: isReferrer ? null : dto.monthlyRevenueUsd,
+        hasDirectDeals: isReferrer ? false : (dto.hasDirectDeals ?? false),
+        currentDistributors: isReferrer ? [] : (dto.currentDistributors ?? []),
+        royaltySolutions: isReferrer ? [] : (dto.royaltySolutions ?? []),
+        primaryCatalogLanguage: isReferrer ? 'en' : (dto.primaryCatalogLanguage ?? 'en'),
+        wantsCatalogMigration: isReferrer ? false : (dto.wantsCatalogMigration ?? false),
+        hasSampleBasedCovers: isReferrer ? false : (dto.hasSampleBasedCovers ?? false),
+        userSignupModel: isReferrer ? WhiteLabelSignupModel.INVITE_ONLY : dto.userSignupModel,
         privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
         marketingConsent: dto.marketingConsent ?? false,
-        ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
+        ...(sanitizedOnboardingDetails ? { onboardingDetails: sanitizedOnboardingDetails } : {}),
         status: WhiteLabelStatus.PENDING,
         subscriptionId: subscription.id,
         artists: {

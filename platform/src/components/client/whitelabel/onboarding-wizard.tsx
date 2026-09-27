@@ -73,9 +73,9 @@ const BUSINESS_TYPES = [
   },
   {
     id: WhiteLabelBusinessType.REFERRER,
-    label: "Referrer / Agency Partner",
+    label: "Referrer Partner",
     description:
-      "Talent scout network, A&R pipeline, label referrals, and tiered residual rev-share bounties.",
+      "Refer Distribution Aggregator accounts to earn 15% commission of gross selling price (Min deal: ৳60,000 BDT). Managed at /referrer.",
     icon: Users,
   },
 ];
@@ -334,16 +334,8 @@ export function WhiteLabelOnboardingWizard({
 
     // Dynamic Type-Specific Onboarding Payload
     onboardingDetails: initialDraft?.onboardingDetails || {
-      // Record Label Fields
-      labelType: "independent",
-      isrcCountryCode: "US",
-      isrcRegistrantCode: "",
+      // Distributor / Aggregator Fields ONLY
       primaryGenre: "Multi-Genre / All Genres",
-      masterRoyaltySplitStandard: "70/30 (Artist 70% / Label 30%)",
-      physicalDistributionNeeded: false,
-      dolbyAtmosReady: true,
-
-      // Distributor / Aggregator Fields
       subLabelsCount: 5,
       independentArtistsRepresented: 40,
       ingestionProtocol: "DDEX_ERN_4_3",
@@ -352,28 +344,21 @@ export function WhiteLabelOnboardingWizard({
       directDspAgreements: ["Spotify Direct", "Apple Music Direct"],
       bulkBarcodePoolNeeded: true,
 
-      // Music Publisher Fields
-      publishingCompanyType: "administration",
-      primaryProAffiliation: "ASCAP (United States)",
-      ipiCaeNumber: "",
-      theMlcMemberCode: "",
-      musicalWorksCount: 150,
-      songwritersRepresentedCount: 12,
-      cwrExchangeEnabled: true,
-      collectsMechanicals: true,
-      syncLicensingCatalogSize: 50,
-
-      // Referrer / Scout Fields
-      scoutNetworkCategory: "talent_scout",
-      projectedAnnualReferrals: 10,
-      projectedPipelineCatalogSize: 500,
-      targetTerritories: ["North America (US & Canada)"],
-      preferredCommissionStructure: "selling_value_share",
-      discoveryChannels: [
-        "Studio Sessions & Productions",
-        "Live Showcases & Tours",
-      ],
-      primaryGenresScouted: ["Hip-Hop / Urban", "Electronic / Dance"],
+      // Referrer Partner Fields ONLY (strictly no genre, no catalog, no music distribution fields)
+      referralNetworkCode: "",
+      payoutMethod: "BKASH",
+      payoutBankName: "",
+      payoutAccountName: "",
+      payoutAccountHolderName: "",
+      payoutAccountNumber: "",
+      payoutWalletNumber: "",
+      payoutBranchDistrict: "",
+      payoutBankBranch: "",
+      payoutBankRouting: "",
+      payoutSwiftCode: "",
+      minimumAccountSellingPriceBdt: 60000,
+      commissionPercentage: 15,
+      simulatedDealPriceBdt: 60000,
     },
   });
 
@@ -591,27 +576,48 @@ export function WhiteLabelOnboardingWizard({
     });
   };
 
+  const isReferrer =
+    formData.businessType === WhiteLabelBusinessType.REFERRER;
+  const maxSteps = isReferrer ? 4 : 6;
+
   const validateStep = (step: number) => {
     if (step === 1) {
       if (!formData.name.trim()) {
-        toast.error("Please enter your Company / Organization Name.");
+        toast.error(
+          isReferrer
+            ? "Please enter your Partner / Agency Name."
+            : "Please enter your Company / Organization Name.",
+        );
         return false;
       }
     }
-    if (step === 2) {
-      if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
-        const payoutMethod =
-          formData.onboardingDetails?.payoutMethod || "BKASH";
-        if (!payoutMethod) {
-          toast.error("Please select a commission payout method.");
+
+    if (isReferrer) {
+      if (step === 2) {
+        if (
+          !formData.contactFirstName.trim() ||
+          !formData.contactLastName.trim()
+        ) {
+          toast.error("Please provide the partner representative name.");
           return false;
         }
-
+        if (
+          !formData.contactEmail.trim() ||
+          !formData.contactEmail.includes("@")
+        ) {
+          toast.error("Please provide a valid work email.");
+          return false;
+        }
+      }
+      if (step === 3) {
+        const payoutMethod =
+          formData.onboardingDetails?.payoutMethod || "BKASH";
         if (payoutMethod === "BANK_TRANSFER") {
           const bankName = formData.onboardingDetails?.payoutBankName?.trim();
-          const accountName =
-            formData.onboardingDetails?.payoutAccountName?.trim() ||
-            formData.onboardingDetails?.payoutAccountHolderName?.trim();
+          const accountName = (
+            formData.onboardingDetails?.payoutAccountName ||
+            formData.onboardingDetails?.payoutAccountHolderName
+          )?.trim();
           const accountNo =
             formData.onboardingDetails?.payoutAccountNumber?.trim();
           const branchDistrict =
@@ -653,9 +659,10 @@ export function WhiteLabelOnboardingWizard({
           }
         } else {
           // MFS: bKash, Nagad, Rocket
-          const walletNumber =
-            formData.onboardingDetails?.payoutWalletNumber?.trim() ||
-            formData.onboardingDetails?.payoutAccountNumber?.trim();
+          const walletNumber = (
+            formData.onboardingDetails?.payoutWalletNumber ||
+            formData.onboardingDetails?.payoutAccountNumber
+          )?.trim();
           if (!walletNumber) {
             toast.error(
               `Please enter your ${
@@ -669,67 +676,73 @@ export function WhiteLabelOnboardingWizard({
             return false;
           }
         }
-        return true;
       }
-      if (formData.desiredSubdomain) {
-        const sub = formData.desiredSubdomain.trim().toLowerCase();
-        if (sub.length < 3 || sub.length > 30) {
-          toast.error("Subdomain must be between 3 and 30 characters.");
-          return false;
-        }
-        if (subdomainStatus.available === false) {
+      if (step === 4) {
+        if (!formData.privacyPolicyAccepted) {
           toast.error(
-            subdomainStatus.reason || "This subdomain is not available.",
+            "You must agree to the 15% partner terms to submit your application.",
           );
           return false;
         }
       }
-      const trimmedIp = formData.elasticIpv4?.trim() || "";
-      if (trimmedIp.length > 0) {
-        const ipv4Regex =
-          /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-        if (!ipv4Regex.test(trimmedIp)) {
-          toast.error("Must be a valid IPv4 address (e.g. 54.210.12.34)");
+    } else {
+      // Distributor Aggregator
+      if (step === 2) {
+        if (formData.desiredSubdomain) {
+          const sub = formData.desiredSubdomain.trim().toLowerCase();
+          if (sub.length < 3 || sub.length > 30) {
+            toast.error("Subdomain must be between 3 and 30 characters.");
+            return false;
+          }
+          if (subdomainStatus.available === false) {
+            toast.error(
+              subdomainStatus.reason || "This subdomain is not available.",
+            );
+            return false;
+          }
+        }
+        const trimmedIp = formData.elasticIpv4?.trim() || "";
+        if (trimmedIp.length > 0) {
+          const ipv4Regex =
+            /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+          if (!ipv4Regex.test(trimmedIp)) {
+            toast.error("Must be a valid IPv4 address (e.g. 54.210.12.34)");
+            return false;
+          }
+        }
+      }
+      if (step === 3) {
+        if (
+          !formData.contactFirstName.trim() ||
+          !formData.contactLastName.trim()
+        ) {
+          toast.error("Please provide your contact name.");
+          return false;
+        }
+        if (
+          !formData.contactEmail.trim() ||
+          !formData.contactEmail.includes("@")
+        ) {
+          toast.error("Please provide a valid contact email.");
           return false;
         }
       }
-    }
-    if (step === 3) {
-      if (
-        !formData.contactFirstName.trim() ||
-        !formData.contactLastName.trim()
-      ) {
-        toast.error("Please provide your contact name.");
-        return false;
-      }
-      if (
-        !formData.contactEmail.trim() ||
-        !formData.contactEmail.includes("@")
-      ) {
-        toast.error("Please provide a valid contact email.");
-        return false;
-      }
-    }
-    if (step === 5) {
-      const firstItem = formData.topArtists[0];
-      if (!firstItem?.artistName?.trim()) {
-        if (
-          formData.businessType ===
-          WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-        ) {
-          toast.error("Please provide at least 1 representative sub-label or catalog brand.");
-        } else {
-          toast.error("Please provide at least 1 prospective referral client or partner target.");
+      if (step === 5) {
+        const firstItem = formData.topArtists[0];
+        if (!firstItem?.artistName?.trim()) {
+          toast.error(
+            "Please provide at least 1 representative sub-label or catalog brand.",
+          );
+          return false;
         }
-        return false;
       }
-    }
-    if (step === 6) {
-      if (!formData.privacyPolicyAccepted) {
-        toast.error(
-          "You must accept the terms & certifications to submit your application.",
-        );
-        return false;
+      if (step === 6) {
+        if (!formData.privacyPolicyAccepted) {
+          toast.error(
+            "You must accept the terms & certifications to submit your application.",
+          );
+          return false;
+        }
       }
     }
     return true;
@@ -737,7 +750,7 @@ export function WhiteLabelOnboardingWizard({
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(6, prev + 1));
+      setCurrentStep((prev) => Math.min(maxSteps, prev + 1));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -748,12 +761,10 @@ export function WhiteLabelOnboardingWizard({
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(6)) return;
+    if (!validateStep(maxSteps)) return;
 
     setIsSubmitting(true);
     try {
-      const isReferrer =
-        formData.businessType === WhiteLabelBusinessType.REFERRER;
       const validArtists = isReferrer
         ? []
         : formData.topArtists.filter((a: RosterArtist) =>
@@ -769,11 +780,66 @@ export function WhiteLabelOnboardingWizard({
           : cleanedElasticIpv4
             ? cleanedElasticIpv4
             : undefined,
+        primaryColor: isReferrer ? undefined : formData.primaryColor,
         topArtists: validArtists,
-        onboardingDetails: {
-          ...formData.onboardingDetails,
-          estimatedLaunchTimeline: formData.estimatedLaunchTimeline,
-        },
+        catalogTrackCount: isReferrer ? 0 : formData.catalogTrackCount,
+        monthlyTrackDelivery: isReferrer ? 0 : formData.monthlyTrackDelivery,
+        monthlyRevenueUsd: isReferrer ? 0 : formData.monthlyRevenueUsd,
+        hasDirectDeals: isReferrer ? false : formData.hasDirectDeals,
+        currentDistributors: isReferrer ? [] : formData.currentDistributors,
+        royaltySolutions: isReferrer ? [] : formData.royaltySolutions,
+        wantsCatalogMigration: isReferrer ? false : formData.wantsCatalogMigration,
+        hasSampleBasedCovers: isReferrer ? false : formData.hasSampleBasedCovers,
+        userSignupModel: isReferrer
+          ? WhiteLabelSignupModel.INVITE_ONLY
+          : formData.userSignupModel,
+        onboardingDetails: isReferrer
+          ? {
+              referralNetworkCode:
+                formData.onboardingDetails?.referralNetworkCode ||
+                (formData.name
+                  ? formData.name
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "-")
+                      .slice(0, 15)
+                  : "AGY-SCOUT"),
+              payoutMethod: formData.onboardingDetails?.payoutMethod || "BKASH",
+              payoutBankName:
+                formData.onboardingDetails?.payoutBankName?.trim() || "",
+              payoutAccountName: (
+                formData.onboardingDetails?.payoutAccountName ||
+                formData.onboardingDetails?.payoutAccountHolderName ||
+                ""
+              ).trim(),
+              payoutAccountHolderName: (
+                formData.onboardingDetails?.payoutAccountName ||
+                formData.onboardingDetails?.payoutAccountHolderName ||
+                ""
+              ).trim(),
+              payoutAccountNumber:
+                formData.onboardingDetails?.payoutAccountNumber?.trim() || "",
+              payoutWalletNumber:
+                formData.onboardingDetails?.payoutWalletNumber?.trim() || "",
+              payoutBranchDistrict:
+                formData.onboardingDetails?.payoutBranchDistrict?.trim() || "",
+              payoutBankBranch:
+                formData.onboardingDetails?.payoutBankBranch?.trim() || "",
+              payoutBankRouting:
+                formData.onboardingDetails?.payoutBankRouting?.trim() || "",
+              payoutSwiftCode: (
+                formData.onboardingDetails?.payoutSwiftCode || ""
+              )
+                .trim()
+                .toUpperCase(),
+              commissionPercentage: 15,
+              minimumAccountSellingPriceBdt: 60000,
+              simulatedDealPriceBdt:
+                formData.onboardingDetails?.simulatedDealPriceBdt || 60000,
+            }
+          : {
+              ...formData.onboardingDetails,
+              estimatedLaunchTimeline: formData.estimatedLaunchTimeline,
+            },
       });
 
       if (res.success) {
@@ -797,34 +863,21 @@ export function WhiteLabelOnboardingWizard({
     }
   };
 
-  const getStep5Title = () => {
-    switch (formData.businessType) {
-      case WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR:
-        return "Sub-Labels";
-      case WhiteLabelBusinessType.REFERRER:
-        return "Prospects";
-      default:
-        return "Portfolio";
-    }
-  };
-
-  const getStep2Title = () => {
-    switch (formData.businessType) {
-      case WhiteLabelBusinessType.REFERRER:
-        return "Partner Hub";
-      default:
-        return "Branding & URL";
-    }
-  };
-
-  const stepsList = [
-    { num: 1, title: "Entity Profile" },
-    { num: 2, title: getStep2Title() },
-    { num: 3, title: "Key Contact" },
-    { num: 4, title: "Operations" },
-    { num: 5, title: getStep5Title() },
-    { num: 6, title: "Review & Submit" },
-  ];
+  const stepsList = isReferrer
+    ? [
+        { num: 1, title: "Partner Profile" },
+        { num: 2, title: "Key Contact" },
+        { num: 3, title: "Remittance Setup" },
+        { num: 4, title: "Terms & Submit" },
+      ]
+    : [
+        { num: 1, title: "Entity Profile" },
+        { num: 2, title: "Branding & URL" },
+        { num: 3, title: "Key Contact" },
+        { num: 4, title: "Operations" },
+        { num: 5, title: "Sub-Labels" },
+        { num: 6, title: "Review & Submit" },
+      ];
 
   return (
     <div className="w-full space-y-6 animate-in fade-in-50 duration-300">
@@ -859,7 +912,11 @@ export function WhiteLabelOnboardingWizard({
 
       {/* Progress Stepper Bar */}
       <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs space-y-3">
-        <div className="grid grid-cols-6 gap-1 text-center">
+        <div
+          className={`grid ${
+            isReferrer ? "grid-cols-4" : "grid-cols-6"
+          } gap-1 text-center`}
+        >
           {stepsList.map((s) => (
             <div
               key={s.num}
@@ -884,7 +941,7 @@ export function WhiteLabelOnboardingWizard({
         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-primary transition-all duration-300 rounded-full"
-            style={{ width: `${(currentStep / 6) * 100}%` }}
+            style={{ width: `${(currentStep / maxSteps) * 100}%` }}
           />
         </div>
       </div>
@@ -895,14 +952,19 @@ export function WhiteLabelOnboardingWizard({
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <Building2 className="h-4 w-4" />
-              Step 1 of 6: Business Entity & Identity
+              {isReferrer
+                ? "Step 1 of 4: Partner Entity & Identity"
+                : "Step 1 of 6: Business Entity & Identity"}
             </div>
             <CardTitle className="text-xl font-bold">
-              Business & Corporate Profile
+              {isReferrer
+                ? "Partner & Agency Profile"
+                : "Business & Corporate Profile"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Select your business model according to global music industry
-              standards.
+              {isReferrer
+                ? "Provide your commercial agency or partner profile to join the distribution partner network."
+                : "Select your business model according to global music industry standards."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -1111,7 +1173,7 @@ export function WhiteLabelOnboardingWizard({
                     WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
                     "Your platform will activate DDEX ERN batch delivery, multi-tenant sub-labels, automated anti-fraud screening, and tiered commission accounting."}
                   {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                    "Your platform will activate custom referral links, live affiliate conversion analytics, tiered client residual tracking, and automated bounty payouts."}
+                    "Earn a fixed 15% commission on the gross selling value of referred Distribution Aggregator accounts (Min deal: ৳60,000 BDT). Managed at platform.royalmotionit.com/referrer."}
                 </p>
               </div>
             </div>
@@ -1119,383 +1181,22 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 2: Branding & Subdomain OR Referrer Partner Hub */}
-      {currentStep === 2 && (
+      {/* STEP 2 (Distributor Aggregator Only): Branding & Subdomain */}
+      {!isReferrer && currentStep === 2 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
-              {formData.businessType === WhiteLabelBusinessType.REFERRER ? (
-                <>
-                  <Users className="h-4 w-4" />
-                  Step 2 of 6: Partner Hub &amp; Network Setup
-                </>
-              ) : (
-                <>
-                  <Globe className="h-4 w-4" />
-                  Step 2 of 6: Identity &amp; Subdomain
-                </>
-              )}
+              <Globe className="h-4 w-4" />
+              Step 2 of 6: Identity & Subdomain
             </div>
             <CardTitle className="text-xl font-bold">
-              {formData.businessType === WhiteLabelBusinessType.REFERRER
-                ? "Referral Partner Portal & Network Identity"
-                : "Platform Identity & Subdomain Claim"}
+              Platform Identity & Subdomain Claim
             </CardTitle>
             <CardDescription className="text-xs">
-              {formData.businessType === WhiteLabelBusinessType.REFERRER
-                ? "As an Authorized Referral Partner, your control center is hosted directly inside platform.royalmotionit.com/referrer. No Elastic IP, custom domain, or website servers are needed!"
-                : "Choose your dedicated WhiteLabel portal address and brand color scheme."}
+              Choose your dedicated WhiteLabel portal address and brand color scheme.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {formData.businessType === WhiteLabelBusinessType.REFERRER ? (
-              /* REFERRER PARTNER SETUP: NO SUBDOMAIN, NO EIP */
-              <>
-                {/* 1. Platform-Hosted Hub Info Banner */}
-                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-primary flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      100% Platform-Hosted Referrer Dashboard
-                    </span>
-                    <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
-                      Zero Server Maintenance
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    You do not need a custom domain, Elastic IP (EIP), or web server. You will manage your referral tracking links, track referred accounts, view 15% commissions, and request payouts directly at:
-                  </p>
-                  <div className="p-2.5 rounded-lg bg-background/80 border border-primary/20 flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-primary">
-                      https://platform.royalmotionit.com/referrer
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] font-mono font-medium">
-                      Alias: /refferer
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* 2. Partner Referral Code / Scout ID */}
-                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="referralCodeInput"
-                      className="text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Share2 className="h-3.5 w-3.5 text-primary" />
-                      <span>Custom Partner Referral Code</span>
-                    </Label>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-mono text-muted-foreground"
-                    >
-                      Attribution Tracking
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
-                    <input
-                      id="referralCodeInput"
-                      type="text"
-                      placeholder="e.g. AGY-SCOUT"
-                      value={
-                        formData.onboardingDetails?.referralNetworkCode ||
-                        formData.onboardingDetails?.scoutAffiliateCodePrefix ||
-                        ""
-                      }
-                      onChange={(e) => {
-                        const clean = e.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z0-9-]/g, "")
-                          .slice(0, 20);
-                        updateOnboardingDetail("referralNetworkCode", clean);
-                        updateOnboardingDetail("scoutAffiliateCodePrefix", clean);
-                      }}
-                      className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0 uppercase"
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground pt-1">
-                    Your direct referral link will be:{" "}
-                    <strong className="text-foreground font-mono">
-                      https://platform.royalmotionit.com/auth/register?ref=
-                      {formData.onboardingDetails?.referralNetworkCode ||
-                        formData.onboardingDetails?.scoutAffiliateCodePrefix ||
-                        (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "YOUR-CODE")}
-                    </strong>
-                  </p>
-                </div>
-
-                {/* 3. Payout & Remittance Preference (Required) */}
-                <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-card">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold flex items-center gap-1.5">
-                      <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
-                      <span>Commission Payout Method</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                    >
-                      Required
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[
-                      { id: "BKASH", name: "bKash (MFS)" },
-                      { id: "NAGAD", name: "Nagad (MFS)" },
-                      { id: "ROCKET", name: "Rocket (MFS)" },
-                      { id: "BANK_TRANSFER", name: "Bank Transfer" },
-                    ].map((method) => {
-                      const currentMethod =
-                        formData.onboardingDetails?.payoutMethod || "BKASH";
-                      const isSelected = currentMethod === method.id;
-                      return (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() =>
-                            updateOnboardingDetail("payoutMethod", method.id)
-                          }
-                          className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition-all ${
-                            isSelected
-                              ? "border-primary bg-primary/10 text-primary shadow-2xs font-bold"
-                              : "border-border/60 hover:bg-muted/40 text-muted-foreground"
-                          }`}
-                        >
-                          {method.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
-                    <div className="pt-2 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankName"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Bank Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankName"
-                            placeholder="e.g. Dutch-Bangla Bank"
-                            value={
-                              formData.onboardingDetails?.payoutBankName || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutBankName",
-                                e.target.value,
-                              )
-                            }
-                            className="h-9 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutAccountName"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Account Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutAccountName"
-                            placeholder="e.g. Shah Md. Mahi"
-                            value={
-                              formData.onboardingDetails?.payoutAccountName ||
-                              formData.onboardingDetails
-                                ?.payoutAccountHolderName ||
-                              ""
-                            }
-                            onChange={(e) => {
-                              updateOnboardingDetail(
-                                "payoutAccountName",
-                                e.target.value,
-                              );
-                              updateOnboardingDetail(
-                                "payoutAccountHolderName",
-                                e.target.value,
-                              );
-                            }}
-                            className="h-9 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutAccountNumber"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Account Number</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutAccountNumber"
-                            placeholder="e.g. 2050XXXXXXXXXXXXX"
-                            value={
-                              formData.onboardingDetails
-                                ?.payoutAccountNumber || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutAccountNumber",
-                                e.target.value.trim(),
-                              )
-                            }
-                            className="h-9 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBranchDistrict"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Branch District</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBranchDistrict"
-                            placeholder="e.g. Dhaka"
-                            value={
-                              formData.onboardingDetails
-                                ?.payoutBranchDistrict || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutBranchDistrict",
-                                e.target.value,
-                              )
-                            }
-                            className="h-9 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankBranch"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Branch Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankBranch"
-                            placeholder="e.g. Dhanmondi Branch"
-                            value={
-                              formData.onboardingDetails?.payoutBankBranch || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutBankBranch",
-                                e.target.value,
-                              )
-                            }
-                            className="h-9 text-xs"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankRouting"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Routing Number</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankRouting"
-                            placeholder="e.g. 090260123"
-                            value={
-                              formData.onboardingDetails?.payoutBankRouting || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutBankRouting",
-                                e.target.value.trim(),
-                              )
-                            }
-                            className="h-9 text-xs font-mono"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutSwiftCode"
-                            className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                          >
-                            <span>Swift Code</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutSwiftCode"
-                            placeholder="e.g. DBBLBDDH"
-                            value={
-                              formData.onboardingDetails?.payoutSwiftCode || ""
-                            }
-                            onChange={(e) =>
-                              updateOnboardingDetail(
-                                "payoutSwiftCode",
-                                e.target.value.toUpperCase().trim(),
-                              )
-                            }
-                            className="h-9 text-xs font-mono uppercase"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="pt-2 space-y-1">
-                      <Label
-                        htmlFor="payoutWalletNumber"
-                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
-                      >
-                        <span>
-                          {formData.onboardingDetails?.payoutMethod === "NAGAD"
-                            ? "Nagad Wallet Number"
-                            : formData.onboardingDetails?.payoutMethod ===
-                                "ROCKET"
-                              ? "Rocket Wallet Number"
-                              : "bKash Wallet Number"}
-                        </span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="payoutWalletNumber"
-                        placeholder="e.g. 017XXXXXXXX / 018XXXXXXXX"
-                        value={
-                          formData.onboardingDetails?.payoutWalletNumber ||
-                          formData.onboardingDetails?.payoutAccountNumber ||
-                          ""
-                        }
-                        onChange={(e) => {
-                          updateOnboardingDetail(
-                            "payoutWalletNumber",
-                            e.target.value.trim(),
-                          );
-                          updateOnboardingDetail(
-                            "payoutAccountNumber",
-                            e.target.value.trim(),
-                          );
-                        }}
-                        className="h-9 text-xs font-mono"
-                      />
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              /* DISTRIBUTOR AGGREGATOR SETUP: SUBDOMAIN CLAIM, EIP & BRAND ACCENT COLOR */
-              <>
                 {/* Subdomain Input with Real-time Checker (Locked & Auto-derived) */}
                 <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
                   <div className="flex items-center justify-between">
@@ -1629,8 +1330,6 @@ export function WhiteLabelOnboardingWizard({
                     ))}
                   </div>
                 </div>
-              </>
-            )}
 
             {/* Launch Timeline */}
             <div className="space-y-2">
@@ -1663,20 +1362,25 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 3: Key Contact Person */}
-      {currentStep === 3 && (
+      {/* Key Contact Step: Referrer Step 2 OR Distributor Step 3 */}
+      {((isReferrer && currentStep === 2) || (!isReferrer && currentStep === 3)) && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
               <Users className="h-4 w-4" />
-              Step 3 of 6: Executive Representative
+              {isReferrer
+                ? "Step 2 of 4: Key Partner Representative"
+                : "Step 3 of 6: Executive Representative"}
             </div>
             <CardTitle className="text-xl font-bold">
-              Account Administrator & Executive Contact
+              {isReferrer
+                ? "Partner Representative & Contact"
+                : "Account Administrator & Executive Contact"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Who will be managing contracts, DSP legal notices, and royalty
-              statements?
+              {isReferrer
+                ? "Who will be the primary contact for referral deal tracking, bounties, and remittance notices?"
+                : "Who will be managing contracts, DSP legal notices, and royalty statements?"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1770,8 +1474,574 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 4: DYNAMIC OPERATIONS BY BUSINESS TYPE */}
-      {currentStep === 4 && (
+      {/* STEP 3 (Referrer Only): Remittance Setup & Attribution Code */}
+      {isReferrer && currentStep === 3 && (
+        <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
+          <CardHeader>
+            <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
+              <DollarSign className="h-4 w-4" />
+              Step 3 of 4: Attribution &amp; Remittance Setup
+            </div>
+            <CardTitle className="text-xl font-bold">
+              Partner Referral Hub &amp; Payout Remittance
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure your partner referral link code and payout details. As a Referrer, you operate inside platform.royalmotionit.com/referrer — no website, DNS, or server required!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Platform-Hosted Hub Info Banner */}
+            <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  100% Platform-Hosted Referrer Dashboard
+                </span>
+                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                  Zero Server Maintenance
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                You do not need a custom domain, Elastic IP (EIP), or web server. You will manage your referral tracking links, track referred accounts, view 15% commissions, and request payouts directly at:
+              </p>
+              <div className="p-2.5 rounded-lg bg-background/80 border border-primary/20 flex items-center justify-between">
+                <span className="font-mono text-xs font-bold text-primary">
+                  https://platform.royalmotionit.com/referrer
+                </span>
+                <Badge variant="secondary" className="text-[10px] font-mono font-medium">
+                  Alias: /refferer
+                </Badge>
+              </div>
+            </div>
+
+            {/* Custom Partner Referral Code */}
+            <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="referralCodeInput"
+                  className="text-xs font-bold flex items-center gap-1.5"
+                >
+                  <Share2 className="h-3.5 w-3.5 text-primary" />
+                  <span>Custom Partner Referral Code Prefix</span>
+                </Label>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono text-muted-foreground"
+                >
+                  Attribution Tracking
+                </Badge>
+              </div>
+
+              <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
+                <input
+                  id="referralCodeInput"
+                  type="text"
+                  placeholder="e.g. AGY-SCOUT"
+                  value={
+                    formData.onboardingDetails?.referralNetworkCode ||
+                    formData.onboardingDetails?.scoutAffiliateCodePrefix ||
+                    ""
+                  }
+                  onChange={(e) => {
+                    const clean = e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9-]/g, "")
+                      .slice(0, 20);
+                    updateOnboardingDetail("referralNetworkCode", clean);
+                    updateOnboardingDetail("scoutAffiliateCodePrefix", clean);
+                  }}
+                  className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0 uppercase"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground pt-1">
+                Your direct referral link will be:{" "}
+                <strong className="text-foreground font-mono">
+                  https://platform.royalmotionit.com/auth/register?ref=
+                  {formData.onboardingDetails?.referralNetworkCode ||
+                    formData.onboardingDetails?.scoutAffiliateCodePrefix ||
+                    (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "YOUR-CODE")}
+                </strong>
+              </p>
+            </div>
+
+            {/* Payout & Remittance Preference (Required) */}
+            <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-card">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold flex items-center gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Commission Payout Method</span>
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                >
+                  Required
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: "BKASH", name: "bKash (MFS)" },
+                  { id: "NAGAD", name: "Nagad (MFS)" },
+                  { id: "ROCKET", name: "Rocket (MFS)" },
+                  { id: "BANK_TRANSFER", name: "Bank Transfer" },
+                ].map((method) => {
+                  const currentMethod =
+                    formData.onboardingDetails?.payoutMethod || "BKASH";
+                  const isSelected = currentMethod === method.id;
+                  return (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() =>
+                        updateOnboardingDetail("payoutMethod", method.id)
+                      }
+                      className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary shadow-2xs font-bold"
+                          : "border-border/60 hover:bg-muted/40 text-muted-foreground"
+                      }`}
+                    >
+                      {method.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
+                <div className="pt-2 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutBankName"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Bank Name</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutBankName"
+                        placeholder="e.g. Dutch-Bangla Bank"
+                        value={
+                          formData.onboardingDetails?.payoutBankName || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutBankName",
+                            e.target.value,
+                          )
+                        }
+                        className="h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutAccountName"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Account Name</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutAccountName"
+                        placeholder="e.g. Shah Md. Mahi"
+                        value={
+                          formData.onboardingDetails?.payoutAccountName ||
+                          formData.onboardingDetails
+                            ?.payoutAccountHolderName ||
+                          ""
+                        }
+                        onChange={(e) => {
+                          updateOnboardingDetail(
+                            "payoutAccountName",
+                            e.target.value,
+                          );
+                          updateOnboardingDetail(
+                            "payoutAccountHolderName",
+                            e.target.value,
+                          );
+                        }}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutAccountNumber"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Account Number</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutAccountNumber"
+                        placeholder="e.g. 2050XXXXXXXXXXXXX"
+                        value={
+                          formData.onboardingDetails
+                            ?.payoutAccountNumber || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutAccountNumber",
+                            e.target.value.trim(),
+                          )
+                        }
+                        className="h-9 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutBranchDistrict"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Branch District</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutBranchDistrict"
+                        placeholder="e.g. Dhaka"
+                        value={
+                          formData.onboardingDetails
+                            ?.payoutBranchDistrict || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutBranchDistrict",
+                            e.target.value,
+                          )
+                        }
+                        className="h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutBankBranch"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Branch Name</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutBankBranch"
+                        placeholder="e.g. Dhanmondi Branch"
+                        value={
+                          formData.onboardingDetails?.payoutBankBranch || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutBankBranch",
+                            e.target.value,
+                          )
+                        }
+                        className="h-9 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutBankRouting"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Routing Number</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutBankRouting"
+                        placeholder="e.g. 090260123"
+                        value={
+                          formData.onboardingDetails?.payoutBankRouting || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutBankRouting",
+                            e.target.value.trim(),
+                          )
+                        }
+                        className="h-9 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutSwiftCode"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>Swift Code</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutSwiftCode"
+                        placeholder="e.g. DBBLBDDH"
+                        value={
+                          formData.onboardingDetails?.payoutSwiftCode || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutSwiftCode",
+                            e.target.value.toUpperCase().trim(),
+                          )
+                        }
+                        className="h-9 text-xs font-mono uppercase"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-2 space-y-1">
+                  <Label
+                    htmlFor="payoutWalletNumber"
+                    className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                  >
+                    <span>
+                      {formData.onboardingDetails?.payoutMethod === "NAGAD"
+                        ? "Nagad Wallet Number"
+                        : formData.onboardingDetails?.payoutMethod ===
+                            "ROCKET"
+                          ? "Rocket Wallet Number"
+                          : "bKash Wallet Number"}
+                    </span>
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="payoutWalletNumber"
+                    placeholder="e.g. 017XXXXXXXX / 018XXXXXXXX"
+                    value={
+                      formData.onboardingDetails?.payoutWalletNumber ||
+                      formData.onboardingDetails?.payoutAccountNumber ||
+                      ""
+                    }
+                    onChange={(e) => {
+                      updateOnboardingDetail(
+                        "payoutWalletNumber",
+                        e.target.value.trim(),
+                      );
+                      updateOnboardingDetail(
+                        "payoutAccountNumber",
+                        e.target.value.trim(),
+                      );
+                    }}
+                    className="h-9 text-xs font-mono"
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* STEP 4 (Referrer Only): Commercial Framework, Simulator & Agreement */}
+      {isReferrer && currentStep === 4 && (
+        <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
+          <CardHeader>
+            <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
+              <ShieldCheck className="h-4 w-4" />
+              Step 4 of 4: Commercial Framework &amp; Submission
+            </div>
+            <CardTitle className="text-xl font-bold">
+              15% Referral Commercial Policy &amp; Agreement
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Confirm your partner commercial terms, simulate closing bounties, and submit your partner application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Distribution Aggregator Referral Terms Banner */}
+            <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Distribution Aggregator Referral Standard: 15% Fixed Share
+                </span>
+                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                  Min ৳60,000 BDT Deal
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Referrers earn strictly <strong className="text-foreground">15% of the total gross selling price</strong> for every Distribution Aggregator WhiteLabel account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with no maximum ceiling — you earn 15% on whatever deal value you negotiate and close!
+              </p>
+
+              {/* Interactive Simulation */}
+              <div className="pt-2 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="text-[11px] text-muted-foreground">
+                  <span>Simulate deal closing value:</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-foreground">৳</span>
+                    <Input
+                      type="number"
+                      min={60000}
+                      step={5000}
+                      value={formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "simulatedDealPriceBdt",
+                          Math.max(60000, Number(e.target.value) || 60000)
+                        )
+                      }
+                      className="w-28 h-7 text-xs font-mono font-bold bg-background text-right"
+                    />
+                  </div>
+                  <div className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 whitespace-nowrap">
+                    Your 15% Cut: ৳{Math.round(((formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000) * 0.15)).toLocaleString()} BDT
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Dossier Summary */}
+            <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Partner Application Summary
+                </h4>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
+                >
+                  Ready for Submission
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Partner / Agency
+                  </span>
+                  <strong className="text-foreground">
+                    {formData.name || "N/A"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Referral Portal
+                  </span>
+                  <strong className="text-foreground font-mono text-[11px]">
+                    platform.royalmotionit.com/referrer
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Business Type
+                  </span>
+                  <strong className="text-foreground">
+                    Referrer Partner (Affiliate)
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Attribution Code
+                  </span>
+                  <strong className="text-foreground font-mono">
+                    {formData.onboardingDetails?.referralNetworkCode ||
+                      formData.onboardingDetails?.scoutAffiliateCodePrefix ||
+                      (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "AGY-SCOUT")}
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Commission Terms
+                  </span>
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                    15% Fixed Share (Min ৳60K BDT)
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Remittance Profile
+                  </span>
+                  <strong className="text-foreground truncate block">
+                    {formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                      ? `${formData.onboardingDetails?.payoutBankName || "Bank"} (${formData.onboardingDetails?.payoutAccountNumber || ""})`
+                      : `${formData.onboardingDetails?.payoutMethod || "bKash"}: ${formData.onboardingDetails?.payoutWalletNumber || formData.onboardingDetails?.payoutAccountNumber || ""}`}
+                  </strong>
+                </div>
+
+                <div>
+                  <span className="text-muted-foreground text-[10px] block">
+                    Partner Representative
+                  </span>
+                  <strong className="text-foreground truncate block">
+                    {formData.contactFirstName} {formData.contactLastName}
+                  </strong>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <span className="text-muted-foreground text-[10px] block">
+                    Work Email
+                  </span>
+                  <strong className="text-foreground truncate block font-mono">
+                    {formData.contactEmail}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Compliance & Terms Agreement */}
+            <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3 text-xs">
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="privacyPolicyReferrer"
+                  checked={formData.privacyPolicyAccepted}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      privacyPolicyAccepted: Boolean(checked),
+                    }))
+                  }
+                  className="mt-0.5"
+                />
+                <label
+                  htmlFor="privacyPolicyReferrer"
+                  className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                >
+                  I certify that all referral partner representations and commercial terms comply with the Partner Terms and 15% revenue share policy. I agree to the{" "}
+                  <span className="text-primary underline">
+                    RoyalMotionIT Partner Agreement
+                  </span>{" "}
+                  and{" "}
+                  <span className="text-primary underline">Privacy Policy</span>.
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="marketingConsentReferrer"
+                  checked={formData.marketingConsent}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      marketingConsent: Boolean(checked),
+                    }))
+                  }
+                  className="mt-0.5"
+                />
+                <label
+                  htmlFor="marketingConsentReferrer"
+                  className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                >
+                  I consent to receiving referral updates, pipeline conversion alerts, and remittance confirmation notices from the partner desk.
+                </label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* STEP 4 (Distributor Aggregator Only): Aggregator Operations */}
+      {!isReferrer && currentStep === 4 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
@@ -1779,21 +2049,14 @@ export function WhiteLabelOnboardingWizard({
               Step 4 of 6: Operational Infrastructure
             </div>
             <CardTitle className="text-xl font-bold">
-              {formData.businessType ===
-                WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                "Aggregator Ingestion & Sub-Tenant Operations"}
-              {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                "Scout Network & Pipeline Operations"}
+              Aggregator Ingestion &amp; Sub-Tenant Operations
             </CardTitle>
             <CardDescription className="text-xs">
               Configure telemetry according to global music industry operations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* 1. DISTRIBUTOR / AGGREGATOR VIEW */}
-            {formData.businessType ===
-              WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
-              <div className="space-y-5">
+            <div className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
@@ -1996,300 +2259,102 @@ export function WhiteLabelOnboardingWizard({
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* 2. REFERRER / SCOUT VIEW */}
-            {formData.businessType === WhiteLabelBusinessType.REFERRER && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Scout Network Practice Category
-                    </Label>
-                    <select
-                      value={
-                        formData.onboardingDetails?.scoutNetworkCategory ||
-                        "talent_scout"
-                      }
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "scoutNetworkCategory",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
-                    >
-                      {SCOUT_CATEGORIES.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Projected Annual Partner Referrals
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={
-                        formData.onboardingDetails?.projectedAnnualReferrals ??
-                        15
-                      }
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "projectedAnnualReferrals",
-                          Number(e.target.value) || 1,
-                        )
-                      }
-                      className="h-9.5 text-xs font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Estimated Pipeline Aggregate Tracks
-                    </Label>
-                    <Input
-                      type="number"
-                      min={50}
-                      value={
-                        formData.onboardingDetails
-                          ?.projectedPipelineCatalogSize ?? 1000
-                      }
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "projectedPipelineCatalogSize",
-                          Number(e.target.value) || 50,
-                        )
-                      }
-                      className="h-9.5 text-xs font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold flex items-center justify-between">
-                      <span>Referral Commission Policy</span>
-                      <span className="text-[10px] text-primary font-bold uppercase tracking-wider">Fixed 15% Share</span>
-                    </Label>
-                    <div className="w-full h-9.5 rounded-lg border border-primary/30 bg-primary/10 px-3 flex items-center justify-between text-xs font-semibold text-primary">
-                      <span>15% Commission of Gross Selling Value</span>
-                      <span className="font-mono text-[11px] bg-primary/20 px-2 py-0.5 rounded text-primary">Min: ৳60K BDT</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Distribution Aggregator Referral Terms Banner */}
-                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-primary flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Distribution Aggregator Referral Standard: 15% Fixed Share
-                    </span>
-                    <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
-                      Min ৳60,000 BDT Deal
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Referrers earn strictly <strong className="text-foreground">15% of the total selling price</strong> for every Distribution Aggregator WhiteLabel account referred. The minimum baseline selling price is <strong className="text-foreground">৳60,000 BDT</strong> (earning you at least ৳9,000 BDT per deal), with no maximum ceiling — you earn 15% on whatever deal value you negotiate and close!
-                  </p>
-
-                  {/* Interactive Simulation */}
-                  <div className="pt-2 border-t border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="text-[11px] text-muted-foreground">
-                      <span>Simulate deal closing value:</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-foreground">৳</span>
-                        <Input
-                          type="number"
-                          min={60000}
-                          step={5000}
-                          value={formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000}
-                          onChange={(e) =>
-                            updateOnboardingDetail(
-                              "simulatedDealPriceBdt",
-                              Math.max(60000, Number(e.target.value) || 60000)
-                            )
-                          }
-                          className="w-28 h-7 text-xs font-mono font-bold bg-background text-right"
-                        />
+                {/* Creator Signup Model on WhiteLabel Portal */}
+                <div className="space-y-2 pt-3 border-t border-border/50">
+                  <Label className="text-xs font-semibold">
+                    Client Onboarding &amp; Creator Signup Model on Your WhiteLabel Portal
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {SIGNUP_MODELS.map((model) => (
+                      <div
+                        key={model.id}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            userSignupModel: model.id,
+                          }))
+                        }
+                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                          formData.userSignupModel === model.id
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-semibold text-primary"
+                            : "border-border/60 hover:border-border text-muted-foreground"
+                        }`}
+                      >
+                        <p className="text-xs font-bold text-foreground">
+                          {model.label}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                          {model.description}
+                        </p>
                       </div>
-                      <div className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 whitespace-nowrap">
-                        Your 15% Cut: ৳{Math.round(((formData.onboardingDetails?.simulatedDealPriceBdt ?? 60000) * 0.15)).toLocaleString()} BDT
-                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Distribution & Royalty Accounting Tools */}
+                <div className="space-y-4 pt-3 border-t border-border/50">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">
+                      Current or Past Distribution Partners:
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DISTRIBUTOR_OPTIONS.map((dist) => {
+                        const isSelected =
+                          formData.currentDistributors.includes(dist);
+                        return (
+                          <Badge
+                            key={dist}
+                            variant={isSelected ? "default" : "outline"}
+                            onClick={() => toggleDistributor(dist)}
+                            className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            }`}
+                          >
+                            {isSelected ? "✓ " : "+ "}
+                            {dist}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">
+                      Existing Royalty Accounting Software:
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ROYALTY_OPTIONS.map((sol) => {
+                        const isSelected =
+                          formData.royaltySolutions.includes(sol);
+                        return (
+                          <Badge
+                            key={sol}
+                            variant={isSelected ? "default" : "outline"}
+                            onClick={() => toggleRoyalty(sol)}
+                            className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            }`}
+                          >
+                            {isSelected ? "✓ " : "+ "}
+                            {sol}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    Target Geographic Territories:
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {TERRITORY_OPTIONS.map((terr) => {
-                      const currentTerrs =
-                        formData.onboardingDetails?.targetTerritories || [];
-                      const isSelected = currentTerrs.includes(terr);
-                      return (
-                        <Badge
-                          key={terr}
-                          variant={isSelected ? "default" : "outline"}
-                          onClick={() => {
-                            const updated = isSelected
-                              ? currentTerrs.filter((t: string) => t !== terr)
-                              : [...currentTerrs, terr];
-                            updateOnboardingDetail(
-                              "targetTerritories",
-                              updated,
-                            );
-                          }}
-                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          {isSelected ? "✓ " : "+ "}
-                          {terr}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    Primary Talent Discovery Channels:
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DISCOVERY_CHANNELS.map((ch) => {
-                      const isSelected = (
-                        formData.onboardingDetails?.discoveryChannels || []
-                      ).includes(ch);
-                      return (
-                        <Badge
-                          key={ch}
-                          variant={isSelected ? "default" : "outline"}
-                          onClick={() => toggleDiscoveryChannel(ch)}
-                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          {isSelected ? "✓ " : "+ "}
-                          {ch}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Universal Portal Access / Signup Model for All Business Types */}
-            <div className="space-y-2 pt-3 border-t border-border/50">
-              <Label className="text-xs font-semibold">
-                Client Onboarding & Creator Signup Model on Your WhiteLabel Portal
-              </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {SIGNUP_MODELS.map((model) => (
-                  <div
-                    key={model.id}
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        userSignupModel: model.id,
-                      }))
-                    }
-                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                      formData.userSignupModel === model.id
-                        ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-semibold text-primary"
-                        : "border-border/60 hover:border-border text-muted-foreground"
-                    }`}
-                  >
-                    <p className="text-xs font-bold text-foreground">
-                      {model.label}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
-                      {model.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Universal Distribution & Royalty Tools for Labels & Aggregators */}
-            {formData.businessType !== WhiteLabelBusinessType.REFERRER && (
-              <div className="space-y-4 pt-3 border-t border-border/50">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    Current or Past Distribution Partners:
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DISTRIBUTOR_OPTIONS.map((dist) => {
-                      const isSelected =
-                        formData.currentDistributors.includes(dist);
-                      return (
-                        <Badge
-                          key={dist}
-                          variant={isSelected ? "default" : "outline"}
-                          onClick={() => toggleDistributor(dist)}
-                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          {isSelected ? "✓ " : "+ "}
-                          {dist}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    Existing Royalty Accounting Software:
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ROYALTY_OPTIONS.map((sol) => {
-                      const isSelected =
-                        formData.royaltySolutions.includes(sol);
-                      return (
-                        <Badge
-                          key={sol}
-                          variant={isSelected ? "default" : "outline"}
-                          onClick={() => toggleRoyalty(sol)}
-                          className={`cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          {isSelected ? "✓ " : "+ "}
-                          {sol}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* STEP 5: DYNAMIC PORTFOLIO / ROSTER HIGHLIGHTS */}
-      {currentStep === 5 && (
+      {/* STEP 5 (Distributor Aggregator Only): Sub-Labels & Catalogs */}
+      {!isReferrer && currentStep === 5 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
@@ -2344,20 +2409,10 @@ export function WhiteLabelOnboardingWizard({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold">
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                        "Sub-Label / Brand Name"}
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.REFERRER &&
-                        "Prospect Entity / Artist Name"}
+                      Sub-Label / Brand Name
                     </Label>
                     <Input
-                      placeholder={
-                        formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                          ? "e.g. Hyperion Electronic Records"
-                          : "e.g. Zenith Wave Studios"
-                      }
+                      placeholder="e.g. Hyperion Electronic Records"
                       value={item.artistName}
                       onChange={(e) =>
                         handleArtistChange(idx, "artistName", e.target.value)
@@ -2368,28 +2423,11 @@ export function WhiteLabelOnboardingWizard({
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR && (
-                        <>
-                          <Globe className="h-3 w-3 text-blue-500" />
-                          Sub-Label Country / Territory
-                        </>
-                      )}
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.REFERRER && (
-                        <>
-                          <Network className="h-3 w-3 text-emerald-500" />
-                          Current Distribution Status
-                        </>
-                      )}
+                      <Globe className="h-3 w-3 text-blue-500" />
+                      Sub-Label Country / Territory
                     </Label>
                     <Input
-                      placeholder={
-                        formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                          ? "e.g. United Kingdom"
-                          : "e.g. Self-releasing or DistroKid"
-                      }
+                      placeholder="e.g. United Kingdom"
                       value={item.instagramHandle}
                       onChange={(e) =>
                         handleArtistChange(
@@ -2407,20 +2445,10 @@ export function WhiteLabelOnboardingWizard({
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
                       <ExternalLink className="h-3 w-3 text-emerald-500" />
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                        "Sub-Label Website or Catalog Link"}
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.REFERRER &&
-                        "Music / Portfolio Link"}
+                      Sub-Label Website or Catalog Link
                     </Label>
                     <Input
-                      placeholder={
-                        formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                          ? "https://hyperionrecords.com"
-                          : "https://soundcloud.com/prospect"
-                      }
+                      placeholder="https://hyperionrecords.com"
                       value={item.spotifyProfileUrl}
                       onChange={(e) =>
                         handleArtistChange(
@@ -2435,21 +2463,11 @@ export function WhiteLabelOnboardingWizard({
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
-                      <Video className="h-3 w-3 text-rose-500" />
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                        "Primary Genre Focus"}
-                      {formData.businessType ===
-                        WhiteLabelBusinessType.REFERRER &&
-                        "Prospect Category (Label / Artist)"}
+                      <Music className="h-3 w-3 text-rose-500" />
+                      Primary Genre Focus
                     </Label>
                     <Input
-                      placeholder={
-                        formData.businessType ===
-                        WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR
-                          ? "e.g. Electronic / Dance"
-                          : "e.g. Independent Record Label"
-                      }
+                      placeholder="e.g. Electronic / Dance"
                       value={item.youtubeChannelUrl}
                       onChange={(e) =>
                         handleArtistChange(
@@ -2485,7 +2503,7 @@ export function WhiteLabelOnboardingWizard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Dynamic Application Summary Dossier */}
+            {/* Distributor Aggregator Application Summary Dossier */}
             <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
@@ -2512,16 +2530,12 @@ export function WhiteLabelOnboardingWizard({
 
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    {formData.businessType === WhiteLabelBusinessType.REFERRER
-                      ? "Referral Operations Hub"
-                      : "Reserved Subdomain"}
+                    Reserved Subdomain
                   </span>
                   <strong className="text-foreground font-mono text-[11px]">
-                    {formData.businessType === WhiteLabelBusinessType.REFERRER
-                      ? "platform.royalmotionit.com/referrer"
-                      : formData.desiredSubdomain
-                        ? `${formData.desiredSubdomain}.platform.royalmotionit.com`
-                        : "Pending"}
+                    {formData.desiredSubdomain
+                      ? `${formData.desiredSubdomain}.platform.royalmotionit.com`
+                      : "Pending"}
                   </strong>
                 </div>
 
@@ -2530,54 +2544,26 @@ export function WhiteLabelOnboardingWizard({
                     Business Entity
                   </span>
                   <strong className="text-foreground">
-                    {BUSINESS_TYPES.find(
-                      (t) => t.id === formData.businessType,
-                    )?.label || formData.businessType}
+                    Distributor / Aggregator
                   </strong>
                 </div>
 
-                {/* Specific Metric 1 */}
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                      "Sub-Labels Represented"}
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.REFERRER &&
-                      "Attribution Code & Payout"}
+                    Sub-Labels Represented
                   </span>
                   <strong className="text-foreground">
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                      `${formData.onboardingDetails?.subLabelsCount || 5} labels`}
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.REFERRER &&
-                      `${formData.onboardingDetails?.referralNetworkCode || formData.onboardingDetails?.scoutAffiliateCodePrefix || (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "ASSIGNED")} (${
-                        formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
-                          ? `Bank: ${formData.onboardingDetails?.payoutBankName || "Bank"} (${formData.onboardingDetails?.payoutAccountNumber || ""})`
-                          : `${formData.onboardingDetails?.payoutMethod || "bKash"}: ${formData.onboardingDetails?.payoutWalletNumber || formData.onboardingDetails?.payoutAccountNumber || ""}`
-                      })`}
+                    {formData.onboardingDetails?.subLabelsCount || 5} labels
                   </strong>
                 </div>
 
-                {/* Specific Metric 2 */}
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                      "Ingestion Protocol"}
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.REFERRER &&
-                      "Referral Commission"}
+                    Ingestion Protocol
                   </span>
                   <strong className="text-foreground">
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                      (formData.onboardingDetails?.ingestionProtocol ||
-                        "DDEX ERN 4.3")}
-                    {formData.businessType ===
-                      WhiteLabelBusinessType.REFERRER &&
-                      "15% of Selling Price (Min ৳60,000 BDT)"}
+                    {formData.onboardingDetails?.ingestionProtocol ||
+                      "DDEX ERN 4.3"}
                   </strong>
                 </div>
 
@@ -2592,7 +2578,7 @@ export function WhiteLabelOnboardingWizard({
               </div>
             </div>
 
-            {/* Dynamic Compliance & Terms Agreement */}
+            {/* Compliance & Terms Agreement */}
             <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3 text-xs">
               <div className="flex items-start gap-2.5">
                 <Checkbox
@@ -2610,17 +2596,12 @@ export function WhiteLabelOnboardingWizard({
                   htmlFor="privacyPolicy"
                   className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                 >
-                  {formData.businessType ===
-                    WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR &&
-                    "I certify that all represented sub-labels have executed valid digital distribution licenses and our ingestion pipeline strictly complies with anti-fraud streaming policies. I agree to the "}
-                  {formData.businessType === WhiteLabelBusinessType.REFERRER &&
-                    "I certify that all referral partner representations, discovery channels, and affiliate terms comply with the Partner Code of Conduct. I agree to the "}
+                  I certify that all represented sub-labels have executed valid digital distribution licenses and our ingestion pipeline strictly complies with anti-fraud streaming policies. I agree to the{" "}
                   <span className="text-primary underline">
                     RoyalMotionIT Distribution Agreement
                   </span>{" "}
                   and{" "}
-                  <span className="text-primary underline">Privacy Policy</span>
-                  .
+                  <span className="text-primary underline">Privacy Policy</span>.
                 </label>
               </div>
 
@@ -2666,7 +2647,7 @@ export function WhiteLabelOnboardingWizard({
           <div />
         )}
 
-        {currentStep < 6 ? (
+        {currentStep < maxSteps ? (
           <Button
             type="button"
             onClick={handleNext}

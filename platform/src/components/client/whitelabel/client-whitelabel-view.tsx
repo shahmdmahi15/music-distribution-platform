@@ -17,6 +17,8 @@ import {
   Music,
   Headphones,
   ExternalLink,
+  DollarSign,
+  Share2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -201,201 +203,342 @@ export function ClientWhiteLabelView({
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                Catalog Volume
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                {whiteLabel.catalogTrackCount.toLocaleString()}
-              </p>
-              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                Active Master Tracks
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-              <Music className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                Monthly Ingestion
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                {whiteLabel.monthlyTrackDelivery.toLocaleString()}
-              </p>
-              <span className="text-[11px] text-muted-foreground">
-                Deliveries / Month
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <Layers className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                Roster Artists
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                {whiteLabel.artists?.length || 0}
-              </p>
-              <span className="text-[11px] text-muted-foreground">
-                Verified Profiles
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <Headphones className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                Monthly Revenue
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
-              </p>
-              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                USD Run Rate
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Control Hub Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* WhiteLabel Identity & Theme */}
-        <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
-          <CardHeader className="pb-3">
-            <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit mb-2">
-              <Disc3 className="h-5 w-5" />
-            </div>
-            <CardTitle className="text-base font-bold flex items-center justify-between">
-              <span>Brand Identity & Theme</span>
-              <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Configure your platform logo, dark/light color schemes, fonts, and
-              favicon.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">Status:</span>{" "}
-            Customized
-          </CardContent>
-        </Card>
-
-        {/* Custom Domain & SSL */}
-        <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
-          <CardHeader className="pb-3">
-            <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit mb-2">
-              <Globe className="h-5 w-5" />
-            </div>
-            <CardTitle className="text-base font-bold flex items-center justify-between">
-              <span>Custom Domain & DNS</span>
-              <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Map your own domain (e.g. app.yourlabel.com) with automated SSL
-              provisioning.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">Routing:</span>{" "}
-            Ready for CNAME
-          </CardContent>
-        </Card>
-
-        {/* API Keys & Webhooks */}
-        <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
-          <CardHeader className="pb-3">
-            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit mb-2">
-              <KeyRound className="h-5 w-5" />
-            </div>
-            <CardTitle className="text-base font-bold flex items-center justify-between">
-              <span>Developer API & Webhooks</span>
-              <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Generate programmatic API tokens and subscribe to streaming
-              delivery webhooks.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground pt-0">
-            <span className="font-semibold text-foreground">API Version:</span>{" "}
-            v1.0 REST
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Roster Artists */}
-      {whiteLabel.artists && whiteLabel.artists.length > 0 && (
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Headphones className="h-4 w-4 text-primary" />
-              Verified Top Roster Artists
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {whiteLabel.artists.map((artist, idx) => (
-                <div
-                  key={artist.id || idx}
-                  className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-foreground truncate">
-                      {artist.artistName}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="font-mono text-[9px] px-1 py-0"
-                    >
-                      {artist.code}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {artist.spotifyProfileUrl && (
-                      <a
-                        href={artist.spotifyProfileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 text-[11px]"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Spotify
-                      </a>
-                    )}
-                    {artist.instagramHandle && (
-                      <span className="text-[11px] truncate">
-                        {artist.instagramHandle}
-                      </span>
-                    )}
-                  </div>
+      {/* Active Dashboard Body: Decoupled for Referrer vs Distributor Aggregator */}
+      {whiteLabel.businessType === "REFERRER" ? (
+        <div className="space-y-6">
+          {/* Referrer Metrics Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Commission Share
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    15%
+                  </p>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    Of Gross Deal Selling Value
+                  </span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Min Deal Benchmark
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    ৳60,000
+                  </p>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Min Bounty: ৳9,000 BDT
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Attribution Code
+                  </span>
+                  <p className="text-xl font-bold font-mono text-foreground truncate max-w-[140px]">
+                    {whiteLabel.onboardingDetails?.referralNetworkCode ||
+                      whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
+                      whiteLabel.code}
+                  </p>
+                  <span className="text-[11px] text-primary font-medium">
+                    Active Link Tracking
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                  <Share2 className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Remittance Profile
+                  </span>
+                  <p className="text-base font-bold text-foreground truncate max-w-[140px]">
+                    {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                      ? (whiteLabel.onboardingDetails?.payoutBankName || "Bank Transfer")
+                      : (whiteLabel.onboardingDetails?.payoutMethod || "bKash")}
+                  </p>
+                  <span className="text-[11px] text-muted-foreground truncate block max-w-[140px] font-mono">
+                    {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                      ? (whiteLabel.onboardingDetails?.payoutAccountNumber || "Configured")
+                      : (whiteLabel.onboardingDetails?.payoutWalletNumber || whiteLabel.onboardingDetails?.payoutAccountNumber || "Configured")}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <KeyRound className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Action Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Link href="/referrer" className="block">
+              <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group h-full">
+                <CardHeader className="pb-3">
+                  <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit mb-2">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base font-bold flex items-center justify-between">
+                    <span>Partner Control Panel</span>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Access your full affiliate command center at platform.royalmotionit.com/referrer. View deal conversions, client pipelines, and payout requests.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground pt-0 flex items-center justify-between">
+                  <span className="font-semibold text-primary font-mono">https://platform.royalmotionit.com/referrer</span>
+                  <Badge variant="outline" className="text-[10px] font-mono">Alias: /refferer</Badge>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit mb-2">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold">
+                  <span>Your Referral Link</span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Share this direct attribution link with prospective Distribution Aggregators to earn 15% on deal closing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0 text-xs">
+                <div className="p-2.5 rounded-lg border border-border bg-muted/30 font-mono text-[11px] truncate flex items-center justify-between">
+                  <span className="truncate">
+                    https://platform.royalmotionit.com/auth/register?ref={whiteLabel.onboardingDetails?.referralNetworkCode || whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix || whiteLabel.code}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Earn strictly 15% of the account selling value (Min deal: ৳60,000 BDT).
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        /* DISTRIBUTOR AGGREGATOR VIEW */
+        <>
+          {/* Metrics Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Catalog Volume
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    {whiteLabel.catalogTrackCount.toLocaleString()}
+                  </p>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    Active Master Tracks
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                  <Music className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Monthly Ingestion
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    {whiteLabel.monthlyTrackDelivery.toLocaleString()}
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">
+                    Deliveries / Month
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <Layers className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Roster Artists
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    {whiteLabel.artists?.length || 0}
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">
+                    Verified Profiles
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Headphones className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Monthly Revenue
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    ${Number(whiteLabel.monthlyRevenueUsd || 0).toLocaleString()}
+                  </p>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    USD Run Rate
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Control Hub Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* WhiteLabel Identity & Theme */}
+            <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
+              <CardHeader className="pb-3">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary w-fit mb-2">
+                  <Disc3 className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold flex items-center justify-between">
+                  <span>Brand Identity & Theme</span>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Configure your platform logo, dark/light color schemes, fonts, and
+                  favicon.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground pt-0">
+                <span className="font-semibold text-foreground">Status:</span>{" "}
+                Customized
+              </CardContent>
+            </Card>
+
+            {/* Custom Domain & SSL */}
+            <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
+              <CardHeader className="pb-3">
+                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit mb-2">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold flex items-center justify-between">
+                  <span>Custom Domain & DNS</span>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Map your own domain (e.g. app.yourlabel.com) with automated SSL
+                  provisioning.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground pt-0">
+                <span className="font-semibold text-foreground">Routing:</span>{" "}
+                Ready for CNAME
+              </CardContent>
+            </Card>
+
+            {/* API Keys & Webhooks */}
+            <Card className="border-border/60 shadow-sm hover:border-primary/50 transition-all group">
+              <CardHeader className="pb-3">
+                <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit mb-2">
+                  <KeyRound className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold flex items-center justify-between">
+                  <span>Developer API & Webhooks</span>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Generate programmatic API tokens and subscribe to streaming
+                  delivery webhooks.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground pt-0">
+                <span className="font-semibold text-foreground">API Version:</span>{" "}
+                v1.0 REST
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Roster Artists */}
+          {whiteLabel.artists && whiteLabel.artists.length > 0 && (
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Headphones className="h-4 w-4 text-primary" />
+                  Verified Top Roster Artists
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {whiteLabel.artists.map((artist, idx) => (
+                    <div
+                      key={artist.id || idx}
+                      className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-foreground truncate">
+                          {artist.artistName}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[9px] px-1 py-0"
+                        >
+                          {artist.code}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {artist.spotifyProfileUrl && (
+                          <a
+                            href={artist.spotifyProfileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 text-[11px]"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Spotify
+                          </a>
+                        )}
+                        {artist.instagramHandle && (
+                          <span className="text-[11px] truncate">
+                            {artist.instagramHandle}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
