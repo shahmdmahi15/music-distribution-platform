@@ -86,6 +86,27 @@ interface ClientRegistrationPolicyViewProps {
   initialUsers: PortalUserItem[];
 }
 
+const DEFAULT_ROLE_ITEMS: Record<string, string> = {
+  CLIENT: "Artist / Client (Standard Roster)",
+  STAFF: "Staff Member (Internal Label Ops)",
+};
+
+const MAX_USES_ITEMS: Record<string, string> = {
+  "1": "1 (Single use only)",
+  "5": "5 registrations",
+  "25": "25 registrations",
+  "100": "100 registrations",
+  unlimited: "Unlimited uses",
+};
+
+const EXPIRY_ITEMS: Record<string, string> = {
+  "7": "7 Days",
+  "30": "30 Days",
+  "90": "90 Days",
+  "365": "1 Year",
+  never: "Never Expires",
+};
+
 export function ClientRegistrationPolicyView({
   branding,
   initialPolicy,
@@ -970,6 +991,7 @@ export function ClientRegistrationPolicyView({
                     Default User Role upon Registration
                   </Label>
                   <Select
+                    items={DEFAULT_ROLE_ITEMS}
                     value={policySettings.defaultRole || "CLIENT"}
                     onValueChange={(val) =>
                       setPolicySettings((prev) => ({
@@ -1078,6 +1100,7 @@ export function ClientRegistrationPolicyView({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Max Uses</Label>
                 <Select
+                  items={MAX_USES_ITEMS}
                   value={newMaxUses}
                   onValueChange={(val) => setNewMaxUses(val || "1")}
                 >
@@ -1097,6 +1120,7 @@ export function ClientRegistrationPolicyView({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Expiration</Label>
                 <Select
+                  items={EXPIRY_ITEMS}
                   value={newExpiryDays}
                   onValueChange={(val) => setNewExpiryDays(val || "30")}
                 >

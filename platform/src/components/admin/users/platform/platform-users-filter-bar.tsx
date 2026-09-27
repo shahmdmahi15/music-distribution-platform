@@ -396,13 +396,12 @@ export function PlatformUsersFilterBar({
           {/* Role Filter */}
           <div className="w-[130px] shrink-0">
             <Select
+              items={roleLabels}
               value={currentRole}
               onValueChange={(val) => updateFilters({ role: val || null })}
             >
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
-                <SelectValue placeholder="All Roles">
-                  {(val) => roleLabels[val as string] || val || "All Roles"}
-                </SelectValue>
+                <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Roles</SelectItem>
@@ -418,15 +417,12 @@ export function PlatformUsersFilterBar({
           {/* Status Filter */}
           <div className="w-[145px] shrink-0">
             <Select
+              items={statusLabels}
               value={currentStatus}
               onValueChange={(val) => updateFilters({ status: val || null })}
             >
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
-                <SelectValue placeholder="All Statuses">
-                  {(val) =>
-                    statusLabels[val as string] || val || "All Statuses"
-                  }
-                </SelectValue>
+                <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Statuses</SelectItem>
@@ -447,6 +443,7 @@ export function PlatformUsersFilterBar({
           {/* Sort By Dropdown */}
           <div className="w-[145px] shrink-0">
             <Select
+              items={sortLabels}
               value={`${currentSortBy}:${currentSortOrder}`}
               onValueChange={(val) => {
                 const [sortBy, sortOrder] = (val || "createdAt:desc").split(
@@ -458,9 +455,7 @@ export function PlatformUsersFilterBar({
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
                 <div className="flex items-center gap-1.5 truncate">
                   <ArrowUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="Sort by">
-                    {(val) => sortLabels[val as string] || val || "Sort by"}
-                  </SelectValue>
+                  <SelectValue placeholder="Sort by" />
                 </div>
               </SelectTrigger>
               <SelectContent>

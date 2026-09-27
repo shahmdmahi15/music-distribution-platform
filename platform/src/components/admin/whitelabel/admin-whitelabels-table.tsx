@@ -710,6 +710,10 @@ export function AdminWhiteLabelsTable({
         <div className="flex flex-wrap items-center gap-2">
           {/* Business Type Filter */}
           <Select
+            items={{
+              all: "All Business Models",
+              [WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR]: "Distributors / Aggregators",
+            }}
             value={businessTypeFilter}
             onValueChange={(val) => setBusinessTypeFilter(val || "all")}
           >
@@ -727,6 +731,13 @@ export function AdminWhiteLabelsTable({
 
           {/* Compliance / Readiness Filter */}
           <Select
+            items={{
+              all: "All Readiness States",
+              ready_to_activate: "Ready to Activate (PAID)",
+              contract_uploaded: "Signed Contract Uploaded",
+              incorporated: "Incorporated Legal Entity",
+              custom_infra: "Custom Domain / Elastic IP",
+            }}
             value={complianceFilter}
             onValueChange={(val) => setComplianceFilter(val || "all")}
           >
@@ -753,6 +764,13 @@ export function AdminWhiteLabelsTable({
 
           {/* Sort Order */}
           <Select
+            items={{
+              newest: "Newest Submissions",
+              oldest: "Oldest Submissions",
+              catalog_desc: "Largest Catalog Volume",
+              revenue_desc: "Highest Monthly Revenue",
+              name_asc: "Company Name (A–Z)",
+            }}
             value={sortOrder}
             onValueChange={(val) => setSortOrder(val || "newest")}
           >

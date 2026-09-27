@@ -6,18 +6,6 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react";
 
-const Select = SelectPrimitive.Root;
-
-function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
-  return (
-    <SelectPrimitive.Group
-      data-slot="select-group"
-      className={cn("scroll-my-1 p-1", className)}
-      {...props}
-    />
-  );
-}
-
 function formatSelectValue(val: any) {
   if (typeof val === "string") {
     if (/^[A-Z0-9_]+$/.test(val)) {
@@ -28,6 +16,28 @@ function formatSelectValue(val: any) {
     }
   }
   return val;
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  itemToStringLabel = formatSelectValue,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  return (
+    <SelectPrimitive.Root
+      itemToStringLabel={itemToStringLabel}
+      {...props}
+    />
+  );
+}
+
+function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
+  return (
+    <SelectPrimitive.Group
+      data-slot="select-group"
+      className={cn("scroll-my-1 p-1", className)}
+      {...props}
+    />
+  );
 }
 
 function SelectValue({
@@ -41,12 +51,7 @@ function SelectValue({
       className={cn("flex flex-1 text-left truncate", className)}
       {...props}
     >
-      {typeof children === "function"
-        ? children
-        : (val: any) => {
-            if (children && typeof children !== "function") return children;
-            return formatSelectValue(val);
-          }}
+      {children}
     </SelectPrimitive.Value>
   );
 }

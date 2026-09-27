@@ -482,7 +482,11 @@ export class AdminWhitelabelService {
   async recordPayment(id: string, dto: RecordPaymentDto) {
     const whiteLabel = await this.prismaService.whiteLabel.findUnique({
       where: { id },
-      include: { subscription: true },
+      include: {
+        subscription: {
+          include: { subscriber: true },
+        },
+      },
     });
 
     if (!whiteLabel) {
@@ -538,6 +542,62 @@ export class AdminWhitelabelService {
         reviewedAt: new Date(),
       },
     });
+
+    // Automatically synchronize with Referrer Deal Ledger if subscriber was referred
+    const referredByReferrerId = whiteLabel.subscription?.subscriber?.referredByReferrerId;
+    if (referredByReferrerId) {
+      try {
+        const referrer = await this.prismaService.referrer.findUnique({
+          where: { id: referredByReferrerId },
+          select: { id: true, commissionRate: true },
+        });
+
+        if (referrer) {
+          const rate = referrer.commissionRate || 15.0;
+          const bounty = Math.round(dto.amount * (rate / 100));
+          const subscriberEmail = whiteLabel.subscription?.subscriber?.email;
+
+          const existingDeal = await this.prismaService.referrerDeal.findFirst({
+            where: {
+              referrerId: referrer.id,
+              ...(subscriberEmail ? { clientEmail: subscriberEmail } : {}),
+            },
+            orderBy: { createdAt: 'desc' },
+          });
+
+          if (existingDeal) {
+            await this.prismaService.referrerDeal.update({
+              where: { id: existingDeal.id },
+              data: {
+                clientName: whiteLabel.name,
+                sellingPriceBdt: dto.amount,
+                referrerBountyBdt: bounty,
+                status: 'PAID',
+              },
+            });
+          } else {
+            const dealCode = await generateUniqueCode(
+              this.prismaService,
+              'referrerDeal',
+              CodePrefix.REFERRER_DEAL,
+            );
+            await this.prismaService.referrerDeal.create({
+              data: {
+                code: dealCode,
+                clientName: whiteLabel.name,
+                clientEmail: subscriberEmail || null,
+                sellingPriceBdt: dto.amount,
+                referrerBountyBdt: bounty,
+                status: 'PAID',
+                referrerId: referrer.id,
+              },
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[WhiteLabelService] Failed to sync payment to ReferrerDeal:', err);
+      }
+    }
 
     return {
       success: true,

@@ -668,6 +668,13 @@ export function AdminReferrersTable({ initialData }: AdminReferrersTableProps) {
         <div className="flex flex-wrap items-center gap-2">
           {/* Remittance Payout Method Filter */}
           <Select
+            items={{
+              all: "All Remittance",
+              BANK_TRANSFER: "Bank Wire / Transfer",
+              BKASH: "bKash (MFS)",
+              NAGAD: "Nagad (MFS)",
+              ROCKET: "Rocket (MFS)",
+            }}
             value={payoutMethodFilter}
             onValueChange={(val) => setPayoutMethodFilter(val || "all")}
           >
@@ -686,6 +693,14 @@ export function AdminReferrersTable({ initialData }: AdminReferrersTableProps) {
 
           {/* Compliance / Readiness Filter */}
           <Select
+            items={{
+              all: "All Readiness States",
+              ready_to_activate: "Ready to Activate (PAID)",
+              contract_uploaded: "Signed Contract Uploaded",
+              incorporated: "Incorporated Legal Entity",
+              bank_verified: "Remittance Account Set",
+              has_deals: "Active with Closed Deals",
+            }}
             value={complianceFilter}
             onValueChange={(val) => setComplianceFilter(val || "all")}
           >
@@ -705,6 +720,13 @@ export function AdminReferrersTable({ initialData }: AdminReferrersTableProps) {
 
           {/* Sort Order */}
           <Select
+            items={{
+              newest: "Newest Submissions",
+              oldest: "Oldest Submissions",
+              deals_desc: "Most Deals Closed",
+              bounty_desc: "Highest Bounty Generated",
+              name_asc: "Partner Name (A–Z)",
+            }}
             value={sortOrder}
             onValueChange={(val) => setSortOrder(val || "newest")}
           >

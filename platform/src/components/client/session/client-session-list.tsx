@@ -556,15 +556,14 @@ export function ClientSessionList({
           {/* Sort Selector */}
           <div className="w-[170px] shrink-0">
             <Select
+              items={sortLabels}
               value={sortBy}
               onValueChange={(val) => setSortBy(val || "accessedAt:desc")}
             >
               <SelectTrigger className="w-full h-8 text-xs bg-background/80">
                 <div className="flex items-center gap-1.5 truncate">
                   <ArrowUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="Sort by">
-                    {(val) => sortLabels[val as string] || val || "Sort by"}
-                  </SelectValue>
+                  <SelectValue placeholder="Sort by" />
                 </div>
               </SelectTrigger>
               <SelectContent>

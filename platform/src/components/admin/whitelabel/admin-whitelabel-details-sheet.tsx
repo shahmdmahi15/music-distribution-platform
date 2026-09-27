@@ -2098,6 +2098,11 @@ export function AdminWhiteLabelDetailsDialog({
                           Creator Signup Model
                         </Label>
                         <Select
+                          items={{
+                            INVITE_ONLY: "Invite Only",
+                            ADMIN_APPROVAL: "Admin Approval",
+                            OPEN_REGISTRATION: "Open Registration",
+                          }}
                           value={dossierForm.userSignupModel}
                           onValueChange={(val) =>
                             setDossierForm((p) => ({
@@ -3318,6 +3323,7 @@ export function AdminWhiteLabelDetailsDialog({
                     Payment Method
                   </Label>
                   <Select
+                    items={paymentMethodLabels}
                     value={paymentForm.paymentMethod}
                     onValueChange={(val) => {
                       if (val) {
@@ -3580,6 +3586,7 @@ export function AdminWhiteLabelDetailsDialog({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Document Category</Label>
               <Select
+                items={adminDocTypeLabels}
                 value={docType}
                 onValueChange={(v) => v && setDocType(v)}
               >

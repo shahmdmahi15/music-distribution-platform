@@ -117,6 +117,31 @@ const ROLE_OPTIONS = [
   },
 ];
 
+const ROLE_FILTER_ITEMS: Record<string, string> = {
+  ALL: "All Roles",
+  [WhiteLabelUserRole.CLIENT]: "Artist / Client",
+  [WhiteLabelUserRole.MANAGER]: "Catalog Manager",
+  [WhiteLabelUserRole.STAFF]: "Portal Staff",
+  [WhiteLabelUserRole.ADMIN]: "Portal Admin",
+  [WhiteLabelUserRole.OWNER]: "Owner",
+};
+
+const STATUS_FILTER_ITEMS: Record<string, string> = {
+  ALL: "All Statuses",
+  ACTIVE: "Active",
+  PENDING: "Pending Approval",
+  LOCKED: "Locked",
+  "2FA": "2FA Enabled",
+};
+
+const ROLE_SELECT_ITEMS: Record<string, string> = {
+  [WhiteLabelUserRole.CLIENT]: "Artist / Client",
+  [WhiteLabelUserRole.MANAGER]: "Catalog Manager",
+  [WhiteLabelUserRole.STAFF]: "Portal Staff",
+  [WhiteLabelUserRole.ADMIN]: "Portal Admin",
+  [WhiteLabelUserRole.OWNER]: "Owner",
+};
+
 function generateSecurePassword(): string {
   const chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const specials = "!@#$%^&*";
@@ -664,6 +689,7 @@ export function ClientPortalUsersView({
             {/* Role Filter (Shadcn Select) */}
             <div className="w-full sm:w-44">
               <Select
+                items={ROLE_FILTER_ITEMS}
                 value={roleFilter}
                 onValueChange={(val) => setRoleFilter(val ?? "ALL")}
               >
@@ -694,6 +720,7 @@ export function ClientPortalUsersView({
             {/* Status Filter (Shadcn Select) */}
             <div className="w-full sm:w-44">
               <Select
+                items={STATUS_FILTER_ITEMS}
                 value={statusFilter}
                 onValueChange={(val) => setStatusFilter(val ?? "ALL")}
               >
@@ -1045,6 +1072,7 @@ export function ClientPortalUsersView({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Assigned Role</Label>
               <Select
+                items={ROLE_SELECT_ITEMS}
                 value={createForm.role}
                 onValueChange={(val) =>
                   setCreateForm((prev) => ({
@@ -1342,6 +1370,7 @@ export function ClientPortalUsersView({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Assigned Role</Label>
               <Select
+                items={ROLE_SELECT_ITEMS}
                 value={editForm.role}
                 onValueChange={(val) =>
                   setEditForm((prev) => ({

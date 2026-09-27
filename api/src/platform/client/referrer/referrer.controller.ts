@@ -9,6 +9,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ClientReferrerService } from './referrer.service';
 import { CreateReferrerApplicationDto } from './dto/create-referrer-application.dto';
+import { ClientCreateDealDto } from './dto/client-create-deal.dto';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
 
 @Controller('referrer')
@@ -36,6 +37,14 @@ export class ClientReferrerController {
   @Get('contract/preview')
   async getContractPreview(@CurrentUser('id') userId: string) {
     return await this.referrerService.getContractPreview(userId);
+  }
+
+  @Post('deals')
+  async createDeal(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ClientCreateDealDto,
+  ) {
+    return await this.referrerService.createDeal(userId, dto);
   }
 
   @Post('documents')

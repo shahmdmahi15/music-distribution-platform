@@ -105,6 +105,23 @@ export interface Referrer {
 
   documents?: ReferrerDocument[];
   deals?: ReferrerDeal[];
+  referredUsers?: {
+    id: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    createdAt: string;
+    subscription?: {
+      id: string;
+      code: string;
+      whiteLabel?: {
+        id: string;
+        name: string;
+        status: string;
+      } | null;
+    } | null;
+  }[];
 
   createdAt: string;
   updatedAt: string;

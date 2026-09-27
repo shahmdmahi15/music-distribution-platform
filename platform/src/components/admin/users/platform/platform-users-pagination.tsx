@@ -79,13 +79,17 @@ export function PlatformUsersPagination({
         <div className="flex items-center gap-2">
           <span className="text-xs">Per page:</span>
           <Select
+            items={{
+              "10": "10",
+              "20": "20",
+              "50": "50",
+              "100": "100",
+            }}
             value={limit.toString()}
             onValueChange={(val) => changeLimit(val || "10")}
           >
             <SelectTrigger className="h-8 w-[70px] text-xs">
-              <SelectValue placeholder={limit.toString()}>
-                {(val) => val || limit.toString()}
-              </SelectValue>
+              <SelectValue placeholder={limit.toString()} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="10">10</SelectItem>

@@ -1600,6 +1600,12 @@ export function AdminReferrerDetailsDialog({
                   <div className="space-y-1.5 pt-2">
                     <Label className="text-xs">Remittance Method</Label>
                     <Select
+                      items={{
+                        BANK_TRANSFER: "Bank Transfer / Wire",
+                        BKASH: "bKash (MFS)",
+                        NAGAD: "Nagad (MFS)",
+                        ROCKET: "Rocket (MFS)",
+                      }}
                       value={dossierForm.payoutMethod}
                       onValueChange={(val) =>
                         setDossierForm({
@@ -1756,6 +1762,11 @@ export function AdminReferrerDetailsDialog({
 
                   <div className="flex items-center gap-2">
                     <Select
+                      items={{
+                        ALL: "All Deals",
+                        PENDING: "Pending Payout",
+                        PAID: "Paid Bounty",
+                      }}
                       value={dealStatusFilter}
                       onValueChange={(val) => setDealStatusFilter(val || "ALL")}
                     >
@@ -2228,6 +2239,10 @@ export function AdminReferrerDetailsDialog({
             <div className="space-y-1.5">
               <Label className="text-xs">Payout Status</Label>
               <Select
+                items={{
+                  PENDING: "Pending Remittance",
+                  PAID: "Disbursed / Paid",
+                }}
                 value={dealStatus}
                 onValueChange={(val: any) => setDealStatus(val)}
               >
@@ -2279,6 +2294,7 @@ export function AdminReferrerDetailsDialog({
             <div className="space-y-1.5">
               <Label className="text-xs">Document Type</Label>
               <Select
+                items={DOC_TYPE_LABELS}
                 value={docType}
                 onValueChange={(val) => setDocType(val || "GOVERNMENT_ID")}
               >

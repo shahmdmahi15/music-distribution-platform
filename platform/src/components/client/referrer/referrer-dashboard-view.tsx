@@ -30,14 +30,11 @@ import {
   PlusCircle,
   Search,
   X,
-  Filter,
-  Trash2,
-  ArrowRight,
-  Info,
-  Layers,
-  Send,
-  MessageSquare,
   Lock,
+  Headphones,
+  MessageSquare,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,23 +60,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { WhiteLabelBranding } from "@/types/whitelabel";
-import { Referrer } from "@/types/referrer";
-import { clientUpdateBrandingAction } from "@/actions/client/whitelabel/client-update-branding.action";
-import { clientApplyReferrerAction } from "@/actions/client/referrer/client-apply-referrer.action";
-
-export interface ReferredDeal {
-  id: string;
-  clientName: string;
-  contactName: string;
-  email: string;
-  phone?: string;
-  status: "ACTIVE" | "CONTRACTED" | "UNDER_REVIEW" | "PROSPECT";
-  dealPriceBdt: number;
-  commissionBdt: number;
-  payoutStatus: "SETTLED" | "AVAILABLE" | "PENDING";
-  createdAt: string;
-  notes?: string;
-}
+import { Referrer, ReferrerDeal } from "@/types/referrer";
+import { clientCreateDealAction } from "@/actions/client/referrer/client-create-deal.action";
 
 interface ReferrerDashboardViewProps {
   branding?: WhiteLabelBranding;
@@ -100,6 +82,12 @@ const PRICE_PRESETS = [
   { label: "৳200k", value: 200000, desc: "Unlimited Network" },
 ];
 
+const DEAL_STAGE_ITEMS = {
+  PROSPECT: "Prospect Lead",
+  UNDER_REVIEW: "In Discussion / Demo",
+  CONTRACTED: "Contract Executed",
+};
+
 export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDashboardViewProps) {
   const onboardingDetails =
     (referrer?.onboardingDetails as Record<string, any>) ||
@@ -109,8 +97,6 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
   const referralCode =
     referrer?.referralCode ||
     onboardingDetails.referralNetworkCode ||
-    onboardingDetails.scoutAffiliateCodePrefix ||
-    branding?.code ||
     `REF-${user.id.slice(-6).toUpperCase()}`;
 
   // Referral URL
@@ -118,7 +104,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
     typeof window !== "undefined" ? window.location.origin : "https://platform.royalmotionit.com";
   const referralUrl = `${origin}/auth/register?ref=${referralCode}`;
 
-  // Deal simulation state
+  // Interactive simulation state
   const [dealPrice, setDealPrice] = useState<number>(
     referrer?.dealBenchmarkBdt ||
       (onboardingDetails.simulatedDealPriceBdt &&
@@ -126,46 +112,6 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
         ? Number(onboardingDetails.simulatedDealPriceBdt)
         : 60000),
   );
-
-  // Remittance configuration state
-  const [payoutMethod, setPayoutMethod] = useState<string>(
-    referrer?.payoutMethod || onboardingDetails.payoutMethod || "BANK_TRANSFER",
-  );
-  const [payoutBankName, setPayoutBankName] = useState<string>(
-    referrer?.bankName || onboardingDetails.payoutBankName || "",
-  );
-  const [payoutAccountName, setPayoutAccountName] = useState<string>(
-    referrer?.accountName ||
-      onboardingDetails.payoutAccountName ||
-      onboardingDetails.payoutAccountHolderName ||
-      `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-  );
-  const [payoutAccountNumber, setPayoutAccountNumber] = useState<string>(
-    referrer?.accountNumber || onboardingDetails.payoutAccountNumber || "",
-  );
-  const [payoutWalletNumber, setPayoutWalletNumber] = useState<string>(
-    referrer?.walletNumber ||
-      onboardingDetails.payoutWalletNumber ||
-      (referrer?.payoutMethod !== "BANK_TRANSFER" && referrer?.accountNumber
-        ? referrer.accountNumber
-        : "") ||
-      (onboardingDetails.payoutMethod !== "BANK_TRANSFER"
-        ? onboardingDetails.payoutAccountNumber || ""
-        : ""),
-  );
-  const [payoutBranchDistrict, setPayoutBranchDistrict] = useState<string>(
-    referrer?.branchDistrict || onboardingDetails.payoutBranchDistrict || "",
-  );
-  const [payoutBankBranch, setPayoutBankBranch] = useState<string>(
-    referrer?.branchName || onboardingDetails.payoutBankBranch || "",
-  );
-  const [payoutBankRouting, setPayoutBankRouting] = useState<string>(
-    referrer?.routingNumber || onboardingDetails.payoutBankRouting || "",
-  );
-  const [payoutSwiftCode, setPayoutSwiftCode] = useState<string>(
-    referrer?.swiftCode || onboardingDetails.payoutSwiftCode || "",
-  );
-  const [isSavingPayout, setIsSavingPayout] = useState(false);
 
   // Copy state
   const [copiedLink, setCopiedLink] = useState(false);
@@ -175,55 +121,35 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
   // Modals state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [newDealOpen, setNewDealOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
-  // Pipeline deals state
-  const [deals, setDeals] = useState<ReferredDeal[]>(
-    onboardingDetails.referredDeals || [
-      {
-        id: "deal-1",
-        clientName: "Velocity Music Group",
-        contactName: "Tanvir Hasan",
-        email: "tanvir@velocitymusic.com",
-        phone: "+880 1712-345678",
-        status: "ACTIVE",
-        dealPriceBdt: 80000,
-        commissionBdt: 12000,
-        payoutStatus: "AVAILABLE",
-        createdAt: "2026-09-18",
-        notes: "Onboarded with 3 sub-labels and DDEX feeds.",
-      },
-      {
-        id: "deal-2",
-        clientName: "Dhaka Sound Distribution",
-        contactName: "Rahim Chowdhury",
-        email: "r.chowdhury@dhakasound.io",
-        phone: "+880 1819-234567",
-        status: "CONTRACTED",
-        dealPriceBdt: 60000,
-        commissionBdt: 9000,
-        payoutStatus: "PENDING",
-        createdAt: "2026-09-22",
-        notes: "Contract executed. Awaiting subscription settlement.",
-      },
-      {
-        id: "deal-3",
-        clientName: "Bengal Beat Aggregators",
-        contactName: "Nusrat Jahan",
-        email: "nusrat@bengalbeat.org",
-        phone: "+880 1911-889900",
-        status: "UNDER_REVIEW",
-        dealPriceBdt: 100000,
-        commissionBdt: 15000,
-        payoutStatus: "PENDING",
-        createdAt: "2026-09-25",
-        notes: "Under technical architecture demonstration.",
-      },
-    ],
-  );
+  // Live Database Deals State
+  const [deals, setDeals] = useState<ReferrerDeal[]>(referrer?.deals || []);
+  const referredUsers = referrer?.referredUsers || [];
 
-  // Pipeline filters
+  // Pipeline deals filter & search
   const [pipelineSearch, setPipelineSearch] = useState("");
   const [pipelineStatusFilter, setPipelineStatusFilter] = useState<string>("ALL");
+  const [pipelineViewMode, setPipelineViewMode] = useState<"DEALS" | "USERS">("DEALS");
+
+  // New Deal Form State
+  const [newClientName, setNewClientName] = useState("");
+  const [newContactName, setNewContactName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newDealStatus, setNewDealStatus] = useState<string>("PROSPECT");
+  const [newDealPrice, setNewDealPrice] = useState<number>(referrer?.dealBenchmarkBdt || 60000);
+  const [newDealNotes, setNewDealNotes] = useState("");
+  const [isSubmittingDeal, setIsSubmittingDeal] = useState(false);
+
+  // Dynamic Telemetry Calculations from Real Data
+  const totalReferred = referredUsers.length + deals.length;
+  const totalPipelineVolume = deals.reduce((sum, d) => sum + (d.sellingPriceBdt || 0), 0);
+  const totalCommissionEarned = deals.reduce((sum, d) => sum + (d.referrerBountyBdt || 0), 0);
+  const availablePayout = deals
+    .filter((d) => d.status === "PAID" || d.status === "WON" || d.status === "ACTIVE")
+    .reduce((sum, d) => sum + (d.referrerBountyBdt || 0), 0);
+  const settledPayout = 0; // Historical disbursement tracking
 
   // Filtered pipeline deals
   const filteredDeals = useMemo(() => {
@@ -231,9 +157,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
       const matchesSearch =
         !pipelineSearch.trim() ||
         deal.clientName.toLowerCase().includes(pipelineSearch.toLowerCase()) ||
-        deal.contactName.toLowerCase().includes(pipelineSearch.toLowerCase()) ||
-        deal.email.toLowerCase().includes(pipelineSearch.toLowerCase()) ||
-        (deal.phone && deal.phone.includes(pipelineSearch));
+        (deal.clientEmail && deal.clientEmail.toLowerCase().includes(pipelineSearch.toLowerCase()));
 
       const matchesStatus =
         pipelineStatusFilter === "ALL" || deal.status === pipelineStatusFilter;
@@ -242,29 +166,22 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
     });
   }, [deals, pipelineSearch, pipelineStatusFilter]);
 
-  // New Deal Form State
-  const [newClientName, setNewClientName] = useState("");
-  const [newContactName, setNewContactName] = useState("");
-  const [newClientEmail, setNewClientEmail] = useState("");
-  const [newClientPhone, setNewClientPhone] = useState("");
-  const [newDealStatus, setNewDealStatus] = useState<
-    "PROSPECT" | "UNDER_REVIEW" | "CONTRACTED"
-  >("PROSPECT");
-  const [newDealPrice, setNewDealPrice] = useState(60000);
-  const [newDealNotes, setNewDealNotes] = useState("");
+  // Filtered referred users
+  const filteredUsers = useMemo(() => {
+    return referredUsers.filter((u) => {
+      if (!pipelineSearch.trim()) return true;
+      const term = pipelineSearch.toLowerCase();
+      const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
+      return (
+        fullName.includes(term) ||
+        u.email.toLowerCase().includes(term) ||
+        (u.subscription?.whiteLabel?.name &&
+          u.subscription.whiteLabel.name.toLowerCase().includes(term))
+      );
+    });
+  }, [referredUsers, pipelineSearch]);
 
-  // Metrics calculations
-  const totalReferred = deals.length;
-  const totalPipelineVolume = deals.reduce((sum, d) => sum + d.dealPriceBdt, 0);
-  const totalCommissionEarned = deals.reduce((sum, d) => sum + d.commissionBdt, 0);
-  const availablePayout = deals
-    .filter((d) => d.payoutStatus === "AVAILABLE")
-    .reduce((sum, d) => sum + d.commissionBdt, 0);
-  const settledPayout = deals
-    .filter((d) => d.payoutStatus === "SETTLED")
-    .reduce((sum, d) => sum + d.commissionBdt, 0);
-
-  // Copy helpers
+  // Copy handler helper
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralUrl);
     setCopiedLink(true);
@@ -275,167 +192,59 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
   const handleCopyCode = () => {
     navigator.clipboard.writeText(referralCode);
     setCopiedCode(true);
-    toast.success(`Referral code ${referralCode} copied!`);
+    toast.success(`Partner code "${referralCode}" copied!`);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // Add deal
-  const handleAddDeal = () => {
-    if (!newClientName.trim() || !newClientEmail.trim()) {
-      toast.error("Please enter company name and contact email.");
+  // Submit real deal to backend
+  const handleAddDeal = async () => {
+    if (!newClientName.trim()) {
+      toast.error("Please provide the Client or Organization Name.");
       return;
     }
-    const cleanPrice = Math.max(60000, Number(newDealPrice) || 60000);
-    const comm = Math.round(cleanPrice * 0.15);
-    const newDealItem: ReferredDeal = {
-      id: `deal-${Date.now()}`,
-      clientName: newClientName.trim(),
-      contactName: newContactName.trim() || newClientName.trim(),
-      email: newClientEmail.trim().toLowerCase(),
-      phone: newClientPhone.trim() || undefined,
-      status: newDealStatus,
-      dealPriceBdt: cleanPrice,
-      commissionBdt: comm,
-      payoutStatus: "PENDING",
-      createdAt: new Date().toISOString().split("T")[0],
-      notes: newDealNotes.trim() || undefined,
-    };
 
-    const updatedDeals = [newDealItem, ...deals];
-    setDeals(updatedDeals);
-    setNewDealOpen(false);
-    setNewClientName("");
-    setNewContactName("");
-    setNewClientEmail("");
-    setNewClientPhone("");
-    setNewDealStatus("PROSPECT");
-    setNewDealPrice(60000);
-    setNewDealNotes("");
-    toast.success(
-      `Prospect registered! Anticipated 15% partner commission: ৳${comm.toLocaleString()} BDT`,
-    );
-  };
-
-  // Delete deal
-  const handleDeleteDeal = (id: string, name: string) => {
-    setDeals(deals.filter((d) => d.id !== id));
-    toast.success(`Removed "${name}" from pipeline.`);
-  };
-
-  // Save payout settings
-  const handleSavePayoutSettings = async () => {
-    if (payoutMethod === "BANK_TRANSFER") {
-      if (!payoutBankName.trim()) {
-        toast.error("Please enter the Bank Name.");
-        return;
-      }
-      if (!payoutAccountName.trim()) {
-        toast.error("Please enter the Account Name.");
-        return;
-      }
-      if (!payoutAccountNumber.trim()) {
-        toast.error("Please enter the Bank Account Number.");
-        return;
-      }
-      if (!payoutBranchDistrict.trim()) {
-        toast.error("Please enter the Branch District.");
-        return;
-      }
-      if (!payoutBankBranch.trim()) {
-        toast.error("Please enter the Branch Name.");
-        return;
-      }
-      if (!payoutBankRouting.trim()) {
-        toast.error("Please enter the Routing Number.");
-        return;
-      }
-      if (!payoutSwiftCode.trim()) {
-        toast.error("Please enter the Swift Code.");
-        return;
-      }
-    } else {
-      const activeWallet = (payoutWalletNumber || payoutAccountNumber).trim();
-      if (!activeWallet) {
-        toast.error(`Please enter your ${payoutMethod} Wallet Mobile Number.`);
-        return;
-      }
-    }
-
-    setIsSavingPayout(true);
+    setIsSubmittingDeal(true);
     try {
-      const activeWallet = (payoutWalletNumber || payoutAccountNumber).trim();
-      let res;
-      if (referrer) {
-        res = await clientApplyReferrerAction({
-          name: referrer.name,
-          referralCode: referrer.referralCode,
-          contactFirstName: referrer.contactFirstName,
-          contactLastName: referrer.contactLastName,
-          contactEmail: referrer.contactEmail,
-          country: referrer.country || "Bangladesh",
-          contactPhone: referrer.contactPhone || undefined,
-          contactWhatsApp:
-            referrer.contactWhatsApp || referrer.contactPhone || "Not provided",
-          contactLinkedIn: referrer.contactLinkedIn || undefined,
-          payoutMethod,
-          bankName: payoutMethod === "BANK_TRANSFER" ? payoutBankName.trim() : undefined,
-          accountName: payoutMethod === "BANK_TRANSFER" ? payoutAccountName.trim() : undefined,
-          accountNumber: payoutMethod === "BANK_TRANSFER" ? payoutAccountNumber.trim() : undefined,
-          branchDistrict: payoutMethod === "BANK_TRANSFER" ? payoutBranchDistrict.trim() : undefined,
-          branchName: payoutMethod === "BANK_TRANSFER" ? payoutBankBranch.trim() : undefined,
-          routingNumber: payoutMethod === "BANK_TRANSFER" ? payoutBankRouting.trim() : undefined,
-          swiftCode: payoutMethod === "BANK_TRANSFER" ? payoutSwiftCode.trim().toUpperCase() : undefined,
-          walletNumber: payoutMethod !== "BANK_TRANSFER" ? activeWallet : undefined,
-          onboardingDetails: {
-            ...onboardingDetails,
-            simulatedDealPriceBdt: dealPrice,
-            referredDeals: deals,
-          },
-        });
-      } else {
-        res = await clientUpdateBrandingAction({
-          onboardingDetails: {
-            ...onboardingDetails,
-            payoutMethod,
-            payoutBankName: payoutBankName.trim(),
-            payoutAccountName: payoutAccountName.trim(),
-            payoutAccountHolderName: payoutAccountName.trim(),
-            payoutAccountNumber:
-              payoutMethod === "BANK_TRANSFER" ? payoutAccountNumber.trim() : activeWallet,
-            payoutWalletNumber:
-              payoutMethod !== "BANK_TRANSFER"
-                ? activeWallet
-                : onboardingDetails.payoutWalletNumber || "",
-            payoutBranchDistrict: payoutBranchDistrict.trim(),
-            payoutBankBranch: payoutBankBranch.trim(),
-            payoutBankRouting: payoutBankRouting.trim(),
-            payoutSwiftCode: payoutSwiftCode.trim().toUpperCase(),
-            simulatedDealPriceBdt: dealPrice,
-            referredDeals: deals,
-          },
-        });
-      }
+      const res = await clientCreateDealAction({
+        clientName: newClientName.trim(),
+        clientEmail: newClientEmail.trim() || undefined,
+        contactName: newContactName.trim() || undefined,
+        contactPhone: newClientPhone.trim() || undefined,
+        sellingPriceBdt: newDealPrice,
+        notes: newDealNotes.trim() || undefined,
+      });
 
-      if (res.success) {
-        toast.success("Payout & remittance configuration saved successfully!");
+      if (res.success && res.deal) {
+        setDeals([res.deal, ...deals]);
+        setNewDealOpen(false);
+        setNewClientName("");
+        setNewContactName("");
+        setNewClientEmail("");
+        setNewClientPhone("");
+        setNewDealStatus("PROSPECT");
+        setNewDealPrice(referrer?.dealBenchmarkBdt || 60000);
+        setNewDealNotes("");
+        toast.success(
+          `Prospect registered! Anticipated 15% partner commission: ৳${res.deal.referrerBountyBdt.toLocaleString()} BDT`,
+        );
       } else {
-        toast.error(res.message || "Failed to update payout settings.");
+        toast.error(res.message || "Failed to register prospective deal.");
       }
     } catch {
-      toast.error("Failed to save payout settings.");
+      toast.error("An error occurred while registering the deal.");
     } finally {
-      setIsSavingPayout(false);
+      setIsSubmittingDeal(false);
     }
   };
 
   // Calculated simulation cut
-  const calculatedCommission = Math.round(dealPrice * 0.15);
+  const calculatedCommission = Math.round(dealPrice * ((referrer?.commissionRate || 15) / 100));
   const calculatedPlatformShare = dealPrice - calculatedCommission;
 
   return (
     <div className="w-full space-y-6 pb-12 animate-in fade-in-50 duration-300">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card p-6 sm:p-7 shadow-sm">
+      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card p-5 sm:p-7 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2 flex-wrap">
@@ -491,8 +300,8 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
         </div>
       </div>
 
-      {/* Top 5 Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* Responsive 5 Metrics Cards (no clipping, wraps gracefully) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="text-[11px] font-medium flex items-center justify-between">
@@ -504,7 +313,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            Distribution Aggregator leads
+            {referredUsers.length} direct signups • {deals.length} deals
           </CardContent>
         </Card>
 
@@ -519,7 +328,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            ৳{totalPipelineVolume.toLocaleString()} BDT closed / pending
+            ৳{totalPipelineVolume.toLocaleString()} BDT total volume
           </CardContent>
         </Card>
 
@@ -534,7 +343,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            15% share across all deals
+            15% share across all pipeline deals
           </CardContent>
         </Card>
 
@@ -549,14 +358,14 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-[10px] text-emerald-700/80 dark:text-emerald-300/80">
-            Ready for bKash / Bank transfer
+            Settled client subscriptions ready
           </CardContent>
         </Card>
 
         <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="text-[11px] font-medium flex items-center justify-between">
-              <span>Settled / Paid Out</span>
+              <span>Historical Disbursed</span>
               <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
             </CardDescription>
             <CardTitle className="text-2xl font-bold font-mono text-muted-foreground">
@@ -564,7 +373,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            Historical disbursements
+            Completed bank/MFS disbursements
           </CardContent>
         </Card>
       </div>
@@ -582,10 +391,10 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
           </TabsTrigger>
           <TabsTrigger value="pipeline" className="text-xs py-2.5 gap-1.5 font-medium">
             <Users className="h-3.5 w-3.5" />
-            <span>Pipeline Deals ({deals.length})</span>
+            <span>Pipeline &amp; Leads ({totalReferred})</span>
           </TabsTrigger>
           <TabsTrigger value="payouts" className="text-xs py-2.5 gap-1.5 font-medium">
-            <Landmark className="h-3.5 w-3.5" />
+            <Lock className="h-3.5 w-3.5" />
             <span>Payout &amp; Remittance</span>
           </TabsTrigger>
         </TabsList>
@@ -1067,11 +876,30 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     Referred Accounts &amp; Deal Pipeline
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Track client progress, negotiated account values, and your earned 15% commission payouts.
+                    Real-time ledger of referred user registrations and negotiated client deals.
                   </CardDescription>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <div className="flex rounded-lg border border-border/80 p-0.5 bg-muted/40">
+                    <Button
+                      variant={pipelineViewMode === "DEALS" ? "secondary" : "ghost"}
+                      size="xs"
+                      onClick={() => setPipelineViewMode("DEALS")}
+                      className="text-xs h-7 font-semibold"
+                    >
+                      Pipeline Deals ({deals.length})
+                    </Button>
+                    <Button
+                      variant={pipelineViewMode === "USERS" ? "secondary" : "ghost"}
+                      size="xs"
+                      onClick={() => setPipelineViewMode("USERS")}
+                      className="text-xs h-7 font-semibold"
+                    >
+                      Referred Users ({referredUsers.length})
+                    </Button>
+                  </div>
+
                   <Button
                     onClick={() => setNewDealOpen(true)}
                     size="sm"
@@ -1088,7 +916,11 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                 <div className="relative w-full sm:w-72">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Search client, representative..."
+                    placeholder={
+                      pipelineViewMode === "DEALS"
+                        ? "Search client, email..."
+                        : "Search referred user, email..."
+                    }
                     value={pipelineSearch}
                     onChange={(e) => setPipelineSearch(e.target.value)}
                     className="pl-8 pr-8 h-8 text-xs bg-muted/30"
@@ -1103,197 +935,256 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-                  {["ALL", "ACTIVE", "CONTRACTED", "UNDER_REVIEW", "PROSPECT"].map((status) => (
-                    <Button
-                      key={status}
-                      variant={pipelineStatusFilter === status ? "secondary" : "ghost"}
-                      size="xs"
-                      className={`text-xs h-7 font-medium ${
-                        pipelineStatusFilter === status
-                          ? "bg-secondary text-secondary-foreground font-bold shadow-2xs"
-                          : "text-muted-foreground"
-                      }`}
-                      onClick={() => setPipelineStatusFilter(status)}
-                    >
-                      {status === "ALL"
-                        ? `All (${deals.length})`
-                        : status === "ACTIVE"
-                        ? "Active"
-                        : status === "CONTRACTED"
-                        ? "Contracted"
-                        : status === "UNDER_REVIEW"
-                        ? "In Review"
-                        : "Prospects"}
-                    </Button>
-                  ))}
-                </div>
+                {pipelineViewMode === "DEALS" && (
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                    {["ALL", "PENDING", "PAID", "CANCELLED"].map((status) => (
+                      <Button
+                        key={status}
+                        variant={pipelineStatusFilter === status ? "secondary" : "ghost"}
+                        size="xs"
+                        className={`text-xs h-7 font-medium ${
+                          pipelineStatusFilter === status
+                            ? "bg-secondary text-secondary-foreground font-bold shadow-2xs"
+                            : "text-muted-foreground"
+                        }`}
+                        onClick={() => setPipelineStatusFilter(status)}
+                      >
+                        {status === "ALL"
+                          ? `All Deals (${deals.length})`
+                          : status === "PAID"
+                          ? "Paid & Active"
+                          : status === "PENDING"
+                          ? "Pending Close"
+                          : "Cancelled"}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardHeader>
 
             <CardContent>
-              <div className="overflow-x-auto rounded-xl border border-border/60">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-muted/50 text-[11px] font-semibold text-muted-foreground uppercase">
-                    <tr>
-                      <th className="p-3">Client / Organization</th>
-                      <th className="p-3">Contact Person</th>
-                      <th className="p-3">Logged Date</th>
-                      <th className="p-3">Deal Stage</th>
-                      <th className="p-3">Selling Price</th>
-                      <th className="p-3 text-emerald-600 dark:text-emerald-400">15% Bounty</th>
-                      <th className="p-3">Payout Status</th>
-                      <th className="p-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40 font-mono">
-                    {filteredDeals.length > 0 ? (
-                      filteredDeals.map((deal) => {
-                        const isPending = deal.payoutStatus === "PENDING";
-                        const isAvailable = deal.payoutStatus === "AVAILABLE";
-                        const isSettled = deal.payoutStatus === "SETTLED";
+              {pipelineViewMode === "DEALS" ? (
+                <div className="overflow-x-auto rounded-xl border border-border/60">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/50 text-[11px] font-semibold text-muted-foreground uppercase">
+                      <tr>
+                        <th className="p-3">Deal Code</th>
+                        <th className="p-3">Client / Organization</th>
+                        <th className="p-3">Logged Date</th>
+                        <th className="p-3">Selling Price</th>
+                        <th className="p-3 text-emerald-600 dark:text-emerald-400">15% Bounty</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 font-mono">
+                      {filteredDeals.length > 0 ? (
+                        filteredDeals.map((deal) => {
+                          const isPaid = deal.status === "PAID" || deal.status === "ACTIVE";
+                          const isPending = deal.status === "PENDING";
+                          const isCancelled = deal.status === "CANCELLED";
 
-                        return (
-                          <tr key={deal.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="p-3 font-sans">
-                              <div className="font-semibold text-foreground">{deal.clientName}</div>
-                              <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-1.5 mt-0.5">
-                                <span>{deal.email}</span>
-                                {deal.phone && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{deal.phone}</span>
-                                  </>
+                          return (
+                            <tr key={deal.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="p-3 font-mono font-bold text-foreground">
+                                {deal.code}
+                              </td>
+                              <td className="p-3 font-sans">
+                                <div className="font-semibold text-foreground">{deal.clientName}</div>
+                                {deal.clientEmail && (
+                                  <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                    {deal.clientEmail}
+                                  </div>
                                 )}
-                              </div>
-                            </td>
-                            <td className="p-3 font-sans text-muted-foreground">
-                              {deal.contactName}
-                            </td>
-                            <td className="p-3 text-muted-foreground text-[11px]">{deal.createdAt}</td>
-                            <td className="p-3 font-sans">
-                              {deal.status === "ACTIVE" && (
-                                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                                  Paid &amp; Active
-                                </Badge>
-                              )}
-                              {deal.status === "CONTRACTED" && (
-                                <Badge
-                                  variant="outline"
-                                  className="border-blue-500/40 text-blue-500 bg-blue-500/10 text-[10px] font-bold"
-                                >
-                                  Contract Executed
-                                </Badge>
-                              )}
-                              {deal.status === "UNDER_REVIEW" && (
-                                <Badge
-                                  variant="outline"
-                                  className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px] font-bold"
-                                >
-                                  In Review
-                                </Badge>
-                              )}
-                              {deal.status === "PROSPECT" && (
-                                <Badge variant="secondary" className="text-[10px] font-medium">
-                                  Prospect Lead
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="p-3 font-bold text-foreground">
-                              ৳{deal.dealPriceBdt.toLocaleString()}
-                            </td>
-                            <td className="p-3 font-extrabold text-emerald-600 dark:text-emerald-400">
-                              ৳{deal.commissionBdt.toLocaleString()}
-                            </td>
-                            <td className="p-3 font-sans">
-                              {isAvailable && (
-                                <Badge className="bg-emerald-500 text-white text-[10px] font-bold">
-                                  Ready for Payout
-                                </Badge>
-                              )}
-                              {isPending && (
-                                <Badge variant="outline" className="text-muted-foreground text-[10px]">
-                                  Pending Close
-                                </Badge>
-                              )}
-                              {isSettled && (
-                                <Badge variant="secondary" className="text-muted-foreground text-[10px]">
-                                  Disbursed
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="p-3 text-right font-sans">
-                              <div className="flex items-center justify-end gap-1">
-                                {deal.phone && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-emerald-600 hover:bg-emerald-500/10"
-                                    title="Open WhatsApp Chat"
-                                    onClick={() => {
-                                      const cleanPhone = deal.phone!.replace(/[^0-9]/g, "");
-                                      window.open(`https://wa.me/${cleanPhone}`, "_blank");
-                                    }}
+                              </td>
+                              <td className="p-3 text-muted-foreground text-[11px]">
+                                {new Date(deal.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="p-3 font-bold text-foreground">
+                                ৳{deal.sellingPriceBdt.toLocaleString()}
+                              </td>
+                              <td className="p-3 font-extrabold text-emerald-600 dark:text-emerald-400">
+                                ৳{deal.referrerBountyBdt.toLocaleString()}
+                              </td>
+                              <td className="p-3 font-sans">
+                                {isPaid && (
+                                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                                    Paid &amp; Active
+                                  </Badge>
+                                )}
+                                {isPending && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px] font-bold"
                                   >
-                                    <Phone className="h-3.5 w-3.5" />
-                                  </Button>
+                                    Pending Close
+                                  </Badge>
                                 )}
+                                {isCancelled && (
+                                  <Badge variant="secondary" className="text-muted-foreground text-[10px]">
+                                    Cancelled
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="p-3 text-right font-sans">
+                                <div className="flex items-center justify-end gap-1">
+                                  {deal.clientEmail && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                      title="Copy Email"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(deal.clientEmail!);
+                                        toast.success(`Copied ${deal.clientEmail}`);
+                                      }}
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="p-8 text-center text-muted-foreground font-sans">
+                            <div className="flex flex-col items-center justify-center space-y-2">
+                              <Users className="h-8 w-8 text-muted-foreground/40" />
+                              <p className="text-xs font-semibold">No client deals logged yet.</p>
+                              <p className="text-[11px] text-muted-foreground max-w-sm">
+                                Register a client lead using the button above or share your partner link to start earning 15% commissions.
+                              </p>
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                onClick={() => setNewDealOpen(true)}
+                                className="text-xs h-7 mt-1 gap-1"
+                              >
+                                <PlusCircle className="h-3 w-3" />
+                                Log First Deal
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border/60">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/50 text-[11px] font-semibold text-muted-foreground uppercase">
+                      <tr>
+                        <th className="p-3">User Code</th>
+                        <th className="p-3">Client Representative</th>
+                        <th className="p-3">Registration Date</th>
+                        <th className="p-3">WhiteLabel Platform</th>
+                        <th className="p-3">Account Status</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 font-mono">
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((u) => {
+                          const wl = u.subscription?.whiteLabel;
+                          return (
+                            <tr key={u.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="p-3 font-mono font-bold text-foreground">{u.code}</td>
+                              <td className="p-3 font-sans">
+                                <div className="font-semibold text-foreground">
+                                  {u.firstName} {u.lastName}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                  {u.email}
+                                </div>
+                              </td>
+                              <td className="p-3 text-muted-foreground text-[11px]">
+                                {new Date(u.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="p-3 font-sans">
+                                {wl ? (
+                                  <div>
+                                    <div className="font-semibold text-foreground">{wl.name}</div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                      Status: {wl.status}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-[11px]">
+                                    Application Pending
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 font-sans">
+                                {wl?.status === "ACTIVE" ? (
+                                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                                    Live Subscriber
+                                  </Badge>
+                                ) : wl ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-[10px] font-bold"
+                                  >
+                                    Onboarding ({wl.status})
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-muted-foreground text-[10px]">
+                                    Registered Lead
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="p-3 text-right font-sans">
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                   title="Copy Email"
                                   onClick={() => {
-                                    navigator.clipboard.writeText(deal.email);
-                                    toast.success(`Copied ${deal.email}`);
+                                    navigator.clipboard.writeText(u.email);
+                                    toast.success(`Copied ${u.email}`);
                                   }}
                                 >
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                  title="Remove Deal"
-                                  onClick={() => handleDeleteDeal(deal.id, deal.clientName)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-muted-foreground font-sans">
-                          <div className="flex flex-col items-center justify-center space-y-2">
-                            <Users className="h-8 w-8 text-muted-foreground/40" />
-                            <p className="text-xs font-semibold">No pipeline deals match your filter.</p>
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              onClick={() => {
-                                setPipelineSearch("");
-                                setPipelineStatusFilter("ALL");
-                              }}
-                              className="text-xs h-7"
-                            >
-                              Reset Filters
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-muted-foreground font-sans">
+                            <div className="flex flex-col items-center justify-center space-y-2">
+                              <Users className="h-8 w-8 text-muted-foreground/40" />
+                              <p className="text-xs font-semibold">No direct user signups recorded yet.</p>
+                              <p className="text-[11px] text-muted-foreground max-w-sm">
+                                When distributors sign up using your partner link or referral code, their accounts appear here automatically.
+                              </p>
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                onClick={handleCopyLink}
+                                className="text-xs h-7 mt-1 gap-1"
+                              >
+                                <Copy className="h-3 w-3" />
+                                Copy Partner Link
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* ========================================================================= */}
-        {/* 4. Payout & Remittance Configuration */}
+        {/* 4. Payout & Remittance Configuration (STRICTLY LOCKED) */}
         {/* ========================================================================= */}
         <TabsContent value="payouts" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1302,248 +1193,222 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Landmark className="h-4 w-4 text-primary" />
-                      Remittance &amp; Payout Settings
+                      <Lock className="h-4 w-4 text-amber-500" />
+                      Remittance &amp; Payout Configuration
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Specify where you want your 15% commissions transferred upon deal closure.
+                      Official verified disbursement channels for partner commission settlement.
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary" className="font-mono text-xs self-start sm:self-center">
-                    BDT &amp; Multi-Currency
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-xs font-bold self-start sm:self-center gap-1"
+                  >
+                    <Lock className="h-3 w-3" />
+                    Security Locked
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
-                {/* Active Remittance Snapshot Card */}
-                {(payoutAccountNumber || payoutWalletNumber || referrer?.accountNumber) && (
-                  <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Active Remittance Channel Configured</span>
-                      </div>
-                      <p className="text-xs font-mono text-foreground font-semibold">
-                        {payoutMethod === "BANK_TRANSFER"
-                          ? `${payoutBankName || "Bank"} • A/C ${payoutAccountNumber} (${payoutAccountName})`
-                          : `${payoutMethod} Wallet • ${payoutWalletNumber || payoutAccountNumber}`}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      className="text-xs h-7 gap-1 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 self-start sm:self-auto"
-                      onClick={() => {
-                        const info =
-                          payoutMethod === "BANK_TRANSFER"
-                            ? `${payoutBankName} | A/C: ${payoutAccountNumber} | ${payoutAccountName}`
-                            : `${payoutMethod}: ${payoutWalletNumber || payoutAccountNumber}`;
-                        navigator.clipboard.writeText(info);
-                        setCopiedSnapshot(true);
-                        toast.success("Remittance snapshot copied!");
-                        setTimeout(() => setCopiedSnapshot(false), 2000);
-                      }}
-                    >
-                      {copiedSnapshot ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      <span>{copiedSnapshot ? "Copied" : "Copy Snapshot"}</span>
-                    </Button>
-                  </div>
-                )}
-
-                {/* Channel Selector */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Select Preferred Remittance Channel</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[
-                      { id: "BKASH", name: "bKash (MFS)", icon: Smartphone },
-                      { id: "NAGAD", name: "Nagad (MFS)", icon: Smartphone },
-                      { id: "ROCKET", name: "Rocket (MFS)", icon: Smartphone },
-                      { id: "BANK_TRANSFER", name: "Bank Transfer", icon: Landmark },
-                    ].map((method) => {
-                      const isSelected = payoutMethod === method.id;
-                      const Icon = method.icon;
-                      return (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() => setPayoutMethod(method.id)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold transition-all ${
-                            isSelected
-                              ? "border-primary bg-primary/10 text-primary shadow-xs"
-                              : "border-border/60 hover:bg-muted/40 text-muted-foreground"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 mb-1" />
-                          <span>{method.name}</span>
-                        </button>
-                      );
-                    })}
+                {/* Security Compliance Alert Banner */}
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-start gap-3">
+                  <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-foreground">
+                      Remittance Details are Verified &amp; Locked
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      For AML/KYB regulatory compliance and fraud prevention, your payout channel
+                      and account details cannot be altered directly through the self-service console.
+                      If you need to change your disbursement bank account or mobile wallet number,
+                      please contact platform administration.
+                    </p>
                   </div>
                 </div>
 
-                {/* Account Details Form */}
-                <div className="space-y-4 pt-1">
-                  {payoutMethod === "BANK_TRANSFER" ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankName"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Bank Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankName"
-                            value={payoutBankName}
-                            onChange={(e) => setPayoutBankName(e.target.value)}
-                            placeholder="e.g. Dutch-Bangla Bank"
-                            className="text-xs h-9"
-                          />
+                {/* Verified Channel Details Card */}
+                <div className="rounded-xl border border-border/70 bg-card p-4 space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                    <div className="flex items-center gap-2">
+                      {referrer?.payoutMethod === "BANK_TRANSFER" ? (
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                          <Landmark className="h-4 w-4" />
                         </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutAccountName"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Account Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutAccountName"
-                            value={payoutAccountName}
-                            onChange={(e) => setPayoutAccountName(e.target.value)}
-                            placeholder="e.g. Shah Md. Mahi"
-                            className="text-xs h-9"
-                          />
+                      ) : (
+                        <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                          <Smartphone className="h-4 w-4" />
                         </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutAccountNumber"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Account Number</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutAccountNumber"
-                            value={payoutAccountNumber}
-                            onChange={(e) => setPayoutAccountNumber(e.target.value.trim())}
-                            placeholder="e.g. 2050XXXXXXXXXXXXX"
-                            className="text-xs font-mono h-9"
-                          />
+                      )}
+                      <div>
+                        <div className="text-xs font-bold text-foreground">
+                          {referrer?.payoutMethod === "BANK_TRANSFER"
+                            ? "Direct Electronic Bank Wire"
+                            : `${referrer?.payoutMethod || "MFS"} Mobile Financial Service`}
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBranchDistrict"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Branch District</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBranchDistrict"
-                            value={payoutBranchDistrict}
-                            onChange={(e) => setPayoutBranchDistrict(e.target.value)}
-                            placeholder="e.g. Dhaka"
-                            className="text-xs h-9"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankBranch"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Branch Name</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankBranch"
-                            value={payoutBankBranch}
-                            onChange={(e) => setPayoutBankBranch(e.target.value)}
-                            placeholder="e.g. Dhanmondi Branch"
-                            className="text-xs h-9"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutBankRouting"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Routing Number</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutBankRouting"
-                            value={payoutBankRouting}
-                            onChange={(e) => setPayoutBankRouting(e.target.value.trim())}
-                            placeholder="e.g. 090260123"
-                            className="text-xs font-mono h-9"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label
-                            htmlFor="payoutSwiftCode"
-                            className="text-xs font-semibold flex items-center gap-1"
-                          >
-                            <span>Swift Code</span>
-                            <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="payoutSwiftCode"
-                            value={payoutSwiftCode}
-                            onChange={(e) => setPayoutSwiftCode(e.target.value.toUpperCase().trim())}
-                            placeholder="e.g. DBBLBDDH"
-                            className="text-xs font-mono uppercase h-9"
-                          />
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          Disbursement Mode: {referrer?.payoutMethod || "BANK_TRANSFER"}
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="space-y-1 max-w-md">
-                      <Label
-                        htmlFor="payoutWalletNumber"
-                        className="text-xs font-semibold flex items-center gap-1"
-                      >
-                        <span>
-                          {payoutMethod === "NAGAD"
-                            ? "Nagad Wallet Number"
-                            : payoutMethod === "ROCKET"
-                            ? "Rocket Wallet Number"
-                            : "bKash Wallet Number"}
+
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                      Verified Channel
+                    </Badge>
+                  </div>
+
+                  {referrer?.payoutMethod === "BANK_TRANSFER" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-medium block">
+                          Bank Name
                         </span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="payoutWalletNumber"
-                        value={payoutWalletNumber || payoutAccountNumber}
-                        onChange={(e) => {
-                          setPayoutWalletNumber(e.target.value.trim());
-                          setPayoutAccountNumber(e.target.value.trim());
-                        }}
-                        placeholder="e.g. 017XXXXXXXX / 018XXXXXXXX"
-                        className="text-xs font-mono h-9"
-                      />
+                        <span className="font-semibold text-foreground">
+                          {referrer?.bankName || "Not configured"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-medium block">
+                          Account Holder Name
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {referrer?.accountName || "Not configured"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            Account Number
+                          </span>
+                          {referrer?.accountNumber && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(referrer.accountNumber!);
+                                toast.success("Account number copied!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold text-foreground">
+                          {referrer?.accountNumber || "Not configured"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-medium block">
+                          Branch District
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {referrer?.branchDistrict || "Not configured"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-medium block">
+                          Branch Name
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {referrer?.branchName || "Not configured"}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            Routing Number
+                          </span>
+                          {referrer?.routingNumber && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(referrer.routingNumber!);
+                                toast.success("Routing number copied!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold text-foreground">
+                          {referrer?.routingNumber || "Not configured"}
+                        </span>
+                      </div>
+
+                      {referrer?.swiftCode && (
+                        <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-0.5 sm:col-span-2 md:col-span-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              SWIFT Code
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(referrer.swiftCode!);
+                                toast.success("SWIFT code copied!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <span className="font-mono font-bold text-foreground">
+                            {referrer.swiftCode}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-medium block">
+                          MFS Provider
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {referrer?.payoutMethod || "bKash"}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            Wallet Mobile Number
+                          </span>
+                          {(referrer?.walletNumber || referrer?.accountNumber) && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  referrer.walletNumber || referrer.accountNumber!,
+                                );
+                                toast.success("Wallet number copied!");
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold text-foreground text-sm">
+                          {referrer?.walletNumber || referrer?.accountNumber || "Not configured"}
+                        </span>
+                      </div>
                     </div>
                   )}
 
-                  <div className="pt-2 flex justify-end">
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/40">
+                    <p className="text-[11px] text-muted-foreground">
+                      Need to update this account? Contact administration for secure verification.
+                    </p>
                     <Button
-                      onClick={handleSavePayoutSettings}
-                      disabled={isSavingPayout}
+                      variant="outline"
                       size="sm"
-                      className="font-semibold text-xs h-9 gap-1.5"
+                      onClick={() => setIsSupportModalOpen(true)}
+                      className="text-xs h-8 gap-1.5 shrink-0"
                     >
-                      {isSavingPayout ? "Saving Settings..." : "Save Remittance Preferences"}
+                      <Headphones className="h-3.5 w-3.5" />
+                      <span>Request Modification</span>
                     </Button>
                   </div>
                 </div>
@@ -1576,9 +1441,10 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <strong className="text-foreground block">International Wire / Wise</strong>
+                  <strong className="text-foreground block">Compliance Safeguard</strong>
                   <p className="text-[11px]">
-                    24–48 hours for international partners via Wise Business or SWIFT.
+                    Disbursements are matched strictly against verified client subscription invoices
+                    to maintain 100% accounting transparency.
                   </p>
                 </div>
               </CardContent>
@@ -1698,9 +1564,8 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
-                <Label htmlFor="clientEmail" className="text-xs font-semibold flex items-center gap-1">
-                  <span>Contact Email</span>
-                  <span className="text-destructive">*</span>
+                <Label htmlFor="clientEmail" className="text-xs font-semibold">
+                  Contact Email
                 </Label>
                 <Input
                   id="clientEmail"
@@ -1730,6 +1595,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Initial Deal Stage</Label>
                 <Select
+                  items={DEAL_STAGE_ITEMS}
                   value={newDealStatus}
                   onValueChange={(val) => {
                     if (val === "PROSPECT" || val === "UNDER_REVIEW" || val === "CONTRACTED") {
@@ -1738,7 +1604,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   }}
                 >
                   <SelectTrigger className="text-xs h-9 w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Select deal stage" />
                   </SelectTrigger>
                   <SelectContent className="z-[80]">
                     <SelectItem value="PROSPECT" className="text-xs">
@@ -1799,7 +1665,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   Your Anticipated 15% Bounty
                 </span>
                 <div className="text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
-                  ৳{Math.round(newDealPrice * 0.15).toLocaleString()}{" "}
+                  ৳{Math.round(newDealPrice * ((referrer?.commissionRate || 15) / 100)).toLocaleString()}{" "}
                   <span className="text-xs font-sans font-medium text-foreground">BDT</span>
                 </div>
               </div>
@@ -1808,7 +1674,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   Platform Cloud Share (85%)
                 </span>
                 <div className="text-sm font-bold font-mono text-foreground">
-                  ৳{Math.round(newDealPrice * 0.85).toLocaleString()} BDT
+                  ৳{Math.round(newDealPrice * (1 - (referrer?.commissionRate || 15) / 100)).toLocaleString()} BDT
                 </div>
               </div>
             </div>
@@ -1838,11 +1704,12 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </Button>
             <Button
               size="sm"
+              disabled={isSubmittingDeal}
               onClick={handleAddDeal}
               className="text-xs h-9 font-semibold gap-1.5 bg-primary text-primary-foreground"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>Register Deal in Pipeline</span>
+              <span>{isSubmittingDeal ? "Registering..." : "Register Deal in Pipeline"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1997,7 +1864,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                 Attribution &amp; Settlement Guarantee
               </span>
               <p>
-                Referral attribution operates on a 30-day tracking window. Once the client registers, their organization is permanently mapped to your Partner Ledger for automatic 15% bounty disbursements.
+                Referral attribution operates continuously once the client registers. Their organization is permanently mapped to your Partner Ledger for automatic 15% bounty disbursements upon subscription settlement.
               </p>
             </div>
           </div>
@@ -2010,6 +1877,73 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
               className="text-xs h-9"
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: Request Payout Modification Modal */}
+      {/* ========================================================================= */}
+      <Dialog open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
+        <DialogContent className="w-full max-w-[94vw] sm:max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl z-[70]">
+          <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Headphones className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold">
+                  Request Remittance Update
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Submit bank/MFS changes to platform administration.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-5 space-y-4 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              To update your registered bank transfer account or mobile wallet number, please contact platform compliance support with your Partner Code: <strong className="font-mono text-foreground">{referralCode}</strong>.
+            </p>
+
+            <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-muted-foreground">Admin Support WhatsApp</span>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  className="h-6 text-emerald-600 gap-1 text-[11px]"
+                  onClick={() => {
+                    const text = `Hello Platform Admin, I need to request an update to my verified remittance details for Partner Code: ${referralCode}.`;
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+                  }}
+                >
+                  <Phone className="h-3 w-3" />
+                  Chat on WhatsApp
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-muted-foreground">Compliance Email</span>
+                <span className="font-mono text-foreground font-semibold">compliance@royalmotionit.com</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-[11px] text-amber-700 dark:text-amber-400">
+              Changes require verification to protect your payouts against unauthorized account redirection.
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t border-border/60 bg-muted/10 flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSupportModalOpen(false)}
+              className="text-xs h-9"
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>

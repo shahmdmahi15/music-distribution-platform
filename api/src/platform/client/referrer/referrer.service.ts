@@ -149,6 +149,30 @@ export class ClientReferrerService {
         deals: {
           orderBy: { createdAt: 'desc' },
         },
+        referredUsers: {
+          select: {
+            id: true,
+            code: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true,
+            subscription: {
+              select: {
+                id: true,
+                code: true,
+                whiteLabel: {
+                  select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
         documents: {
           orderBy: { createdAt: 'desc' },
         },
@@ -201,6 +225,30 @@ export class ClientReferrerService {
         deals: {
           orderBy: { createdAt: 'desc' },
         },
+        referredUsers: {
+          select: {
+            id: true,
+            code: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            createdAt: true,
+            subscription: {
+              select: {
+                id: true,
+                code: true,
+                whiteLabel: {
+                  select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
         documents: {
           orderBy: { createdAt: 'desc' },
         },
@@ -239,6 +287,55 @@ export class ClientReferrerService {
         contractUrl,
         documents: docsWithUrls,
       },
+    };
+  }
+
+  async createDeal(userId: string, dto: {
+    clientName: string;
+    clientEmail?: string;
+    contactName?: string;
+    contactPhone?: string;
+    sellingPriceBdt?: number;
+    notes?: string;
+  }) {
+    const referrer = await this.prismaService.referrer.findUnique({
+      where: { userId },
+    });
+
+    if (!referrer) {
+      throw new NotFoundException('Referrer account not found.');
+    }
+
+    if (referrer.status !== ReferrerStatus.ACTIVE) {
+      throw new BadRequestException('Only active referrer partners can log pipeline deals.');
+    }
+
+    const sellingPrice = dto.sellingPriceBdt || referrer.dealBenchmarkBdt || 60000;
+    const rate = referrer.commissionRate || 15.0;
+    const bounty = Math.round(sellingPrice * (rate / 100));
+
+    const code = await generateUniqueCode(
+      this.prismaService,
+      'referrerDeal',
+      CodePrefix.REFERRER_DEAL,
+    );
+
+    const deal = await this.prismaService.referrerDeal.create({
+      data: {
+        code,
+        clientName: dto.clientName,
+        clientEmail: dto.clientEmail || null,
+        sellingPriceBdt: sellingPrice,
+        referrerBountyBdt: bounty,
+        status: 'PENDING',
+        referrerId: referrer.id,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Prospect deal "${dto.clientName}" registered successfully with anticipated bounty of ৳${bounty.toLocaleString()} BDT.`,
+      deal,
     };
   }
 

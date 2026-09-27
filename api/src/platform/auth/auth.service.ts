@@ -131,6 +131,37 @@ export class AuthService {
       throw error;
     }
 
+    if (referredByReferrerId) {
+      try {
+        const dealCode = await generateUniqueCode(
+          this.prismaService,
+          'referrerDeal',
+          CodePrefix.REFERRER_DEAL,
+        );
+        const referrerRecord = await this.prismaService.referrer.findUnique({
+          where: { id: referredByReferrerId },
+          select: { dealBenchmarkBdt: true, commissionRate: true },
+        });
+        const benchmark = referrerRecord?.dealBenchmarkBdt || 60000;
+        const rate = referrerRecord?.commissionRate || 15.0;
+        const bounty = Math.round(benchmark * (rate / 100));
+
+        await this.prismaService.referrerDeal.create({
+          data: {
+            code: dealCode,
+            clientName: `${dto.firstName} ${dto.lastName}`.trim(),
+            clientEmail: dto.email,
+            sellingPriceBdt: benchmark,
+            referrerBountyBdt: bounty,
+            status: 'PENDING',
+            referrerId: referredByReferrerId,
+          },
+        });
+      } catch (dealErr) {
+        console.error('[AuthService] Failed to auto-create ReferrerDeal on registration:', dealErr);
+      }
+    }
+
     const token = crypto.randomBytes(32).toString('hex');
 
     await this.redisService.set(

@@ -1538,19 +1538,14 @@ export function WhiteLabelApplicationStatusView({
                 Document Type / Category
               </Label>
               <Select
+                items={DOCUMENT_CATEGORY_LABELS}
                 value={docType}
                 onValueChange={(val) => {
                   if (val) setDocType(val);
                 }}
               >
                 <SelectTrigger className="h-9 text-xs w-full">
-                  <SelectValue placeholder="Select document type">
-                    {(val) =>
-                      DOCUMENT_CATEGORY_LABELS[val as string] ||
-                      val ||
-                      "Select document type"
-                    }
-                  </SelectValue>
+                  <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent className="z-[70]">
                   <SelectItem value="INCORPORATION_DOC">

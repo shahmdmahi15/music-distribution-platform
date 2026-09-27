@@ -305,17 +305,12 @@ export function CreatePlatformUserDialog({
                     Platform Role <span className="text-destructive">*</span>
                   </FieldLabel>
                   <Select
+                    items={roleLabels}
                     value={field.state.value}
                     onValueChange={(val) => field.handleChange(val as Role)}
                   >
                     <SelectTrigger className="w-full bg-background/80">
-                      <SelectValue placeholder="Select platform role">
-                        {(val) =>
-                          roleLabels[val as string] ||
-                          val ||
-                          "Select platform role"
-                        }
-                      </SelectValue>
+                      <SelectValue placeholder="Select platform role" />
                     </SelectTrigger>
                     <SelectContent>
                       {currentUserRole === Role.OWNER && (

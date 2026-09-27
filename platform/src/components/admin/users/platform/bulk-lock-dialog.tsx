@@ -107,15 +107,12 @@ export function BulkLockDialog({
               Lock Duration
             </label>
             <Select
+              items={durationLabels}
               value={duration}
               onValueChange={(val) => setDuration(val || "1440")}
             >
               <SelectTrigger className="w-full bg-background/80">
-                <SelectValue placeholder="Select duration">
-                  {(val) =>
-                    durationLabels[val as string] || val || "Select duration"
-                  }
-                </SelectValue>
+                <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="60">1 Hour</SelectItem>
