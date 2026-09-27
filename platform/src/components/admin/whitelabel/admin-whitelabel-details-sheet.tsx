@@ -1912,10 +1912,22 @@ export function AdminWhiteLabelDetailsDialog({
                                 {whiteLabel.artists?.length || 0} In Pipeline
                               </span>
                             </div>
+                            {whiteLabel.onboardingDetails?.payoutAccountHolderName && (
+                              <div>
+                                <span className="text-muted-foreground text-[10px] block">
+                                  Account Holder Name
+                                </span>
+                                <span className="font-bold text-foreground">
+                                  {whiteLabel.onboardingDetails.payoutAccountHolderName}
+                                </span>
+                              </div>
+                            )}
                             {whiteLabel.onboardingDetails?.payoutAccountNumber && (
                               <div>
                                 <span className="text-muted-foreground text-[10px] block">
-                                  Remittance Account / Mobile
+                                  {whiteLabel.onboardingDetails?.payoutMethod === "BANK_TRANSFER"
+                                    ? "Bank Account Number"
+                                    : "Wallet Mobile Number"}
                                 </span>
                                 <span className="font-bold text-foreground font-mono text-emerald-600 dark:text-emerald-400">
                                   {whiteLabel.onboardingDetails?.payoutAccountNumber}

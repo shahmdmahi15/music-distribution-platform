@@ -600,6 +600,46 @@ export function WhiteLabelOnboardingWizard({
     }
     if (step === 2) {
       if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+        const payoutMethod =
+          formData.onboardingDetails?.payoutMethod || "BKASH";
+        if (!payoutMethod) {
+          toast.error("Please select a preferred commission payout method.");
+          return false;
+        }
+
+        const payoutAccount =
+          formData.onboardingDetails?.payoutAccountNumber?.trim();
+
+        if (payoutMethod === "BANK_TRANSFER") {
+          const accountHolder =
+            formData.onboardingDetails?.payoutAccountHolderName?.trim();
+          if (!accountHolder) {
+            toast.error(
+              "Please enter the Account Holder Name for bank transfer.",
+            );
+            return false;
+          }
+          if (!payoutAccount) {
+            toast.error(
+              "Please enter the Bank Account Number for bank transfer.",
+            );
+            return false;
+          }
+        } else {
+          // MFS: bKash, Nagad, Rocket
+          if (!payoutAccount) {
+            toast.error(
+              `Please enter your ${
+                payoutMethod === "BKASH"
+                  ? "bKash"
+                  : payoutMethod === "NAGAD"
+                    ? "Nagad"
+                    : "Rocket"
+              } mobile number.`,
+            );
+            return false;
+          }
+        }
         return true;
       }
       if (formData.desiredSubdomain) {
@@ -1156,12 +1196,22 @@ export function WhiteLabelOnboardingWizard({
                   </p>
                 </div>
 
-                {/* 3. Payout & Remittance Preference */}
+                {/* 3. Payout & Remittance Preference (Required) */}
                 <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-card">
-                  <Label className="text-xs font-bold flex items-center gap-1.5">
-                    <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>Preferred Commission Payout Method</span>
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold flex items-center gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Commission Payout Method</span>
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    >
+                      Required
+                    </Badge>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { id: "BKASH", name: "bKash (MFS)" },
@@ -1191,30 +1241,92 @@ export function WhiteLabelOnboardingWizard({
                     })}
                   </div>
 
-                  <div className="pt-1 space-y-1">
-                    <Label
-                      htmlFor="payoutAccNumber"
-                      className="text-[11px] font-semibold text-muted-foreground"
-                    >
-                      Payout Mobile / Bank Account Number (Optional during onboarding):
-                    </Label>
-                    <Input
-                      id="payoutAccNumber"
-                      placeholder="e.g. 017XXXXXXXX or Account No"
-                      value={formData.onboardingDetails?.payoutAccountNumber || ""}
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "payoutAccountNumber",
-                          e.target.value.trim(),
-                        )
-                      }
-                      className="h-8.5 text-xs font-mono"
-                    />
-                  </div>
+                  {formData.onboardingDetails?.payoutMethod === "BANK_TRANSFER" ? (
+                    <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="payoutAccountHolderName"
+                          className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                        >
+                          <span>Account Holder Name</span>
+                          <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="payoutAccountHolderName"
+                          placeholder="e.g. Shah Md. Mahi"
+                          value={
+                            formData.onboardingDetails?.payoutAccountHolderName ||
+                            ""
+                          }
+                          onChange={(e) =>
+                            updateOnboardingDetail(
+                              "payoutAccountHolderName",
+                              e.target.value,
+                            )
+                          }
+                          className="h-9 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="payoutAccNumber"
+                          className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                        >
+                          <span>Bank Account Number</span>
+                          <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="payoutAccNumber"
+                          placeholder="e.g. 2050XXXXXXXXXXXXX"
+                          value={
+                            formData.onboardingDetails?.payoutAccountNumber || ""
+                          }
+                          onChange={(e) =>
+                            updateOnboardingDetail(
+                              "payoutAccountNumber",
+                              e.target.value.trim(),
+                            )
+                          }
+                          className="h-9 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 space-y-1">
+                      <Label
+                        htmlFor="payoutAccNumber"
+                        className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1"
+                      >
+                        <span>
+                          {formData.onboardingDetails?.payoutMethod === "NAGAD"
+                            ? "Nagad Wallet Mobile Number"
+                            : formData.onboardingDetails?.payoutMethod === "ROCKET"
+                              ? "Rocket Wallet Mobile Number"
+                              : "bKash Wallet Mobile Number"}
+                        </span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutAccNumber"
+                        placeholder="e.g. 017XXXXXXXX"
+                        value={
+                          formData.onboardingDetails?.payoutAccountNumber || ""
+                        }
+                        onChange={(e) =>
+                          updateOnboardingDetail(
+                            "payoutAccountNumber",
+                            e.target.value.trim(),
+                          )
+                        }
+                        className="h-9 text-xs font-mono"
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
-              /* DISTRIBUTOR AGGREGATOR SETUP: SUBDOMAIN CLAIM & EIP */
+              /* DISTRIBUTOR AGGREGATOR SETUP: SUBDOMAIN CLAIM, EIP & BRAND ACCENT COLOR */
               <>
                 {/* Subdomain Input with Real-time Checker (Locked & Auto-derived) */}
                 <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
@@ -1316,41 +1428,41 @@ export function WhiteLabelOnboardingWizard({
                     your platform subdomain directly to this address.
                   </p>
                 </div>
+
+                {/* Brand Accent Color (Distributor / Aggregator Only) */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Palette className="h-3.5 w-3.5 text-primary" />
+                    Primary Brand Accent Color
+                  </Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {BRAND_COLOR_PRESETS.map((color) => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            primaryColor: color.hex,
+                          }))
+                        }
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                          formData.primaryColor === color.hex
+                            ? "border-foreground ring-2 ring-primary/40 shadow-xs"
+                            : "border-border/60 hover:border-border"
+                        }`}
+                      >
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-black/20"
+                          style={{ backgroundColor: color.hex }}
+                        />
+                        <span>{color.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
-
-            {/* Brand Accent Color */}
-            <div className="space-y-3">
-              <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <Palette className="h-3.5 w-3.5 text-primary" />
-                Primary Brand Accent Color
-              </Label>
-              <div className="flex flex-wrap items-center gap-3">
-                {BRAND_COLOR_PRESETS.map((color) => (
-                  <button
-                    key={color.hex}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        primaryColor: color.hex,
-                      }))
-                    }
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                      formData.primaryColor === color.hex
-                        ? "border-foreground ring-2 ring-primary/40 shadow-xs"
-                        : "border-border/60 hover:border-border"
-                    }`}
-                  >
-                    <span
-                      className="h-3.5 w-3.5 rounded-full border border-black/20"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span>{color.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Launch Timeline */}
             <div className="space-y-2">

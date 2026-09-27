@@ -25,16 +25,20 @@ export interface DistributorAggregatorOnboardingData {
 
 // Global Standard Onboarding Details: 2. Referrer / Affiliate Partner
 export interface ReferrerOnboardingData {
+  referralNetworkCode?: string;
   scoutAffiliateCodePrefix?: string;
   scoutNetworkCategory?: "talent_scout" | "recording_studio" | "music_attorney" | "management_agency" | "industry_influencer";
   targetTerritories?: string[];
   projectedMonthlyReferrals?: number;
+  projectedAnnualReferrals?: number;
   discoveryChannels?: string[];
   attributionWindowDays?: number | "lifetime";
   preferredCommissionStructure?: "selling_value_share" | "lifetime_rev_share" | "upfront_bounty" | "hybrid_tiered";
   commissionBountyRate?: number;
   minimumPayoutThresholdUsd?: number;
-  payoutMethod?: "WIRE_ACH" | "WISE" | "PAYPAL" | "USDT_CRYPTO" | "STRIPE_CONNECT";
+  payoutMethod?: "BKASH" | "NAGAD" | "ROCKET" | "BANK_TRANSFER" | "WIRE_ACH" | "WISE" | "PAYPAL" | "USDT_CRYPTO" | "STRIPE_CONNECT" | string;
+  payoutAccountNumber?: string;
+  payoutAccountHolderName?: string;
   // Distribution Aggregator Referral Terms (15% share, 60K BDT minimum selling price)
   minimumAccountSellingPriceBdt?: number; // Standard baseline: 60,000 BDT
   simulatedSellingPriceBdt?: number; // Target selling price negotiated (min: 60,000 BDT)

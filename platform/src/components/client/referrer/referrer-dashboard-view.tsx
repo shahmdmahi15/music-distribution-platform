@@ -86,19 +86,12 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
     onboardingDetails.payoutMethod || "BKASH",
   );
   const [payoutAccountName, setPayoutAccountName] = useState<string>(
-    onboardingDetails.payoutAccountName || `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+    onboardingDetails.payoutAccountHolderName ||
+      onboardingDetails.payoutAccountName ||
+      `${user.firstName || ""} ${user.lastName || ""}`.trim(),
   );
   const [payoutAccountNumber, setPayoutAccountNumber] = useState<string>(
     onboardingDetails.payoutAccountNumber || "",
-  );
-  const [payoutBankName, setPayoutBankName] = useState<string>(
-    onboardingDetails.payoutBankName || "Dutch-Bangla Bank Limited (DBBL)",
-  );
-  const [payoutBankBranch, setPayoutBankBranch] = useState<string>(
-    onboardingDetails.payoutBankBranch || "",
-  );
-  const [payoutBankRouting, setPayoutBankRouting] = useState<string>(
-    onboardingDetails.payoutBankRouting || "",
   );
   const [isSavingPayout, setIsSavingPayout] = useState(false);
 
@@ -210,9 +203,20 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
 
   // Save payout settings
   const handleSavePayoutSettings = async () => {
-    if (!payoutAccountNumber.trim()) {
-      toast.error("Please enter your account or mobile number.");
-      return;
+    if (payoutMethod === "BANK_TRANSFER") {
+      if (!payoutAccountName.trim()) {
+        toast.error("Please enter the Account Holder Name for bank transfer.");
+        return;
+      }
+      if (!payoutAccountNumber.trim()) {
+        toast.error("Please enter your Bank Account Number.");
+        return;
+      }
+    } else {
+      if (!payoutAccountNumber.trim()) {
+        toast.error("Please enter your wallet mobile number.");
+        return;
+      }
     }
 
     setIsSavingPayout(true);
@@ -222,10 +226,8 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
           ...onboardingDetails,
           payoutMethod,
           payoutAccountName,
+          payoutAccountHolderName: payoutAccountName,
           payoutAccountNumber,
-          payoutBankName,
-          payoutBankBranch,
-          payoutBankRouting,
           simulatedDealPriceBdt: dealPrice,
         },
       });
@@ -930,66 +932,62 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
 
                 {/* Account Details Form */}
                 <div className="space-y-3 pt-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="payoutAccountName" className="text-xs font-semibold">
-                      Account Holder Name
-                    </Label>
-                    <Input
-                      id="payoutAccountName"
-                      value={payoutAccountName}
-                      onChange={(e) => setPayoutAccountName(e.target.value)}
-                      placeholder="e.g. Md. Tanvir Hasan"
-                      className="text-xs h-9"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="payoutAccountNumber" className="text-xs font-semibold">
-                      {payoutMethod === "BANK_TRANSFER"
-                        ? "Bank Account Number"
-                        : `${payoutMethod} Wallet Number`}
-                    </Label>
-                    <Input
-                      id="payoutAccountNumber"
-                      value={payoutAccountNumber}
-                      onChange={(e) => setPayoutAccountNumber(e.target.value)}
-                      placeholder={payoutMethod === "BANK_TRANSFER" ? "105.110.XXXX" : "017XXXXXXXX / 018XXXXXXXX"}
-                      className="text-xs font-mono h-9"
-                    />
-                  </div>
-
-                  {payoutMethod === "BANK_TRANSFER" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {payoutMethod === "BANK_TRANSFER" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label htmlFor="bankName" className="text-xs font-semibold">Bank Name</Label>
+                        <Label
+                          htmlFor="payoutAccountName"
+                          className="text-xs font-semibold flex items-center gap-1"
+                        >
+                          <span>Account Holder Name</span>
+                          <span className="text-destructive">*</span>
+                        </Label>
                         <Input
-                          id="bankName"
-                          value={payoutBankName}
-                          onChange={(e) => setPayoutBankName(e.target.value)}
-                          placeholder="e.g. Dutch-Bangla Bank"
+                          id="payoutAccountName"
+                          value={payoutAccountName}
+                          onChange={(e) => setPayoutAccountName(e.target.value)}
+                          placeholder="e.g. Md. Tanvir Hasan"
                           className="text-xs h-9"
                         />
                       </div>
+
                       <div className="space-y-1">
-                        <Label htmlFor="bankBranch" className="text-xs font-semibold">Branch Name</Label>
+                        <Label
+                          htmlFor="payoutAccountNumber"
+                          className="text-xs font-semibold flex items-center gap-1"
+                        >
+                          <span>Bank Account Number</span>
+                          <span className="text-destructive">*</span>
+                        </Label>
                         <Input
-                          id="bankBranch"
-                          value={payoutBankBranch}
-                          onChange={(e) => setPayoutBankBranch(e.target.value)}
-                          placeholder="e.g. Dhanmondi Branch"
-                          className="text-xs h-9"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="routingNumber" className="text-xs font-semibold">Routing No</Label>
-                        <Input
-                          id="routingNumber"
-                          value={payoutBankRouting}
-                          onChange={(e) => setPayoutBankRouting(e.target.value)}
-                          placeholder="e.g. 090260..."
+                          id="payoutAccountNumber"
+                          value={payoutAccountNumber}
+                          onChange={(e) =>
+                            setPayoutAccountNumber(e.target.value.trim())
+                          }
+                          placeholder="e.g. 2050XXXXXXXXXXXXX"
                           className="text-xs font-mono h-9"
                         />
                       </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="payoutAccountNumber"
+                        className="text-xs font-semibold flex items-center gap-1"
+                      >
+                        <span>{payoutMethod} Wallet Mobile Number</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="payoutAccountNumber"
+                        value={payoutAccountNumber}
+                        onChange={(e) =>
+                          setPayoutAccountNumber(e.target.value.trim())
+                        }
+                        placeholder="e.g. 017XXXXXXXX"
+                        className="text-xs font-mono h-9"
+                      />
                     </div>
                   )}
 
@@ -1000,7 +998,9 @@ export function ReferrerDashboardView({ branding, user }: ReferrerDashboardViewP
                       size="sm"
                       className="font-semibold text-xs h-9 gap-1.5"
                     >
-                      {isSavingPayout ? "Saving Settings..." : "Save Remittance Preferences"}
+                      {isSavingPayout
+                        ? "Saving Settings..."
+                        : "Save Remittance Preferences"}
                     </Button>
                   </div>
                 </div>
