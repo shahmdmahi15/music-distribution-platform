@@ -402,7 +402,22 @@ export function WhiteLabelApplicationStatusView({
                     <Copy className="h-4 w-4" />
                   )}
                 </button>
-                {whiteLabel.subdomain && (
+                {whiteLabel.businessType === "REFERRER" ? (
+                  <Badge
+                    variant="secondary"
+                    onClick={() =>
+                      copyToClipboard(
+                        "platform.royalmotionit.com/referrer",
+                        "Referral Operations Hub",
+                      )
+                    }
+                    className="font-mono text-[11px] px-2.5 py-0.5 cursor-pointer hover:bg-muted gap-1.5"
+                    title="Click to copy Referrer Hub URL"
+                  >
+                    <Globe className="h-3 w-3 text-emerald-500" />
+                    platform.royalmotionit.com/referrer
+                  </Badge>
+                ) : whiteLabel.subdomain ? (
                   <Badge
                     variant="secondary"
                     onClick={() =>
@@ -417,7 +432,7 @@ export function WhiteLabelApplicationStatusView({
                     <Globe className="h-3 w-3 text-primary" />
                     {whiteLabel.subdomain}.platform.royalmotionit.com
                   </Badge>
-                )}
+                ) : null}
               </div>
               <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="font-semibold text-foreground/90">
@@ -645,9 +660,13 @@ export function WhiteLabelApplicationStatusView({
           <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                {whiteLabel.isSetupComplete ||
-                (whiteLabel as { isSetupCompleted?: boolean })
-                  .isSetupCompleted ? (
+                {whiteLabel.businessType === "REFERRER" ? (
+                  <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
+                    ACTIVE &amp; OPERATIONAL
+                  </Badge>
+                ) : whiteLabel.isSetupComplete ||
+                  (whiteLabel as { isSetupCompleted?: boolean })
+                    .isSetupCompleted ? (
                   <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[11px] font-bold">
                     ACTIVE &amp; OPERATIONAL
                   </Badge>
@@ -657,27 +676,47 @@ export function WhiteLabelApplicationStatusView({
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground font-mono">
-                  Cloudflare Automated DNS Active
+                  {whiteLabel.businessType === "REFERRER"
+                    ? "100% Platform-Hosted Hub"
+                    : "Cloudflare Automated DNS Active"}
                 </span>
               </div>
               <p className="text-sm font-semibold text-foreground">
-                {whiteLabel.isSetupComplete ||
-                (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
-                  ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
-                  : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
+                {whiteLabel.businessType === "REFERRER"
+                  ? "Your Referrer Partner account is active with 15% commission on all referred Distribution Aggregators (min ৳60,000 BDT). Manage your links, track referred clients, and monitor earnings in your Referrer Hub."
+                  : whiteLabel.isSetupComplete ||
+                    (whiteLabel as { isSetupCompleted?: boolean }).isSetupCompleted
+                    ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
+                    : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
               </p>
-              {whiteLabel.subdomain && (
+              {whiteLabel.businessType === "REFERRER" ? (
                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5 text-primary" />
-                  https://{whiteLabel.subdomain}.platform.royalmotionit.com
+                  <Globe className="h-3.5 w-3.5 text-emerald-500" />
+                  https://platform.royalmotionit.com/referrer
                 </p>
+              ) : (
+                whiteLabel.subdomain && (
+                  <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-primary" />
+                    https://{whiteLabel.subdomain}.platform.royalmotionit.com
+                  </p>
+                )
               )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {whiteLabel.isSetupComplete ||
-              (whiteLabel as { isSetupCompleted?: boolean })
-                .isSetupCompleted ? (
+              {whiteLabel.businessType === "REFERRER" ? (
+                <Button
+                  size="sm"
+                  onClick={() => router.push("/referrer")}
+                  className="gap-1.5 text-xs h-10 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs"
+                >
+                  Open Referrer Hub
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              ) : whiteLabel.isSetupComplete ||
+                (whiteLabel as { isSetupCompleted?: boolean })
+                  .isSetupCompleted ? (
                 <>
                   {whiteLabel.subdomain && (
                     <a
@@ -942,22 +981,30 @@ export function WhiteLabelApplicationStatusView({
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  Reserved Subdomain
+                  {whiteLabel.businessType === "REFERRER"
+                    ? "Referral Operations Hub"
+                    : "Reserved Subdomain"}
                 </span>
                 <span className="font-bold text-foreground font-mono text-[10.5px] truncate block pt-0.5">
-                  {whiteLabel.subdomain
-                    ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                    : "Pending Allocation"}
+                  {whiteLabel.businessType === "REFERRER"
+                    ? "platform.royalmotionit.com/referrer"
+                    : whiteLabel.subdomain
+                      ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+                      : "Pending Allocation"}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  Creator Access Model
+                  {whiteLabel.businessType === "REFERRER"
+                    ? "Referral Commission Rate"
+                    : "Creator Access Model"}
                 </span>
                 <span className="font-bold text-foreground capitalize block pt-0.5">
-                  {(whiteLabel.userSignupModel || "INVITE_ONLY")
-                    .replace(/_/g, " ")
-                    .toLowerCase()}
+                  {whiteLabel.businessType === "REFERRER"
+                    ? "15% of Selling Price (Min ৳60,000)"
+                    : (whiteLabel.userSignupModel || "INVITE_ONLY")
+                        .replace(/_/g, " ")
+                        .toLowerCase()}
                 </span>
               </div>
             </div>

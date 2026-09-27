@@ -456,21 +456,37 @@ export function AdminWhiteLabelDetailsDialog({
         ? "Incorporated Entity"
         : "Sole Prop / Unincorporated",
     },
-    {
-      label: "Catalog & Roster Verification",
-      passed: Boolean(
-        (whiteLabel.artists && whiteLabel.artists.length > 0) ||
-          whiteLabel.catalogTrackCount > 0,
-      ),
-      detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
-    },
-    {
-      label: "Subdomain & Routing Architecture",
-      passed: Boolean(whiteLabel.subdomain),
-      detail: whiteLabel.subdomain
-        ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-        : "Missing Subdomain",
-    },
+    whiteLabel.businessType === "REFERRER"
+      ? {
+          label: "Attribution & Partner Details",
+          passed: Boolean(
+            whiteLabel.onboardingDetails?.referralNetworkCode ||
+              whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix ||
+              whiteLabel.onboardingDetails?.scoutNetworkCategory,
+          ),
+          detail: `${whiteLabel.onboardingDetails?.referralNetworkCode || whiteLabel.onboardingDetails?.scoutAffiliateCodePrefix || "SCOUT"} • 15% Share (Min ৳60K)`,
+        }
+      : {
+          label: "Catalog & Roster Verification",
+          passed: Boolean(
+            (whiteLabel.artists && whiteLabel.artists.length > 0) ||
+              whiteLabel.catalogTrackCount > 0,
+          ),
+          detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
+        },
+    whiteLabel.businessType === "REFERRER"
+      ? {
+          label: "Referral Partner Hub",
+          passed: true,
+          detail: "platform.royalmotionit.com/referrer (No Subdomain Required)",
+        }
+      : {
+          label: "Subdomain & Routing Architecture",
+          passed: Boolean(whiteLabel.subdomain),
+          detail: whiteLabel.subdomain
+            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+            : "Missing Subdomain",
+        },
     {
       label: "Executed Legal Contract PDF",
       passed: Boolean(whiteLabel.contractKey),
@@ -1626,20 +1642,28 @@ export function AdminWhiteLabelDetailsDialog({
                       </div>
                       <div>
                         <span className="text-muted-foreground text-[10px] block">
-                          Managed Subdomain
+                          {whiteLabel.businessType === "REFERRER"
+                            ? "Referral Operations Hub"
+                            : "Managed Subdomain"}
                         </span>
                         <p className="font-mono font-bold text-primary truncate">
-                          {whiteLabel.subdomain
-                            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                            : "Not Set"}
+                          {whiteLabel.businessType === "REFERRER"
+                            ? "platform.royalmotionit.com/referrer"
+                            : whiteLabel.subdomain
+                              ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
+                              : "Not Set"}
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground text-[10px] block">
-                          Dedicated Elastic IPv4
+                          {whiteLabel.businessType === "REFERRER"
+                            ? "Referral Commission Model"
+                            : "Dedicated Elastic IPv4"}
                         </span>
                         <p className="font-mono font-bold text-foreground">
-                          {whiteLabel.elasticIpv4 || "Cloudflare Shared Proxy"}
+                          {whiteLabel.businessType === "REFERRER"
+                            ? "15% of Selling Price (Min ৳60,000)"
+                            : whiteLabel.elasticIpv4 || "Cloudflare Shared Proxy"}
                         </p>
                       </div>
                     </div>
@@ -2195,60 +2219,73 @@ export function AdminWhiteLabelDetailsDialog({
                   <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
                     3. Network Routing & Compliance Switches
                   </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Managed Subdomain
-                      </Label>
-                      <Input
-                        value={dossierForm.subdomain}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            subdomain: e.target.value
-                              .toLowerCase()
-                              .replace(/[^a-z0-9-]/g, ""),
-                          }))
-                        }
-                        placeholder="labelname"
-                        className="h-8 text-xs font-mono"
-                      />
+                  {dossierForm.businessType === "REFERRER" ? (
+                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>Referral Partner - Centralized Platform Hub</span>
+                      </div>
+                      <p className="text-muted-foreground text-[11px] leading-relaxed">
+                        Referrer partners do not require separate subdomains or Elastic IPv4 server addresses. They manage lead attribution and payouts directly via{" "}
+                        <strong className="font-mono text-foreground">platform.royalmotionit.com/referrer</strong> with a guaranteed 15% revenue cut on referred Distribution Aggregator sales (min ৳60,000 BDT).
+                      </p>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Managed Subdomain
+                        </Label>
+                        <Input
+                          value={dossierForm.subdomain}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              subdomain: e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9-]/g, ""),
+                            }))
+                          }
+                          placeholder="labelname"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Custom Domain (Optional)
-                      </Label>
-                      <Input
-                        value={dossierForm.customDomain}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            customDomain: e.target.value.toLowerCase().trim(),
-                          }))
-                        }
-                        placeholder="portal.label.com"
-                        className="h-8 text-xs font-mono"
-                      />
-                    </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Custom Domain (Optional)
+                        </Label>
+                        <Input
+                          value={dossierForm.customDomain}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              customDomain: e.target.value.toLowerCase().trim(),
+                            }))
+                          }
+                          placeholder="portal.label.com"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">
-                        Dedicated Elastic IPv4 (Optional)
-                      </Label>
-                      <Input
-                        value={dossierForm.elasticIpv4}
-                        onChange={(e) =>
-                          setDossierForm((p) => ({
-                            ...p,
-                            elasticIpv4: e.target.value.trim(),
-                          }))
-                        }
-                        placeholder="e.g. 52.220.193.225"
-                        className="h-8 text-xs font-mono"
-                      />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold">
+                          Dedicated Elastic IPv4 (Optional)
+                        </Label>
+                        <Input
+                          value={dossierForm.elasticIpv4}
+                          onChange={(e) =>
+                            setDossierForm((p) => ({
+                              ...p,
+                              elasticIpv4: e.target.value.trim(),
+                            }))
+                          }
+                          placeholder="e.g. 52.220.193.225"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/40">
                     <div className="flex items-center justify-between p-2 rounded-lg border border-border/50">

@@ -443,23 +443,27 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
+    const isReferrer = dto.businessType === WhiteLabelBusinessType.REFERRER;
+
     // Automatically slugify desired subdomain or brand name to unique subdomain (verifying Cloudflare DNS + DB)
-    const preferredSubdomainBase = dto.desiredSubdomain?.trim() || dto.name;
-    let finalSubdomain: string;
-    if (
-      subscription.whiteLabel?.subdomain &&
-      (subscription.whiteLabel.subdomain === dto.desiredSubdomain?.trim() ||
-        subscription.whiteLabel.name === dto.name)
-    ) {
-      finalSubdomain = subscription.whiteLabel.subdomain;
-    } else {
-      finalSubdomain = await this.generateUniqueSubdomain(
-        preferredSubdomainBase,
-        subscription.whiteLabel?.id,
-      );
+    let finalSubdomain: string | null = null;
+    if (!isReferrer) {
+      const preferredSubdomainBase = dto.desiredSubdomain?.trim() || dto.name;
+      if (
+        subscription.whiteLabel?.subdomain &&
+        (subscription.whiteLabel.subdomain === dto.desiredSubdomain?.trim() ||
+          subscription.whiteLabel.name === dto.name)
+      ) {
+        finalSubdomain = subscription.whiteLabel.subdomain;
+      } else {
+        finalSubdomain = await this.generateUniqueSubdomain(
+          preferredSubdomainBase,
+          subscription.whiteLabel?.id,
+        );
+      }
     }
 
-    const cleanElasticIpv4 = dto.elasticIpv4 ? dto.elasticIpv4.trim() : null;
+    const cleanElasticIpv4 = !isReferrer && dto.elasticIpv4 ? dto.elasticIpv4.trim() : null;
 
     // 2. If WhiteLabel already exists
     if (subscription.whiteLabel) {
@@ -532,8 +536,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
           marketingConsent: dto.marketingConsent ?? false,
           ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
-          subdomain: finalSubdomain,
-          elasticIpv4: finalElasticIpv4,
+          subdomain: isReferrer ? null : finalSubdomain,
+          elasticIpv4: isReferrer ? null : finalElasticIpv4,
           ...(dto.primaryColor ? { primaryColor: dto.primaryColor } : {}),
           status: WhiteLabelStatus.PENDING,
           statusReason: null,
@@ -549,10 +553,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      await this.cloudflareDnsService.provisionSubdomain(
-        finalSubdomain,
-        cleanElasticIpv4 || undefined,
-      );
+      if (!isReferrer && finalSubdomain) {
+        await this.cloudflareDnsService.provisionSubdomain(
+          finalSubdomain,
+          cleanElasticIpv4 || undefined,
+        );
+      }
 
       await this.clearOnboardingDraft(userId);
 
@@ -597,8 +603,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         code: whiteLabelCode,
         name: dto.name,
         businessType: dto.businessType,
-        subdomain: finalSubdomain,
-        elasticIpv4: cleanElasticIpv4,
+        subdomain: isReferrer ? null : finalSubdomain,
+        elasticIpv4: isReferrer ? null : cleanElasticIpv4,
         primaryColor: dto.primaryColor || '#6366f1',
         companyWebsite: dto.companyWebsite,
         country: dto.country,
@@ -635,10 +641,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    await this.cloudflareDnsService.provisionSubdomain(
-      finalSubdomain,
-      cleanElasticIpv4 || undefined,
-    );
+    if (!isReferrer && finalSubdomain) {
+      await this.cloudflareDnsService.provisionSubdomain(
+        finalSubdomain,
+        cleanElasticIpv4 || undefined,
+      );
+    }
 
     await this.clearOnboardingDraft(userId);
 

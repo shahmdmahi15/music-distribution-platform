@@ -390,6 +390,16 @@ export function WhiteLabelOnboardingWizard({
   // Auto-slugify company name to unique subdomain via Cloudflare check
   const debounceNameRef = useRef<NodeJS.Timeout | null>(null);
   const handleNameChange = (name: string) => {
+    if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+      setFormData((prev) => ({
+        ...prev,
+        name,
+        desiredSubdomain: "",
+      }));
+      setSubdomainStatus({ checking: false, available: undefined });
+      return;
+    }
+
     const localSlug = name
       .toLowerCase()
       .trim()
@@ -433,6 +443,11 @@ export function WhiteLabelOnboardingWizard({
   // Subdomain live checker with debounce
   const debounceSubdomainRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
+    if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+      setSubdomainStatus({ checking: false, available: undefined });
+      return;
+    }
+
     const sub = formData.desiredSubdomain?.trim().toLowerCase();
     if (debounceSubdomainRef.current)
       clearTimeout(debounceSubdomainRef.current);
@@ -584,6 +599,9 @@ export function WhiteLabelOnboardingWizard({
       }
     }
     if (step === 2) {
+      if (formData.businessType === WhiteLabelBusinessType.REFERRER) {
+        return true;
+      }
       if (formData.desiredSubdomain) {
         const sub = formData.desiredSubdomain.trim().toLowerCase();
         if (sub.length < 3 || sub.length > 30) {
@@ -665,14 +683,23 @@ export function WhiteLabelOnboardingWizard({
 
     setIsSubmitting(true);
     try {
-      const validArtists = formData.topArtists.filter((a: RosterArtist) =>
-        Boolean(a.artistName && a.artistName.trim().length > 0),
-      );
+      const isReferrer =
+        formData.businessType === WhiteLabelBusinessType.REFERRER;
+      const validArtists = isReferrer
+        ? []
+        : formData.topArtists.filter((a: RosterArtist) =>
+            Boolean(a.artistName && a.artistName.trim().length > 0),
+          );
       const cleanedElasticIpv4 = formData.elasticIpv4?.trim();
 
       const res = await clientApplyWhiteLabelAction({
         ...formData,
-        elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
+        desiredSubdomain: isReferrer ? undefined : formData.desiredSubdomain,
+        elasticIpv4: isReferrer
+          ? undefined
+          : cleanedElasticIpv4
+            ? cleanedElasticIpv4
+            : undefined,
         topArtists: validArtists,
         onboardingDetails: {
           ...formData.onboardingDetails,
@@ -712,9 +739,18 @@ export function WhiteLabelOnboardingWizard({
     }
   };
 
+  const getStep2Title = () => {
+    switch (formData.businessType) {
+      case WhiteLabelBusinessType.REFERRER:
+        return "Partner Hub";
+      default:
+        return "Branding & URL";
+    }
+  };
+
   const stepsList = [
     { num: 1, title: "Entity Profile" },
-    { num: 2, title: "Branding & URL" },
+    { num: 2, title: getStep2Title() },
     { num: 3, title: "Key Contact" },
     { num: 4, title: "Operations" },
     { num: 5, title: getStep5Title() },
@@ -817,6 +853,9 @@ export function WhiteLabelOnboardingWizard({
                         setFormData((prev) => ({
                           ...prev,
                           businessType: type.id,
+                          ...(type.id === WhiteLabelBusinessType.REFERRER
+                            ? { desiredSubdomain: "", elasticIpv4: "" }
+                            : {}),
                         }))
                       }
                       className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
@@ -1011,123 +1050,274 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 2: Branding & Subdomain */}
+      {/* STEP 2: Branding & Subdomain OR Referrer Partner Hub */}
       {currentStep === 2 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
-              <Globe className="h-4 w-4" />
-              Step 2 of 6: Identity & Subdomain
+              {formData.businessType === WhiteLabelBusinessType.REFERRER ? (
+                <>
+                  <Users className="h-4 w-4" />
+                  Step 2 of 6: Partner Hub &amp; Network Setup
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  Step 2 of 6: Identity &amp; Subdomain
+                </>
+              )}
             </div>
             <CardTitle className="text-xl font-bold">
-              Platform Identity & Subdomain Claim
+              {formData.businessType === WhiteLabelBusinessType.REFERRER
+                ? "Referral Partner Portal & Network Identity"
+                : "Platform Identity & Subdomain Claim"}
             </CardTitle>
             <CardDescription className="text-xs">
-              Choose your dedicated WhiteLabel portal address and brand color
-              scheme.
+              {formData.businessType === WhiteLabelBusinessType.REFERRER
+                ? "As an Authorized Referral Partner, your control center is hosted directly inside platform.royalmotionit.com/referrer. No Elastic IP, custom domain, or website servers are needed!"
+                : "Choose your dedicated WhiteLabel portal address and brand color scheme."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Subdomain Input with Real-time Checker (Locked & Auto-derived) */}
-            <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
-              <div className="flex items-center justify-between">
-                <Label
-                  htmlFor="subdomain"
-                  className="text-xs font-bold flex items-center gap-1.5"
-                >
-                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Platform Subdomain</span>
-                </Label>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-mono text-muted-foreground"
-                >
-                  Auto-Verified DNS
-                </Badge>
-              </div>
-
-              <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
-                <input
-                  id="subdomain"
-                  type="text"
-                  placeholder="yourbrand"
-                  value={formData.desiredSubdomain}
-                  onChange={(e) => {
-                    const clean = e.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9-]/g, "")
-                      .slice(0, 30);
-                    setFormData((prev) => ({
-                      ...prev,
-                      desiredSubdomain: clean,
-                    }));
-                  }}
-                  className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0"
-                />
-                <span className="px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/40 border-l border-border shrink-0 select-none">
-                  .platform.royalmotionit.com
-                </span>
-              </div>
-
-              {formData.desiredSubdomain && (
-                <div className="pt-1">
-                  {subdomainStatus.checking ? (
-                    <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                      <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
-                      Checking Cloudflare availability...
+            {formData.businessType === WhiteLabelBusinessType.REFERRER ? (
+              /* REFERRER PARTNER SETUP: NO SUBDOMAIN, NO EIP */
+              <>
+                {/* 1. Platform-Hosted Hub Info Banner */}
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-primary flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      100% Platform-Hosted Referrer Dashboard
                     </span>
-                  ) : subdomainStatus.available ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                      {subdomainStatus.reason ||
-                        "Available & unique! Reserved for your brand."}
+                    <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                      Zero Server Maintenance
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    You do not need a custom domain, Elastic IP (EIP), or web server. You will manage your referral tracking links, track referred accounts, view 15% commissions, and request payouts directly at:
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-background/80 border border-primary/20 flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-primary">
+                      https://platform.royalmotionit.com/referrer
                     </span>
-                  ) : subdomainStatus.available === false ? (
-                    <span className="text-destructive font-semibold flex items-center gap-1 text-[11px]">
-                      <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-                      {subdomainStatus.reason || "Subdomain is unavailable."}
-                    </span>
-                  ) : null}
+                    <Badge variant="secondary" className="text-[10px] font-mono font-medium">
+                      Alias: /refferer
+                    </Badge>
+                  </div>
                 </div>
-              )}
-              <p className="text-[10px] text-muted-foreground pt-1">
-                Your subdomain is automatically slugified from your brand name
-                and verified unique in Cloudflare DNS.
-              </p>
-            </div>
 
-            {/* Hosted Server Elastic IPv4 Input (Optional) */}
-            <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
-              <Label
-                htmlFor="elasticIpv4"
-                className="text-xs font-bold flex items-center justify-between"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Server className="h-3.5 w-3.5 text-indigo-500" />
-                  Hosted Server Elastic IPv4 Address (Optional)
-                </span>
-                <span className="text-[11px] font-normal text-muted-foreground">
-                  AWS / Cloud Server IP
-                </span>
-              </Label>
-              <Input
-                id="elasticIpv4"
-                placeholder="54.210.12.34"
-                value={formData.elasticIpv4}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    elasticIpv4: e.target.value.trim(),
-                  }))
-                }
-                className="h-10 text-xs font-mono"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                If your cloud server is already running, enter its Elastic IPv4.
-                Cloudflare DNS will automatically create an A-record routing
-                your platform subdomain directly to this address.
-              </p>
-            </div>
+                {/* 2. Partner Referral Code / Scout ID */}
+                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="referralCodeInput"
+                      className="text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-primary" />
+                      <span>Custom Partner Referral Code</span>
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono text-muted-foreground"
+                    >
+                      Attribution Tracking
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
+                    <input
+                      id="referralCodeInput"
+                      type="text"
+                      placeholder="e.g. AGY-SCOUT"
+                      value={
+                        formData.onboardingDetails?.referralNetworkCode ||
+                        formData.onboardingDetails?.scoutAffiliateCodePrefix ||
+                        ""
+                      }
+                      onChange={(e) => {
+                        const clean = e.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9-]/g, "")
+                          .slice(0, 20);
+                        updateOnboardingDetail("referralNetworkCode", clean);
+                        updateOnboardingDetail("scoutAffiliateCodePrefix", clean);
+                      }}
+                      className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0 uppercase"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground pt-1">
+                    Your direct referral link will be:{" "}
+                    <strong className="text-foreground font-mono">
+                      https://platform.royalmotionit.com/auth/register?ref=
+                      {formData.onboardingDetails?.referralNetworkCode ||
+                        formData.onboardingDetails?.scoutAffiliateCodePrefix ||
+                        (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "YOUR-CODE")}
+                    </strong>
+                  </p>
+                </div>
+
+                {/* 3. Payout & Remittance Preference */}
+                <div className="space-y-3 p-4 rounded-xl border border-border/70 bg-card">
+                  <Label className="text-xs font-bold flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Preferred Commission Payout Method</span>
+                  </Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: "BKASH", name: "bKash (MFS)" },
+                      { id: "NAGAD", name: "Nagad (MFS)" },
+                      { id: "ROCKET", name: "Rocket (MFS)" },
+                      { id: "BANK_TRANSFER", name: "Bank Transfer" },
+                    ].map((method) => {
+                      const currentMethod =
+                        formData.onboardingDetails?.payoutMethod || "BKASH";
+                      const isSelected = currentMethod === method.id;
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() =>
+                            updateOnboardingDetail("payoutMethod", method.id)
+                          }
+                          className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition-all ${
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary shadow-2xs font-bold"
+                              : "border-border/60 hover:bg-muted/40 text-muted-foreground"
+                          }`}
+                        >
+                          {method.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-1 space-y-1">
+                    <Label
+                      htmlFor="payoutAccNumber"
+                      className="text-[11px] font-semibold text-muted-foreground"
+                    >
+                      Payout Mobile / Bank Account Number (Optional during onboarding):
+                    </Label>
+                    <Input
+                      id="payoutAccNumber"
+                      placeholder="e.g. 017XXXXXXXX or Account No"
+                      value={formData.onboardingDetails?.payoutAccountNumber || ""}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "payoutAccountNumber",
+                          e.target.value.trim(),
+                        )
+                      }
+                      className="h-8.5 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* DISTRIBUTOR AGGREGATOR SETUP: SUBDOMAIN CLAIM & EIP */
+              <>
+                {/* Subdomain Input with Real-time Checker (Locked & Auto-derived) */}
+                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="subdomain"
+                      className="text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Platform Subdomain</span>
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono text-muted-foreground"
+                    >
+                      Auto-Verified DNS
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
+                    <input
+                      id="subdomain"
+                      type="text"
+                      placeholder="yourbrand"
+                      value={formData.desiredSubdomain}
+                      onChange={(e) => {
+                        const clean = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, "")
+                          .slice(0, 30);
+                        setFormData((prev) => ({
+                          ...prev,
+                          desiredSubdomain: clean,
+                        }));
+                      }}
+                      className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0"
+                    />
+                    <span className="px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/40 border-l border-border shrink-0 select-none">
+                      .platform.royalmotionit.com
+                    </span>
+                  </div>
+
+                  {formData.desiredSubdomain && (
+                    <div className="pt-1">
+                      {subdomainStatus.checking ? (
+                        <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
+                          <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
+                          Checking Cloudflare availability...
+                        </span>
+                      ) : subdomainStatus.available ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          {subdomainStatus.reason ||
+                            "Available & unique! Reserved for your brand."}
+                        </span>
+                      ) : subdomainStatus.available === false ? (
+                        <span className="text-destructive font-semibold flex items-center gap-1 text-[11px]">
+                          <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                          {subdomainStatus.reason || "Subdomain is unavailable."}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground pt-1">
+                    Your subdomain is automatically slugified from your brand name
+                    and verified unique in Cloudflare DNS.
+                  </p>
+                </div>
+
+                {/* Hosted Server Elastic IPv4 Input (Optional) */}
+                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
+                  <Label
+                    htmlFor="elasticIpv4"
+                    className="text-xs font-bold flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Server className="h-3.5 w-3.5 text-indigo-500" />
+                      Hosted Server Elastic IPv4 Address (Optional)
+                    </span>
+                    <span className="text-[11px] font-normal text-muted-foreground">
+                      AWS / Cloud Server IP
+                    </span>
+                  </Label>
+                  <Input
+                    id="elasticIpv4"
+                    placeholder="54.210.12.34"
+                    value={formData.elasticIpv4}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        elasticIpv4: e.target.value.trim(),
+                      }))
+                    }
+                    className="h-10 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    If your cloud server is already running, enter its Elastic IPv4.
+                    Cloudflare DNS will automatically create an A-record routing
+                    your platform subdomain directly to this address.
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Brand Accent Color */}
             <div className="space-y-3">
@@ -2042,12 +2232,16 @@ export function WhiteLabelOnboardingWizard({
 
                 <div>
                   <span className="text-muted-foreground text-[10px] block">
-                    Reserved Subdomain
+                    {formData.businessType === WhiteLabelBusinessType.REFERRER
+                      ? "Referral Operations Hub"
+                      : "Reserved Subdomain"}
                   </span>
                   <strong className="text-foreground font-mono text-[11px]">
-                    {formData.desiredSubdomain
-                      ? `${formData.desiredSubdomain}.platform.royalmotionit.com`
-                      : "Pending"}
+                    {formData.businessType === WhiteLabelBusinessType.REFERRER
+                      ? "platform.royalmotionit.com/referrer"
+                      : formData.desiredSubdomain
+                        ? `${formData.desiredSubdomain}.platform.royalmotionit.com`
+                        : "Pending"}
                   </strong>
                 </div>
 
@@ -2070,7 +2264,7 @@ export function WhiteLabelOnboardingWizard({
                       "Sub-Labels Represented"}
                     {formData.businessType ===
                       WhiteLabelBusinessType.REFERRER &&
-                      "Network Category"}
+                      "Attribution Code & Payout"}
                   </span>
                   <strong className="text-foreground">
                     {formData.businessType ===
@@ -2078,10 +2272,7 @@ export function WhiteLabelOnboardingWizard({
                       `${formData.onboardingDetails?.subLabelsCount || 5} labels`}
                     {formData.businessType ===
                       WhiteLabelBusinessType.REFERRER &&
-                      (formData.onboardingDetails?.scoutNetworkCategory?.replace(
-                        /_/g,
-                        " ",
-                      ) || "Talent Scout")}
+                      `${formData.onboardingDetails?.referralNetworkCode || formData.onboardingDetails?.scoutAffiliateCodePrefix || (formData.name ? formData.name.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 15) : "ASSIGNED")} (${formData.onboardingDetails?.payoutMethod || "bKash"})`}
                   </strong>
                 </div>
 
@@ -2093,7 +2284,7 @@ export function WhiteLabelOnboardingWizard({
                       "Ingestion Protocol"}
                     {formData.businessType ===
                       WhiteLabelBusinessType.REFERRER &&
-                      "Projected Pipeline"}
+                      "Referral Commission"}
                   </span>
                   <strong className="text-foreground">
                     {formData.businessType ===
@@ -2102,7 +2293,7 @@ export function WhiteLabelOnboardingWizard({
                         "DDEX ERN 4.3")}
                     {formData.businessType ===
                       WhiteLabelBusinessType.REFERRER &&
-                      `${formData.onboardingDetails?.projectedAnnualReferrals || 15} referrals / yr`}
+                      "15% of Selling Price (Min ৳60,000 BDT)"}
                   </strong>
                 </div>
 
