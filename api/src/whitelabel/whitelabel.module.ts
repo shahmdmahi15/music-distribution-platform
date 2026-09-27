@@ -39,6 +39,9 @@ import { RedisModule } from 'src/lib/redis/redis.module';
 })
 export class WhitelabelModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(WhitelabelMiddleware).forRoutes('whitelabel/*path');
+    consumer
+      .apply(WhitelabelMiddleware)
+      .exclude('whitelabel/tenant/resolve-subdomain')
+      .forRoutes('whitelabel/*path');
   }
 }

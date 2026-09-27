@@ -18,6 +18,7 @@ import {
 } from 'src/lib/storage/storage.service';
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
+import { RedisService } from 'src/lib/redis/redis.service';
 import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
 import { AdminUpdateApplicationDto } from './dto/admin-update-application.dto';
 import {
@@ -34,6 +35,7 @@ export class AdminWhitelabelService {
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
     private readonly cloudflareDnsService: CloudflareDnsService,
+    private readonly redisService: RedisService,
   ) {}
 
   async getWhiteLabels(query: AdminWhiteLabelQueryDto) {
@@ -329,10 +331,16 @@ export class AdminWhitelabelService {
       }
 
       if (existing.subdomain) {
+        const targetDomain = existing.customDomain
+          ? (existing.customDomain.startsWith('backstage.') ? existing.customDomain : `backstage.${existing.customDomain}`)
+          : (existing.cloudflareBaseDomain ? `backstage.${existing.cloudflareBaseDomain}` : undefined);
+
         const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
           existing.subdomain,
+          targetDomain,
         );
         cloudflareMessage = ` (${dnsResult.message})`;
+        await this.redisService.del(`whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`);
       }
     }
 
@@ -581,10 +589,16 @@ export class AdminWhitelabelService {
     // Automate Cloudflare DNS provisioning for platform subdomain
     let cloudflareMessage = '';
     if (whiteLabel.subdomain) {
+      const targetDomain = whiteLabel.customDomain
+        ? (whiteLabel.customDomain.startsWith('backstage.') ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`)
+        : (whiteLabel.cloudflareBaseDomain ? `backstage.${whiteLabel.cloudflareBaseDomain}` : undefined);
+
       const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
         whiteLabel.subdomain,
+        targetDomain,
       );
       cloudflareMessage = ` (${dnsRes.message})`;
+      await this.redisService.del(`whitelabel:subdomain_resolve:${whiteLabel.subdomain.toLowerCase()}`);
     }
 
     const updated = await this.prismaService.whiteLabel.update({
@@ -1163,9 +1177,15 @@ export class AdminWhitelabelService {
       );
     }
 
+    const targetDomain = existing.customDomain
+      ? (existing.customDomain.startsWith('backstage.') ? existing.customDomain : `backstage.${existing.customDomain}`)
+      : (existing.cloudflareBaseDomain ? `backstage.${existing.cloudflareBaseDomain}` : undefined);
+
     const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
       existing.subdomain,
+      targetDomain,
     );
+    await this.redisService.del(`whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`);
 
     return {
       success: true,

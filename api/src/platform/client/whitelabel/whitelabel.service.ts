@@ -550,10 +550,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (finalSubdomain) {
+        const targetDomain = updated.customDomain
+          ? (updated.customDomain.startsWith('backstage.') ? updated.customDomain : `backstage.${updated.customDomain}`)
+          : (updated.cloudflareBaseDomain ? `backstage.${updated.cloudflareBaseDomain}` : undefined);
+
         await this.cloudflareDnsService.provisionSubdomain(
           finalSubdomain,
-          cleanElasticIpv4 || undefined,
+          targetDomain,
         );
+        await this.redisService.del(`whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`);
       }
 
       await this.clearOnboardingDraft(userId);
@@ -638,10 +643,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (finalSubdomain) {
+      const targetDomain = whiteLabel.customDomain
+        ? (whiteLabel.customDomain.startsWith('backstage.') ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`)
+        : (whiteLabel.cloudflareBaseDomain ? `backstage.${whiteLabel.cloudflareBaseDomain}` : undefined);
+
       await this.cloudflareDnsService.provisionSubdomain(
         finalSubdomain,
-        cleanElasticIpv4 || undefined,
+        targetDomain,
       );
+      await this.redisService.del(`whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`);
     }
 
     await this.clearOnboardingDraft(userId);
@@ -1675,13 +1685,17 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
     // Subdomain is permanently immutable; dto.subdomain is intentionally ignored
 
-    // Provision or update Cloudflare DNS A-record if elasticIpv4 changed
+    // Provision or update Cloudflare DNS record pointing to backstage.customdomain
     let cloudflareMessage = '';
-    if (cleanElasticIpv4 !== undefined && cleanElasticIpv4 !== wl.elasticIpv4) {
-      if (wl.subdomain) {
+    if (wl.subdomain) {
+      const targetDomain = customDomain
+        ? (customDomain.startsWith('backstage.') ? customDomain : `backstage.${customDomain}`)
+        : (cleanBaseDomain ? `backstage.${cleanBaseDomain}` : undefined);
+
+      if (targetDomain) {
         const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
           wl.subdomain,
-          cleanElasticIpv4 || undefined,
+          targetDomain,
         );
         if (!dnsRes.success) {
           throw new BadRequestException(
@@ -1690,6 +1704,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
         cloudflareMessage = ` Cloudflare DNS: ${dnsRes.message}`;
       }
+      await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
     }
 
     // Auto-sync custom domain DNS into user's Cloudflare zone if credentials exist
@@ -2488,10 +2503,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
+    const targetDomain = wl.customDomain
+      ? (wl.customDomain.startsWith('backstage.') ? wl.customDomain : `backstage.${wl.customDomain}`)
+      : (wl.cloudflareBaseDomain ? `backstage.${wl.cloudflareBaseDomain}` : undefined);
+
     const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
       wl.subdomain,
-      wl.elasticIpv4 || undefined,
+      targetDomain,
     );
+    await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
 
     return {
       success: dnsRes.success,
@@ -2564,15 +2584,19 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
     if (wl.subdomain) {
       try {
+        const targetDomain = wl.customDomain
+          ? (wl.customDomain.startsWith('backstage.') ? wl.customDomain : `backstage.${wl.customDomain}`)
+          : (wl.cloudflareBaseDomain ? `backstage.${wl.cloudflareBaseDomain}` : undefined);
+
         const subDns = await this.cloudflareDnsService.verifySubdomainDns(
           wl.subdomain,
-          cleanIp || undefined,
+          targetDomain,
         );
         subdomainHealth = {
           status: subDns.success ? 'VERIFIED' : 'FAILED',
           subdomain: wl.subdomain,
           fqdn: subDns.fqdn,
-          isElasticIp: isElasticIpConfigured,
+          isElasticIp: false,
           elasticIpv4: cleanIp,
           expectedTarget: subDns.expectedContent,
           actualTarget: subDns.actualContent || null,
@@ -2588,8 +2612,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           );
           await this.cloudflareDnsService.provisionSubdomain(
             wl.subdomain,
-            cleanIp || undefined,
+            targetDomain,
           );
+          await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
         }
       } catch (err: any) {
         subdomainHealth.status = 'FAILED';

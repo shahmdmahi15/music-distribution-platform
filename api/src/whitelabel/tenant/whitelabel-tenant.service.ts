@@ -280,11 +280,155 @@ export class WhitelabelTenantService {
     );
 
     const brandingResult = await this.getPublicBranding(updated);
+    if (updated.subdomain) {
+      await this.invalidateSubdomainCache(updated.subdomain);
+    }
     return {
       success: true,
       message:
         'WhiteLabel portal setup completed successfully and saved to database.',
       tenant: brandingResult.tenant,
     };
+  }
+
+  /**
+   * Resolves a subdomain on *.platform.royalmotionit.com to its WhiteLabel tenant.
+   * Returns whether the tenant exists, its status, and its designated backstage custom domain.
+   */
+  async resolveSubdomain(subdomain: string) {
+    const cleanSubdomain = (subdomain || '').trim().toLowerCase();
+
+    if (!cleanSubdomain) {
+      return {
+        found: false,
+        message: 'Subdomain parameter is required.',
+      };
+    }
+
+    // 1. Reserved platform infrastructure subdomains check
+    const RESERVED_SUBDOMAINS = new Set([
+      'platform',
+      'api',
+      'admin',
+      'app',
+      'auth',
+      'mail',
+      'status',
+      'backstage',
+      'staging',
+      'dev',
+      'test',
+      'demo',
+      'portal',
+      'console',
+      'dashboard',
+      'billing',
+      'account',
+      'accounts',
+      'pay',
+      'payment',
+      'payments',
+      'static',
+      'assets',
+      'cdn',
+      'ws',
+      'wss',
+      'root',
+      'www',
+    ]);
+
+    if (RESERVED_SUBDOMAINS.has(cleanSubdomain)) {
+      return {
+        found: false,
+        reserved: true,
+        message: `The subdomain "${cleanSubdomain}" is reserved for platform operations.`,
+      };
+    }
+
+    // 2. Check Redis cache for sub-millisecond edge resolution
+    const cacheKey = `whitelabel:subdomain_resolve:${cleanSubdomain}`;
+    try {
+      const cached = await this.redisService.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // Fallback directly to DB
+    }
+
+    // 3. Database lookup for WhiteLabel tenant
+    const whiteLabel = await this.prismaService.whiteLabel.findFirst({
+      where: {
+        subdomain: cleanSubdomain,
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        subdomain: true,
+        customDomain: true,
+        cloudflareBaseDomain: true,
+        status: true,
+        primaryColor: true,
+        logoUrl: true,
+      },
+    });
+
+    if (!whiteLabel || whiteLabel.status === WhiteLabelStatus.REJECTED) {
+      const notFoundResult = {
+        found: false,
+        subdomain: cleanSubdomain,
+        message: 'No active WhiteLabel registered for this subdomain.',
+      };
+      // Cache negative lookup for 60 seconds to protect DB from scrapers/bots
+      try {
+        await this.redisService.set(cacheKey, JSON.stringify(notFoundResult), 60);
+      } catch {}
+      return notFoundResult;
+    }
+
+    // Determine target backstage domain
+    let backstageDomain: string | null = null;
+    if (whiteLabel.customDomain && whiteLabel.customDomain.trim()) {
+      const cd = whiteLabel.customDomain.trim().toLowerCase();
+      backstageDomain = cd.startsWith('backstage.') ? cd : `backstage.${cd}`;
+    } else if (
+      whiteLabel.cloudflareBaseDomain &&
+      whiteLabel.cloudflareBaseDomain.trim()
+    ) {
+      const bd = whiteLabel.cloudflareBaseDomain.trim().toLowerCase();
+      backstageDomain = bd.startsWith('backstage.') ? bd : `backstage.${bd}`;
+    }
+
+    const result = {
+      found: true,
+      id: whiteLabel.id,
+      code: whiteLabel.code,
+      name: whiteLabel.name,
+      subdomain: whiteLabel.subdomain,
+      status: whiteLabel.status,
+      customDomain: whiteLabel.customDomain,
+      backstageDomain,
+      logoUrl: this.resolveUrl(whiteLabel.logoUrl),
+      primaryColor: whiteLabel.primaryColor || '#6366f1',
+    };
+
+    // Cache resolved data for 300 seconds (5 minutes)
+    try {
+      await this.redisService.set(cacheKey, JSON.stringify(result), 300);
+    } catch {}
+
+    return result;
+  }
+
+  /**
+   * Invalidates Redis cache for a given subdomain when domain settings change.
+   */
+  async invalidateSubdomainCache(subdomain: string) {
+    if (!subdomain) return;
+    const cleanSubdomain = subdomain.trim().toLowerCase();
+    try {
+      await this.redisService.del(`whitelabel:subdomain_resolve:${cleanSubdomain}`);
+    } catch {}
   }
 }

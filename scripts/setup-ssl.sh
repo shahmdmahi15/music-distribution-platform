@@ -79,13 +79,13 @@ server {
     }
 }
 
-# 2. Platform Console (platform.royalmotionit.com)
+# 2. Platform Console (platform.royalmotionit.com & *.platform.royalmotionit.com)
 server {
     listen 80;
     listen [::]:80;
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name platform.royalmotionit.com;
+    server_name platform.royalmotionit.com *.platform.royalmotionit.com;
 
     ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
     ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;

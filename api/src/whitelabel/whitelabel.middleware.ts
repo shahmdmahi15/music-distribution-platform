@@ -28,6 +28,15 @@ export class WhitelabelMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
+    // 0. Public tenant subdomain resolution bypass (called by platform edge proxy)
+    if (
+      req.originalUrl?.includes('/tenant/resolve-subdomain') ||
+      req.baseUrl?.includes('/tenant/resolve-subdomain') ||
+      req.path?.includes('/resolve-subdomain')
+    ) {
+      return next();
+    }
+
     // 1. API Key Extraction
     const rawKey =
       req.headers['x-api-key'] ||

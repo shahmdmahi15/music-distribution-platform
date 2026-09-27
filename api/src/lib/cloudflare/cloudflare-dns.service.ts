@@ -241,16 +241,32 @@ export class CloudflareDnsService {
     const cleanSub = subdomain.trim().toLowerCase();
     const fqdn = `${cleanSub}.${this.baseDomain}`;
     const cleanTarget = targetHostOrIp?.trim();
+
+    if (!cleanTarget) {
+      this.logger.log(
+        `[CloudflareDnsService] Subdomain ${fqdn} has no custom domain target configured. Handled by platform wildcard DNS (*.${this.baseDomain}).`,
+      );
+      return {
+        success: true,
+        configured: true,
+        fqdn,
+        message: `Subdomain ${fqdn} is handled by the platform wildcard DNS until backstage.customdomain is configured.`,
+      };
+    }
+
     const isIpRouting = Boolean(
-      cleanTarget && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanTarget),
+      /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanTarget),
     );
 
+    // Normalize domain target to backstage.<cleanBaseDomain>
+    let normalizedContent = cleanTarget;
+    if (!isIpRouting) {
+      const lower = cleanTarget.toLowerCase();
+      normalizedContent = lower.startsWith('backstage.') ? lower : `backstage.${lower}`;
+    }
+
     const recordType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
-    const recordContent = isIpRouting
-      ? cleanTarget!
-      : cleanTarget
-        ? cleanTarget.toLowerCase()
-        : this.targetCname;
+    const recordContent = normalizedContent;
     const initialShouldProxy =
       this.shouldProxySubdomain &&
       (isIpRouting ? this.isIpProxyable(recordContent) : true);
@@ -458,11 +474,17 @@ export class CloudflareDnsService {
       cleanTarget && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanTarget),
     );
 
+    let normalizedTarget = cleanTarget;
+    if (cleanTarget && !isIpRouting) {
+      const lower = cleanTarget.toLowerCase();
+      normalizedTarget = lower.startsWith('backstage.') ? lower : `backstage.${lower}`;
+    }
+
     const expectedType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
     const expectedContent = isIpRouting
       ? cleanTarget!
-      : cleanTarget
-        ? cleanTarget.toLowerCase()
+      : normalizedTarget
+        ? normalizedTarget
         : this.targetCname;
 
     if (!this.apiToken || !this.zoneId) {
