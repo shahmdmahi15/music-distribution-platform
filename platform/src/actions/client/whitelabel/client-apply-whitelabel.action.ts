@@ -11,6 +11,9 @@ export interface ApplyWhiteLabelPayload {
   desiredSubdomain?: string;
   elasticIpv4?: string;
   primaryColor?: string;
+  accentColor?: string;
+  tagline?: string;
+  description?: string;
   companyWebsite?: string;
   country: string;
   yearsInBusiness?: number;
@@ -21,6 +24,8 @@ export interface ApplyWhiteLabelPayload {
   contactEmail: string;
   contactWhatsApp: string;
   contactLinkedIn?: string;
+  supportEmail?: string;
+  supportPhone?: string;
   catalogTrackCount?: number;
   monthlyTrackDelivery?: number;
   monthlyRevenueUsd?: number;

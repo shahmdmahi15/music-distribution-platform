@@ -37,6 +37,12 @@ import {
   Check,
   Hash,
   ShieldAlert,
+  Plus,
+  Trash2,
+  Edit3,
+  Clock,
+  Briefcase,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,6 +204,39 @@ const BRAND_COLOR_PRESETS = [
   { name: "Violet", hex: "#8b5cf6" },
   { name: "Amber", hex: "#f59e0b" },
   { name: "Cyan", hex: "#06b6d4" },
+  { name: "Slate", hex: "#334155" },
+  { name: "Crimson", hex: "#dc2626" },
+];
+
+const ACCENT_COLOR_PRESETS = [
+  { name: "Pink / Fuchsia", hex: "#ec4899" },
+  { name: "Cyan / Sky", hex: "#06b6d4" },
+  { name: "Emerald", hex: "#10b981" },
+  { name: "Amber / Gold", hex: "#f59e0b" },
+  { name: "Violet / Purple", hex: "#8b5cf6" },
+  { name: "Indigo", hex: "#6366f1" },
+];
+
+const GENRE_OPTIONS = [
+  "Multi-Genre / All Genres",
+  "Electronic / Dance / EDM",
+  "Hip-Hop / Rap / Trap",
+  "Pop / Commercial",
+  "R&B / Soul / Urban",
+  "Rock / Alternative / Metal",
+  "Classical / Cinematic / Instrumental",
+  "Traditional / Folk / World",
+  "Devotional / Spiritual",
+  "Jazz / Blues / Acoustic",
+];
+
+const EXECUTIVE_ROLES = [
+  "CEO / Founder",
+  "Managing Director",
+  "Head of Operations",
+  "VP of A&R / Ingestion",
+  "General Counsel / Legal",
+  "Catalog Delivery Manager",
 ];
 
 export interface RosterArtist {
@@ -222,12 +261,17 @@ export interface OnboardingDraftData {
   subdomain?: string;
   elasticIpv4?: string;
   primaryColor?: string;
+  accentColor?: string;
+  tagline?: string;
+  description?: string;
   estimatedLaunchTimeline?: string;
   contactFirstName?: string;
   contactLastName?: string;
   contactEmail?: string;
   contactWhatsApp?: string;
   contactLinkedIn?: string;
+  supportEmail?: string;
+  supportPhone?: string;
   catalogTrackCount?: number;
   monthlyTrackDelivery?: number;
   monthlyRevenueUsd?: number;
@@ -292,8 +336,10 @@ export function WhiteLabelOnboardingWizard({
     // Step 2: Branding & Subdomain
     desiredSubdomain:
       initialDraft?.desiredSubdomain || initialDraft?.subdomain || "",
-    elasticIpv4: initialDraft?.elasticIpv4 || "",
     primaryColor: initialDraft?.primaryColor || "#6366f1",
+    accentColor: initialDraft?.accentColor || "#ec4899",
+    tagline: initialDraft?.tagline || "",
+    description: initialDraft?.description || "",
     estimatedLaunchTimeline:
       initialDraft?.estimatedLaunchTimeline || "Immediate",
 
@@ -303,6 +349,8 @@ export function WhiteLabelOnboardingWizard({
     contactEmail: initialDraft?.contactEmail || user.email || "",
     contactWhatsApp: initialDraft?.contactWhatsApp || "",
     contactLinkedIn: initialDraft?.contactLinkedIn || "",
+    supportEmail: initialDraft?.supportEmail || "",
+    supportPhone: initialDraft?.supportPhone || "",
 
     // Step 4: Catalog & Distribution Operations
     catalogTrackCount: initialDraft?.catalogTrackCount ?? 50,
@@ -595,6 +643,40 @@ export function WhiteLabelOnboardingWizard({
     });
   };
 
+  const handleAddArtist = () => {
+    if (formData.topArtists.length >= 5) {
+      toast.info("Maximum 5 representative sub-labels allowed during onboarding.");
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      topArtists: [
+        ...prev.topArtists,
+        {
+          artistName: "",
+          instagramHandle: "",
+          spotifyProfileUrl: "",
+          youtubeChannelUrl: "",
+          monthlyListeners: 0,
+          orderIndex: prev.topArtists.length + 1,
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveArtist = (index: number) => {
+    if (formData.topArtists.length <= 1) {
+      toast.error("At least 1 representative sub-label or brand partner is required.");
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      topArtists: prev.topArtists
+        .filter((_, idx) => idx !== index)
+        .map((a, idx) => ({ ...a, orderIndex: idx + 1 })),
+    }));
+  };
+
   const isReferrer = formData.track === "REFERRER";
   const maxSteps = isReferrer ? 4 : 6;
 
@@ -714,27 +796,20 @@ export function WhiteLabelOnboardingWizard({
     } else {
       // Distributor Aggregator
       if (step === 2) {
-        if (formData.desiredSubdomain) {
-          const sub = formData.desiredSubdomain.trim().toLowerCase();
-          if (sub.length < 3 || sub.length > 30) {
-            toast.error("Subdomain must be between 3 and 30 characters.");
-            return false;
-          }
-          if (subdomainStatus.available === false) {
-            toast.error(
-              subdomainStatus.reason || "This subdomain is not available.",
-            );
-            return false;
-          }
+        if (!formData.desiredSubdomain || !formData.desiredSubdomain.trim()) {
+          toast.error("Please enter your desired platform subdomain.");
+          return false;
         }
-        const trimmedIp = formData.elasticIpv4?.trim() || "";
-        if (trimmedIp.length > 0) {
-          const ipv4Regex =
-            /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-          if (!ipv4Regex.test(trimmedIp)) {
-            toast.error("Must be a valid IPv4 address (e.g. 54.210.12.34)");
-            return false;
-          }
+        const sub = formData.desiredSubdomain.trim().toLowerCase();
+        if (sub.length < 3 || sub.length > 30) {
+          toast.error("Subdomain must be between 3 and 30 characters.");
+          return false;
+        }
+        if (subdomainStatus.available === false) {
+          toast.error(
+            subdomainStatus.reason || "This subdomain is not available.",
+          );
+          return false;
         }
       }
       if (step === 3) {
@@ -800,7 +875,6 @@ export function WhiteLabelOnboardingWizard({
         : formData.topArtists.filter((a: RosterArtist) =>
             Boolean(a.artistName && a.artistName.trim().length > 0),
           );
-      const cleanedElasticIpv4 = formData.elasticIpv4?.trim();
 
       let res;
       if (isReferrer) {
@@ -860,8 +934,12 @@ export function WhiteLabelOnboardingWizard({
           country: formData.country.trim(),
           contactWhatsApp: formData.contactWhatsApp.trim(),
           desiredSubdomain: formData.desiredSubdomain,
-          elasticIpv4: cleanedElasticIpv4 ? cleanedElasticIpv4 : undefined,
           primaryColor: formData.primaryColor,
+          accentColor: formData.accentColor,
+          tagline: formData.tagline?.trim() || undefined,
+          description: formData.description?.trim() || undefined,
+          supportEmail: formData.supportEmail?.trim() || undefined,
+          supportPhone: formData.supportPhone?.trim() || undefined,
           topArtists: validArtists,
           catalogTrackCount: formData.catalogTrackCount,
           monthlyTrackDelivery: formData.monthlyTrackDelivery,
@@ -1022,7 +1100,7 @@ export function WhiteLabelOnboardingWizard({
                           ...prev,
                           track: type.id,
                           ...(type.id === "REFERRER"
-                            ? { desiredSubdomain: "", elasticIpv4: "" }
+                            ? { desiredSubdomain: "" }
                             : {}),
                         }))
                       }
@@ -1299,69 +1377,139 @@ export function WhiteLabelOnboardingWizard({
                   </p>
                 </div>
 
-                {/* Hosted Server Elastic IPv4 Input (Optional) */}
-                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
-                  <Label
-                    htmlFor="elasticIpv4"
-                    className="text-xs font-bold flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Server className="h-3.5 w-3.5 text-indigo-500" />
-                      Hosted Server Elastic IPv4 Address (Optional)
-                    </span>
-                    <span className="text-[11px] font-normal text-muted-foreground">
-                      AWS / Cloud Server IP
-                    </span>
-                  </Label>
-                  <Input
-                    id="elasticIpv4"
-                    placeholder="54.210.12.34"
-                    value={formData.elasticIpv4}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        elasticIpv4: e.target.value.trim(),
-                      }))
-                    }
-                    className="h-10 text-xs font-mono"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    If your cloud server is already running, enter its Elastic IPv4.
-                    Cloudflare DNS will automatically create an A-record routing
-                    your platform subdomain directly to this address.
-                  </p>
+                {/* Subdomain Holding Architecture Information Banner */}
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-start gap-3 text-xs">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-foreground flex items-center gap-1.5">
+                      <span>Subdomain Holding Active</span>
+                      {formData.desiredSubdomain && (
+                        <span className="font-mono text-primary font-bold">
+                          ({formData.desiredSubdomain}.platform.royalmotionit.com)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Your platform address is held immediately upon application submission and routed to the RoyalMotionIT holding view. When your application is approved and setup is provisioned, <strong className="text-foreground">backstage.&lt;customdomain&gt;</strong> will point to your dedicated AWS Elastic IP as an A-record, and your platform subdomain will automatically point to <strong className="text-foreground">backstage.&lt;customdomain&gt;</strong> as a CNAME.
+                    </p>
+                  </div>
                 </div>
 
-                {/* Brand Accent Color (Distributor / Aggregator Only) */}
-                <div className="space-y-3">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5">
-                    <Palette className="h-3.5 w-3.5 text-primary" />
-                    Primary Brand Accent Color
-                  </Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {BRAND_COLOR_PRESETS.map((color) => (
-                      <button
-                        key={color.hex}
-                        type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            primaryColor: color.hex,
-                          }))
-                        }
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                          formData.primaryColor === color.hex
-                            ? "border-foreground ring-2 ring-primary/40 shadow-xs"
-                            : "border-border/60 hover:border-border"
-                        }`}
-                      >
-                        <span
-                          className="h-3.5 w-3.5 rounded-full border border-black/20"
-                          style={{ backgroundColor: color.hex }}
-                        />
-                        <span>{color.name}</span>
-                      </button>
-                    ))}
+                {/* Brand Tagline & Description */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="brandTagline" className="text-xs font-semibold">
+                      Brand Tagline / Slogan
+                    </Label>
+                    <Input
+                      id="brandTagline"
+                      placeholder="e.g. Next-Generation DDEX Music Distribution & Ingestion"
+                      value={formData.tagline}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          tagline: e.target.value,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-medium"
+                      maxLength={128}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="brandDescription" className="text-xs font-semibold">
+                      Aggregator Overview / Description
+                    </Label>
+                    <Input
+                      id="brandDescription"
+                      placeholder="e.g. Global digital music aggregator delivering to 150+ DSPs."
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-medium"
+                      maxLength={512}
+                    />
+                  </div>
+                </div>
+
+                {/* Brand Colors: Primary & Accent */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-3 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Palette className="h-3.5 w-3.5 text-primary" />
+                        Primary Brand Color
+                      </span>
+                      <span className="font-mono text-[10px] text-muted-foreground uppercase">
+                        {formData.primaryColor}
+                      </span>
+                    </Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {BRAND_COLOR_PRESETS.map((color) => (
+                        <button
+                          key={color.hex}
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              primaryColor: color.hex,
+                            }))
+                          }
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all ${
+                            formData.primaryColor === color.hex
+                              ? "border-foreground ring-2 ring-primary/40 shadow-xs bg-background"
+                              : "border-border/60 hover:border-border bg-card"
+                          }`}
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full border border-black/20"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          <span>{color.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
+                        Secondary Accent Color
+                      </span>
+                      <span className="font-mono text-[10px] text-muted-foreground uppercase">
+                        {formData.accentColor}
+                      </span>
+                    </Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {ACCENT_COLOR_PRESETS.map((color) => (
+                        <button
+                          key={color.hex}
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              accentColor: color.hex,
+                            }))
+                          }
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all ${
+                            formData.accentColor === color.hex
+                              ? "border-foreground ring-2 ring-pink-500/40 shadow-xs bg-background"
+                              : "border-border/60 hover:border-border bg-card"
+                          }`}
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full border border-black/20"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          <span>{color.name}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1504,6 +1652,110 @@ export function WhiteLabelOnboardingWizard({
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="executiveRole" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Executive Role / Designation</span>
+                </Label>
+                <Select
+                  items={EXECUTIVE_ROLES}
+                  value={
+                    formData.onboardingDetails?.executiveRole ||
+                    "Managing Director"
+                  }
+                  onValueChange={(val) =>
+                    updateOnboardingDetail(
+                      "executiveRole",
+                      val || "Managing Director",
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-full h-9.5 text-xs bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXECUTIVE_ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="contactLinkedIn" className="text-xs font-semibold">
+                  LinkedIn Profile (Optional)
+                </Label>
+                <Input
+                  id="contactLinkedIn"
+                  placeholder="https://linkedin.com/in/username"
+                  value={formData.contactLinkedIn}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactLinkedIn: e.target.value,
+                    }))
+                  }
+                  className="h-9.5 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            {!isReferrer && (
+              <div className="pt-3 border-t border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-primary" />
+                    Public Client Support Routing (Optional)
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Defaults to contact details if left blank
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="supportEmail" className="text-xs font-semibold">
+                      Public Support Email
+                    </Label>
+                    <Input
+                      id="supportEmail"
+                      type="email"
+                      placeholder={formData.contactEmail || "support@yourbrand.com"}
+                      value={formData.supportEmail}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          supportEmail: e.target.value,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="supportPhone" className="text-xs font-semibold">
+                      Public Support Phone / Hotline
+                    </Label>
+                    <Input
+                      id="supportPhone"
+                      placeholder={formData.contactWhatsApp || "+1 800 123 4567"}
+                      value={formData.supportPhone}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          supportPhone: e.target.value,
+                        }))
+                      }
+                      className="h-9.5 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -2100,69 +2352,115 @@ export function WhiteLabelOnboardingWizard({
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-5">
+                {/* Catalog Scale & Capacity */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Sub-Labels Represented
+                    <Label htmlFor="catalogTrackCount" className="text-xs font-semibold">
+                      Existing Catalog Size (Tracks)
                     </Label>
                     <Input
+                      id="catalogTrackCount"
                       type="number"
-                      min={1}
-                      value={formData.onboardingDetails?.subLabelsCount ?? 5}
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "subLabelsCount",
-                          Number(e.target.value) || 1,
-                        )
-                      }
-                      className="h-9.5 text-xs font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Independent Creators Represented
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={
-                        formData.onboardingDetails
-                          ?.independentArtistsRepresented ?? 50
-                      }
-                      onChange={(e) =>
-                        updateOnboardingDetail(
-                          "independentArtistsRepresented",
-                          Number(e.target.value) || 1,
-                        )
-                      }
-                      className="h-9.5 text-xs font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Monthly Ingestion Capacity (Tracks)
-                    </Label>
-                    <Input
-                      type="number"
-                      min={100}
-                      value={formData.monthlyTrackDelivery || 500}
+                      min={0}
+                      value={formData.catalogTrackCount}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          monthlyTrackDelivery: Number(e.target.value) || 500,
+                          catalogTrackCount: Math.max(0, Number(e.target.value) || 0),
                         }))
                       }
-                      className="h-9.5 text-xs font-semibold"
+                      className="h-9.5 text-xs font-semibold font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monthlyTrackDelivery" className="text-xs font-semibold">
+                      Monthly Ingestion Capacity (Tracks)
+                    </Label>
+                    <Input
+                      id="monthlyTrackDelivery"
+                      type="number"
+                      min={0}
+                      value={formData.monthlyTrackDelivery}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          monthlyTrackDelivery: Math.max(0, Number(e.target.value) || 0),
+                        }))
+                      }
+                      className="h-9.5 text-xs font-semibold font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="monthlyRevenueUsd" className="text-xs font-semibold">
+                      Average Monthly Catalog Revenue ($ USD)
+                    </Label>
+                    <Input
+                      id="monthlyRevenueUsd"
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={formData.monthlyRevenueUsd}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          monthlyRevenueUsd: Math.max(0, Number(e.target.value) || 0),
+                        }))
+                      }
+                      className="h-9.5 text-xs font-semibold font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
+                    <Label htmlFor="subLabelsCount" className="text-xs font-semibold">
+                      Sub-Labels Represented
+                    </Label>
+                    <Input
+                      id="subLabelsCount"
+                      type="number"
+                      min={1}
+                      value={formData.onboardingDetails?.subLabelsCount ?? 5}
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "subLabelsCount",
+                          Math.max(1, Number(e.target.value) || 1),
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="independentArtistsRepresented" className="text-xs font-semibold">
+                      Independent Artists Represented
+                    </Label>
+                    <Input
+                      id="independentArtistsRepresented"
+                      type="number"
+                      min={1}
+                      value={
+                        formData.onboardingDetails
+                          ?.independentArtistsRepresented ?? 40
+                      }
+                      onChange={(e) =>
+                        updateOnboardingDetail(
+                          "independentArtistsRepresented",
+                          Math.max(1, Number(e.target.value) || 1),
+                        )
+                      }
+                      className="h-9.5 text-xs font-semibold font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Standards & Metadata: Protocol, Language, Genre */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
-                      Automated Ingestion & Batch Protocol
+                      Automated Ingestion Protocol
                     </Label>
                     <Select
                       items={DDEX_PROTOCOLS.map((p) => ({
@@ -2219,8 +2517,39 @@ export function WhiteLabelOnboardingWizard({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Primary Genre Focus
+                    </Label>
+                    <Select
+                      items={GENRE_OPTIONS}
+                      value={
+                        formData.onboardingDetails?.primaryGenre ||
+                        "Multi-Genre / All Genres"
+                      }
+                      onValueChange={(val) =>
+                        updateOnboardingDetail(
+                          "primaryGenre",
+                          val || "Multi-Genre / All Genres",
+                        )
+                      }
+                    >
+                      <SelectTrigger className="w-full h-9.5 text-xs bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENRE_OPTIONS.map((genre) => (
+                          <SelectItem key={genre} value={genre}>
+                            {genre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
+                {/* Direct DSP Pipelines */}
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">
                     Direct DSP Delivery Pipelines Active:
@@ -2249,7 +2578,8 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Operational QC Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground">
@@ -2312,6 +2642,69 @@ export function WhiteLabelOnboardingWizard({
                     </div>
                     <p className="text-[10px] text-muted-foreground">
                       Automated UPC/EAN allocation for sub-labels.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Direct DSP Deals
+                      </span>
+                      <Switch
+                        checked={formData.hasDirectDeals}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            hasDirectDeals: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Existing bilateral contracts with Spotify, Apple, etc.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Catalog Migration & Samples */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Catalog Migration Assistance
+                      </span>
+                      <Switch
+                        checked={formData.wantsCatalogMigration}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            wantsCatalogMigration: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Assistance migrating existing ISRCs, UPCs, and audio from prior distributors.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground">
+                        Sample-Based Works &amp; Covers
+                      </span>
+                      <Switch
+                        checked={formData.hasSampleBasedCovers}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            hasSampleBasedCovers: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Catalog includes cleared sample-based recordings or mechanical cover licenses.
                     </p>
                   </div>
                 </div>
@@ -2413,16 +2806,33 @@ export function WhiteLabelOnboardingWizard({
       {!isReferrer && currentStep === 5 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
-            <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
-              <Headphones className="h-4 w-4" />
-              Step 5 of 6: Portfolio &amp; Roster Highlights
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                  <Headphones className="h-4 w-4" />
+                  Step 5 of 6: Portfolio &amp; Roster Highlights
+                </div>
+                <CardTitle className="text-xl font-bold">
+                  Representative Sub-Labels &amp; Catalogs
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Highlight 1 to 5 flagship sub-labels or catalog brands your aggregator will distribute.
+                </CardDescription>
+              </div>
+
+              {formData.topArtists.length < 5 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddArtist}
+                  className="text-xs gap-1.5 h-8 font-semibold shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5 text-primary" />
+                  Add Sub-Label
+                </Button>
+              )}
             </div>
-            <CardTitle className="text-xl font-bold">
-              Representative Sub-Labels &amp; Catalogs
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Highlight 1 to 3 flagship sub-labels or catalog brands your aggregator will distribute.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {formData.topArtists.map((item: RosterArtist, idx: number) => (
@@ -2436,21 +2846,34 @@ export function WhiteLabelOnboardingWizard({
                       variant="secondary"
                       className="text-[10px] px-1.5 py-0 font-bold"
                     >
-                      {idx + 1} of 3
+                      {idx + 1} of {formData.topArtists.length}
                     </Badge>
                     <span>Sub-Label Partner #{idx + 1}</span>
                   </div>
-                  {idx === 0 && (
-                    <span className="text-[10px] text-destructive font-semibold">
-                      * At least 1 entry required
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {idx === 0 && (
+                      <span className="text-[10px] text-destructive font-semibold">
+                        * Required
+                      </span>
+                    )}
+                    {formData.topArtists.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveArtist(idx)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold">
-                      Sub-Label / Brand Name
+                      Sub-Label / Brand Name {idx === 0 && <span className="text-destructive">*</span>}
                     </Label>
                     <Input
                       placeholder="e.g. Hyperion Electronic Records"
@@ -2482,11 +2905,11 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-semibold flex items-center gap-1">
                       <ExternalLink className="h-3 w-3 text-emerald-500" />
-                      Sub-Label Website or Catalog Link
+                      Website or Catalog Link
                     </Label>
                     <Input
                       placeholder="https://hyperionrecords.com"
@@ -2520,6 +2943,27 @@ export function WhiteLabelOnboardingWizard({
                       className="h-8.5 text-xs"
                     />
                   </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold flex items-center gap-1">
+                      <Headphones className="h-3 w-3 text-indigo-500" />
+                      Monthly Streams / Listeners
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 50000"
+                      value={item.monthlyListeners || ""}
+                      onChange={(e) =>
+                        handleArtistChange(
+                          idx,
+                          "monthlyListeners",
+                          Math.max(0, Number(e.target.value) || 0),
+                        )
+                      }
+                      className="h-8.5 text-xs font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -2544,86 +2988,294 @@ export function WhiteLabelOnboardingWizard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Distributor Aggregator Application Summary Dossier */}
-            <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Application Dossier Summary
-                </h4>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
-                >
-                  Ready for Submission
-                </Badge>
+            {/* Distributor Aggregator Comprehensive Application Summary Dossier */}
+            <div className="space-y-4">
+              {/* Architecture Holding Notice */}
+              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-start gap-3 text-xs">
+                <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-foreground">
+                    Subdomain Reservation &amp; Holding Active
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Upon submission, your platform address{" "}
+                    <strong className="text-foreground font-mono">
+                      {formData.desiredSubdomain}.platform.royalmotionit.com
+                    </strong>{" "}
+                    will be held and routed to the platform holding page. During automated provisioning after approval, your custom domain{" "}
+                    <strong className="text-foreground font-mono">backstage.&lt;customdomain&gt;</strong> will point to your dedicated AWS Elastic IP (A-record), and your platform subdomain will point to{" "}
+                    <strong className="text-foreground font-mono">backstage.&lt;customdomain&gt;</strong> (CNAME).
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Organization
-                  </span>
-                  <strong className="text-foreground">
-                    {formData.name || "N/A"}
-                  </strong>
+              {/* 5-Section Detailed Review Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Entity & Corporate Profile */}
+                <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-primary" />
+                      1. Corporate Profile
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentStep(1)}
+                      className="h-6 px-2 text-[10px] text-primary hover:text-primary gap-1"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Company Name</span>
+                      <strong className="text-foreground font-medium">{formData.name}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Country</span>
+                      <strong className="text-foreground font-medium">{formData.country}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Industry Experience</span>
+                      <strong className="text-foreground font-medium">{formData.yearsInBusiness} years</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Incorporation</span>
+                      <strong className="text-foreground font-medium">
+                        {formData.isIncorporated ? "Incorporated LLC/Corp" : "Sole Proprietor"}
+                      </strong>
+                    </div>
+                    {formData.companyWebsite && (
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-muted-foreground block">Website</span>
+                        <strong className="text-foreground font-mono text-[11px] truncate block">
+                          {formData.companyWebsite}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Reserved Subdomain
-                  </span>
-                  <strong className="text-foreground font-mono text-[11px]">
-                    {formData.desiredSubdomain
-                      ? `${formData.desiredSubdomain}.platform.royalmotionit.com`
-                      : "Pending"}
-                  </strong>
+                {/* 2. Platform Identity & Branding */}
+                <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-primary" />
+                      2. Platform Identity &amp; Colors
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentStep(2)}
+                      className="h-6 px-2 text-[10px] text-primary hover:text-primary gap-1"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="col-span-2">
+                      <span className="text-[10px] text-muted-foreground block">Platform Address</span>
+                      <strong className="text-primary font-mono text-[11px] font-bold">
+                        {formData.desiredSubdomain}.platform.royalmotionit.com
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Brand Colors</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-black/20"
+                          style={{ backgroundColor: formData.primaryColor }}
+                        />
+                        <span
+                          className="h-3.5 w-3.5 rounded-full border border-black/20"
+                          style={{ backgroundColor: formData.accentColor }}
+                        />
+                        <span className="font-mono text-[10px] text-muted-foreground uppercase">
+                          {formData.primaryColor}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Launch Target</span>
+                      <strong className="text-foreground font-medium">
+                        {formData.estimatedLaunchTimeline}
+                      </strong>
+                    </div>
+                    {formData.tagline && (
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-muted-foreground block">Tagline</span>
+                        <strong className="text-foreground text-[11px] line-clamp-1 block">
+                          "{formData.tagline}"
+                        </strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Business Entity
-                  </span>
-                  <strong className="text-foreground">
-                    Distributor / Aggregator
-                  </strong>
+                {/* 3. Executive Representative */}
+                <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      3. Key Representative
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentStep(3)}
+                      className="h-6 px-2 text-[10px] text-primary hover:text-primary gap-1"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Primary Contact</span>
+                      <strong className="text-foreground font-medium truncate block">
+                        {formData.contactFirstName} {formData.contactLastName}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Executive Role</span>
+                      <strong className="text-foreground font-medium truncate block">
+                        {formData.onboardingDetails?.executiveRole || "Executive Contact"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Work Email</span>
+                      <strong className="text-foreground font-mono text-[11px] truncate block">
+                        {formData.contactEmail}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">WhatsApp Number</span>
+                      <strong className="text-foreground font-mono text-[11px] truncate block">
+                        {formData.contactWhatsApp}
+                      </strong>
+                    </div>
+                    {formData.supportEmail && (
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Support Routing</span>
+                        <strong className="text-foreground font-mono text-[11px] truncate block">
+                          {formData.supportEmail}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Sub-Labels Represented
-                  </span>
-                  <strong className="text-foreground">
-                    {formData.onboardingDetails?.subLabelsCount || 5} labels
-                  </strong>
+                {/* 4. Operations & Ingestion Telemetry */}
+                <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Music className="h-3.5 w-3.5 text-primary" />
+                      4. Ingestion &amp; Operations
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentStep(4)}
+                      className="h-6 px-2 text-[10px] text-primary hover:text-primary gap-1"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Ingestion Protocol</span>
+                      <strong className="text-foreground font-medium">
+                        {formData.onboardingDetails?.ingestionProtocol || "DDEX ERN 4.3"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Client Signup Model</span>
+                      <strong className="text-foreground font-medium">
+                        {formData.userSignupModel === "INVITE_ONLY"
+                          ? "Invite Only"
+                          : formData.userSignupModel === "ADMIN_APPROVAL"
+                            ? "Admin Approval"
+                            : "Open Registration"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Catalog / Monthly Tracks</span>
+                      <strong className="text-foreground font-mono font-medium">
+                        {formData.catalogTrackCount.toLocaleString()} / {formData.monthlyTrackDelivery.toLocaleString()} mo
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Monthly Revenue</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                        ${formData.monthlyRevenueUsd.toLocaleString()} USD
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Genre &amp; Language</span>
+                      <strong className="text-foreground font-medium truncate block">
+                        {formData.onboardingDetails?.primaryGenre || "Multi-Genre"} ({formData.primaryCatalogLanguage})
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">QC &amp; Anti-Fraud</span>
+                      <strong className="text-foreground font-medium">
+                        {formData.onboardingDetails?.hasDedicatedQcTeam ? "QC Team Active" : "Automated QC"} •{" "}
+                        {formData.onboardingDetails?.antiFraudInspectionRequired ? "Fraud Shield" : "Standard"}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Ingestion Protocol
-                  </span>
-                  <strong className="text-foreground">
-                    {formData.onboardingDetails?.ingestionProtocol ||
-                      "DDEX ERN 4.3"}
-                  </strong>
+              {/* 5. Sub-Labels & Roster Partners */}
+              <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                    <Headphones className="h-3.5 w-3.5 text-primary" />
+                    5. Representative Sub-Labels &amp; Roster Partners ({formData.topArtists.filter(a => a.artistName.trim()).length} Declared)
+                  </h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(5)}
+                    className="h-6 px-2 text-[10px] text-primary hover:text-primary gap-1"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                    Edit
+                  </Button>
                 </div>
-
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    Primary Representative
-                  </span>
-                  <strong className="text-foreground truncate block">
-                    {formData.contactFirstName} {formData.contactLastName}
-                  </strong>
-                </div>
-
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">
-                    WhatsApp Number
-                  </span>
-                  <strong className="text-foreground truncate block font-mono">
-                    {formData.contactWhatsApp || "N/A"}
-                  </strong>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {formData.topArtists.map((artist, i) => (
+                    artist.artistName.trim() ? (
+                      <div key={i} className="p-2.5 rounded-lg border border-border/60 bg-muted/20 space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-foreground truncate block">
+                            {artist.artistName}
+                          </span>
+                          <Badge variant="outline" className="text-[9px] font-mono shrink-0">
+                            #{i + 1}
+                          </Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {artist.instagramHandle || "Global"} {artist.youtubeChannelUrl ? `• ${artist.youtubeChannelUrl}` : ""}
+                        </p>
+                        {artist.monthlyListeners ? (
+                          <p className="text-[10px] text-indigo-500 font-mono">
+                            {artist.monthlyListeners.toLocaleString()} monthly streams
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null
+                  ))}
                 </div>
               </div>
             </div>

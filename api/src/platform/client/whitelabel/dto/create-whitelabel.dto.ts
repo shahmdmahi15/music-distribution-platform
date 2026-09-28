@@ -110,6 +110,30 @@ export class CreateWhiteLabelDto {
   @MaxLength(32)
   primaryColor?: string;
 
+  // Secondary Accent Brand Color
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  accentColor?: string;
+
+  // Brand Tagline / Slogan
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  tagline?: string;
+
+  // Platform / Aggregator Description
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  description?: string;
+
   // Estimated Launch Timeline
   @IsOptional()
   @IsString()
@@ -203,6 +227,23 @@ export class CreateWhiteLabelDto {
     typeof value === 'string' ? value.trim() : value,
   )
   contactLinkedIn?: string;
+
+  // Support Email
+  @IsOptional()
+  @IsEmail({}, { message: 'Please provide a valid support email address.' })
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  supportEmail?: string;
+
+  // Support Phone / Hotline
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  supportPhone?: string;
 
   // Catalog track count
   @IsOptional()
