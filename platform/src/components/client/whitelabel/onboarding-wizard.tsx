@@ -51,6 +51,13 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { clientApplyWhiteLabelAction } from "@/actions/client/whitelabel/client-apply-whitelabel.action";
 import { clientApplyReferrerAction } from "@/actions/client/referrer/client-apply-referrer.action";
 import { clientCheckSubdomainAction } from "@/actions/client/whitelabel/client-subdomain-check.action";
@@ -2156,47 +2163,60 @@ export function WhiteLabelOnboardingWizard({
                     <Label className="text-xs font-semibold">
                       Automated Ingestion & Batch Protocol
                     </Label>
-                    <select
+                    <Select
+                      items={DDEX_PROTOCOLS.map((p) => ({
+                        value: p.id,
+                        label: p.label,
+                      }))}
                       value={
                         formData.onboardingDetails?.ingestionProtocol ||
                         "DDEX_ERN_4_3"
                       }
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         updateOnboardingDetail(
                           "ingestionProtocol",
-                          e.target.value,
+                          val || "DDEX_ERN_4_3",
                         )
                       }
-                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
                     >
-                      {DDEX_PROTOCOLS.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-9.5 text-xs bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DDEX_PROTOCOLS.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">
                       Primary Catalog Language
                     </Label>
-                    <select
+                    <Select
+                      items={CATALOG_LANGUAGE_OPTIONS}
                       value={formData.primaryCatalogLanguage || "English"}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         setFormData((prev) => ({
                           ...prev,
-                          primaryCatalogLanguage: e.target.value,
+                          primaryCatalogLanguage: val || "English",
                         }))
                       }
-                      className="w-full h-9.5 rounded-lg border border-border bg-background px-3 text-xs"
                     >
-                      {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-9.5 text-xs bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATALOG_LANGUAGE_OPTIONS.map((lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

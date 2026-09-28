@@ -60,6 +60,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   WhiteLabelBranding,
   WhiteLabelSignupModel,
   WhiteLabelBusinessType,
@@ -1670,17 +1677,26 @@ NODE_ENV=production`;
                         <Label htmlFor="deliveryProtocol" className="text-[11px] font-medium">
                           DDEX ERN Delivery Protocol
                         </Label>
-                        <select
-                          id="deliveryProtocol"
+                        <Select
+                          items={{
+                            DDEX_ERN_4_3: "DDEX ERN 4.3 (Next-Gen Spatial & Atmos)",
+                            DDEX_ERN_3_8: "DDEX ERN 3.8.2 (Universal DSP Delivery)",
+                            S3_DIRECT: "Direct S3 Audio Vault Ingestion",
+                            SFTP_BATCH: "Scheduled SFTP Batch Ingestion",
+                          }}
                           value={deliveryProtocol}
-                          onChange={(e) => setDeliveryProtocol(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                          onValueChange={(val) => setDeliveryProtocol(val || "DDEX_ERN_4_3")}
                         >
-                          <option value="DDEX_ERN_4_3">DDEX ERN 4.3 (Next-Gen Spatial &amp; Atmos)</option>
-                          <option value="DDEX_ERN_3_8">DDEX ERN 3.8.2 (Universal DSP Delivery)</option>
-                          <option value="S3_DIRECT">Direct S3 Audio Vault Ingestion</option>
-                          <option value="SFTP_BATCH">Scheduled SFTP Batch Ingestion</option>
-                        </select>
+                          <SelectTrigger id="deliveryProtocol" className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="DDEX_ERN_4_3">DDEX ERN 4.3 (Next-Gen Spatial &amp; Atmos)</SelectItem>
+                            <SelectItem value="DDEX_ERN_3_8">DDEX ERN 3.8.2 (Universal DSP Delivery)</SelectItem>
+                            <SelectItem value="S3_DIRECT">Direct S3 Audio Vault Ingestion</SelectItem>
+                            <SelectItem value="SFTP_BATCH">Scheduled SFTP Batch Ingestion</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground">Electronic release specification standard</p>
                       </div>
 
@@ -1688,16 +1704,24 @@ NODE_ENV=production`;
                         <Label htmlFor="deliveryLatencySla" className="text-[11px] font-medium">
                           Delivery Latency SLA
                         </Label>
-                        <select
-                          id="deliveryLatencySla"
+                        <Select
+                          items={{
+                            STANDARD_48H: "Standard Automated (48 Hours to DSPs)",
+                            FAST_TRACK_4H: "Fast Track Priority (4 Hours to DSPs)",
+                            WEEKLY_BATCH: "Weekly Scheduled Bulk Batch",
+                          }}
                           value={deliveryLatencySla}
-                          onChange={(e) => setDeliveryLatencySla(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                          onValueChange={(val) => setDeliveryLatencySla(val || "STANDARD_48H")}
                         >
-                          <option value="STANDARD_48H">Standard Automated (48 Hours to DSPs)</option>
-                          <option value="FAST_TRACK_4H">Fast Track Priority (4 Hours to DSPs)</option>
-                          <option value="WEEKLY_BATCH">Weekly Scheduled Bulk Batch</option>
-                        </select>
+                          <SelectTrigger id="deliveryLatencySla" className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="STANDARD_48H">Standard Automated (48 Hours to DSPs)</SelectItem>
+                            <SelectItem value="FAST_TRACK_4H">Fast Track Priority (4 Hours to DSPs)</SelectItem>
+                            <SelectItem value="WEEKLY_BATCH">Weekly Scheduled Bulk Batch</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground">DSP ingestion queue turnaround time</p>
                       </div>
 
@@ -1705,16 +1729,24 @@ NODE_ENV=production`;
                         <Label htmlFor="aggregationCapacity" className="text-[11px] font-medium">
                           Catalog Scale &amp; Buffer Capacity
                         </Label>
-                        <select
-                          id="aggregationCapacity"
+                        <Select
+                          items={{
+                            starter_10k: "Tier 1: Up to 10,000 Catalog Tracks",
+                            pro_100k: "Tier 2: Up to 100,000 Catalog Tracks",
+                            unlimited: "Tier 3: Unlimited Enterprise Scale",
+                          }}
                           value={aggregationCapacity}
-                          onChange={(e) => setAggregationCapacity(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                          onValueChange={(val) => setAggregationCapacity(val || "starter_10k")}
                         >
-                          <option value="starter_10k">Tier 1: Up to 10,000 Catalog Tracks</option>
-                          <option value="pro_100k">Tier 2: Up to 100,000 Catalog Tracks</option>
-                          <option value="unlimited">Tier 3: Unlimited Enterprise Scale</option>
-                        </select>
+                          <SelectTrigger id="aggregationCapacity" className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="starter_10k">Tier 1: Up to 10,000 Catalog Tracks</SelectItem>
+                            <SelectItem value="pro_100k">Tier 2: Up to 100,000 Catalog Tracks</SelectItem>
+                            <SelectItem value="unlimited">Tier 3: Unlimited Enterprise Scale</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground">High-throughput ingestion pipeline capacity</p>
                       </div>
                     </div>
@@ -1741,16 +1773,24 @@ NODE_ENV=production`;
                         <Label htmlFor="isrcModel" className="text-[11px] font-medium">
                           ISRC Identifier Model
                         </Label>
-                        <select
-                          id="isrcModel"
+                        <Select
+                          items={{
+                            SYSTEM_AUTOMATED: "Automated System IFPI Generation",
+                            CUSTOM_REGISTRANT: "Custom Registrant Code (BYO Prefix)",
+                            HYBRID_BYO: "Hybrid (System Auto + Bring Your Own)",
+                          }}
                           value={isrcModel}
-                          onChange={(e) => setIsrcModel(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                          onValueChange={(val) => setIsrcModel(val || "SYSTEM_AUTOMATED")}
                         >
-                          <option value="SYSTEM_AUTOMATED">Automated System IFPI Generation</option>
-                          <option value="CUSTOM_REGISTRANT">Custom Registrant Code (BYO Prefix)</option>
-                          <option value="HYBRID_BYO">Hybrid (System Auto + Bring Your Own)</option>
-                        </select>
+                          <SelectTrigger id="isrcModel" className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SYSTEM_AUTOMATED">Automated System IFPI Generation</SelectItem>
+                            <SelectItem value="CUSTOM_REGISTRANT">Custom Registrant Code (BYO Prefix)</SelectItem>
+                            <SelectItem value="HYBRID_BYO">Hybrid (System Auto + Bring Your Own)</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground">International Standard Recording Code standard</p>
                       </div>
 
@@ -1758,15 +1798,22 @@ NODE_ENV=production`;
                         <Label htmlFor="barcodeModel" className="text-[11px] font-medium">
                           UPC / EAN-13 Barcode Assignment
                         </Label>
-                        <select
-                          id="barcodeModel"
+                        <Select
+                          items={{
+                            AUTOMATED_EAN13: "Automated GS1 Standard EAN-13 / UPC-A",
+                            CLIENT_PROVIDED: "Client / Label Provided Only",
+                          }}
                           value={barcodeModel}
-                          onChange={(e) => setBarcodeModel(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium"
+                          onValueChange={(val) => setBarcodeModel(val || "AUTOMATED_EAN13")}
                         >
-                          <option value="AUTOMATED_EAN13">Automated GS1 Standard EAN-13 / UPC-A</option>
-                          <option value="CLIENT_PROVIDED">Client / Label Provided Only</option>
-                        </select>
+                          <SelectTrigger id="barcodeModel" className="w-full bg-background border border-border rounded-lg px-2.5 h-8 text-xs text-foreground font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AUTOMATED_EAN13">Automated GS1 Standard EAN-13 / UPC-A</SelectItem>
+                            <SelectItem value="CLIENT_PROVIDED">Client / Label Provided Only</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground">Universal product code assignment protocol</p>
                       </div>
                     </div>
@@ -2045,17 +2092,25 @@ NODE_ENV=production`;
                       <Label className="text-xs font-medium">
                         Border Radius
                       </Label>
-                      <select
+                      <Select
+                        items={RADIUS_OPTIONS.map((r) => ({
+                          value: r.id,
+                          label: r.label,
+                        }))}
                         value={themeRadius}
-                        onChange={(e) => setThemeRadius(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground"
+                        onValueChange={(val) => setThemeRadius(val || "0.5rem")}
                       >
-                        {RADIUS_OPTIONS.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full bg-background border border-border rounded-lg h-9 px-2 text-xs text-foreground">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RADIUS_OPTIONS.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-1.5">
@@ -2068,22 +2123,32 @@ NODE_ENV=production`;
                           Aa • {themeFont}
                         </span>
                       </div>
-                      <select
+                      <Select
+                        items={FONT_OPTIONS.map((f) => ({
+                          value: f.id,
+                          label: f.label,
+                        }))}
                         value={themeFont}
-                        onChange={(e) => setThemeFont(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground font-medium"
-                        style={{ fontFamily: `"${themeFont}", sans-serif` }}
+                        onValueChange={(val) => setThemeFont(val || "Inter")}
                       >
-                        {FONT_OPTIONS.map((f) => (
-                          <option
-                            key={f.id}
-                            value={f.id}
-                            style={{ fontFamily: `"${f.id}", sans-serif` }}
-                          >
-                            {f.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          className="w-full bg-background border border-border rounded-lg h-9 px-2 text-xs text-foreground font-medium"
+                          style={{ fontFamily: `"${themeFont}", sans-serif` }}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FONT_OPTIONS.map((f) => (
+                            <SelectItem
+                              key={f.id}
+                              value={f.id}
+                              style={{ fontFamily: `"${f.id}", sans-serif` }}
+                            >
+                              {f.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -3671,28 +3736,38 @@ NODE_ENV=production`;
                             >
                               AWS Deployment Region
                             </Label>
-                            <select
-                              id="awsRegion"
+                            <Select
+                              items={{
+                                "ap-southeast-1": "ap-southeast-1 (Asia Pacific, Singapore)",
+                                "us-east-1": "us-east-1 (US East, N. Virginia)",
+                                "us-west-2": "us-west-2 (US West, Oregon)",
+                                "eu-west-1": "eu-west-1 (Europe, Ireland)",
+                                "ap-south-1": "ap-south-1 (Asia Pacific, Mumbai)",
+                              }}
                               value={awsRegion}
-                              onChange={(e) => setAwsRegion(e.target.value)}
-                              className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                              onValueChange={(val) => setAwsRegion(val || "ap-southeast-1")}
                             >
-                              <option value="ap-southeast-1">
-                                ap-southeast-1 (Asia Pacific, Singapore)
-                              </option>
-                              <option value="us-east-1">
-                                us-east-1 (US East, N. Virginia)
-                              </option>
-                              <option value="us-west-2">
-                                us-west-2 (US West, Oregon)
-                              </option>
-                              <option value="eu-west-1">
-                                eu-west-1 (Europe, Ireland)
-                              </option>
-                              <option value="ap-south-1">
-                                ap-south-1 (Asia Pacific, Mumbai)
-                              </option>
-                            </select>
+                              <SelectTrigger id="awsRegion" className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 font-mono text-foreground">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ap-southeast-1">
+                                  ap-southeast-1 (Asia Pacific, Singapore)
+                                </SelectItem>
+                                <SelectItem value="us-east-1">
+                                  us-east-1 (US East, N. Virginia)
+                                </SelectItem>
+                                <SelectItem value="us-west-2">
+                                  us-west-2 (US West, Oregon)
+                                </SelectItem>
+                                <SelectItem value="eu-west-1">
+                                  eu-west-1 (Europe, Ireland)
+                                </SelectItem>
+                                <SelectItem value="ap-south-1">
+                                  ap-south-1 (Asia Pacific, Mumbai)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div className="space-y-1">
@@ -3702,27 +3777,36 @@ NODE_ENV=production`;
                             >
                               EC2 Compute Profile
                             </Label>
-                            <select
-                              id="instanceType"
+                            <Select
+                              items={{
+                                "t4g.medium": "t4g.medium (ARM64 Graviton - Recommended, 2 vCPU, 4GB RAM)",
+                                "t4g.large": "t4g.large (ARM64 Graviton - High Performance, 2 vCPU, 8GB RAM)",
+                                "t3.medium": "t3.medium (x86_64 Intel, 2 vCPU, 4GB RAM)",
+                                "t3.large": "t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)",
+                              }}
                               value={instanceType}
-                              onChange={(e) => setInstanceType(e.target.value)}
-                              className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 py-1 font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                              onValueChange={(val) => setInstanceType(val || "t4g.medium")}
                             >
-                              <option value="t4g.medium">
-                                t4g.medium (ARM64 Graviton - Recommended, 2
-                                vCPU, 4GB RAM)
-                              </option>
-                              <option value="t4g.large">
-                                t4g.large (ARM64 Graviton - High Performance, 2
-                                vCPU, 8GB RAM)
-                              </option>
-                              <option value="t3.medium">
-                                t3.medium (x86_64 Intel, 2 vCPU, 4GB RAM)
-                              </option>
-                              <option value="t3.large">
-                                t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)
-                              </option>
-                            </select>
+                              <SelectTrigger id="instanceType" className="w-full text-xs h-9 rounded-md border border-input bg-background px-3 font-mono text-foreground">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="t4g.medium">
+                                  t4g.medium (ARM64 Graviton - Recommended, 2
+                                  vCPU, 4GB RAM)
+                                </SelectItem>
+                                <SelectItem value="t4g.large">
+                                  t4g.large (ARM64 Graviton - High Performance, 2
+                                  vCPU, 8GB RAM)
+                                </SelectItem>
+                                <SelectItem value="t3.medium">
+                                  t3.medium (x86_64 Intel, 2 vCPU, 4GB RAM)
+                                </SelectItem>
+                                <SelectItem value="t3.large">
+                                  t3.large (x86_64 Intel, 2 vCPU, 8GB RAM)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           <div className="space-y-1">

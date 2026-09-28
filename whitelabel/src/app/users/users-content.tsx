@@ -40,6 +40,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ROLE_OPTIONS = [
+  { value: "OWNER", label: "Owner" },
+  { value: "PARTNER", label: "Partner" },
+  { value: "ADMIN", label: "Admin" },
+  { value: "MANAGER", label: "Manager" },
+  { value: "STAFF", label: "Staff" },
+  { value: "CLIENT", label: "Client / Artist" },
+];
+
+const FILTER_ROLE_ITEMS = {
+  ALL: "All Roles",
+  OWNER: "Owner",
+  PARTNER: "Partner",
+  ADMIN: "Admin",
+  MANAGER: "Manager",
+  STAFF: "Staff",
+  CLIENT: "Client / Artist",
+};
+
+const INVITE_ROLE_OPTIONS = [
+  { value: "CLIENT", label: "Client / Artist" },
+  { value: "STAFF", label: "Staff" },
+  { value: "MANAGER", label: "Manager" },
+  { value: "ADMIN", label: "Admin" },
+  { value: "PARTNER", label: "Partner" },
+];
 
 export function UsersContent() {
   const currentUser = useCurrentUser();
@@ -68,7 +102,7 @@ export function UsersContent() {
     try {
       const res = await getUsersAction({
         search: search || undefined,
-        role: roleFilter || undefined,
+        role: roleFilter && roleFilter !== "ALL" ? roleFilter : undefined,
       });
       if (res.success && res.items) {
         setUsers(res.items);
@@ -287,20 +321,27 @@ export function UsersContent() {
           />
         </form>
 
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          aria-label="Filter by role"
-          className="h-8.5 px-3 rounded-lg border border-input bg-card text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-48"
+        <Select
+          items={FILTER_ROLE_ITEMS}
+          value={roleFilter || "ALL"}
+          onValueChange={(val) => setRoleFilter(val === "ALL" ? "" : val || "")}
         >
-          <option value="">All Roles</option>
-          <option value="OWNER">Owner</option>
-          <option value="PARTNER">Partner</option>
-          <option value="ADMIN">Admin</option>
-          <option value="MANAGER">Manager</option>
-          <option value="STAFF">Staff</option>
-          <option value="CLIENT">Client / Artist</option>
-        </select>
+          <SelectTrigger
+            aria-label="Filter by role"
+            className="h-8.5 px-3 rounded-lg border border-input bg-card text-foreground text-xs w-full sm:w-48"
+          >
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Roles</SelectItem>
+            <SelectItem value="OWNER">Owner</SelectItem>
+            <SelectItem value="PARTNER">Partner</SelectItem>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="MANAGER">Manager</SelectItem>
+            <SelectItem value="STAFF">Staff</SelectItem>
+            <SelectItem value="CLIENT">Client / Artist</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Users Table Card */}
@@ -399,25 +440,34 @@ export function UsersContent() {
                         <div className="flex items-center justify-end gap-1.5">
                           {!isSelf && (
                             <>
-                              <select
+                              <Select
+                                items={ROLE_OPTIONS}
                                 value={u.role}
-                                onChange={(e) =>
-                                  handleRoleChange(
-                                    u.code,
-                                    e.target.value as WhiteLabelUserRole,
-                                  )
-                                }
+                                onValueChange={(val) => {
+                                  if (val) {
+                                    handleRoleChange(
+                                      u.code,
+                                      val as WhiteLabelUserRole,
+                                    );
+                                  }
+                                }}
                                 disabled={isPending}
-                                aria-label="Change user role"
-                                className="h-7 px-2 text-[11px] rounded border border-input bg-card text-foreground focus:outline-none"
                               >
-                                <option value="OWNER">Owner</option>
-                                <option value="PARTNER">Partner</option>
-                                <option value="ADMIN">Admin</option>
-                                <option value="MANAGER">Manager</option>
-                                <option value="STAFF">Staff</option>
-                                <option value="CLIENT">Client / Artist</option>
-                              </select>
+                                <SelectTrigger
+                                  size="sm"
+                                  aria-label="Change user role"
+                                  className="h-7 px-2 text-[11px] rounded border border-input bg-card text-foreground w-28"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
 
                               <Button
                                 variant="ghost"
@@ -539,19 +589,24 @@ export function UsersContent() {
                   <Label className="text-xs font-semibold text-foreground">
                     Assigned Role
                   </Label>
-                  <select
+                  <Select
+                    items={INVITE_ROLE_OPTIONS}
                     value={role}
-                    onChange={(e) =>
-                      setRole(e.target.value as WhiteLabelUserRole)
-                    }
-                    className="w-full h-8.5 px-3 rounded-lg border border-input bg-card text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                    onValueChange={(val) => {
+                      if (val) setRole(val as WhiteLabelUserRole);
+                    }}
                   >
-                    <option value="CLIENT">Client / Artist</option>
-                    <option value="STAFF">Staff</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="PARTNER">Partner</option>
-                  </select>
+                    <SelectTrigger className="w-full h-8.5 px-3 rounded-lg border border-input bg-card text-foreground text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVITE_ROLE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
 

@@ -2072,6 +2072,7 @@ export function AdminWhiteLabelDetailsDialog({
                           Primary Catalog Language
                         </Label>
                         <Select
+                          items={CATALOG_LANGUAGE_OPTIONS}
                           value={dossierForm.primaryCatalogLanguage}
                           onValueChange={(val) =>
                             setDossierForm((p) => ({
