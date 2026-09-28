@@ -419,47 +419,45 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
 
       {/* Main Navigation Segmented Control */}
       <Tabs defaultValue="links" className="space-y-6 sm:space-y-8">
-        <div className="p-1.5 rounded-2xl border border-border/80 bg-muted/40 dark:bg-card/90 shadow-xs backdrop-blur-md">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto gap-1.5 bg-transparent p-0">
-            <TabsTrigger
-              value="links"
-              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
-            >
-              <Share2 className="h-4 w-4 shrink-0 text-primary" />
-              <span className="truncate">Referral Links &amp; Tools</span>
-            </TabsTrigger>
+        <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto p-1.5 rounded-2xl border border-border/80 bg-muted/40 dark:bg-card/90 shadow-xs backdrop-blur-md gap-1.5">
+          <TabsTrigger
+            value="links"
+            className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 dark:data-active:bg-background dark:data-active:text-foreground dark:data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 cursor-pointer"
+          >
+            <Share2 className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate">Referral Links &amp; Tools</span>
+          </TabsTrigger>
 
-            <TabsTrigger
-              value="calculator"
-              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
-            >
-              <Calculator className="h-4 w-4 shrink-0 text-amber-500" />
-              <span className="truncate">15% Deal Calculator</span>
-            </TabsTrigger>
+          <TabsTrigger
+            value="calculator"
+            className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 dark:data-active:bg-background dark:data-active:text-foreground dark:data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 cursor-pointer"
+          >
+            <Calculator className="h-4 w-4 shrink-0 text-amber-500" />
+            <span className="truncate">15% Deal Calculator</span>
+          </TabsTrigger>
 
-            <TabsTrigger
-              value="pipeline"
-              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
-            >
-              <Users className="h-4 w-4 shrink-0 text-sky-500" />
-              <span className="truncate">Pipeline &amp; Leads</span>
-              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border/60">
-                {totalReferred}
-              </span>
-            </TabsTrigger>
+          <TabsTrigger
+            value="pipeline"
+            className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 dark:data-active:bg-background dark:data-active:text-foreground dark:data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 cursor-pointer"
+          >
+            <Users className="h-4 w-4 shrink-0 text-sky-500" />
+            <span className="truncate">Pipeline &amp; Leads</span>
+            <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border/60">
+              {totalReferred}
+            </span>
+          </TabsTrigger>
 
-            <TabsTrigger
-              value="payouts"
-              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
-            >
-              <Lock className="h-4 w-4 shrink-0 text-amber-500" />
-              <span className="truncate">Payout &amp; Remittance</span>
-              <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                Locked
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+          <TabsTrigger
+            value="payouts"
+            className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 dark:data-active:bg-background dark:data-active:text-foreground dark:data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 cursor-pointer"
+          >
+            <Lock className="h-4 w-4 shrink-0 text-amber-500" />
+            <span className="truncate">Payout &amp; Remittance</span>
+            <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              Locked
+            </span>
+          </TabsTrigger>
+        </TabsList>
 
         {/* ========================================================================= */}
         {/* 1. Referral Links & Code */}
