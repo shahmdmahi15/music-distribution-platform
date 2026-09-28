@@ -242,27 +242,27 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
   const calculatedPlatformShare = dealPrice - calculatedCommission;
 
   return (
-    <div className="w-full space-y-6 pb-12 animate-in fade-in-50 duration-300">
+    <div className="w-full space-y-8 pb-16 animate-in fade-in-50 duration-300">
       {/* Header Banner */}
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card p-5 sm:p-7 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-3xl">
+      <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card p-6 sm:p-8 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-3 max-w-3xl">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[11px] font-bold uppercase tracking-wider gap-1"
+                className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[11px] font-bold uppercase tracking-wider gap-1.5 py-1 px-2.5"
               >
                 <Sparkles className="h-3 w-3" />
                 Authorized Referrer Partner
               </Badge>
               <Badge
                 variant="secondary"
-                className="font-mono text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 gap-1"
+                className="font-mono text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 gap-1.5 py-1 px-2.5"
               >
-                <BadgePercent className="h-3 w-3" />
+                <BadgePercent className="h-3.5 w-3.5" />
                 15% Guaranteed Commission
               </Badge>
-              <Badge variant="outline" className="text-[11px] font-mono">
+              <Badge variant="outline" className="text-[11px] font-mono py-1 px-2.5">
                 Min ৳60,000 BDT Floor
               </Badge>
             </div>
@@ -278,11 +278,11 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <Button
               onClick={() => setIsShareModalOpen(true)}
               size="sm"
-              className="font-semibold text-xs h-9 gap-1.5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
+              className="font-semibold text-xs h-10 px-4 gap-2 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Share2 className="h-4 w-4" />
               <span>Share &amp; Promote</span>
@@ -291,7 +291,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
               onClick={() => setNewDealOpen(true)}
               variant="outline"
               size="sm"
-              className="font-semibold text-xs h-9 gap-1.5 border-border/80 shadow-xs"
+              className="font-semibold text-xs h-10 px-4 gap-2 border-border/80 shadow-xs hover:bg-muted"
             >
               <PlusCircle className="h-4 w-4 text-emerald-500" />
               <span>Log Client Deal</span>
@@ -300,153 +300,217 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
         </div>
       </div>
 
-      {/* Responsive 5 Metrics Cards (no clipping, wraps gracefully) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-        <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[11px] font-medium flex items-center justify-between">
-              <span>Referred Accounts</span>
-              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono text-foreground">
+      {/* High-Contrast Executive Metrics Telemetry Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {/* Metric 1: Referred Accounts */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-5 shadow-xs transition-all hover:shadow-md hover:border-foreground/20 flex flex-col justify-between min-h-[140px]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Referred Accounts
+              </span>
+              <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
+                <Users className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold font-mono tracking-tight text-foreground">
               {totalReferred}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            {referredUsers.length} direct signups • {deals.length} deals
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between font-medium">
+            <span>Direct Signups</span>
+            <span className="font-mono font-bold text-foreground">{referredUsers.length}</span>
+          </div>
+        </div>
 
-        <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[11px] font-medium flex items-center justify-between">
-              <span>Pipeline Deal Value</span>
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono text-foreground">
-              ৳{(totalPipelineVolume / 1000).toFixed(0)}K
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            ৳{totalPipelineVolume.toLocaleString()} BDT total volume
-          </CardContent>
-        </Card>
+        {/* Metric 2: Pipeline Deal Value */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-5 shadow-xs transition-all hover:shadow-md hover:border-foreground/20 flex flex-col justify-between min-h-[140px]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Pipeline Volume
+              </span>
+              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-500 shrink-0">
+                <Building2 className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold font-mono tracking-tight text-foreground">
+              {totalPipelineVolume === 0
+                ? "৳0"
+                : totalPipelineVolume >= 1000000
+                ? `৳${(totalPipelineVolume / 1000000).toFixed(1)}M`
+                : `৳${(totalPipelineVolume / 1000).toFixed(0)}K`}
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between font-medium">
+            <span>Total Deal Value</span>
+            <span className="font-mono font-bold text-foreground">৳{totalPipelineVolume.toLocaleString()} BDT</span>
+          </div>
+        </div>
 
-        <Card className="border-amber-500/40 bg-amber-500/5 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-between">
-              <span>Total 15% Earned</span>
-              <BadgePercent className="h-3.5 w-3.5 text-amber-500" />
-            </CardDescription>
-            <CardTitle className="text-2xl font-extrabold font-mono text-amber-600 dark:text-amber-400">
+        {/* Metric 3: Total 15% Bounty Earned */}
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] via-card to-card p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-500/50 flex flex-col justify-between min-h-[140px]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                Total 15% Bounty
+              </span>
+              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
+                <BadgePercent className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold font-mono tracking-tight text-amber-600 dark:text-amber-400">
               ৳{totalCommissionEarned.toLocaleString()}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            15% share across all pipeline deals
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-amber-500/20 text-[11px] text-muted-foreground flex items-center justify-between font-medium">
+            <span>Commission Rate</span>
+            <span className="font-mono font-bold text-amber-600 dark:text-amber-400">15% Flat</span>
+          </div>
+        </div>
 
-        <Card className="border-emerald-500/40 bg-emerald-500/5 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-              <span>Available for Payout</span>
-              <Wallet className="h-3.5 w-3.5 text-emerald-500" />
-            </CardDescription>
-            <CardTitle className="text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+        {/* Metric 4: Available for Payout */}
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/[0.1] via-card to-card p-5 shadow-xs ring-1 ring-emerald-500/20 transition-all hover:shadow-md hover:border-emerald-500/60 flex flex-col justify-between min-h-[140px]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Available Payout
+              </span>
+              <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 shrink-0">
+                <Wallet className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
               ৳{availablePayout.toLocaleString()}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-[10px] text-emerald-700/80 dark:text-emerald-300/80">
-            Settled client subscriptions ready
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-emerald-500/20 text-[11px] text-muted-foreground flex items-center justify-between font-medium">
+            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-semibold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Settled &amp; ready
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground">bKash/Bank</span>
+          </div>
+        </div>
 
-        <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[11px] font-medium flex items-center justify-between">
-              <span>Historical Disbursed</span>
-              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono text-muted-foreground">
+        {/* Metric 5: Historical Disbursed */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-5 shadow-xs transition-all hover:shadow-md hover:border-foreground/20 flex flex-col justify-between min-h-[140px]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Historical Paid
+              </span>
+              <div className="p-2 rounded-xl bg-muted text-muted-foreground shrink-0">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold font-mono tracking-tight text-foreground/70">
               ৳{settledPayout.toLocaleString()}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-[10px] text-muted-foreground">
-            Completed bank/MFS disbursements
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between font-medium">
+            <span>Completed Payouts</span>
+            <span className="font-mono font-bold text-foreground/70">
+              {deals.filter((d: any) => d.status === "PAID").length} settled
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Main Tabs */}
-      <Tabs defaultValue="links" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto p-1 bg-muted/60 rounded-xl">
-          <TabsTrigger value="links" className="text-xs py-2.5 gap-1.5 font-medium">
-            <Share2 className="h-3.5 w-3.5" />
-            <span>Referral Links &amp; Tools</span>
-          </TabsTrigger>
-          <TabsTrigger value="calculator" className="text-xs py-2.5 gap-1.5 font-medium">
-            <Calculator className="h-3.5 w-3.5" />
-            <span>15% Deal Calculator</span>
-          </TabsTrigger>
-          <TabsTrigger value="pipeline" className="text-xs py-2.5 gap-1.5 font-medium">
-            <Users className="h-3.5 w-3.5" />
-            <span>Pipeline &amp; Leads ({totalReferred})</span>
-          </TabsTrigger>
-          <TabsTrigger value="payouts" className="text-xs py-2.5 gap-1.5 font-medium">
-            <Lock className="h-3.5 w-3.5" />
-            <span>Payout &amp; Remittance</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Navigation Segmented Control */}
+      <Tabs defaultValue="links" className="space-y-6 sm:space-y-8">
+        <div className="p-1.5 rounded-2xl border border-border/80 bg-muted/40 dark:bg-card/90 shadow-xs backdrop-blur-md">
+          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto gap-1.5 bg-transparent p-0">
+            <TabsTrigger
+              value="links"
+              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+            >
+              <Share2 className="h-4 w-4 shrink-0 text-primary" />
+              <span className="truncate">Referral Links &amp; Tools</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="calculator"
+              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+            >
+              <Calculator className="h-4 w-4 shrink-0 text-amber-500" />
+              <span className="truncate">15% Deal Calculator</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="pipeline"
+              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+            >
+              <Users className="h-4 w-4 shrink-0 text-sky-500" />
+              <span className="truncate">Pipeline &amp; Leads</span>
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-muted text-foreground border border-border/60">
+                {totalReferred}
+              </span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="payouts"
+              className="py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 border border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-sm data-active:border-border/80 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+            >
+              <Lock className="h-4 w-4 shrink-0 text-amber-500" />
+              <span className="truncate">Payout &amp; Remittance</span>
+              <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                Locked
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ========================================================================= */}
         {/* 1. Referral Links & Code */}
         {/* ========================================================================= */}
-        <TabsContent value="links" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2 border-border/80 shadow-xs">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <TabsContent value="links" className="space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <Card className="xl:col-span-2 border-border/80 shadow-sm rounded-2xl">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-primary" />
-                      Your Dedicated Partner Referral Link
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                        <Globe className="h-4 w-4" />
+                      </div>
+                      <span>Your Dedicated Partner Referral Link</span>
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-xs sm:text-sm mt-1">
                       Share this link with record labels, music aggregators, and artists looking to
                       launch their own distribution platform.
                     </CardDescription>
                   </div>
-                  <Badge className="bg-primary text-primary-foreground font-mono font-bold text-xs self-start sm:self-center">
+                  <Badge className="bg-primary text-primary-foreground font-mono font-bold text-xs self-start sm:self-center py-1 px-2.5">
                     Code: {referralCode}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Attribution Registration URL</Label>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-foreground">Attribution Registration URL</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       readOnly
                       value={referralUrl}
-                      className="font-mono text-xs h-10 bg-muted/50 selection:bg-primary/20"
+                      className="font-mono text-xs sm:text-sm h-11 bg-muted/40 border-border/80 selection:bg-primary/20"
                     />
                     <Button
                       onClick={handleCopyLink}
                       variant="outline"
-                      className="shrink-0 h-10 font-semibold text-xs gap-1.5"
+                      className="shrink-0 h-11 px-4 font-semibold text-xs gap-1.5 border-border/80"
                     >
                       {copiedLink ? (
                         <Check className="h-4 w-4 text-emerald-500" />
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
-                      {copiedLink ? "Copied" : "Copy"}
+                      {copiedLink ? "Copied" : "Copy Link"}
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground"
+                      className="shrink-0 h-11 w-11 text-muted-foreground hover:text-foreground border-border/80"
                       title="Test URL in new window"
                       onClick={() => window.open(referralUrl, "_blank")}
                     >
@@ -455,18 +519,18 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-1">
-                    <span className="text-[11px] font-medium text-muted-foreground block">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
                       Partner Referral Code
                     </span>
                     <div className="flex items-center justify-between">
-                      <span className="text-base font-bold font-mono tracking-wider text-foreground">
+                      <span className="text-lg font-bold font-mono tracking-wider text-foreground">
                         {referralCode}
                       </span>
                       <Button
                         size="xs"
-                        variant="ghost"
+                        variant="secondary"
                         onClick={handleCopyCode}
                         className="h-7 text-xs font-semibold gap-1"
                       >
@@ -480,12 +544,12 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-1">
-                    <span className="text-[11px] font-medium text-muted-foreground block">
+                  <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
                       Commercial Terms
                     </span>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                         15% of Selling Price
                       </span>
                       <Badge variant="outline" className="text-[10px] font-mono">
@@ -496,7 +560,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                 </div>
 
                 {/* 1-Click Fast Actions */}
-                <div className="pt-3 border-t border-border/40 space-y-2">
+                <div className="pt-4 border-t border-border/50 space-y-2.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
                     <span>1-Click Promote Channels</span>
                     <span className="text-[10px] text-muted-foreground font-normal">
@@ -507,7 +571,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-xs h-8 gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                      className="text-xs h-9 gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                       onClick={() => {
                         const text = `Launch your own Music Distribution & Aggregation Platform with dedicated AWS infrastructure and DDEX direct delivery feeds! Use my partner link for priority onboarding: ${referralUrl}`;
                         window.open(
@@ -522,7 +586,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-xs h-8 gap-1.5 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
+                      className="text-xs h-9 gap-1.5 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
                       onClick={() => {
                         const subject = "Exclusive Music Distribution Platform Onboarding";
                         const body = `Hi,\n\nI recommend launching your digital music distribution business with RoyalMotionIT's Distribution Aggregator platform. It comes with dedicated AWS compute, S3 Audio Vault, and DDEX direct delivery feeds.\n\nSign up with my referral link to get priority verification:\n${referralUrl}\nReferral Code: ${referralCode}\n\nBest regards,\n${
@@ -539,7 +603,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-xs h-8 gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                      className="text-xs h-9 gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
                       onClick={() => {
                         window.open(
                           `https://t.me/share/url?url=${encodeURIComponent(
@@ -557,7 +621,7 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="text-xs h-8 gap-1.5 ml-auto"
+                      className="text-xs h-9 gap-1.5 ml-auto"
                       onClick={() => setIsShareModalOpen(true)}
                     >
                       <Share2 className="h-3.5 w-3.5" />
@@ -569,18 +633,23 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
             </Card>
 
             {/* In-Person Partner Pass */}
-            <Card className="border-border/80 shadow-xs flex flex-col justify-between">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold flex items-center gap-1.5">
-                  <QrCode className="h-4 w-4 text-primary" />
-                  In-Person Partner Pass
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Scan immediately at music studios, events, and label meetings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center space-y-4 text-center pb-6">
-                <div className="p-3.5 bg-white dark:bg-card rounded-2xl shadow-inner border border-border/80">
+            <Card className="border-border/80 shadow-sm rounded-2xl flex flex-col justify-between p-6">
+              <div>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <QrCode className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold">In-Person Partner Pass</CardTitle>
+                    <CardDescription className="text-xs mt-0.5">
+                      Scan at studios, events, and label meetings.
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center justify-center space-y-4 text-center my-4">
+                <div className="p-4 bg-white dark:bg-card rounded-2xl shadow-inner border border-border/80">
                   <div className="w-36 h-36 bg-foreground/5 rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden">
                     <QrCode className="w-28 h-28 text-foreground" />
                   </div>
@@ -590,20 +659,20 @@ export function ReferrerDashboardView({ branding, referrer, user }: ReferrerDash
                     Code: {referralCode}
                   </span>
                   <p className="text-[11px] text-muted-foreground leading-snug">
-                    Point client cameras here to automatically bind them to your 15% commission
-                    ledger.
+                    Point client cameras here to automatically bind them to your 15% commission ledger.
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  className="text-xs gap-1.5"
-                  onClick={() => setIsShareModalOpen(true)}
-                >
-                  <Share2 className="h-3 w-3" />
-                  View Partner Pass Modal
-                </Button>
-              </CardContent>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs gap-1.5 h-9"
+                onClick={() => setIsShareModalOpen(true)}
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                View Partner Pass Modal
+              </Button>
             </Card>
           </div>
         </TabsContent>
