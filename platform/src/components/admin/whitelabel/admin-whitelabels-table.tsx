@@ -125,6 +125,7 @@ export function AdminWhiteLabelsTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [businessTypeFilter, setBusinessTypeFilter] = useState<string>("all");
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
+  const [referralFilter, setReferralFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("newest");
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -269,6 +270,12 @@ export function AdminWhiteLabelsTable({
         if (!item.customDomain && !item.elasticIpv4) return false;
       }
 
+      if (referralFilter === "referred") {
+        if (!item.subscription?.subscriber?.referredByReferrer) return false;
+      } else if (referralFilter === "direct") {
+        if (item.subscription?.subscriber?.referredByReferrer) return false;
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = item.name?.toLowerCase().includes(q);
@@ -280,6 +287,12 @@ export function AdminWhiteLabelsTable({
         const matchContact = `${item.contactFirstName} ${item.contactLastName}`
           .toLowerCase()
           .includes(q);
+        const matchPartner = item.subscription?.subscriber?.referredByReferrer?.name
+          ?.toLowerCase()
+          .includes(q);
+        const matchRefCode = item.subscription?.subscriber?.referredByReferralCode
+          ?.toLowerCase()
+          .includes(q);
         return (
           matchName ||
           matchCode ||
@@ -287,7 +300,9 @@ export function AdminWhiteLabelsTable({
           matchCustomDomain ||
           matchEmail ||
           matchCountry ||
-          matchContact
+          matchContact ||
+          matchPartner ||
+          matchRefCode
         );
       }
       return true;
@@ -319,6 +334,7 @@ export function AdminWhiteLabelsTable({
     statusFilter,
     businessTypeFilter,
     complianceFilter,
+    referralFilter,
     searchQuery,
     sortOrder,
   ]);
@@ -762,6 +778,27 @@ export function AdminWhiteLabelsTable({
             </SelectContent>
           </Select>
 
+          {/* Partner Referral Channel Filter */}
+          <Select
+            items={{
+              all: "All Acquisition Channels",
+              referred: "Referred by Partner",
+              direct: "Direct / Organic",
+            }}
+            value={referralFilter}
+            onValueChange={(val) => setReferralFilter(val || "all")}
+          >
+            <SelectTrigger className="h-9 text-xs w-[180px] rounded-xl bg-background">
+              <Sparkles className="h-3.5 w-3.5 mr-1.5 text-amber-500 shrink-0" />
+              <SelectValue placeholder="Channel Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Acquisition Channels</SelectItem>
+              <SelectItem value="referred">Referred by Partner</SelectItem>
+              <SelectItem value="direct">Direct / Organic</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Sort Order */}
           <Select
             items={{
@@ -865,6 +902,7 @@ export function AdminWhiteLabelsTable({
             {(statusFilter !== "all" ||
               businessTypeFilter !== "all" ||
               complianceFilter !== "all" ||
+              referralFilter !== "all" ||
               searchQuery) && (
               <Button
                 variant="outline"
@@ -873,6 +911,7 @@ export function AdminWhiteLabelsTable({
                   setStatusFilter("all");
                   setBusinessTypeFilter("all");
                   setComplianceFilter("all");
+                  setReferralFilter("all");
                   setSearchQuery("");
                 }}
                 className="text-xs mt-2"
@@ -982,6 +1021,15 @@ export function AdminWhiteLabelsTable({
                             className="text-[9px] font-mono px-1.5 py-0"
                           >
                             {wl.subdomain}.rmit...
+                          </Badge>
+                        ) : null}
+                        {wl.subscription?.subscriber?.referredByReferrer ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1"
+                          >
+                            <Sparkles className="h-2.5 w-2.5" />
+                            {wl.subscription.subscriber.referredByReferrer.name}
                           </Badge>
                         ) : null}
                       </div>
@@ -1114,6 +1162,18 @@ export function AdminWhiteLabelsTable({
                               )}
                               {wl.country && <span>• {wl.country}</span>}
                             </div>
+
+                            {wl.subscription?.subscriber?.referredByReferrer ? (
+                              <div className="pt-0.5">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 py-0 px-1.5"
+                                >
+                                  <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                                  Partner: {wl.subscription.subscriber.referredByReferrer.name} ({wl.subscription.subscriber.referredByReferrer.referralCode})
+                                </Badge>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </TableCell>

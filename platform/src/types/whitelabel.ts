@@ -107,6 +107,64 @@ export interface WhiteLabelDocument {
   updatedAt: string;
 }
 
+export interface ReferrerDealSummary {
+  id: string;
+  code: string;
+  clientName: string;
+  clientEmail?: string | null;
+  sellingPriceBdt: number;
+  referrerBountyBdt: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReferrerSummary {
+  id: string;
+  code: string;
+  referralCode: string;
+  name: string;
+  commissionRate: number;
+  dealBenchmarkBdt: number;
+  minGuaranteedBountyBdt: number;
+  status: string;
+  contactFirstName: string;
+  contactLastName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  contactWhatsApp?: string | null;
+  payoutMethod?: string | null;
+  bankName?: string | null;
+  accountName?: string | null;
+  accountNumber?: string | null;
+  branchDistrict?: string | null;
+  branchName?: string | null;
+  routingNumber?: string | null;
+  swiftCode?: string | null;
+  walletNumber?: string | null;
+  deals?: ReferrerDealSummary[];
+}
+
+export interface ActiveReferrerOption {
+  id: string;
+  code: string;
+  referralCode: string;
+  name: string;
+  commissionRate: number;
+  dealBenchmarkBdt: number;
+  minGuaranteedBountyBdt: number;
+  contactFirstName: string;
+  contactLastName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  contactWhatsApp?: string | null;
+  payoutMethod?: string | null;
+  bankName?: string | null;
+  accountName?: string | null;
+  accountNumber?: string | null;
+  walletNumber?: string | null;
+}
+
 export interface WhiteLabel {
   id: string;
   code: string;
@@ -157,6 +215,9 @@ export interface WhiteLabel {
       lastName: string;
       email: string;
       role: string;
+      referredByReferralCode?: string | null;
+      referredByReferrerId?: string | null;
+      referredByReferrer?: ReferrerSummary | null;
     };
     payments?: Array<{
       id: string;

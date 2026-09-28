@@ -17,6 +17,9 @@ import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateWhiteLabelStatusDto } from './dto/update-status.dto';
 import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
 import { AdminUpdateApplicationDto } from './dto/admin-update-application.dto';
+import { AssignReferrerDto } from './dto/assign-referrer.dto';
+import { RecordWhiteLabelReferrerDealDto } from './dto/record-referrer-deal.dto';
+import { UpdateReferrerDealStatusDto } from './dto/update-referrer-deal-status.dto';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
 import { Roles } from 'src/platform/decorator/roles.decorator';
 import {
@@ -37,10 +40,48 @@ export class AdminWhitelabelController {
     return await this.adminWhitelabelService.getWhiteLabels(query);
   }
 
+  @Get('active-referrers')
+  @Roles(...ADMIN_ROLES)
+  async getActiveReferrers() {
+    return await this.adminWhitelabelService.getActiveReferrers();
+  }
+
   @Get(':id')
   @Roles(...ADMIN_ROLES)
   async getWhiteLabelById(@Param('id') id: string) {
     return await this.adminWhitelabelService.getWhiteLabelById(id);
+  }
+
+  @Patch(':id/referrer')
+  @Roles(...WHITELABEL_REVIEW_ROLES)
+  async assignReferrer(
+    @Param('id') id: string,
+    @Body() dto: AssignReferrerDto,
+  ) {
+    return await this.adminWhitelabelService.assignReferrer(id, dto);
+  }
+
+  @Post(':id/referrer-deal')
+  @Roles(...WHITELABEL_REVIEW_ROLES)
+  async recordReferrerDeal(
+    @Param('id') id: string,
+    @Body() dto: RecordWhiteLabelReferrerDealDto,
+  ) {
+    return await this.adminWhitelabelService.recordReferrerDeal(id, dto);
+  }
+
+  @Patch(':id/referrer-deal/:dealId/status')
+  @Roles(...WHITELABEL_REVIEW_ROLES)
+  async updateReferrerDealStatus(
+    @Param('id') id: string,
+    @Param('dealId') dealId: string,
+    @Body() dto: UpdateReferrerDealStatusDto,
+  ) {
+    return await this.adminWhitelabelService.updateReferrerDealStatus(
+      id,
+      dealId,
+      dto,
+    );
   }
 
   @Patch(':id/status')

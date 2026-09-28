@@ -64,6 +64,7 @@ function Select<Value, Multiple extends boolean | undefined = false>({
         ) {
           const l = (items as any)[val];
           if (typeof l === "string") return l;
+          if (l !== undefined && l !== null && typeof l !== "object") return String(l);
         }
         if (Array.isArray(items)) {
           const list = items as readonly any[];
@@ -73,10 +74,11 @@ function Select<Value, Multiple extends boolean | undefined = false>({
           if (found) {
             if (
               typeof found === "object" &&
-              "label" in found &&
-              typeof (found as any).label === "string"
+              "label" in found
             ) {
-              return (found as any).label;
+              const lbl = (found as any).label;
+              if (typeof lbl === "string") return lbl;
+              if (lbl !== undefined && lbl !== null && typeof lbl !== "object") return String(lbl);
             }
             if (typeof found === "string") return found;
           }

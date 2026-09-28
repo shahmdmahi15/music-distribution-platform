@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -45,6 +45,11 @@ import {
   BadgePercent,
   Landmark,
   Wallet,
+  Handshake,
+  Calculator,
+  CircleDollarSign,
+  Receipt,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,11 +73,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   WhiteLabel,
   WhiteLabelBusinessType,
   WhiteLabelSignupModel,
   WhiteLabelStatus,
   WhiteLabelDocument,
+  ActiveReferrerOption,
+  ReferrerSummary,
+  ReferrerDealSummary,
 } from "@/types/whitelabel";
 import { formatDate } from "@/lib/utils";
 import { adminUpdateWhiteLabelStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-status.action";
@@ -91,6 +107,10 @@ import { adminUploadBrandingAssetAction } from "@/actions/admin/whitelabel/admin
 import { adminDeleteBrandingAssetAction } from "@/actions/admin/whitelabel/admin-delete-branding-asset.action";
 import { adminUpdateWhiteLabelApplicationAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-application.action";
 import { adminSyncWhiteLabelDnsAction } from "@/actions/admin/whitelabel/admin-sync-whitelabel-dns.action";
+import { adminGetActiveReferrersAction } from "@/actions/admin/whitelabel/admin-get-active-referrers.action";
+import { adminAssignWhiteLabelReferrerAction } from "@/actions/admin/whitelabel/admin-assign-whitelabel-referrer.action";
+import { adminRecordWhiteLabelReferrerDealAction } from "@/actions/admin/whitelabel/admin-record-whitelabel-referrer-deal.action";
+import { adminUpdateWhiteLabelReferrerDealStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-referrer-deal-status.action";
 
 const paymentMethodLabels: Record<string, string> = {
   HAND_TO_HAND: "Hand-to-Hand (Cash / Direct)",
@@ -177,6 +197,7 @@ export function AdminWhiteLabelDetailsDialog({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     | "overview"
+    | "referrer"
     | "edit_dossier"
     | "artists"
     | "documents"
@@ -184,6 +205,214 @@ export function AdminWhiteLabelDetailsDialog({
     | "branding"
   >("overview");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // WhiteLabel Local State for instant reactivity
+  const [currentWhiteLabel, setCurrentWhiteLabel] = useState<WhiteLabel | null>(
+    whiteLabel,
+  );
+  const [prevWhiteLabel, setPrevWhiteLabel] = useState<WhiteLabel | null>(
+    whiteLabel,
+  );
+  if (whiteLabel !== prevWhiteLabel) {
+    setPrevWhiteLabel(whiteLabel);
+    setCurrentWhiteLabel(whiteLabel);
+  }
+
+  // Referrer Attribution State
+  const [activeReferrers, setActiveReferrers] = useState<ActiveReferrerOption[]>([]);
+  const [loadingActiveReferrers, setLoadingActiveReferrers] = useState(false);
+  const [showAssignReferrerModal, setShowAssignReferrerModal] = useState(false);
+  const [selectedReferrerId, setSelectedReferrerId] = useState<string>("none");
+  const [assigningReferrer, setAssigningReferrer] = useState(false);
+
+  // Record Deal State
+  const [dealSellingPrice, setDealSellingPrice] = useState<number>(60000);
+  const [dealStatus, setDealStatus] = useState<string>("PENDING");
+  const [dealNotes, setDealNotes] = useState<string>("");
+  const [recordingDeal, setRecordingDeal] = useState(false);
+  const [updatingDealId, setUpdatingDealId] = useState<string | null>(null);
+
+  const loadActiveReferrers = async () => {
+    setLoadingActiveReferrers(true);
+    try {
+      const res = await adminGetActiveReferrersAction();
+      if (res.success && res.items) {
+        setActiveReferrers(res.items);
+      }
+    } catch (e) {
+      console.error("Failed to load active referrers", e);
+    } finally {
+      setLoadingActiveReferrers(false);
+    }
+  };
+
+  const handleOpenAssignModal = () => {
+    const targetWl = currentWhiteLabel || whiteLabel;
+    if (!targetWl) return;
+    setSelectedReferrerId(
+      targetWl.subscription?.subscriber?.referredByReferrerId || "none",
+    );
+    loadActiveReferrers();
+    setShowAssignReferrerModal(true);
+  };
+
+  const handleAssignReferrer = async () => {
+    const targetWl = currentWhiteLabel || whiteLabel;
+    if (!targetWl) return;
+    setAssigningReferrer(true);
+    try {
+      const refId = selectedReferrerId === "none" ? null : selectedReferrerId;
+      const res = await adminAssignWhiteLabelReferrerAction(
+        targetWl.id,
+        refId,
+      );
+      if (res.success) {
+        toast.success(res.message);
+        setShowAssignReferrerModal(false);
+        setCurrentWhiteLabel((prev) => {
+          const base = prev || whiteLabel;
+          if (!base) return null;
+          return {
+            ...base,
+            subscription: base.subscription
+              ? {
+                  ...base.subscription,
+                  subscriber: base.subscription.subscriber
+                    ? {
+                        ...base.subscription.subscriber,
+                        referredByReferrerId: res.referrer ? res.referrer.id : null,
+                        referredByReferralCode: res.referrer
+                          ? res.referrer.referralCode
+                          : null,
+                        referredByReferrer: res.referrer || null,
+                      }
+                    : undefined,
+                }
+              : null,
+          };
+        });
+        onRefresh?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("An unexpected error occurred while assigning referrer.");
+    } finally {
+      setAssigningReferrer(false);
+    }
+  };
+
+  const handleRecordDeal = async () => {
+    const targetWl = currentWhiteLabel || whiteLabel;
+    if (!targetWl) return;
+    if (!dealSellingPrice || dealSellingPrice <= 0) {
+      toast.error("Please enter a valid selling price in BDT.");
+      return;
+    }
+    setRecordingDeal(true);
+    try {
+      const res = await adminRecordWhiteLabelReferrerDealAction(
+        targetWl.id,
+        {
+          sellingPriceBdt: dealSellingPrice,
+          status: dealStatus,
+          notes: dealNotes,
+        },
+      );
+      if (res.success && res.deal) {
+        toast.success(res.message);
+        setDealNotes("");
+        setCurrentWhiteLabel((prev) => {
+          const base = prev || whiteLabel;
+          if (!base) return null;
+          const sub = base.subscription?.subscriber;
+          const ref = sub?.referredByReferrer;
+          if (!ref) return base;
+          const updatedDeals = [res.deal, ...(ref.deals || [])];
+          return {
+            ...base,
+            subscription: base.subscription
+              ? {
+                  ...base.subscription,
+                  subscriber: {
+                    ...sub,
+                    referredByReferrer: {
+                      ...ref,
+                      deals: updatedDeals,
+                    },
+                  },
+                }
+              : null,
+          };
+        });
+        onRefresh?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to record referrer deal.");
+    } finally {
+      setRecordingDeal(false);
+    }
+  };
+
+  const handleUpdateDealStatus = async (dealId: string, status: string) => {
+    const targetWl = currentWhiteLabel || whiteLabel;
+    if (!targetWl) return;
+    setUpdatingDealId(dealId);
+    try {
+      const res = await adminUpdateWhiteLabelReferrerDealStatusAction(
+        targetWl.id,
+        dealId,
+        status,
+      );
+      if (res.success && res.deal) {
+        toast.success(res.message);
+        setCurrentWhiteLabel((prev) => {
+          const base = prev || whiteLabel;
+          if (!base) return null;
+          const sub = base.subscription?.subscriber;
+          const ref = sub?.referredByReferrer;
+          if (!ref) return base;
+          const updatedDeals = (ref.deals || []).map((d) =>
+            d.id === dealId ? { ...d, status: res.deal.status } : d,
+          );
+          return {
+            ...base,
+            subscription: base.subscription
+              ? {
+                  ...base.subscription,
+                  subscriber: {
+                    ...sub,
+                    referredByReferrer: {
+                      ...ref,
+                      deals: updatedDeals,
+                    },
+                  },
+                }
+              : null,
+          };
+        });
+        onRefresh?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to update deal status.");
+    } finally {
+      setUpdatingDealId(null);
+    }
+  };
+
+  const activeReferrersMap = useMemo(() => {
+    const map: Record<string, string> = {
+      none: "No Referrer (Direct / Organic Client)",
+    };
+    activeReferrers.forEach((r) => {
+      map[r.id] = `${r.name} (${r.referralCode}) • ${r.contactFirstName} ${r.contactLastName}`;
+    });
+    return map;
+  }, [activeReferrers]);
 
   // Status Update state
   const [statusLoading, setStatusLoading] = useState(false);
@@ -487,6 +716,8 @@ export function AdminWhiteLabelDetailsDialog({
   }
 
   if (!whiteLabel) return null;
+
+  const activeWhiteLabel = currentWhiteLabel || whiteLabel;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -1509,6 +1740,22 @@ export function AdminWhiteLabelDetailsDialog({
                 Profile & Dossier
               </button>
               <button
+                onClick={() => setActiveTab("referrer")}
+                className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 flex items-center gap-1.5 ${
+                  activeTab === "referrer"
+                    ? "border-amber-500 text-amber-600 dark:text-amber-400"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="h-3 w-3 text-amber-500" />
+                Referrer & Commission
+                {activeWhiteLabel.subscription?.subscriber?.referredByReferrer && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    Linked
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab("edit_dossier")}
                 className={`pb-2 px-3 font-semibold transition-colors border-b-2 shrink-0 flex items-center gap-1 ${
                   activeTab === "edit_dossier"
@@ -1881,6 +2128,534 @@ export function AdminWhiteLabelDetailsDialog({
               </div>
             )}
 
+            {/* TAB: Referrer Attribution, Deal Value & 15% Bounty Tracker */}
+            {activeTab === "referrer" && (
+              <div className="space-y-6">
+                {(() => {
+                  const attributedReferrer =
+                    activeWhiteLabel.subscription?.subscriber?.referredByReferrer;
+                  const deals = attributedReferrer?.deals || [];
+                  const totalDealsCount = deals.length;
+                  const totalClientVolumeBdt = deals.reduce(
+                    (acc, d) => acc + (d.sellingPriceBdt || 0),
+                    0,
+                  );
+                  const remittedBountiesBdt = deals
+                    .filter((d) => d.status === "PAID")
+                    .reduce((acc, d) => acc + (d.referrerBountyBdt || 0), 0);
+                  const pendingBountiesBdt = deals
+                    .filter((d) => d.status === "PENDING")
+                    .reduce((acc, d) => acc + (d.referrerBountyBdt || 0), 0);
+
+                  const commissionRate = attributedReferrer?.commissionRate || 15;
+                  const calculatedBounty = Math.round(
+                    dealSellingPrice * (commissionRate / 100),
+                  );
+                  const platformShare = Math.max(
+                    0,
+                    dealSellingPrice - calculatedBounty,
+                  );
+
+                  return (
+                    <>
+                      {/* Top Metric Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 backdrop-blur-xs space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                            <Handshake className="h-3.5 w-3.5 text-primary" />
+                            Attribution Status
+                          </span>
+                          <div className="flex items-center gap-2 pt-0.5">
+                            {attributedReferrer ? (
+                              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold text-xs">
+                                Active Partner
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground text-xs">
+                                Direct / Organic
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {attributedReferrer
+                              ? `${attributedReferrer.name} (${attributedReferrer.referralCode})`
+                              : "No partner attributed to client"}
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 backdrop-blur-xs space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                            <Receipt className="h-3.5 w-3.5 text-blue-500" />
+                            Total Deals Logged
+                          </span>
+                          <div className="text-lg font-bold text-foreground font-mono">
+                            {totalDealsCount}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground font-mono">
+                            ৳{totalClientVolumeBdt.toLocaleString()} BDT total volume
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 backdrop-blur-xs space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-amber-500" />
+                            Pending Remittance
+                          </span>
+                          <div className="text-lg font-bold text-amber-600 dark:text-amber-400 font-mono">
+                            ৳{pendingBountiesBdt.toLocaleString()} BDT
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Awaiting payout confirmation
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl border border-border/70 bg-card/60 backdrop-blur-xs space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            Remitted Bounties
+                          </span>
+                          <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                            ৳{remittedBountiesBdt.toLocaleString()} BDT
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Paid out successfully
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card 1: Attributed Partner Agency Profile */}
+                      <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
+                          <div className="space-y-0.5">
+                            <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-amber-500" />
+                              Attributed Partner Agency Information
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground">
+                              The official Referrer credited for acquiring this WhiteLabel distributor client.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleOpenAssignModal}
+                            className="h-8 text-xs font-semibold gap-1.5 rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+                          >
+                            <Handshake className="h-3.5 w-3.5" />
+                            {attributedReferrer ? "Change Partner Attribution" : "Assign Partner Referrer"}
+                          </Button>
+                        </div>
+
+                        {attributedReferrer ? (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/20 border border-border/40">
+                              <div>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                  Agency Name
+                                </span>
+                                <span className="font-bold text-foreground text-xs">
+                                  {attributedReferrer.name}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                  Referral Code
+                                </span>
+                                <span className="font-mono font-bold text-primary text-xs">
+                                  {attributedReferrer.referralCode}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                  Commission Rate
+                                </span>
+                                <span className="font-bold text-foreground text-xs font-mono">
+                                  {attributedReferrer.commissionRate || 15}% Fixed
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold block">
+                                  Partner Status
+                                </span>
+                                <Badge className="text-[10px] py-0 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                                  {attributedReferrer.status}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                              {/* Representative Contact */}
+                              <div className="p-3 rounded-lg border border-border/50 bg-background space-y-2">
+                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">
+                                  Primary Representative
+                                </span>
+                                <div className="space-y-1">
+                                  <div className="font-semibold text-foreground">
+                                    {attributedReferrer.contactFirstName} {attributedReferrer.contactLastName}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                    <Mail className="h-3 w-3 shrink-0" />
+                                    <a
+                                      href={`mailto:${attributedReferrer.contactEmail}`}
+                                      className="hover:underline text-foreground"
+                                    >
+                                      {attributedReferrer.contactEmail}
+                                    </a>
+                                  </div>
+                                  {attributedReferrer.contactPhone && (
+                                    <div className="text-[11px] text-muted-foreground">
+                                      Phone: {attributedReferrer.contactPhone}
+                                    </div>
+                                  )}
+                                  {attributedReferrer.contactWhatsApp && (
+                                    <div className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                      WhatsApp: {attributedReferrer.contactWhatsApp}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Remittance Coordinates */}
+                              <div className="p-3 rounded-lg border border-border/50 bg-background space-y-2">
+                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">
+                                  Payout / Remittance Coordinates
+                                </span>
+                                <div className="space-y-1">
+                                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                                    <Wallet className="h-3.5 w-3.5 text-primary" />
+                                    Method: {attributedReferrer.payoutMethod || "Direct Bank Wire"}
+                                  </div>
+                                  {attributedReferrer.bankName && (
+                                    <div className="text-[11px] text-muted-foreground">
+                                      Bank: <span className="font-medium text-foreground">{attributedReferrer.bankName}</span>
+                                    </div>
+                                  )}
+                                  {attributedReferrer.accountName && (
+                                    <div className="text-[11px] text-muted-foreground">
+                                      Account Name: <span className="font-medium text-foreground">{attributedReferrer.accountName}</span>
+                                    </div>
+                                  )}
+                                  {attributedReferrer.accountNumber && (
+                                    <div className="text-[11px] text-muted-foreground font-mono">
+                                      Account No: <span className="font-bold text-foreground">{attributedReferrer.accountNumber}</span>
+                                    </div>
+                                  )}
+                                  {attributedReferrer.walletNumber && (
+                                    <div className="text-[11px] text-muted-foreground font-mono">
+                                      Wallet: <span className="font-bold text-foreground">{attributedReferrer.walletNumber}</span>
+                                    </div>
+                                  )}
+                                  {attributedReferrer.branchName && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      Branch: {attributedReferrer.branchName} {attributedReferrer.branchDistrict ? `(${attributedReferrer.branchDistrict})` : ""}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl border border-dashed border-border text-center space-y-2 bg-muted/10">
+                            <Handshake className="h-8 w-8 text-muted-foreground mx-auto opacity-50" />
+                            <p className="font-semibold text-foreground text-xs">
+                              No partner agency attributed to this client
+                            </p>
+                            <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+                              If this client was acquired through a partner or affiliate, attribute them so the partner's dashboard reflects deals and receives the 15% commission bounty.
+                            </p>
+                            <Button
+                              size="sm"
+                              onClick={handleOpenAssignModal}
+                              className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground mt-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Assign Active Partner Now
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card 2: Commercial Deal Terms Banner */}
+                      <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex flex-wrap items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                            <BadgePercent className="h-4 w-4 text-primary" />
+                            Standard Commercial Commission Terms (Fixed 15% Bounty)
+                          </span>
+                          <p className="text-[11px] text-muted-foreground">
+                            WhiteLabel Distribution Aggregator minimum deal benchmark is ৳60,000 BDT (guaranteed minimum ৳9,000 BDT bounty to partner).
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs font-mono font-bold bg-background">
+                            15% Partner
+                          </Badge>
+                          <span className="text-muted-foreground font-mono">+</span>
+                          <Badge variant="outline" className="text-xs font-mono font-bold bg-background">
+                            85% Platform
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Deal Amount & Bounty Recording Tool */}
+                      <div className="p-4 rounded-xl border border-border/70 bg-card space-y-4">
+                        <div className="space-y-0.5 border-b border-border/40 pb-3">
+                          <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                            <Calculator className="h-4 w-4 text-primary" />
+                            Record Customer Deal Amount & Calculate 15% Commission Bounty
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground">
+                            Specify the agreed closed deal selling price in BDT for this WhiteLabel. The 15% partner commission bounty will be auto-computed and credited to the partner's ledger.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3.5">
+                          {/* Selling Price input & Quick Preset buttons */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold">
+                                Agreed Customer Deal Selling Price (BDT)
+                              </Label>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                Benchmark: ৳60,000 BDT
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="relative flex-1 min-w-[200px]">
+                                <span className="absolute left-3 top-2.5 font-bold text-muted-foreground text-xs">
+                                  ৳
+                                </span>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  step={1000}
+                                  value={dealSellingPrice || ""}
+                                  onChange={(e) =>
+                                    setDealSellingPrice(Number(e.target.value) || 0)
+                                  }
+                                  placeholder="60000"
+                                  className="h-9 text-xs pl-7 font-mono font-bold"
+                                />
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {[60000, 75000, 100000, 125000, 150000].map(
+                                  (preset) => (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      onClick={() => setDealSellingPrice(preset)}
+                                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono font-semibold transition-all ${
+                                        dealSellingPrice === preset
+                                          ? "bg-primary text-primary-foreground border-primary"
+                                          : "bg-muted/40 hover:bg-muted text-foreground border-border/60"
+                                      }`}
+                                    >
+                                      ৳{preset.toLocaleString()}
+                                    </button>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Live Bounty Calculation Result Strip */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl border border-border/80 bg-muted/30">
+                            <div className="space-y-1">
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">
+                                Partner Commission Bounty (15%)
+                              </span>
+                              <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
+                                ৳{calculatedBounty.toLocaleString()} BDT
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                Payable directly to {attributedReferrer?.name || "attributed partner"}
+                              </p>
+                            </div>
+
+                            <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-3">
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">
+                                Platform Net Share (85%)
+                              </span>
+                              <div className="text-xl font-extrabold text-foreground font-mono">
+                                ৳{platformShare.toLocaleString()} BDT
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                Retained platform software licensing value
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Deal Status & Notes */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold">
+                                Deal Remittance Status
+                              </Label>
+                              <Select
+                                items={{
+                                  PENDING: "Pending Payout (Deal Closed, Awaiting Remittance)",
+                                  PAID: "Commission Paid / Remitted to Partner",
+                                }}
+                                value={dealStatus}
+                                onValueChange={(val) => setDealStatus(val || "PENDING")}
+                              >
+                                <SelectTrigger className="h-9 text-xs w-full">
+                                  <SelectValue placeholder="Select payout status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="PENDING">
+                                    Pending Payout (Deal Closed, Awaiting Remittance)
+                                  </SelectItem>
+                                  <SelectItem value="PAID">
+                                    Commission Paid / Remitted to Partner
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold">
+                                Deal Memo / Notes (Optional)
+                              </Label>
+                              <Input
+                                value={dealNotes}
+                                onChange={(e) => setDealNotes(e.target.value)}
+                                placeholder="e.g. Distributor Aggregator annual commercial deal"
+                                className="h-9 text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Submit Action */}
+                          <div className="flex items-center justify-end pt-2">
+                            <Button
+                              onClick={handleRecordDeal}
+                              disabled={
+                                recordingDeal ||
+                                !attributedReferrer ||
+                                dealSellingPrice <= 0
+                              }
+                              className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground h-9 px-4 rounded-xl shadow-xs"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {recordingDeal
+                                ? "Recording Deal..."
+                                : `Record Deal (৳${calculatedBounty.toLocaleString()} BDT Bounty)`}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 4: Deals & Remittance Ledger */}
+                      <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3.5">
+                        <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                          <div className="space-y-0.5">
+                            <h4 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                              <Receipt className="h-4 w-4 text-primary" />
+                              Recorded Deals & Commission Ledger
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground">
+                              All closed deals and payout history attributed to this client and partner.
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {deals.length} Recorded
+                          </Badge>
+                        </div>
+
+                        {deals.length === 0 ? (
+                          <div className="p-6 rounded-xl border border-dashed border-border text-center space-y-2 bg-muted/10">
+                            <CircleDollarSign className="h-8 w-8 text-muted-foreground mx-auto opacity-50" />
+                            <p className="font-semibold text-foreground text-xs">
+                              No deals recorded yet for this client
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Use the deal recording tool above to log the client's selling price and compute the 15% partner bounty.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-border/70 overflow-hidden bg-background">
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="bg-muted/40 text-[10px] uppercase font-bold">
+                                  <TableHead>Deal Code</TableHead>
+                                  <TableHead>Created Date</TableHead>
+                                  <TableHead>Client Reference</TableHead>
+                                  <TableHead className="text-right">Selling Price</TableHead>
+                                  <TableHead className="text-right">Partner Bounty (15%)</TableHead>
+                                  <TableHead className="text-center">Status</TableHead>
+                                  <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {deals.map((deal) => (
+                                  <TableRow key={deal.id} className="text-xs border-b border-border/40">
+                                    <TableCell className="font-mono font-bold text-primary">
+                                      {deal.code}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-[11px]">
+                                      {formatDate(deal.createdAt)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="font-semibold text-foreground truncate max-w-[150px]">
+                                        {deal.clientName}
+                                      </div>
+                                      {deal.clientEmail && (
+                                        <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                                          {deal.clientEmail}
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono font-bold text-foreground">
+                                      ৳{deal.sellingPriceBdt.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                                      ৳{deal.referrerBountyBdt.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {deal.status === "PAID" ? (
+                                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold">
+                                          Remitted / Paid
+                                        </Badge>
+                                      ) : deal.status === "PENDING" ? (
+                                        <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px] font-bold">
+                                          Pending Payout
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-muted-foreground text-[10px]">
+                                          {deal.status}
+                                        </Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {deal.status === "PENDING" && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={updatingDealId === deal.id}
+                                          onClick={() => handleUpdateDealStatus(deal.id, "PAID")}
+                                          className="h-7 text-[11px] font-bold gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                                        >
+                                          <CheckCircle2 className="h-3 w-3" />
+                                          {updatingDealId === deal.id ? "Updating..." : "Mark as Paid"}
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* TAB 2: Edit Dossier & Operations (Full Admin Override Editor) */}
             {activeTab === "edit_dossier" && (
               <div className="space-y-5">
@@ -1934,6 +2709,9 @@ export function AdminWhiteLabelDetailsDialog({
                         Business Model
                       </Label>
                       <Select
+                        items={{
+                          DISTRIBUTOR_AGGREGATOR: "Distributor / Aggregator",
+                        }}
                         value={dossierForm.businessType}
                         onValueChange={(val) =>
                           setDossierForm((p) => ({
@@ -2046,6 +2824,7 @@ export function AdminWhiteLabelDetailsDialog({
                           Primary Genre Focus
                         </Label>
                         <Select
+                          items={GLOBAL_GENRE_OPTIONS}
                           value={dossierForm.primaryGenre}
                           onValueChange={(val) =>
                             setDossierForm((p) => ({
@@ -3663,6 +4442,105 @@ export function AdminWhiteLabelDetailsDialog({
               className="text-xs font-bold bg-primary text-primary-foreground"
             >
               {docLoading ? "Uploading..." : "Upload to S3 Vault"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign / Change Partner Referrer Modal */}
+      <Dialog
+        open={showAssignReferrerModal}
+        onOpenChange={setShowAssignReferrerModal}
+      >
+        <DialogContent className="sm:max-w-lg z-[60]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Handshake className="h-5 w-5 text-primary" />
+              Assign Partner Referrer Attribution
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Attribute this WhiteLabel distributor client to an active partner agency to track deal commercial bounties (15%).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Select Registered Partner Agency</Label>
+              <Select
+                items={activeReferrersMap}
+                value={selectedReferrerId}
+                onValueChange={(val) => setSelectedReferrerId(val || "none")}
+              >
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Choose a partner agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    No Referrer (Direct / Organic Client)
+                  </SelectItem>
+                  {activeReferrers.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name} ({r.referralCode}) • {r.contactFirstName} {r.contactLastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedReferrerId !== "none" && (() => {
+              const selectedPartner = activeReferrers.find(
+                (r) => r.id === selectedReferrerId,
+              );
+              if (!selectedPartner) return null;
+              return (
+                <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm">
+                      {selectedPartner.name}
+                    </span>
+                    <Badge variant="outline" className="font-mono text-[10px] border-primary/30 text-primary">
+                      {selectedPartner.referralCode}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-1">
+                    <div>
+                      <span className="block font-medium text-foreground">Representative</span>
+                      {selectedPartner.contactFirstName} {selectedPartner.contactLastName}
+                    </div>
+                    <div>
+                      <span className="block font-medium text-foreground">Contact Email</span>
+                      {selectedPartner.contactEmail}
+                    </div>
+                    <div>
+                      <span className="block font-medium text-foreground">Payout Method</span>
+                      {selectedPartner.payoutMethod || "Direct Bank Wire"}
+                    </div>
+                    <div>
+                      <span className="block font-medium text-foreground">Commission Rate</span>
+                      {selectedPartner.commissionRate || 15}% Fixed Bounty
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAssignReferrerModal(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAssignReferrer}
+              disabled={assigningReferrer || loadingActiveReferrers}
+              className="text-xs font-bold bg-primary text-primary-foreground"
+            >
+              {assigningReferrer ? "Saving Attribution..." : "Save Partner Attribution"}
             </Button>
           </DialogFooter>
         </DialogContent>

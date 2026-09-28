@@ -21,12 +21,16 @@ import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service'
 import { RedisService } from 'src/lib/redis/redis.service';
 import { AdminUpdateBrandingDto } from './dto/admin-update-branding.dto';
 import { AdminUpdateApplicationDto } from './dto/admin-update-application.dto';
+import { AssignReferrerDto } from './dto/assign-referrer.dto';
+import { RecordWhiteLabelReferrerDealDto } from './dto/record-referrer-deal.dto';
+import { UpdateReferrerDealStatusDto } from './dto/update-referrer-deal-status.dto';
 import {
   PaymentStatus,
   Prisma,
   WhiteLabelStatus,
   WhiteLabelBusinessType,
   WhiteLabelSignupModel,
+  ReferrerStatus,
 } from 'src/generated/prisma/client';
 
 @Injectable()
@@ -92,6 +96,33 @@ export class AdminWhitelabelService {
                   lastName: true,
                   email: true,
                   role: true,
+                  referredByReferralCode: true,
+                  referredByReferrerId: true,
+                  referredByReferrer: {
+                    select: {
+                      id: true,
+                      code: true,
+                      referralCode: true,
+                      name: true,
+                      commissionRate: true,
+                      dealBenchmarkBdt: true,
+                      minGuaranteedBountyBdt: true,
+                      status: true,
+                      contactFirstName: true,
+                      contactLastName: true,
+                      contactEmail: true,
+                      contactPhone: true,
+                      contactWhatsApp: true,
+                      payoutMethod: true,
+                      bankName: true,
+                      accountName: true,
+                      accountNumber: true,
+                      walletNumber: true,
+                      deals: {
+                        orderBy: { createdAt: 'desc' },
+                      },
+                    },
+                  },
                 },
               },
               payments: {
@@ -184,6 +215,15 @@ export class AdminWhitelabelService {
                 role: true,
                 createdAt: true,
                 lastLoginAt: true,
+                referredByReferralCode: true,
+                referredByReferrerId: true,
+                referredByReferrer: {
+                  include: {
+                    deals: {
+                      orderBy: { createdAt: 'desc' },
+                    },
+                  },
+                },
               },
             },
             payments: {
@@ -1256,6 +1296,198 @@ export class AdminWhitelabelService {
       subdomain: existing.subdomain,
       fqdn: `${existing.subdomain}.platform.royalmotionit.com`,
       dnsResult,
+    };
+  }
+
+  async getActiveReferrers() {
+    const referrers = await this.prismaService.referrer.findMany({
+      where: { status: ReferrerStatus.ACTIVE },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        code: true,
+        referralCode: true,
+        name: true,
+        commissionRate: true,
+        dealBenchmarkBdt: true,
+        minGuaranteedBountyBdt: true,
+        contactFirstName: true,
+        contactLastName: true,
+        contactEmail: true,
+        contactPhone: true,
+        contactWhatsApp: true,
+        payoutMethod: true,
+        bankName: true,
+        accountName: true,
+        accountNumber: true,
+        branchDistrict: true,
+        branchName: true,
+        routingNumber: true,
+        swiftCode: true,
+        walletNumber: true,
+      },
+    });
+
+    return {
+      success: true,
+      items: referrers,
+    };
+  }
+
+  async assignReferrer(whiteLabelId: string, dto: AssignReferrerDto) {
+    const whiteLabel = await this.prismaService.whiteLabel.findUnique({
+      where: { id: whiteLabelId },
+      include: {
+        subscription: true,
+      },
+    });
+
+    if (!whiteLabel) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    if (!whiteLabel.subscription?.subscriberId) {
+      throw new BadRequestException('WhiteLabel has no associated subscriber.');
+    }
+
+    if (!dto.referrerId) {
+      // Unassign referrer
+      await this.prismaService.platformUser.update({
+        where: { id: whiteLabel.subscription.subscriberId },
+        data: {
+          referredByReferrerId: null,
+          referredByReferralCode: null,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Referrer partner unlinked from WhiteLabel subscriber.',
+      };
+    }
+
+    const referrer = await this.prismaService.referrer.findUnique({
+      where: { id: dto.referrerId },
+    });
+
+    if (!referrer) {
+      throw new NotFoundException('Referrer partner entity not found.');
+    }
+
+    if (referrer.status !== ReferrerStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Cannot assign referrer "${referrer.name}" because its status is ${referrer.status}. Only ACTIVE referrers can be assigned.`,
+      );
+    }
+
+    await this.prismaService.platformUser.update({
+      where: { id: whiteLabel.subscription.subscriberId },
+      data: {
+        referredByReferrerId: referrer.id,
+        referredByReferralCode: referrer.referralCode,
+      },
+    });
+
+    return {
+      success: true,
+      message: `WhiteLabel subscriber successfully attributed to partner "${referrer.name}" (${referrer.referralCode}).`,
+      referrer,
+    };
+  }
+
+  async recordReferrerDeal(
+    whiteLabelId: string,
+    dto: RecordWhiteLabelReferrerDealDto,
+  ) {
+    const whiteLabel = await this.prismaService.whiteLabel.findUnique({
+      where: { id: whiteLabelId },
+      include: {
+        subscription: {
+          include: {
+            subscriber: {
+              include: {
+                referredByReferrer: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!whiteLabel) {
+      throw new NotFoundException('WhiteLabel not found.');
+    }
+
+    const subscriber = whiteLabel.subscription?.subscriber;
+    if (!subscriber) {
+      throw new BadRequestException('WhiteLabel has no subscriber record.');
+    }
+
+    const referrer = subscriber.referredByReferrer;
+    if (!referrer) {
+      throw new BadRequestException(
+        'WhiteLabel subscriber is not attributed to any Referrer partner. Assign an active referrer first before recording a deal.',
+      );
+    }
+
+    const dealCode = await generateUniqueCode(
+      this.prismaService,
+      'referrerDeal',
+      CodePrefix.REFERRER_DEAL,
+    );
+
+    const commissionRate = referrer.commissionRate || 15;
+    const calculatedBounty =
+      dto.referrerBountyBdt !== undefined && dto.referrerBountyBdt > 0
+        ? dto.referrerBountyBdt
+        : Math.round(dto.sellingPriceBdt * (commissionRate / 100));
+
+    const deal = await this.prismaService.referrerDeal.create({
+      data: {
+        code: dealCode,
+        clientName: `${whiteLabel.name} (${whiteLabel.code})`,
+        clientEmail: whiteLabel.contactEmail || subscriber.email,
+        sellingPriceBdt: dto.sellingPriceBdt,
+        referrerBountyBdt: calculatedBounty,
+        status: dto.status || 'PENDING',
+        referrerId: referrer.id,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Referred deal recorded successfully: ৳${dto.sellingPriceBdt.toLocaleString()} BDT deal with ৳${calculatedBounty.toLocaleString()} BDT commission bounty (${commissionRate}%) for partner "${referrer.name}".`,
+      deal,
+    };
+  }
+
+  async updateReferrerDealStatus(
+    whiteLabelId: string,
+    dealId: string,
+    dto: UpdateReferrerDealStatusDto,
+  ) {
+    const deal = await this.prismaService.referrerDeal.findUnique({
+      where: { id: dealId },
+      include: {
+        referrer: true,
+      },
+    });
+
+    if (!deal) {
+      throw new NotFoundException('Referrer deal not found.');
+    }
+
+    const updated = await this.prismaService.referrerDeal.update({
+      where: { id: dealId },
+      data: {
+        status: dto.status,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Deal status updated to ${dto.status}.`,
+      deal: updated,
     };
   }
 }
