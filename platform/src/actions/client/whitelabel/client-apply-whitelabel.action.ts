@@ -64,7 +64,9 @@ export async function clientApplyWhiteLabelAction(
       };
     }
 
-    const res = await api.post("/platform/client/whitelabel/apply", payload, {
+    const { track, estimatedLaunchTimeline, ...cleanPayload } = payload as any;
+
+    const res = await api.post("/platform/client/whitelabel/apply", cleanPayload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

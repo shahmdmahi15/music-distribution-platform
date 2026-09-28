@@ -854,8 +854,9 @@ export function WhiteLabelOnboardingWizard({
           },
         });
       } else {
+        const { track, estimatedLaunchTimeline, ...cleanWhiteLabelData } = formData;
         res = await clientApplyWhiteLabelAction({
-          ...formData,
+          ...cleanWhiteLabelData,
           country: formData.country.trim(),
           contactWhatsApp: formData.contactWhatsApp.trim(),
           desiredSubdomain: formData.desiredSubdomain,

@@ -292,4 +292,9 @@ export class CreateWhiteLabelDto {
   @IsOptional()
   @IsObject()
   onboardingDetails?: Record<string, any>;
+
+  // Internal wizard flow tracking - optional to guarantee whitelist compatibility
+  @IsOptional()
+  @IsString()
+  track?: string;
 }
