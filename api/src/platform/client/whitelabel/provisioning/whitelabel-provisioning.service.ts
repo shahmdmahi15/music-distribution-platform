@@ -1650,6 +1650,8 @@ ENV_EOF
 cp -f .env .env.production
 cp -f .env .env.local
 
+mkdir -p /var/www/music-distribution-platform/whitelabel/logs
+
 cat << 'ECOSYSTEM_EOF' > ecosystem.config.js
 module.exports = {
   apps: [
@@ -1663,6 +1665,16 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: "1G",
+      kill_timeout: 5000,
+      listen_timeout: 10000,
+      restart_delay: 1000,
+      exp_backoff_restart_delay: 100,
+      max_restarts: 15,
+      error_file: "/var/www/music-distribution-platform/whitelabel/logs/whitelabel-portal-error.log",
+      out_file: "/var/www/music-distribution-platform/whitelabel/logs/whitelabel-portal-out.log",
+      merge_logs: true,
+      time: true,
+      node_args: "--max-old-space-size=1024",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
@@ -1704,6 +1716,9 @@ sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 start ecosystem
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
 env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 install pm2-logrotate 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:retain 5 2>/dev/null || true
 
 # Ensure Nginx is enabled and restarted
 systemctl enable nginx

@@ -23,6 +23,8 @@ async function bootstrap() {
     }),
   );
 
+  app.enableShutdownHooks();
+
   const port = configService.get<number>('PORT')!;
   await app.listen(port);
 }

@@ -28,14 +28,18 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 npm install -g pm2 pnpm
 
-# 4. Prepare Application Directory
+# 4. Prepare Application & Logs Directory
 echo "📁 Setting up /var/www/music-distribution-platform..."
-mkdir -p /var/www/music-distribution-platform
+mkdir -p /var/www/music-distribution-platform/logs
 chown -R ubuntu:ubuntu /var/www/music-distribution-platform
 
-# 5. Configure PM2 Startup
-echo "⚙️ Configuring PM2 to launch on system boot..."
-pm2 startup systemd -u ubuntu --hp /home/ubuntu
+# 5. Configure PM2 Startup & Log Rotation
+echo "⚙️ Configuring PM2 startup & pm2-logrotate..."
+sudo -u ubuntu pm2 startup systemd -u ubuntu --hp /home/ubuntu | tail -n 1 | bash || true
+sudo -u ubuntu pm2 install pm2-logrotate || true
+sudo -u ubuntu pm2 set pm2-logrotate:max_size 50M || true
+sudo -u ubuntu pm2 set pm2-logrotate:retain 10 || true
+sudo -u ubuntu pm2 set pm2-logrotate:compress true || true
 
 # 6. Install Nginx Configuration
 echo "🌐 Configuring Nginx reverse proxy..."
