@@ -32,3 +32,35 @@ export interface DistributionReport {
   createdAt: string;
   updatedAt: string;
 }
+
+// ==========================================
+// Platform Royalty Run & DSP Sales Ingestion
+// ==========================================
+
+export type RoyaltyRunStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface RoyaltyRun {
+  id: string;
+  code: string;
+  reportingPeriod: string; // YYYY-MM
+  store: string; // Spotify, Apple Music, YouTube Music, ALL
+  exchangeRateBdtUsd: number; // default 120.0
+  totalGrossUsd: number;
+  totalPayoutsUsd: number;
+  totalPayoutsBdt: number;
+  status: RoyaltyRunStatus;
+  whiteLabelId?: string | null;
+  whiteLabelName?: string | null;
+  processedRowsCount?: number;
+  executedBy?: string;
+  completedAt?: string | null;
+  createdAt: string;
+}
+
+export interface DspSalesReportUpload {
+  store: 'Spotify' | 'Apple Music' | 'YouTube Music' | 'Amazon Music' | 'TikTok' | 'Deezer';
+  reportingPeriod: string; // YYYY-MM
+  whiteLabelId?: string;
+  fileName: string;
+  fileSizeBytes: number;
+}

@@ -57,6 +57,7 @@ export const createMockPrismaService = () => ({
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
+    updateMany: jest.fn(),
   },
   releaseContributor: {
     deleteMany: jest.fn(),

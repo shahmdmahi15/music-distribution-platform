@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import { toast } from "sonner";
-import { Release, Track } from "@/types/catalog";
+import { Release, Track, ReleaseValidationResult } from "@/types/catalog";
 import {
   wlGetReleaseAction,
   wlUpdateReleaseAction,
@@ -13,11 +13,13 @@ import {
   wlDeleteTrackAction,
   wlSubmitReleaseAction,
   wlGetUploadUrlAction,
+  validateReleaseAction,
 } from "@/actions/catalog/whitelabel-catalog.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Music,
   ArrowLeft,
@@ -30,6 +32,10 @@ import {
   Loader2,
   Save,
   CheckCircle,
+  ShieldCheck,
+  ShieldAlert,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 
 interface NewTrackDraft {
@@ -49,6 +55,8 @@ export function EditReleaseContent({ code }: { code: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [qcResult, setQcResult] = useState<ReleaseValidationResult | null>(null);
 
   // Editable Form Fields
   const [title, setTitle] = useState("");
@@ -99,6 +107,30 @@ export function EditReleaseContent({ code }: { code: string }) {
   useEffect(() => {
     fetchRelease();
   }, [code]);
+
+  // Quality Control Pre-flight Validation
+  const handleValidateQC = async () => {
+    setValidating(true);
+    try {
+      const res = await validateReleaseAction(code);
+      if (res.success && res.validation) {
+        setQcResult(res.validation);
+        if (res.validation.isValid) {
+          toast.success("Pre-flight QC passed! Release conforms to DSP standards.");
+        } else {
+          toast.error(
+            `QC Found ${res.validation.errors.length} fatal error(s) preventing submission.`,
+          );
+        }
+      } else {
+        toast.error(res.message || "Validation check could not be completed.");
+      }
+    } catch (err: any) {
+      toast.error("QC Validation failed: " + err.message);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   // Handle Cover Art Upload
   const handleCoverArtChange = async (
@@ -266,6 +298,14 @@ export function EditReleaseContent({ code }: { code: string }) {
   };
 
   const handleResubmit = async () => {
+    // If QC has been run and contains fatal errors, prevent submission
+    if (qcResult && qcResult.errors.length > 0) {
+      toast.error(
+        `Cannot submit: ${qcResult.errors.length} fatal QC error(s) must be resolved first.`,
+      );
+      return;
+    }
+
     setResubmitting(true);
     try {
       // First save current metadata changes
@@ -313,6 +353,8 @@ export function EditReleaseContent({ code }: { code: string }) {
     );
   }
 
+  const hasFatalQcErrors = qcResult !== null && qcResult.errors.length > 0;
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Top Navigation */}
@@ -326,11 +368,27 @@ export function EditReleaseContent({ code }: { code: string }) {
         </Link>
 
         <div className="flex items-center gap-2">
+          {/* Pre-flight Quality Check Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleValidateQC}
+            disabled={validating || saving || resubmitting}
+            className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+          >
+            {validating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+            )}
+            <span>{validating ? "Running QC..." : "Pre-flight Quality Check"}</span>
+          </Button>
+
           <Button
             size="sm"
             variant="outline"
             onClick={handleSaveChanges}
-            disabled={saving || resubmitting}
+            disabled={saving || resubmitting || validating}
             className="flex items-center gap-1.5"
           >
             {saving ? (
@@ -344,8 +402,10 @@ export function EditReleaseContent({ code }: { code: string }) {
           <Button
             size="sm"
             onClick={handleResubmit}
-            disabled={saving || resubmitting}
-            className="flex items-center gap-1.5 shadow-sm"
+            disabled={saving || resubmitting || hasFatalQcErrors}
+            className={`flex items-center gap-1.5 shadow-sm ${
+              hasFatalQcErrors ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             {resubmitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -356,6 +416,91 @@ export function EditReleaseContent({ code }: { code: string }) {
           </Button>
         </div>
       </div>
+
+      {/* QC Validation Results Card */}
+      {qcResult && (
+        <div className="space-y-4">
+          {/* Severity 1: Fatal Errors Banner */}
+          {qcResult.errors.length > 0 && (
+            <div className="p-5 rounded-2xl border-2 border-destructive/60 bg-destructive/10 text-destructive space-y-3 shadow-xs">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 font-semibold text-sm">
+                  <ShieldAlert className="w-5 h-5 shrink-0" />
+                  <span>Severity 1: Fatal QC Errors ({qcResult.errors.length})</span>
+                </div>
+                <Badge variant="destructive" className="font-mono text-[10px]">
+                  SUBMISSION BLOCKED
+                </Badge>
+              </div>
+
+              <p className="text-xs text-destructive/90 leading-relaxed font-medium">
+                The release <strong>CANNOT</strong> be submitted to Mother Company or DSPs until all fatal errors below are resolved:
+              </p>
+
+              <ul className="space-y-2 pt-1 border-t border-destructive/20">
+                {qcResult.errors.map((err, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2 text-xs bg-background/60 p-2.5 rounded-lg border border-destructive/30"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 text-destructive mt-0.5" />
+                    <div>
+                      <span className="font-semibold block">{err.message}</span>
+                      {err.trackTitle && (
+                        <span className="text-[11px] opacity-80 font-mono">
+                          Track: {err.trackTitle}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Severity 2: Warnings Banner */}
+          {qcResult.warnings.length > 0 && (
+            <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-semibold text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Severity 2: Advisory Warnings ({qcResult.warnings.length})</span>
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-500">
+                  Non-blocking
+                </span>
+              </div>
+
+              <ul className="space-y-1.5 pt-1 text-xs">
+                {qcResult.warnings.map((warn, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                    <span>{warn.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Passed Clean Badge Card */}
+          {qcResult.passed && qcResult.errors.length === 0 && (
+            <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-sm">Passed Pre-flight Quality Inspection</h4>
+                  <p className="text-xs opacity-90">
+                    Release metadata, artwork, and lossless audio conform to Revelator and DSP delivery standards.
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 shrink-0">
+                QC Clean
+              </Badge>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rejection Alert Banner */}
       {release.status === "REJECTED" && (

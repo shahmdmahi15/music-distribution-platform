@@ -22,3 +22,33 @@ export interface ReportsSummaryMetrics {
   totalStreams: string;
   reportCount: number;
 }
+
+// ==========================================
+// Revelator-Parity Royalty Statements Types
+// ==========================================
+
+export type StatementPaymentStatus = 'PAID' | 'PENDING' | 'PROCESSING';
+
+export interface RoyaltyStatement {
+  id: string;
+  code: string;
+  period: string; // e.g. "2026-09"
+  totalStreams: number;
+  totalDownloads: number;
+  grossRevenueUsd: number;
+  netRevenueUsd: number;
+  netRevenueBdt: number;
+  exchangeRateBdtUsd: number;
+  paidStatus: StatementPaymentStatus;
+  paidAt?: string | null;
+  fileName?: string;
+  downloadUrl?: string;
+  createdAt: string;
+}
+
+export interface RoyaltyStatementsSummary {
+  netUsd: number;
+  netBdt: number;
+  totalStreams: number;
+  totalDownloads: number;
+}

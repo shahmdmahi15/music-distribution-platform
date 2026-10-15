@@ -9,6 +9,7 @@ import {
   adminUpdateReleaseStatusAction,
   adminExportReleaseAction,
   adminRescanTrackAction,
+  adminGenerateDdexAction,
 } from "@/actions/admin/distribution/admin-distribution.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,9 @@ import {
   Building2,
   FileAudio,
   Radio,
+  Code2,
+  Copy,
+  Check,
 } from "lucide-react";
 
 export function AdminDistributionContent() {
@@ -61,6 +65,12 @@ export function AdminDistributionContent() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [scanningTrackCode, setScanningTrackCode] = useState<string | null>(null);
+
+  // DDEX ERN 4.3 XML Modal State
+  const [showDdexModal, setShowDdexModal] = useState(false);
+  const [ddexXml, setDdexXml] = useState<string>("");
+  const [generatingDdex, setGeneratingDdex] = useState(false);
+  const [copiedDdex, setCopiedDdex] = useState(false);
 
   const fetchReleases = () => {
     startTransition(async () => {
@@ -153,6 +163,46 @@ export function AdminDistributionContent() {
     } else {
       toast.error(res.message || "Failed to export release metadata");
     }
+  };
+
+  // Generate DDEX ERN 4.3 XML Handler
+  const handleGenerateDdex = async (code: string) => {
+    setGeneratingDdex(true);
+    try {
+      const res = await adminGenerateDdexAction(code);
+      if (res.success && res.xml) {
+        setDdexXml(res.xml);
+        setShowDdexModal(true);
+        toast.success("DDEX ERN 4.3 XML feed successfully generated!");
+      } else {
+        toast.error(res.message || "Failed to generate DDEX ERN 4.3 feed");
+      }
+    } catch (err: any) {
+      toast.error("DDEX error: " + err.message);
+    } finally {
+      setGeneratingDdex(false);
+    }
+  };
+
+  const handleCopyDdexXml = () => {
+    navigator.clipboard.writeText(ddexXml);
+    setCopiedDdex(true);
+    toast.success("DDEX ERN 4.3 XML copied to clipboard!");
+    setTimeout(() => setCopiedDdex(false), 2000);
+  };
+
+  const handleDownloadDdexXml = () => {
+    if (!ddexXml || !inspectRelease) return;
+    const blob = new Blob([ddexXml], { type: "application/xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", url);
+    downloadAnchor.setAttribute("download", `${inspectRelease.code}_ddex_ern43.xml`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${inspectRelease.code}_ddex_ern43.xml`);
   };
 
   const handleRescanTrack = async (trackCode: string) => {
@@ -281,7 +331,7 @@ export function AdminDistributionContent() {
           Music Distribution Pipeline
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Review releases submitted by WhiteLabel companies, download lossless audio & artwork, export DSP manifests, and mark distributions as published.
+          Review releases submitted by WhiteLabel companies, inspect lossless audio, generate DDEX ERN 4.3 XML feeds, and publish distributions to DSPs.
         </p>
       </div>
 
@@ -436,7 +486,7 @@ export function AdminDistributionContent() {
               <span>Release Dossier & DSP Assets</span>
             </DialogTitle>
             <DialogDescription>
-              Download original lossless audio files and artwork, or export structured JSON metadata for DSP distribution.
+              Download original lossless audio files and artwork, generate DDEX ERN 4.3 XML, or export structured JSON metadata for DSP distribution.
             </DialogDescription>
           </DialogHeader>
 
@@ -491,7 +541,7 @@ export function AdminDistributionContent() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2 pt-2 flex-wrap">
                     {inspectRelease.coverArtDownloadUrl && (
                       <Button
                         size="sm"
@@ -508,6 +558,18 @@ export function AdminDistributionContent() {
                         <span>Download Artwork</span>
                       </Button>
                     )}
+
+                    {/* Generate DDEX ERN 4.3 XML Action Button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                      disabled={generatingDdex}
+                      onClick={() => handleGenerateDdex(inspectRelease.code)}
+                    >
+                      <Code2 className="w-3.5 h-3.5" />
+                      <span>{generatingDdex ? "Generating DDEX..." : "Generate DDEX ERN 4.3 XML"}</span>
+                    </Button>
 
                     <Button
                       size="sm"
@@ -677,6 +739,62 @@ export function AdminDistributionContent() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* DDEX ERN 4.3 XML Inspection & Export Modal */}
+      <Dialog open={showDdexModal} onOpenChange={setShowDdexModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-4">
+              <DialogTitle className="flex items-center gap-2">
+                <Code2 className="w-5 h-5 text-primary" />
+                <span>DDEX ERN 4.3 XML Feed</span>
+              </DialogTitle>
+              <div className="flex items-center gap-2 pr-6">
+                <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px]">
+                  ERN 4.3 CERTIFIED
+                </Badge>
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  UTF-8
+                </Badge>
+              </div>
+            </div>
+            <DialogDescription>
+              Electronic Release Notification (ERN) 4.3 XML payload structured for automated ingestion by Spotify, Apple Music, YouTube, and Amazon Music.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0 pt-2 space-y-3">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pb-1">
+              <span>Catalog Schema: <code className="text-foreground">http://ddex.net/xml/ern/43</code></span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyDdexXml}
+                  className="h-7 text-xs gap-1.5"
+                >
+                  {copiedDdex ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedDdex ? "Copied!" : "Copy XML"}</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={handleDownloadDdexXml}
+                  className="h-7 text-xs gap-1.5 bg-primary text-primary-foreground"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download .xml File</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* XML Display Container */}
+            <div className="flex-1 overflow-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 font-mono text-xs text-zinc-300 leading-relaxed max-h-[55vh]">
+              <pre className="whitespace-pre">{ddexXml}</pre>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -93,3 +93,39 @@ export interface Release {
   createdAt: string;
   updatedAt: string;
 }
+
+// ==========================================
+// 2-Tier Quality Control (QC) Validation Types
+// ==========================================
+
+export interface ValidationErrorItem {
+  code: string;
+  message: string;
+  field?: string;
+  trackCode?: string;
+  trackTitle?: string;
+  severity: 1; // Fatal Error - blocks DSP submission
+}
+
+export interface ValidationWarningItem {
+  code: string;
+  message: string;
+  field?: string;
+  trackCode?: string;
+  trackTitle?: string;
+  severity: 2; // Warning - non-blocking recommendation
+}
+
+export interface ReleaseValidationResult {
+  isValid: boolean;
+  canSubmit: boolean;
+  passed?: boolean;
+  errors: ValidationErrorItem[];
+  warnings: ValidationWarningItem[];
+  summary: {
+    fatalCount: number;
+    warningCount: number;
+    passed: boolean;
+    inspectedAt: string;
+  };
+}

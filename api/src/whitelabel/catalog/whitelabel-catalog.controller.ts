@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WhitelabelCatalogService } from './whitelabel-catalog.service';
+import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
 import { WhitelabelSessionGuard } from '../guard/whitelabel-session.guard';
 import { CurrentWhiteLabel } from '../decorator/current-whitelabel.decorator';
 import { CurrentWhiteLabelUser } from '../decorator/current-whitelabel-user.decorator';
@@ -24,7 +25,10 @@ import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
 @Controller('catalog')
 @UseGuards(WhitelabelSessionGuard)
 export class WhitelabelCatalogController {
-  constructor(private readonly catalogService: WhitelabelCatalogService) {}
+  constructor(
+    private readonly catalogService: WhitelabelCatalogService,
+    private readonly qcValidationService: WhitelabelQcValidationService,
+  ) {}
 
   @Post('upload-url')
   async getUploadUrl(
@@ -61,6 +65,14 @@ export class WhitelabelCatalogController {
     @Param('code') code: string,
   ) {
     return await this.catalogService.getReleaseByCode(whiteLabel.id, code);
+  }
+
+  @Post('releases/:code/validate')
+  async validateRelease(
+    @CurrentWhiteLabel() whiteLabel: WhiteLabel,
+    @Param('code') code: string,
+  ) {
+    return await this.qcValidationService.validateRelease(whiteLabel.id, code);
   }
 
   @Put('releases/:code')

@@ -18,7 +18,8 @@ import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { QueryReleaseDto } from './dto/query-release.dto';
 import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
-import { ReleaseStatus } from 'src/generated/prisma/client';
+import { QcStatus, ReleaseStatus } from 'src/generated/prisma/client';
+import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
 
 @Injectable()
 export class WhitelabelCatalogService {
@@ -28,6 +29,7 @@ export class WhitelabelCatalogService {
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
     private readonly acrCloudService: AcrCloudService,
+    private readonly qcValidationService: WhitelabelQcValidationService,
   ) {}
 
   /**
@@ -289,6 +291,12 @@ export class WhitelabelCatalogService {
       );
     }
 
+    if (existing.isLocked) {
+      throw new ForbiddenException(
+        'Cannot edit a locked release. Contact administrator for unlock.',
+      );
+    }
+
     const coverArtUrl = dto.coverArtKey
       ? this.storageService.getFileUrl(dto.coverArtKey)
       : existing.coverArtUrl;
@@ -364,6 +372,10 @@ export class WhitelabelCatalogService {
       throw new ForbiddenException(
         `Cannot add tracks to release in ${release.status} status`,
       );
+    }
+
+    if (release.isLocked) {
+      throw new ForbiddenException('Cannot add tracks to a locked release');
     }
 
     const trackCode = await generateUniqueCode(
@@ -463,6 +475,10 @@ export class WhitelabelCatalogService {
       );
     }
 
+    if (release.isLocked) {
+      throw new ForbiddenException('Cannot update tracks in a locked release');
+    }
+
     const track = await this.prisma.track.findFirst({
       where: { code: trackCode, releaseId: release.id },
     });
@@ -557,6 +573,10 @@ export class WhitelabelCatalogService {
       );
     }
 
+    if (release.isLocked) {
+      throw new ForbiddenException('Cannot delete tracks from a locked release');
+    }
+
     const track = await this.prisma.track.findFirst({
       where: { code: trackCode, releaseId: release.id },
     });
@@ -638,18 +658,44 @@ export class WhitelabelCatalogService {
       );
     }
 
+    // Execute Two-Tier Quality Control validation
+    const qcResult = await this.qcValidationService.validateRelease(
+      whiteLabelId,
+      releaseCode,
+    );
+    if (!qcResult.isValid || (qcResult.errors && qcResult.errors.length > 0)) {
+      throw new BadRequestException({
+        message:
+          'Release failed pre-flight Quality Control (Severity 1 Blocking Errors)',
+        errors: qcResult.errors,
+      });
+    }
+
     const updated = await this.prisma.release.update({
       where: { id: release.id },
       data: {
         status: ReleaseStatus.SUBMITTED,
         submittedAt: new Date(),
         rejectionReason: null,
+        isLocked: true,
+        qcStatus:
+          qcResult.severity2Warnings.length > 0
+            ? QcStatus.FAILED_WARNINGS
+            : QcStatus.PASSED,
       },
       include: {
         tracks: true,
         contributors: true,
       },
     });
+
+    // Also lock all tracks in release
+    if (typeof this.prisma.track?.updateMany === 'function') {
+      await this.prisma.track.updateMany({
+        where: { releaseId: release.id },
+        data: { isLocked: true },
+      });
+    }
 
     // Trigger fingerprint scan on all tracks with audio upon submission
     for (const t of release.tracks) {

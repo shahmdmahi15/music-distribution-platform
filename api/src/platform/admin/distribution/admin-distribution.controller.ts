@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { AdminDistributionService } from './admin-distribution.service';
+import { DdexGeneratorService } from 'src/lib/ddex/ddex-generator.service';
 import { AdminDistributionQueryDto } from './dto/admin-distribution-query.dto';
 import { UpdateReleaseStatusDto } from './dto/update-release-status.dto';
 import { Roles } from 'src/platform/decorator/roles.decorator';
@@ -19,7 +20,15 @@ import type { PlatformUser } from 'src/generated/prisma/client';
 export class AdminDistributionController {
   constructor(
     private readonly distributionService: AdminDistributionService,
+    private readonly ddexGeneratorService: DdexGeneratorService,
   ) {}
+
+  @Get('releases/:code/ddex-xml')
+  @Roles(...ADMIN_ROLES)
+  async getReleaseDdexXml(@Param('code') code: string) {
+    const xml = await this.ddexGeneratorService.generateReleaseErnXml(code);
+    return { success: true, code, ddexXml: xml };
+  }
 
   @Get('releases')
   @Roles(...ADMIN_ROLES)

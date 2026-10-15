@@ -109,6 +109,107 @@ enum AudioScanStatus {
   FAILED
 }
 
+enum QcStatus {
+  PENDING
+  PASSED
+  FAILED_WARNINGS
+  FAILED_BLOCKING
+}
+
+enum ContractLevel {
+  ACCOUNT
+  LABEL
+  ARTIST
+  RELEASE
+  TRACK
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  TERMINATED
+}
+
+enum PayeeStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum PayeeRole {
+  ARTIST
+  LABEL
+  PRODUCER
+  COMPOSER
+  PUBLISHER
+  DISTRIBUTOR
+}
+
+enum MechanicalType {
+  PERCENTAGE_OF_SALES
+  PENNY_RATE
+  COPYRIGHT_STATUTORY
+}
+
+enum DspStore {
+  SPOTIFY
+  APPLE_MUSIC
+  YOUTUBE
+  AMAZON
+  DEEZER
+  TIKTOK
+  META
+  TIDAL
+  OTHER
+}
+
+enum DspReportStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum RoyaltyRunStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  LOCKED
+}
+
+enum DdexVersion {
+  ERN_382
+  ERN_42
+  ERN_43
+}
+
+enum DeliveryStatus {
+  QUEUED
+  PACKAGED
+  DISPATCHED
+  ACKNOWLEDGED
+  REJECTED
+  FAILED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  PROCESSING
+  PAID
+  REJECTED
+  FAILED
+}
+
+enum PayoutGateway {
+  TIPALTI
+  STRIPE_CONNECT
+  WISE
+  MANUAL_BANK
+  BKASH
+}
+
 model OAuthAccount {
   // Primary key
   id String @id @default(cuid())
@@ -220,11 +321,12 @@ model PlatformUser {
   referredByReferrer Referrer? @relation("ReferredUsers", fields: [referredByReferrerId], references: [id], onDelete: SetNull)
 
   // Child Relations
-  oAuthAccounts OAuthAccount[]
-  sessions      Session[]
-  subscription  PlatformSubscription?
-  referrer      Referrer?
+  oAuthAccounts               OAuthAccount[]
+  sessions                    Session[]
+  subscription                PlatformSubscription?
+  referrer                    Referrer?
   uploadedDistributionReports DistributionReport[]
+  dspRawReportsUploaded       DspRawReport[]        @relation("PlatformUserDspReports")
 
   // Timestamps
   lastLoginAt DateTime?
@@ -276,9 +378,9 @@ model PlatformSubscriptionPayment {
   id String @id @default(cuid())
 
   // Data Fields
-  code     String        @unique
+  code     String @unique
   amount   Int
-  discount Int           @default(0)
+  discount Int    @default(0)
 
   // Flags
 
@@ -289,7 +391,7 @@ model PlatformSubscriptionPayment {
   subscriptionId String
 
   // Payment Details
-  paymentMethod    String?  @default("OFFLINE_MANUAL")
+  paymentMethod    String? @default("OFFLINE_MANUAL")
   receiptReference String?
   adminNotes       String?
 
@@ -318,20 +420,20 @@ model WhiteLabel {
   name String
 
   // Corporate Profile
-  businessType         WhiteLabelBusinessType @default(DISTRIBUTOR_AGGREGATOR)
-  companyWebsite       String?
-  country              String?
-  yearsInBusiness      Int                    @default(0)
-  isIncorporated       Boolean                @default(false)
-  incorporationDocUrl  String?
+  businessType        WhiteLabelBusinessType @default(DISTRIBUTOR_AGGREGATOR)
+  companyWebsite      String?
+  country             String?
+  yearsInBusiness     Int                    @default(0)
+  isIncorporated      Boolean                @default(false)
+  incorporationDocUrl String?
 
   // Identity & Branding
-  subdomain               String?                @unique
-  customDomain            String?                @unique
+  subdomain               String?   @unique
+  customDomain            String?   @unique
   domainVerificationToken String?
-  domainVerified          Boolean                @default(false)
+  domainVerified          Boolean   @default(false)
   domainVerifiedAt        DateTime?
-  domainSslStatus         String?                @default("NOT_CONFIGURED")
+  domainSslStatus         String?   @default("NOT_CONFIGURED")
   elasticIpv4             String?
   tagline                 String?
   description             String?
@@ -339,13 +441,13 @@ model WhiteLabel {
   logoDarkUrl             String?
   faviconUrl              String?
   bannerUrl               String?
-  primaryColor            String?                @default("#6366f1")
-  accentColor             String?                @default("#ec4899")
-  themeRadius             String?                @default("0.5rem")
-  themeFont               String?                @default("Inter")
-  themeMode               String?                @default("dark")
-  navbarStyle             String?                @default("glass")
-  cardStyle               String?                @default("modern")
+  primaryColor            String?   @default("#6366f1")
+  accentColor             String?   @default("#ec4899")
+  themeRadius             String?   @default("0.5rem")
+  themeFont               String?   @default("Inter")
+  themeMode               String?   @default("dark")
+  navbarStyle             String?   @default("glass")
+  cardStyle               String?   @default("modern")
   supportEmail            String?
   supportPhone            String?
   copyrightText           String?
@@ -358,84 +460,84 @@ model WhiteLabel {
   socialTiktok            String?
 
   // SSO & Security Configuration
-  ssoGoogleEnabled        Boolean                @default(true)
-  ssoGithubEnabled        Boolean                @default(false)
-  ssoEnforce2fa           Boolean                @default(false)
-  ssoSessionTimeoutHours  Int                    @default(72)
+  ssoGoogleEnabled       Boolean @default(true)
+  ssoGithubEnabled       Boolean @default(false)
+  ssoEnforce2fa          Boolean @default(false)
+  ssoSessionTimeoutHours Int     @default(72)
 
   // Dedicated Cloud & Infrastructure Credentials
-  awsRegion               String?
-  awsAccessKeyId          String?
-  awsSecretAccessKey      String?
-  bucketName              String?
-  senderEmail             String?
-  databaseUrl             String?
-  redisUrl                String?
-  cloudflareApiToken      String?
-  cloudflareZoneId        String?
-  cloudflareBaseDomain    String?
-  cloudflareOriginCert    String?
-  cloudflareOriginKey     String?
+  awsRegion            String?
+  awsAccessKeyId       String?
+  awsSecretAccessKey   String?
+  bucketName           String?
+  senderEmail          String?
+  databaseUrl          String?
+  redisUrl             String?
+  cloudflareApiToken   String?
+  cloudflareZoneId     String?
+  cloudflareBaseDomain String?
+  cloudflareOriginCert String?
+  cloudflareOriginKey  String?
 
   // AWS Multi-Cloud Infrastructure & Telemetry
-  awsInstanceId           String?
-  awsElasticIp            String?
-  awsAllocationId         String?
-  awsSecurityGroupId      String?
-  awsKeyPairName          String?
-  awsKeyPairPrivateKey    String?
-  awsInstanceType         String?                @default("t4g.medium")
-  awsInstanceState        String?                @default("STOPPED")
+  awsInstanceId        String?
+  awsElasticIp         String?
+  awsAllocationId      String?
+  awsSecurityGroupId   String?
+  awsKeyPairName       String?
+  awsKeyPairPrivateKey String?
+  awsInstanceType      String? @default("t4g.medium")
+  awsInstanceState     String? @default("STOPPED")
 
   // Storage & SES Telemetry
-  s3BucketArn             String?
-  s3CorsConfigured        Boolean                @default(false)
-  sesIdentityStatus       String?                @default("PENDING")
-  sesDkimTokens           String[]               @default([])
+  s3BucketArn       String?
+  s3CorsConfigured  Boolean  @default(false)
+  sesIdentityStatus String?  @default("PENDING")
+  sesDkimTokens     String[] @default([])
 
   // Provisioning Lifecycle & Live Telemetry
-  provisioningStatus      ProvisioningStatus     @default(NOT_STARTED)
-  provisioningProgress    Int                    @default(0)
-  provisioningStep        String?
-  provisioningLogs        Json?
-  provisionedAt           DateTime?
-  provisioningError       String?
+  provisioningStatus   ProvisioningStatus @default(NOT_STARTED)
+  provisioningProgress Int                @default(0)
+  provisioningStep     String?
+  provisioningLogs     Json?
+  provisionedAt        DateTime?
+  provisioningError    String?
 
   // Contact Person
-  contactFirstName        String?
-  contactLastName         String?
-  contactEmail            String?
-  contactWhatsApp         String?
-  contactLinkedIn         String?
+  contactFirstName String?
+  contactLastName  String?
+  contactEmail     String?
+  contactWhatsApp  String?
+  contactLinkedIn  String?
 
   // Catalog & Operational Telemetry
-  catalogTrackCount       Int                    @default(0)
-  monthlyTrackDelivery    Int                    @default(0)
-  monthlyRevenueUsd       Decimal?               @db.Decimal(14, 2)
-  hasDirectDeals          Boolean                @default(false)
-  currentDistributors     String[]               @default([])
-  royaltySolutions        String[]               @default([])
-  primaryCatalogLanguage  String                 @default("en")
-  wantsCatalogMigration   Boolean                @default(false)
-  hasSampleBasedCovers    Boolean                @default(false)
-  userSignupModel         WhiteLabelSignupModel  @default(INVITE_ONLY)
-  onboardingDetails       Json?
+  catalogTrackCount      Int                   @default(0)
+  monthlyTrackDelivery   Int                   @default(0)
+  monthlyRevenueUsd      Decimal?              @db.Decimal(14, 2)
+  hasDirectDeals         Boolean               @default(false)
+  currentDistributors    String[]              @default([])
+  royaltySolutions       String[]              @default([])
+  primaryCatalogLanguage String                @default("en")
+  wantsCatalogMigration  Boolean               @default(false)
+  hasSampleBasedCovers   Boolean               @default(false)
+  userSignupModel        WhiteLabelSignupModel @default(INVITE_ONLY)
+  onboardingDetails      Json?
 
   // Compliance & Status Lifecycle
-  privacyPolicyAccepted   Boolean                @default(true)
-  marketingConsent        Boolean                @default(false)
-  isSetupComplete         Boolean                @default(false)
-  status                  WhiteLabelStatus       @default(PENDING)
-  statusReason            String?
-  approvedAt              DateTime?
-  reviewedAt              DateTime?
+  privacyPolicyAccepted Boolean          @default(true)
+  marketingConsent      Boolean          @default(false)
+  isSetupComplete       Boolean          @default(false)
+  status                WhiteLabelStatus @default(PENDING)
+  statusReason          String?
+  approvedAt            DateTime?
+  reviewedAt            DateTime?
 
   // Contract Information
-  contractKey             String?
-  contractFileName        String?
-  contractFileSize        Int?
-  contractUploadedAt      DateTime?
-  contractUploadedBy      String?
+  contractKey        String?
+  contractFileName   String?
+  contractFileSize   Int?
+  contractUploadedAt DateTime?
+  contractUploadedBy String?
 
   // Foreign Keys
   subscriptionId String @unique
@@ -451,6 +553,13 @@ model WhiteLabel {
   apiKeys             WhiteLabelApiKey[]
   releases            Release[]
   distributionReports DistributionReport[]
+  payees              Payee[]
+  contracts           Contract[]
+  dspRawReports       DspRawReport[]
+  royaltyRuns         RoyaltyRun[]
+  userStatements      UserRoyaltyStatement[]
+  deliveryPackages    DspDeliveryPackage[]
+  payoutRequests      PayeePayoutRequest[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -468,13 +577,13 @@ model WhiteLabelTopArtist {
   id String @id @default(cuid())
 
   // Data Fields
-  code              String   @unique
+  code              String  @unique
   artistName        String
   instagramHandle   String?
   spotifyProfileUrl String?
   youtubeChannelUrl String?
   monthlyListeners  Int?
-  orderIndex        Int      @default(1)
+  orderIndex        Int     @default(1)
 
   // Foreign Keys
   whiteLabelId String
@@ -497,7 +606,7 @@ model WhiteLabelDocument {
   id String @id @default(cuid())
 
   // Data Fields
-  code          String   @unique
+  code          String  @unique
   type          String
   name          String
   fileKey       String
@@ -555,6 +664,7 @@ model WhiteLabelUser {
   sessions          Session[]
   whiteLabelPartner WhiteLabelPartner?
   releases          Release[]
+  payees            Payee[]
 
   // Timestamps
   emailVerifiedAt DateTime?
@@ -603,19 +713,19 @@ model WhiteLabelApiKey {
   id String @id @default(cuid())
 
   // Data Fields
-  code       String    @unique
-  name       String
-  keyHash    String    @unique
-  keyPrefix  String
-  keyMasked  String
-  scopes     String[]  @default(["*"])
+  code      String   @unique
+  name      String
+  keyHash   String   @unique
+  keyPrefix String
+  keyMasked String
+  scopes    String[] @default(["*"])
 
   // Telemetry
   lastUsedAt DateTime?
   expiresAt  DateTime?
 
   // Flags
-  isActive   Boolean   @default(true)
+  isActive Boolean @default(true)
 
   // Foreign Keys
   whiteLabelId String
@@ -647,15 +757,15 @@ model Referrer {
   id String @id @default(cuid())
 
   // Data Fields
-  code         String  @unique // System generated code, e.g. REF-2026-XXXX
-  referralCode String  @unique // Custom referral attribution code (e.g. TECH-AGENCY)
-  name         String  // Partner Agency / Entity Name
+  code         String @unique // System generated code, e.g. REF-2026-XXXX
+  referralCode String @unique // Custom referral attribution code (e.g. TECH-AGENCY)
+  name         String // Partner Agency / Entity Name
 
   // Agency & Corporate Profile
   companyWebsite      String?
   country             String?
-  yearsInBusiness     Int      @default(0)
-  isIncorporated      Boolean  @default(false)
+  yearsInBusiness     Int     @default(0)
+  isIncorporated      Boolean @default(false)
   incorporationDocUrl String?
 
   // Primary Contact & Representative
@@ -669,7 +779,7 @@ model Referrer {
   // Commercial Terms (Fixed 15% Share)
   commissionRate         Float  @default(15.0) // 15% of deal selling value
   dealBenchmarkBdt       Int    @default(60000) // ৳60,000 BDT minimum deal
-  minGuaranteedBountyBdt Int    @default(9000)  // ৳9,000 BDT minimum bounty
+  minGuaranteedBountyBdt Int    @default(9000) // ৳9,000 BDT minimum bounty
   operatingHub           String @default("platform.royalmotionit.com/referrer")
 
   // Remittance Configuration
@@ -736,13 +846,13 @@ model ReferrerDocument {
 }
 
 model ReferrerDeal {
-  id                String @id @default(cuid())
-  code              String @unique
+  id                String  @id @default(cuid())
+  code              String  @unique
   clientName        String
   clientEmail       String?
   sellingPriceBdt   Int // e.g. 75000
   referrerBountyBdt Int // 15% of selling price, e.g. 11250
-  status            String @default("PENDING") // PENDING, PAID, CANCELLED
+  status            String  @default("PENDING") // PENDING, PAID, CANCELLED
 
   referrerId String
   referrer   Referrer @relation(fields: [referrerId], references: [id], onDelete: Cascade)
@@ -776,6 +886,11 @@ model Release {
   rejectionReason     String?
   adminNotes          String?
 
+  // Revelator QC & Delivery Controls
+  qcStatus         QcStatus @default(PENDING)
+  validationErrors Json?
+  isLocked         Boolean  @default(false)
+
   // Milestones
   submittedAt   DateTime?
   distributedAt DateTime?
@@ -789,8 +904,9 @@ model Release {
   whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: SetNull)
 
   // Child Relations
-  tracks       Track[]
-  contributors ReleaseContributor[]
+  tracks           Track[]
+  contributors     ReleaseContributor[]
+  deliveryPackages DspDeliveryPackage[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -807,22 +923,26 @@ model Track {
   id String @id @default(cuid())
 
   // Data Fields
-  code            String   @unique
-  trackNumber     Int      @default(1)
-  discNumber      Int      @default(1)
-  title           String
-  version         String?
-  isrc            String?
-  iswc            String?
-  durationSeconds Int?
-  explicit        Boolean  @default(false)
-  audioKey        String?
-  audioUrl        String?
-  fileName        String?
-  fileSizeBytes   Int?
-  mimeType        String?
-  lyrics          String?
-  language        String   @default("en")
+  code               String  @unique
+  trackNumber        Int     @default(1)
+  discNumber         Int     @default(1)
+  title              String
+  version            String?
+  isrc               String?
+  iswc               String?
+  durationSeconds    Int?
+  explicit           Boolean @default(false)
+  audioKey           String?
+  audioUrl           String?
+  fileName           String?
+  fileSizeBytes      Int?
+  mimeType           String?
+  lyrics             String?
+  language           String  @default("en")
+  isLocked           Boolean @default(false)
+  phoneticTitle      String?
+  phoneticVersion    String?
+  languageScriptCode String?
 
   // Foreign Keys
   releaseId String
@@ -934,7 +1054,7 @@ model TrackAudioScan {
 
   // Status & Telemetry
   status        AudioScanStatus @default(PENDING)
-  matchScore    Int?            // 0 - 100
+  matchScore    Int? // 0 - 100
   matchedTitle  String?
   matchedArtist String?
   matchedAlbum  String?
@@ -957,3 +1077,274 @@ model TrackAudioScan {
   @@index([status])
 }
 
+model Payee {
+  id             String      @id @default(cuid())
+  code           String      @unique
+  name           String
+  email          String
+  legalName      String?
+  taxId          String?
+  role           PayeeRole   @default(ARTIST)
+  status         PayeeStatus @default(ACTIVE)
+  paymentMethod  String      @default("BANK_TRANSFER")
+  paymentDetails Json?
+
+  whiteLabelId     String
+  whiteLabelUserId String?
+
+  whiteLabel     WhiteLabel      @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: SetNull)
+
+  contractPayees ContractPayee[]
+  statements     UserRoyaltyStatement[]
+  payoutRequests PayeePayoutRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([whiteLabelId])
+  @@index([whiteLabelUserId])
+  @@index([email])
+}
+
+model Contract {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  title           String
+  level           ContractLevel   @default(RELEASE)
+  status          ContractStatus  @default(ACTIVE)
+  startDate       DateTime        @default(now())
+  expirationDate  DateTime?
+  isActive        Boolean         @default(true)
+  allFutureAssets Boolean         @default(false)
+  payMechanicals  Boolean         @default(false)
+  mechanicalType  MechanicalType?
+  mechanicalRate  Decimal?        @db.Decimal(10, 4)
+  advanceAmount   Decimal?        @default(0) @db.Decimal(14, 2)
+  recoupedAmount  Decimal?        @default(0) @db.Decimal(14, 2)
+  isRecouped      Boolean         @default(true)
+
+  whiteLabelId String
+  whiteLabel   WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  contractPayees ContractPayee[]
+  contractAssets ContractAsset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([whiteLabelId])
+  @@index([level])
+  @@index([status])
+}
+
+model ContractPayee {
+  id              String    @id @default(cuid())
+  contractId      String
+  payeeId         String
+  sharePercentage Decimal   @db.Decimal(5, 2)
+  role            PayeeRole @default(ARTIST)
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  payee    Payee    @relation(fields: [payeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contractId])
+  @@index([payeeId])
+}
+
+model ContractAsset {
+  id         String  @id @default(cuid())
+  contractId String
+  releaseId  String?
+  trackId    String?
+  artistName String?
+  labelName  String?
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contractId])
+  @@index([releaseId])
+  @@index([trackId])
+  @@index([artistName])
+  @@index([labelName])
+}
+
+model DspRawReport {
+  id                       String          @id @default(cuid())
+  code                     String          @unique
+  store                    DspStore        @default(OTHER)
+  reportingPeriod          String
+  fileName                 String
+  fileKey                  String?
+  fileSizeBytes            Int?
+  rowCount                 Int             @default(0)
+  matchedCount             Int             @default(0)
+  unmatchedCount           Int             @default(0)
+  totalLines               Int             @default(0)
+  totalGrossUsd            Decimal         @default(0) @db.Decimal(14, 4)
+  totalNetUsd              Decimal         @default(0) @db.Decimal(14, 4)
+  status                   DspReportStatus @default(PROCESSED)
+  errorMessage             String?
+  uploadedByPlatformUserId String?
+
+  uploadedBy PlatformUser? @relation("PlatformUserDspReports", fields: [uploadedByPlatformUserId], references: [id], onDelete: SetNull)
+  saleLines  DspSaleLine[]
+
+  whiteLabelId String?
+  whiteLabel   WhiteLabel? @relation(fields: [whiteLabelId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([store, reportingPeriod])
+  @@index([status])
+  @@index([whiteLabelId])
+  @@index([createdAt])
+}
+
+model DspSaleLine {
+  id               String   @id @default(cuid())
+  reportId         String
+  store            DspStore @default(OTHER)
+  reportingPeriod  String
+  countryCode      String   @default("US")
+  isrc             String?
+  upc              String?
+  trackTitle       String?
+  artistName       String?
+  streamCount      BigInt   @default(0)
+  downloadCount    BigInt   @default(0)
+  grossAmountUsd   Decimal  @db.Decimal(12, 4)
+  netAmountUsd     Decimal  @db.Decimal(12, 4)
+  matchedTrackId   String?
+  matchedReleaseId String?
+  whiteLabelId     String?
+
+  report DspRawReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([isrc])
+  @@index([upc])
+  @@index([matchedTrackId])
+  @@index([matchedReleaseId])
+  @@index([whiteLabelId])
+  @@index([reportingPeriod])
+}
+
+model RoyaltyRun {
+  id                   String           @id @default(cuid())
+  code                 String           @unique
+  reportingPeriod      String
+  title                String
+  exchangeRateUsdToBdt Decimal          @default(120.0) @db.Decimal(10, 4)
+  totalRawGrossUsd     Decimal          @default(0) @db.Decimal(14, 2)
+  totalNetPayoutUsd    Decimal          @default(0) @db.Decimal(14, 2)
+  totalNetPayoutBdt    Decimal          @default(0) @db.Decimal(14, 2)
+  status               RoyaltyRunStatus @default(QUEUED)
+  processedAt          DateTime?
+
+  whiteLabelId String?
+  whiteLabel   WhiteLabel? @relation(fields: [whiteLabelId], references: [id], onDelete: SetNull)
+
+  statements UserRoyaltyStatement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reportingPeriod])
+  @@index([status])
+  @@index([whiteLabelId])
+  @@index([createdAt])
+}
+
+model UserRoyaltyStatement {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  royaltyRunId     String
+  payeeId          String
+  whiteLabelId     String
+  reportingPeriod  String
+  grossEarningsUsd Decimal   @default(0) @db.Decimal(14, 2)
+  netEarningsUsd   Decimal   @default(0) @db.Decimal(14, 2)
+  netEarningsBdt   Decimal   @default(0) @db.Decimal(14, 2)
+  streamCount      BigInt    @default(0)
+  downloadCount    BigInt    @default(0)
+  statementFileKey String?
+  isPaid           Boolean   @default(false)
+  paidAt           DateTime?
+
+  royaltyRun RoyaltyRun @relation(fields: [royaltyRunId], references: [id], onDelete: Cascade)
+  payee      Payee      @relation(fields: [payeeId], references: [id], onDelete: Cascade)
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([royaltyRunId])
+  @@index([payeeId])
+  @@index([whiteLabelId])
+  @@index([reportingPeriod])
+  @@index([isPaid])
+}
+
+model DspDeliveryPackage {
+  id             String         @id @default(cuid())
+  code           String         @unique
+  releaseId      String
+  whiteLabelId   String
+  targetDsp      DspStore       @default(SPOTIFY)
+  ddexVersion    DdexVersion    @default(ERN_43)
+  xmlManifestKey String?
+  packageZipKey  String?
+  status         DeliveryStatus @default(QUEUED)
+  batchId        String?
+  dispatchedAt   DateTime?
+  acknowledgedAt DateTime?
+  dspFeedback    Json?
+
+  release    Release    @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([releaseId])
+  @@index([whiteLabelId])
+  @@index([targetDsp])
+  @@index([status])
+}
+
+model PayeePayoutRequest {
+  id                String        @id @default(cuid())
+  code              String        @unique
+  payeeId           String
+  whiteLabelId      String
+  amountUsd         Decimal       @db.Decimal(12, 2)
+  amountBdt         Decimal       @db.Decimal(12, 2)
+  gateway           PayoutGateway @default(MANUAL_BANK)
+  status            PayoutStatus  @default(REQUESTED)
+  externalReference String?
+  taxWithholdingUsd Decimal       @default(0) @db.Decimal(12, 2)
+  transactionFeeUsd Decimal       @default(0) @db.Decimal(12, 2)
+  requestedAt       DateTime      @default(now())
+  processedAt       DateTime?
+  notes             String?
+
+  payee      Payee      @relation(fields: [payeeId], references: [id], onDelete: Cascade)
+  whiteLabel WhiteLabel @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([payeeId])
+  @@index([whiteLabelId])
+  @@index([status])
+}

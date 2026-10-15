@@ -8,9 +8,13 @@ import {
   Query,
 } from '@nestjs/common';
 import { AdminReportsService } from './admin-reports.service';
+import { DspReportIngestionService } from './dsp-report-ingestion.service';
+import { RoyaltyRunService } from './royalty-run.service';
 import { CreateDistributionReportDto } from './dto/create-distribution-report.dto';
 import { RequestReportUploadUrlDto } from './dto/request-report-upload-url.dto';
 import { AdminReportsQueryDto } from './dto/admin-reports-query.dto';
+import { DspIngestDto } from './dto/dsp-ingest.dto';
+import { ExecuteRoyaltyRunDto } from './dto/execute-royalty-run.dto';
 import { Roles } from 'src/platform/decorator/roles.decorator';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
 import { ADMIN_ROLES } from 'src/platform/session/session-auth.service';
@@ -18,7 +22,53 @@ import type { PlatformUser } from 'src/generated/prisma/client';
 
 @Controller('reports')
 export class AdminReportsController {
-  constructor(private readonly reportsService: AdminReportsService) {}
+  constructor(
+    private readonly reportsService: AdminReportsService,
+    private readonly dspIngestionService: DspReportIngestionService,
+    private readonly royaltyRunService: RoyaltyRunService,
+  ) {}
+
+  @Post('dsp-ingest')
+  @Roles(...ADMIN_ROLES)
+  async ingestDspReport(
+    @Body() dto: DspIngestDto,
+    @CurrentUser() adminUser: PlatformUser,
+  ) {
+    return await this.dspIngestionService.ingestDspReport({
+      fileName: `dsp-${dto.store.toLowerCase()}-${dto.reportingPeriod}.csv`,
+      fileContent: dto.fileContent || '',
+      store: dto.store,
+      reportingPeriod: dto.reportingPeriod,
+      uploadedByPlatformUserId: adminUser.id,
+    });
+  }
+
+  @Post('royalty-runs')
+  @Roles(...ADMIN_ROLES)
+  async executeRoyaltyRun(
+    @Body() dto: ExecuteRoyaltyRunDto,
+    @CurrentUser() adminUser: PlatformUser,
+  ) {
+    return await this.royaltyRunService.executeRoyaltyRun(
+      dto.period,
+      dto.exchangeRateUsdToBdt,
+      adminUser.id,
+    );
+  }
+
+  @Get('royalty-runs')
+  @Roles(...ADMIN_ROLES)
+  async listRoyaltyRuns(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('period') period?: string,
+  ) {
+    return await this.royaltyRunService.listRoyaltyRuns(
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+      period,
+    );
+  }
 
   @Post('upload-url')
   @Roles(...ADMIN_ROLES)

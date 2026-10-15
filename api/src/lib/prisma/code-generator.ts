@@ -17,6 +17,13 @@ export enum CodePrefix {
   RELEASE = 'RMIT-REL-',
   TRACK = 'RMIT-TRK-',
   DISTRIBUTION_REPORT = 'RMIT-REP-',
+  PAYEE = 'RMIT-PAYEE-',
+  CONTRACT = 'RMIT-CTR-',
+  DSP_RAW_REPORT = 'RMIT-RAW-',
+  ROYALTY_RUN = 'RMIT-RUN-',
+  USER_ROYALTY_STATEMENT = 'RMIT-URS-',
+  DSP_DELIVERY_PACKAGE = 'RMIT-DDX-',
+  PAYEE_PAYOUT_REQUEST = 'RMIT-PAYOUT-',
 }
 
 export type CodeModel =
@@ -35,7 +42,14 @@ export type CodeModel =
   | 'referrerDeal'
   | 'release'
   | 'track'
-  | 'distributionReport';
+  | 'distributionReport'
+  | 'payee'
+  | 'contract'
+  | 'dspRawReport'
+  | 'royaltyRun'
+  | 'userRoyaltyStatement'
+  | 'dspDeliveryPackage'
+  | 'payeePayoutRequest';
 
 /**
  * Sequence backing each model's human-readable code.
@@ -60,6 +74,13 @@ const CODE_SEQUENCES: Record<CodeModel, string> = {
   release: 'release_code_seq',
   track: 'track_code_seq',
   distributionReport: 'distributionreport_code_seq',
+  payee: 'payee_code_seq',
+  contract: 'contract_code_seq',
+  dspRawReport: 'dsprawreport_code_seq',
+  royaltyRun: 'royaltyrun_code_seq',
+  userRoyaltyStatement: 'userroyaltystatement_code_seq',
+  dspDeliveryPackage: 'dspdeliverypackage_code_seq',
+  payeePayoutRequest: 'payeepayoutrequest_code_seq',
 };
 
 export async function generateUniqueCode(

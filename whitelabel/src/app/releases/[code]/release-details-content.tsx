@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useTransition, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Release, ReleaseStatus } from "@/types/catalog";
+import { Release, ReleaseStatus, ReleaseValidationResult } from "@/types/catalog";
 import {
   wlGetReleaseAction,
   wlSubmitReleaseAction,
   wlGetAudioStreamUrlAction,
+  validateReleaseAction,
 } from "@/actions/catalog/whitelabel-catalog.action";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
   Pause,
   AlertTriangle,
   CheckCircle,
+  CheckCircle2,
   Clock,
   Layers,
   Send,
@@ -26,11 +28,13 @@ import {
   Radio,
   ExternalLink,
   ShieldCheck,
+  ShieldAlert,
   AlertCircle,
   Volume2,
   VolumeX,
   Edit3,
   X,
+  Loader2,
 } from "lucide-react";
 
 function formatTime(seconds: number): string {
@@ -44,6 +48,9 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [qcResult, setQcResult] = useState<ReleaseValidationResult | null>(null);
+
   const [activeTrackPlaying, setActiveTrackPlaying] = useState<string | null>(
     null,
   );
@@ -69,6 +76,28 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   useEffect(() => {
     fetchRelease();
   }, [code]);
+
+  // Pre-flight QC Validation Handler
+  const handleValidateQC = async () => {
+    setValidating(true);
+    try {
+      const res = await validateReleaseAction(code);
+      if (res.success && res.validation) {
+        setQcResult(res.validation);
+        if (res.validation.isValid) {
+          toast.success("Quality Control check passed cleanly!");
+        } else {
+          toast.error(`Found ${res.validation.errors.length} fatal error(s) preventing submission.`);
+        }
+      } else {
+        toast.error(res.message || "Validation could not be evaluated.");
+      }
+    } catch (err: any) {
+      toast.error("Validation error: " + err.message);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   // Audio Playback Handler
   const togglePlayTrack = async (trackCode: string) => {
@@ -103,6 +132,11 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   };
 
   const handleSubmit = async () => {
+    if (qcResult && qcResult.errors.length > 0) {
+      toast.error(`Cannot submit release: Please resolve ${qcResult.errors.length} fatal QC error(s) first.`);
+      return;
+    }
+
     setSubmitting(true);
     const res = await wlSubmitReleaseAction(code);
     if (res.success) {
@@ -201,6 +235,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
 
   const canSubmit =
     release.status === "DRAFT" || release.status === "REJECTED";
+  const hasFatalQcErrors = qcResult !== null && qcResult.errors.length > 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -237,28 +272,133 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
           <span>Back to Releases</span>
         </Link>
 
-        {canSubmit && (
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/releases/${code}/edit`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-background hover:bg-accent transition-colors"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Edit Release</span>
-            </Link>
+        <div className="flex items-center gap-2">
+          {/* Pre-flight Quality Check Action Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleValidateQC}
+            disabled={validating || submitting}
+            className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+          >
+            {validating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+            )}
+            <span>{validating ? "Running QC..." : "Validate Release"}</span>
+          </Button>
 
-            <Button
-              size="sm"
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="flex items-center gap-1.5 shadow-sm"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>{submitting ? "Submitting..." : "Submit to Mother Company"}</span>
-            </Button>
-          </div>
-        )}
+          {canSubmit && (
+            <>
+              <Link
+                href={`/releases/${code}/edit`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-background hover:bg-accent transition-colors"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit Release</span>
+              </Link>
+
+              <Button
+                size="sm"
+                onClick={handleSubmit}
+                disabled={submitting || hasFatalQcErrors}
+                className={`flex items-center gap-1.5 shadow-sm ${
+                  hasFatalQcErrors ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{submitting ? "Submitting..." : "Submit to Mother Company"}</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* QC Validation Results Banner */}
+      {qcResult && (
+        <div className="space-y-4">
+          {/* Severity 1: Fatal Errors Banner */}
+          {qcResult.errors.length > 0 && (
+            <div className="p-5 rounded-2xl border-2 border-destructive/60 bg-destructive/10 text-destructive space-y-3 shadow-xs">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 font-semibold text-sm">
+                  <ShieldAlert className="w-5 h-5 shrink-0" />
+                  <span>Severity 1: Fatal Errors ({qcResult.errors.length})</span>
+                </div>
+                <Badge variant="destructive" className="font-mono text-[10px]">
+                  CANNOT BE SUBMITTED
+                </Badge>
+              </div>
+
+              <p className="text-xs text-destructive/90 leading-relaxed font-medium">
+                The release <strong>CANNOT</strong> be submitted for DSP distribution until the following fatal issues are resolved:
+              </p>
+
+              <ul className="space-y-2 pt-1 border-t border-destructive/20">
+                {qcResult.errors.map((err, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2 text-xs bg-background/60 p-2.5 rounded-lg border border-destructive/30"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 text-destructive mt-0.5" />
+                    <div>
+                      <span className="font-semibold block">{err.message}</span>
+                      {err.trackTitle && (
+                        <span className="text-[11px] opacity-80 font-mono">
+                          Track: {err.trackTitle}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Severity 2: Warnings Banner */}
+          {qcResult.warnings.length > 0 && (
+            <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-semibold text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Severity 2: Advisory Warnings ({qcResult.warnings.length})</span>
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-500">
+                  Advisory
+                </span>
+              </div>
+
+              <ul className="space-y-1.5 pt-1 text-xs">
+                {qcResult.warnings.map((warn, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                    <span>{warn.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Passed Clean Badge Card */}
+          {qcResult.passed && qcResult.errors.length === 0 && (
+            <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-sm">Passed Pre-flight Quality Inspection</h4>
+                  <p className="text-xs opacity-90">
+                    All audio files, artwork dimensions, and metadata meet DSP delivery criteria.
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 shrink-0">
+                QC Clean
+              </Badge>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rejection / Note Alert */}
       {release.status === "REJECTED" && (
@@ -349,13 +489,13 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             <span>Tracklist ({release.tracks?.length || 0})</span>
           </h3>
           <span className="text-xs text-muted-foreground">
-            Lossless Lossless Audio (FLAC/WAV)
+            Lossless Audio (FLAC/WAV)
           </span>
         </div>
 
         <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden">
           {release.tracks && release.tracks.length > 0 ? (
-            release.tracks.map((track, idx) => (
+            release.tracks.map((track) => (
               <div
                 key={track.id}
                 className="p-3.5 flex items-center justify-between gap-4 bg-background/50 hover:bg-muted/20 transition-colors"

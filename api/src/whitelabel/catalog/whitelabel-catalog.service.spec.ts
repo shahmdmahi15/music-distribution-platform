@@ -11,6 +11,8 @@ import {
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReleaseStatus, ReleaseType } from 'src/generated/prisma/client';
 
+import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
+
 describe('WhitelabelCatalogService', () => {
   let service: WhitelabelCatalogService;
   let prisma: ReturnType<typeof createMockPrismaService>;
@@ -22,12 +24,23 @@ describe('WhitelabelCatalogService', () => {
     storage = createMockStorageService();
     acrcloud = createMockAcrCloudService();
 
+    const mockQcService = {
+      validateRelease: jest.fn().mockResolvedValue({
+        isValid: true,
+        errors: [],
+        warnings: [],
+        severity1Errors: [],
+        severity2Warnings: [],
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WhitelabelCatalogService,
         { provide: PrismaService, useValue: prisma },
         { provide: StorageService, useValue: storage },
         { provide: AcrCloudService, useValue: acrcloud },
+        { provide: WhitelabelQcValidationService, useValue: mockQcService },
       ],
     }).compile();
 
