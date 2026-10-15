@@ -30,6 +30,9 @@ pnpm exec prisma migrate deploy
 echo "🏗️ [Deploy: API] Compiling NestJS production build..."
 pnpm run build
 
+echo "📦 [Deploy: Bundle] Building isolated whitelabel.zip distribution bundle..."
+"$APP_DIR/scripts/build-whitelabel-bundle.sh"
+
 # 3. Deploy Platform Console (Port 3000)
 echo "⚡ [Deploy: Platform] Installing dependencies..."
 cd "$APP_DIR/platform"

@@ -27,7 +27,18 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertCircle,
+  Volume2,
+  VolumeX,
+  Edit3,
+  X,
 } from "lucide-react";
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 export function ReleaseDetailsContent({ code }: { code: string }) {
   const [release, setRelease] = useState<Release | null>(null);
@@ -36,6 +47,11 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const [activeTrackPlaying, setActiveTrackPlaying] = useState<string | null>(
     null,
   );
+  const [playingTrackTitle, setPlayingTrackTitle] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [volume, setVolume] = useState<number>(1);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -58,9 +74,12 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const togglePlayTrack = async (trackCode: string) => {
     if (activeTrackPlaying === trackCode) {
       if (audioRef.current) {
-        audioRef.current.pause();
+        if (audioRef.current.paused) {
+          audioRef.current.play();
+        } else {
+          audioRef.current.pause();
+        }
       }
-      setActiveTrackPlaying(null);
       return;
     }
 
@@ -69,6 +88,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       if (res.success && res.streamUrl) {
         setAudioUrl(res.streamUrl);
         setActiveTrackPlaying(trackCode);
+        const trk = release?.tracks?.find((t) => t.code === trackCode);
+        setPlayingTrackTitle(trk?.title || "Audio Preview");
         if (audioRef.current) {
           audioRef.current.src = res.streamUrl;
           audioRef.current.play();
@@ -186,15 +207,28 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       {/* Hidden Audio Player */}
       <audio
         ref={audioRef}
-        onEnded={() => setActiveTrackPlaying(null)}
+        onTimeUpdate={() => {
+          if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+          }
+        }}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+          }
+        }}
+        onEnded={() => {
+          setActiveTrackPlaying(null);
+          setCurrentTime(0);
+        }}
         onError={() => {
           setActiveTrackPlaying(null);
           toast.error("Audio format could not be played in browser.");
         }}
       />
 
-      {/* Back button */}
-      <div className="flex items-center justify-between">
+      {/* Back button & Action buttons */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <Link
           href="/releases"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -204,15 +238,25 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         </Link>
 
         {canSubmit && (
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center gap-1.5 shadow-sm"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>{submitting ? "Submitting..." : "Submit to Mother Company"}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/releases/${code}/edit`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-background hover:bg-accent transition-colors"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Edit Release</span>
+            </Link>
+
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-1.5 shadow-sm"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{submitting ? "Submitting..." : "Submit to Mother Company"}</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -381,6 +425,118 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
           )}
         </div>
       </div>
+
+      {/* Sticky Bottom Audio Player */}
+      {activeTrackPlaying && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 p-4 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-2xl flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => {
+                  if (audioRef.current) {
+                    if (audioRef.current.paused) {
+                      audioRef.current.play();
+                    } else {
+                      audioRef.current.pause();
+                    }
+                  }
+                }}
+                className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md hover:opacity-90 transition-opacity"
+              >
+                {audioRef.current?.paused ? (
+                  <Play className="w-4 h-4 ml-0.5" />
+                ) : (
+                  <Pause className="w-4 h-4" />
+                )}
+              </button>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {playingTrackTitle}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {release.title} • Lossless Preview
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Volume */}
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.muted = !isMuted;
+                      setIsMuted(!isMuted);
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setVolume(val);
+                    if (audioRef.current) {
+                      audioRef.current.volume = val;
+                      audioRef.current.muted = false;
+                      setIsMuted(false);
+                    }
+                  }}
+                  className="w-20 h-1.5 accent-primary cursor-pointer"
+                />
+              </div>
+
+              {/* Close */}
+              <button
+                onClick={() => {
+                  if (audioRef.current) {
+                    audioRef.current.pause();
+                  }
+                  setActiveTrackPlaying(null);
+                }}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="Close Player"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrubber & Timestamps */}
+          <div className="flex items-center gap-3 w-full">
+            <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">
+              {formatTime(currentTime)}
+            </span>
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setCurrentTime(val);
+                if (audioRef.current) {
+                  audioRef.current.currentTime = val;
+                }
+              }}
+              className="flex-1 h-1.5 accent-primary cursor-pointer rounded-lg bg-accent"
+            />
+            <span className="text-[10px] font-mono text-muted-foreground w-8">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

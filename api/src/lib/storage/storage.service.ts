@@ -13,6 +13,13 @@ export interface UploadOptions {
   cacheControl?: string;
 }
 
+export interface TenantStorageConfig {
+  awsRegion?: string | null;
+  awsAccessKeyId?: string | null;
+  awsSecretAccessKey?: string | null;
+  bucketName?: string | null;
+}
+
 /** Lifetime of signed URLs for private objects, in seconds. */
 export const DOCUMENT_URL_TTL_SECONDS = 900;
 
@@ -21,6 +28,10 @@ export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private s3Client!: S3Client;
   private bucketName!: string;
+  private readonly tenantClients = new Map<
+    string,
+    { client: S3Client; bucket: string }
+  >();
 
   constructor(
     private readonly configService: ConfigService<EnvironmentVariables, true>,
@@ -143,5 +154,121 @@ export class StorageService implements OnModuleInit {
 
     const byteArray = await response.Body.transformToByteArray();
     return Buffer.from(byteArray);
+  }
+
+  /**
+   * Resolves an S3 client and bucket name scoped to a specific WhiteLabel tenant's BYOC storage.
+   * Falls back to Mother Company central storage if tenant storage is unconfigured.
+   */
+  getTenantS3Context(
+    tenantId: string,
+    config?: TenantStorageConfig,
+  ): { client: S3Client; bucket: string } {
+    if (
+      config?.awsAccessKeyId &&
+      config?.awsSecretAccessKey &&
+      config?.bucketName
+    ) {
+      const cacheKey = `${tenantId}:${config.bucketName}`;
+      const existing = this.tenantClients.get(cacheKey);
+      if (existing) {
+        return existing;
+      }
+
+      const client = new S3Client({
+        region: config.awsRegion || 'ap-southeast-1',
+        credentials: {
+          accessKeyId: config.awsAccessKeyId,
+          secretAccessKey: config.awsSecretAccessKey,
+        },
+      });
+
+      const entry = { client, bucket: config.bucketName };
+      this.tenantClients.set(cacheKey, entry);
+      return entry;
+    }
+
+    return { client: this.s3Client, bucket: this.bucketName };
+  }
+
+  /**
+   * Generates a presigned PUT upload URL scoped to the tenant's dedicated S3 bucket.
+   */
+  async getTenantPresignedUploadUrl(
+    tenantId: string,
+    key: string,
+    mimeType: string,
+    expiresIn = 900,
+    config?: TenantStorageConfig,
+  ): Promise<string> {
+    const { client, bucket } = this.getTenantS3Context(tenantId, config);
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: mimeType,
+    });
+    return getSignedUrl(client, command, { expiresIn });
+  }
+
+  /**
+   * Generates a time-limited signed GET URL for an object in the tenant's dedicated S3 bucket.
+   */
+  async getTenantPresignedUrl(
+    tenantId: string,
+    key: string,
+    expiresIn = 900,
+    config?: TenantStorageConfig,
+  ): Promise<string> {
+    const { client, bucket } = this.getTenantS3Context(tenantId, config);
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+    return getSignedUrl(client, command, { expiresIn });
+  }
+
+  /**
+   * Retrieves file buffer or byte-range from the tenant's dedicated S3 bucket.
+   */
+  async getTenantFileBuffer(
+    tenantId: string,
+    key: string,
+    maxBytes?: number,
+    config?: TenantStorageConfig,
+  ): Promise<Buffer> {
+    const { client, bucket } = this.getTenantS3Context(tenantId, config);
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ...(maxBytes ? { Range: `bytes=0-${maxBytes - 1}` } : {}),
+    });
+
+    const response = await client.send(command);
+    if (!response.Body) {
+      throw new Error(
+        `Object body for key ${key} in bucket ${bucket} is empty`,
+      );
+    }
+
+    const byteArray = await response.Body.transformToByteArray();
+    return Buffer.from(byteArray);
+  }
+
+  /**
+   * Deletes a file from the tenant's dedicated S3 bucket.
+   */
+  async deleteTenantFile(
+    tenantId: string,
+    key: string,
+    config?: TenantStorageConfig,
+  ): Promise<boolean> {
+    if (!key) return false;
+    const { client, bucket } = this.getTenantS3Context(tenantId, config);
+    const command = new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+    await client.send(command);
+    return true;
   }
 }

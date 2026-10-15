@@ -8,7 +8,7 @@ import { useTenant, useCurrentUser } from "./tenant-theme-provider";
 import { TenantLogo } from "./tenant-logo";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { WhiteLabelUserRole } from "@/types/user";
-import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText } from "lucide-react";
+import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText, Menu, X, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ export function Navbar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [isPending, startTransition] = useTransition();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const isManagement =
     user?.role &&
@@ -162,7 +163,7 @@ export function Navbar() {
         </div>
 
         {/* Right Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -174,30 +175,56 @@ export function Navbar() {
           </button>
 
           {user ? (
-            <div className="flex items-center gap-3">
-              {/* Role badge & user info */}
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-xs font-medium leading-none">
-                  {user.firstName} {user.lastName}
-                </span>
-                <span
-                  className={`mt-1 text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border ${getRoleBadgeColor(
-                    user.role,
-                  )}`}
-                >
-                  {user.role}
-                </span>
-              </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Profile Link with Role badge & user info */}
+              <Link
+                href="/profile"
+                className={`flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-lg transition-colors ${
+                  pathname === "/profile"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent/60"
+                }`}
+                title="View Profile"
+              >
+                <div className="h-7 w-7 rounded-full bg-accent flex items-center justify-center border border-border text-foreground">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <div className="hidden sm:flex flex-col items-start">
+                  <span className="text-xs font-medium leading-none">
+                    {user.firstName} {user.lastName}
+                  </span>
+                  <span
+                    className={`mt-1 text-[9px] uppercase font-semibold px-1.5 py-0.5 rounded border ${getRoleBadgeColor(
+                      user.role,
+                    )}`}
+                  >
+                    {user.role}
+                  </span>
+                </div>
+              </Link>
 
               {/* Sign out button */}
               <button
                 onClick={handleLogout}
                 disabled={isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border/80 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors disabled:opacity-50"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border/80 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors disabled:opacity-50"
                 title="Sign out"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span>Sign Out</span>
+              </button>
+
+              {/* Mobile Menu Toggle Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="Toggle Menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
               </button>
             </div>
           ) : (
@@ -219,6 +246,98 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && user && (
+        <div className="md:hidden border-b border-border bg-background px-4 py-4 space-y-2 shadow-lg animate-in slide-in-from-top-2 duration-150">
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname === "/"
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/releases"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname.startsWith("/releases")
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <Music className="w-4 h-4" />
+            Releases
+          </Link>
+          <Link
+            href="/reports"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname.startsWith("/reports")
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Reports
+          </Link>
+          <Link
+            href="/sessions"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname === "/sessions"
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            Sessions
+          </Link>
+          {isManagement && (
+            <Link
+              href="/users"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+                pathname === "/users"
+                  ? "bg-accent text-accent-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Team & Users
+            </Link>
+          )}
+          <Link
+            href="/profile"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname === "/profile"
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Profile
+          </Link>
+          <div className="pt-2 border-t border-border">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
+              disabled={isPending}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

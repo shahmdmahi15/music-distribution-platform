@@ -29,10 +29,10 @@ export class WhitelabelMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {
     // 0. Public tenant subdomain resolution bypass (called by platform edge proxy)
+    const cleanPath = (req.path || '').replace(/\/+$/, '');
     if (
-      req.originalUrl?.includes('/tenant/resolve-subdomain') ||
-      req.baseUrl?.includes('/tenant/resolve-subdomain') ||
-      req.path?.includes('/resolve-subdomain')
+      cleanPath === '/whitelabel/tenant/resolve-subdomain' ||
+      cleanPath === '/tenant/resolve-subdomain'
     ) {
       return next();
     }

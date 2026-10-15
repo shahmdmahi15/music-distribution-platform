@@ -15,6 +15,7 @@ export const envSchema = z.object({
     .string()
     .min(32, 'INTERNAL_API_SECRET must be at least 32 characters'),
   PLATFORM_URL: z.url('PLATFORM_URL must be a valid URL'),
+  API_BASE_URL: z.string().optional(),
   CLOUDFLARE_API_TOKEN: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),

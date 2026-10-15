@@ -7,11 +7,14 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ClientWhitelabelService } from './whitelabel.service';
+import { WhitelabelBundleService } from './bundle/whitelabel-bundle.service';
 import { CurrentUser } from 'src/platform/decorator/current-user.decorator';
 import { CreateWhiteLabelDto } from './dto/create-whitelabel.dto';
 import { UpdateBrandingDto } from 'src/platform/dto/update-branding.dto';
@@ -42,7 +45,29 @@ export class ClientWhitelabelController {
   constructor(
     private readonly clientWhitelabelService: ClientWhitelabelService,
     private readonly provisioningService: WhitelabelProvisioningService,
+    private readonly bundleService: WhitelabelBundleService,
   ) {}
+
+  @Get('bundle/download')
+  async downloadBundle(
+    @Query('token') token: string,
+    @Res() res: Response,
+  ) {
+    await this.bundleService.validateAndConsumeToken(token);
+    const bundlePath = this.bundleService.getBundleFilePath();
+    const checksum = this.bundleService.getBundleChecksum();
+
+    if (checksum) {
+      res.setHeader('X-Bundle-Checksum-SHA256', checksum);
+    }
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="whitelabel.zip"',
+    );
+
+    return res.sendFile(bundlePath);
+  }
 
   @Get('subdomain/check')
   async checkSubdomain(

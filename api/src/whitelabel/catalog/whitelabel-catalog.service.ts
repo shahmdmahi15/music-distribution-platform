@@ -31,17 +31,45 @@ export class WhitelabelCatalogService {
   ) {}
 
   /**
+   * Resolves WhiteLabel tenant AWS BYOC storage configuration.
+   */
+  private async getTenantStorageConfig(whiteLabelId: string) {
+    const wl = await this.prisma.whiteLabel.findUnique({
+      where: { id: whiteLabelId },
+      select: {
+        awsRegion: true,
+        awsAccessKeyId: true,
+        awsSecretAccessKey: true,
+        bucketName: true,
+      },
+    });
+
+    return wl && wl.awsAccessKeyId && wl.awsSecretAccessKey && wl.bucketName
+      ? {
+          awsRegion: wl.awsRegion,
+          awsAccessKeyId: wl.awsAccessKeyId,
+          awsSecretAccessKey: wl.awsSecretAccessKey,
+          bucketName: wl.bucketName,
+        }
+      : undefined;
+  }
+
+  /**
    * Generates a presigned S3/R2 direct upload URL for lossless audio or cover artwork.
+   * Scoped to the WhiteLabel tenant's BYOC S3 bucket when configured.
    */
   async getUploadUrl(whiteLabelId: string, dto: RequestUploadUrlDto) {
+    const tenantConfig = await this.getTenantStorageConfig(whiteLabelId);
     const cleanFileName = dto.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const folder = dto.type === 'AUDIO' ? 'audio' : 'artwork';
     const key = `catalog/${whiteLabelId}/${folder}/${Date.now()}-${cleanFileName}`;
 
-    const uploadUrl = await this.storageService.getPresignedUploadUrl(
+    const uploadUrl = await this.storageService.getTenantPresignedUploadUrl(
+      whiteLabelId,
       key,
       dto.mimeType,
       3600,
+      tenantConfig,
     );
 
     return {
@@ -50,6 +78,7 @@ export class WhitelabelCatalogService {
       type: dto.type,
       fileName: dto.fileName,
       mimeType: dto.mimeType,
+      bucket: tenantConfig?.bucketName || 'default',
     };
   }
 
@@ -152,15 +181,19 @@ export class WhitelabelCatalogService {
       }),
     ]);
 
+    const tenantConfig = await this.getTenantStorageConfig(whiteLabelId);
+
     // Enhance items with cover art preview URLs if stored privately
     const enhancedItems = await Promise.all(
       items.map(async (r) => {
         let presignedCoverUrl = r.coverArtUrl;
         if (r.coverArtKey) {
           try {
-            presignedCoverUrl = await this.storageService.getPresignedUrl(
+            presignedCoverUrl = await this.storageService.getTenantPresignedUrl(
+              whiteLabelId,
               r.coverArtKey,
               3600,
+              tenantConfig,
             );
           } catch {
             presignedCoverUrl = r.coverArtUrl;
@@ -210,12 +243,15 @@ export class WhitelabelCatalogService {
       throw new NotFoundException(`Release ${code} not found for this tenant`);
     }
 
+    const tenantConfig = await this.getTenantStorageConfig(whiteLabelId);
     let presignedCoverUrl = release.coverArtUrl;
     if (release.coverArtKey) {
       try {
-        presignedCoverUrl = await this.storageService.getPresignedUrl(
+        presignedCoverUrl = await this.storageService.getTenantPresignedUrl(
+          whiteLabelId,
           release.coverArtKey,
           3600,
+          tenantConfig,
         );
       } catch {
         presignedCoverUrl = release.coverArtUrl;
@@ -337,8 +373,11 @@ export class WhitelabelCatalogService {
     );
 
     const trackNumber = dto.trackNumber || release.tracks.length + 1;
+    const tenantStorage = await this.getTenantStorageConfig(whiteLabelId);
     const audioUrl = dto.audioKey
-      ? this.storageService.getFileUrl(dto.audioKey)
+      ? tenantStorage
+        ? `https://${tenantStorage.bucketName}.s3.${tenantStorage.awsRegion || 'ap-southeast-1'}.amazonaws.com/${dto.audioKey}`
+        : this.storageService.getFileUrl(dto.audioKey)
       : null;
 
     const [track] = await this.prisma.$transaction([
@@ -438,8 +477,11 @@ export class WhitelabelCatalogService {
       });
     }
 
+    const tenantStorage = await this.getTenantStorageConfig(whiteLabelId);
     const audioUrl = dto.audioKey
-      ? this.storageService.getFileUrl(dto.audioKey)
+      ? tenantStorage
+        ? `https://${tenantStorage.bucketName}.s3.${tenantStorage.awsRegion || 'ap-southeast-1'}.amazonaws.com/${dto.audioKey}`
+        : this.storageService.getFileUrl(dto.audioKey)
       : track.audioUrl;
 
     const updated = await this.prisma.track.update({
@@ -537,7 +579,16 @@ export class WhitelabelCatalogService {
 
     if (track.audioKey) {
       try {
-        await this.storageService.deleteFile(track.audioKey);
+        const tenantStorage = await this.getTenantStorageConfig(whiteLabelId);
+        if (tenantStorage) {
+          await this.storageService.deleteTenantFile(
+            whiteLabelId,
+            track.audioKey,
+            tenantStorage,
+          );
+        } else {
+          await this.storageService.deleteFile(track.audioKey);
+        }
       } catch {
         // Non-blocking cleanup
       }
@@ -640,7 +691,18 @@ export class WhitelabelCatalogService {
       );
     }
 
-    const url = await this.storageService.getPresignedUrl(track.audioKey, 3600);
+    const tenantStorage = await this.getTenantStorageConfig(whiteLabelId);
+    let url: string;
+    if (tenantStorage) {
+      url = await this.storageService.getTenantPresignedUrl(
+        whiteLabelId,
+        track.audioKey,
+        3600,
+        tenantStorage,
+      );
+    } else {
+      url = await this.storageService.getPresignedUrl(track.audioKey, 3600);
+    }
 
     return {
       trackCode: track.code,

@@ -61,6 +61,10 @@ export class AdminDistributionService {
               subdomain: true,
               customDomain: true,
               logoUrl: true,
+              awsAccessKeyId: true,
+              awsSecretAccessKey: true,
+              awsRegion: true,
+              bucketName: true,
             },
           },
           whiteLabelUser: {
@@ -85,10 +89,30 @@ export class AdminDistributionService {
         let presignedCoverUrl = r.coverArtUrl;
         if (r.coverArtKey) {
           try {
-            presignedCoverUrl = await this.storageService.getPresignedUrl(
-              r.coverArtKey,
-              3600,
-            );
+            const wl = r.whiteLabel;
+            if (
+              wl &&
+              wl.awsAccessKeyId &&
+              wl.awsSecretAccessKey &&
+              wl.bucketName
+            ) {
+              presignedCoverUrl = await this.storageService.getTenantPresignedUrl(
+                wl.id,
+                r.coverArtKey,
+                3600,
+                {
+                  bucketName: wl.bucketName,
+                  awsRegion: wl.awsRegion || 'ap-southeast-1',
+                  awsAccessKeyId: wl.awsAccessKeyId,
+                  awsSecretAccessKey: wl.awsSecretAccessKey,
+                },
+              );
+            } else {
+              presignedCoverUrl = await this.storageService.getPresignedUrl(
+                r.coverArtKey,
+                3600,
+              );
+            }
           } catch {
             presignedCoverUrl = r.coverArtUrl;
           }
@@ -130,6 +154,10 @@ export class AdminDistributionService {
             contactFirstName: true,
             contactLastName: true,
             contactEmail: true,
+            awsAccessKeyId: true,
+            awsSecretAccessKey: true,
+            awsRegion: true,
+            bucketName: true,
           },
         },
         whiteLabelUser: {
@@ -156,14 +184,32 @@ export class AdminDistributionService {
       throw new NotFoundException(`Release ${code} not found`);
     }
 
+    const wl = release.whiteLabel;
+    const tenantStorage =
+      wl?.awsAccessKeyId && wl?.awsSecretAccessKey && wl?.bucketName
+        ? {
+            bucketName: wl.bucketName,
+            awsRegion: wl.awsRegion || 'ap-southeast-1',
+            awsAccessKeyId: wl.awsAccessKeyId,
+            awsSecretAccessKey: wl.awsSecretAccessKey,
+          }
+        : null;
+
     // Generate time-limited presigned download URLs for cover art and all audio files
     let coverArtDownloadUrl = release.coverArtUrl;
     if (release.coverArtKey) {
       try {
-        coverArtDownloadUrl = await this.storageService.getPresignedUrl(
-          release.coverArtKey,
-          7200,
-        );
+        coverArtDownloadUrl = tenantStorage && wl
+          ? await this.storageService.getTenantPresignedUrl(
+              wl.id,
+              release.coverArtKey,
+              7200,
+              tenantStorage,
+            )
+          : await this.storageService.getPresignedUrl(
+              release.coverArtKey,
+              7200,
+            );
       } catch {
         coverArtDownloadUrl = release.coverArtUrl;
       }
@@ -174,10 +220,17 @@ export class AdminDistributionService {
         let audioDownloadUrl = track.audioUrl;
         if (track.audioKey) {
           try {
-            audioDownloadUrl = await this.storageService.getPresignedUrl(
-              track.audioKey,
-              7200,
-            );
+            audioDownloadUrl = tenantStorage && wl
+              ? await this.storageService.getTenantPresignedUrl(
+                  wl.id,
+                  track.audioKey,
+                  7200,
+                  tenantStorage,
+                )
+              : await this.storageService.getPresignedUrl(
+                  track.audioKey,
+                  7200,
+                );
           } catch {
             audioDownloadUrl = track.audioUrl;
           }
@@ -279,13 +332,13 @@ export class AdminDistributionService {
         cLine: dossier.cLine,
         pLine: dossier.pLine,
         coverArtUrl: dossier.coverArtDownloadUrl,
-        contributors: dossier.contributors.map((c) => ({
+        contributors: (dossier.contributors || []).map((c: any) => ({
           name: c.name,
           role: c.role,
           spotifyId: c.spotifyId,
           appleMusicId: c.appleMusicId,
         })),
-        tracks: dossier.tracks.map((t) => ({
+        tracks: (dossier.tracks || []).map((t: any) => ({
           code: t.code,
           trackNumber: t.trackNumber,
           discNumber: t.discNumber,
@@ -301,7 +354,7 @@ export class AdminDistributionService {
           fileName: t.fileName,
           fileSizeBytes: t.fileSizeBytes,
           mimeType: t.mimeType,
-          contributors: t.contributors.map((c) => ({
+          contributors: (t.contributors || []).map((c: any) => ({
             name: c.name,
             role: c.role,
             spotifyId: c.spotifyId,
@@ -320,17 +373,41 @@ export class AdminDistributionService {
   async getTrackDownloadUrl(trackCode: string) {
     const track = await this.prisma.track.findUnique({
       where: { code: trackCode },
-      include: { release: true },
+      include: {
+        release: {
+          include: {
+            whiteLabel: true,
+          },
+        },
+      },
     });
 
     if (!track || !track.audioKey) {
       throw new NotFoundException(`Track ${trackCode} audio file not found`);
     }
 
-    const downloadUrl = await this.storageService.getPresignedUrl(
-      track.audioKey,
-      7200,
-    );
+    const wl = track.release?.whiteLabel;
+    const tenantStorage =
+      wl?.awsAccessKeyId && wl?.awsSecretAccessKey && wl?.bucketName
+        ? {
+            bucketName: wl.bucketName,
+            awsRegion: wl.awsRegion || 'ap-southeast-1',
+            awsAccessKeyId: wl.awsAccessKeyId,
+            awsSecretAccessKey: wl.awsSecretAccessKey,
+          }
+        : null;
+
+    const downloadUrl = tenantStorage && wl
+      ? await this.storageService.getTenantPresignedUrl(
+          wl.id,
+          track.audioKey,
+          7200,
+          tenantStorage,
+        )
+      : await this.storageService.getPresignedUrl(
+          track.audioKey,
+          7200,
+        );
 
     return {
       code: track.code,

@@ -239,7 +239,14 @@ export class AcrCloudService {
   async scanTrack(trackId: string) {
     const track = await this.prisma.track.findUnique({
       where: { id: trackId },
-      include: { audioScan: true },
+      include: {
+        audioScan: true,
+        release: {
+          include: {
+            whiteLabel: true,
+          },
+        },
+      },
     });
 
     if (!track) {
@@ -272,10 +279,31 @@ export class AcrCloudService {
 
     try {
       // Pull first 2MB snippet (~15-30s) of lossless audio using S3 byte-range request
-      const sampleBuffer = await this.storageService.getFileBuffer(
-        track.audioKey,
-        2 * 1024 * 1024,
-      );
+      let sampleBuffer: Buffer;
+      const wl = track.release?.whiteLabel;
+      if (
+        wl &&
+        wl.awsAccessKeyId &&
+        wl.awsSecretAccessKey &&
+        wl.bucketName
+      ) {
+        sampleBuffer = await this.storageService.getTenantFileBuffer(
+          wl.id,
+          track.audioKey,
+          2 * 1024 * 1024,
+          {
+            bucketName: wl.bucketName,
+            awsRegion: wl.awsRegion || 'ap-southeast-1',
+            awsAccessKeyId: wl.awsAccessKeyId,
+            awsSecretAccessKey: wl.awsSecretAccessKey,
+          },
+        );
+      } else {
+        sampleBuffer = await this.storageService.getFileBuffer(
+          track.audioKey,
+          2 * 1024 * 1024,
+        );
+      }
 
       const result = await this.identifyAudio(sampleBuffer);
 

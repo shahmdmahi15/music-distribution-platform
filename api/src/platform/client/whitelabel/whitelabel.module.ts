@@ -7,10 +7,20 @@ import { RedisModule } from 'src/lib/redis/redis.module';
 import { StorageModule } from 'src/lib/storage/storage.module';
 import { CloudflareDnsModule } from 'src/lib/cloudflare/cloudflare-dns.module';
 
+import { WhitelabelBundleService } from './bundle/whitelabel-bundle.service';
+
 @Module({
   imports: [PrismaModule, RedisModule, StorageModule, CloudflareDnsModule],
   controllers: [ClientWhitelabelController],
-  providers: [ClientWhitelabelService, WhitelabelProvisioningService],
-  exports: [ClientWhitelabelService, WhitelabelProvisioningService],
+  providers: [
+    ClientWhitelabelService,
+    WhitelabelProvisioningService,
+    WhitelabelBundleService,
+  ],
+  exports: [
+    ClientWhitelabelService,
+    WhitelabelProvisioningService,
+    WhitelabelBundleService,
+  ],
 })
 export class ClientWhitelabelModule {}

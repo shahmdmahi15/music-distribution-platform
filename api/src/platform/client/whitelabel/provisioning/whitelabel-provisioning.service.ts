@@ -61,6 +61,7 @@ import * as forge from 'node-forge';
 const generateKeyPairAsync = promisify(crypto.generateKeyPair);
 
 import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
+import { WhitelabelBundleService } from '../bundle/whitelabel-bundle.service';
 
 interface ProvisioningLogEntry {
   timestamp: string;
@@ -78,6 +79,7 @@ export class WhitelabelProvisioningService {
     private readonly redisService: RedisService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
     private readonly cloudflareDnsService: CloudflareDnsService,
+    private readonly bundleService: WhitelabelBundleService,
   ) {}
 
   /**
@@ -964,12 +966,9 @@ export class WhitelabelProvisioningService {
         }),
       );
 
-      const apiBaseUrl = 'https://api.royalmotionit.com';
-      const internalSecret =
-        this.configService.get('INTERNAL_API_SECRET', { infer: true }) || '';
-      if (!internalSecret) {
-        throw new Error('INTERNAL_API_SECRET is not configured in environment.');
-      }
+      const apiBaseUrl =
+        this.configService.get('API_BASE_URL', { infer: true }) ||
+        'https://api.royalmotionit.com';
 
       const isArm = (wl.awsInstanceType || 't4g.medium').startsWith('t4g');
       const amiId = await this.resolveUbuntuAmi(ec2, isArm);
@@ -1559,6 +1558,9 @@ server {
         );
 
         // 5. Automated End-to-End Build & PM2 Deployment Script
+        const bundleToken =
+          await this.bundleService.createBundleDownloadToken(whiteLabelId);
+
         await this.appendLog(
           whiteLabelId,
           'DEPLOY',
@@ -1581,7 +1583,7 @@ done
 
 echo "=== [2/6] Ensuring system packages & Node.js 22 LTS ==="
 DEBIAN_FRONTEND=noninteractive apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git openssl build-essential
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git unzip openssl build-essential
 
 if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]; then
   echo "Installing Node.js 22 LTS..."
@@ -1618,25 +1620,26 @@ if [ ! -f /swapfile ]; then
   echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 fi
 
-echo "=== [3/6] Synchronizing repository from GitHub ==="
-mkdir -p /var/www
-chown -R ubuntu:ubuntu /var/www
+echo "=== [3/6] Fetching WhiteLabel standalone distribution bundle ==="
+# Clean up any legacy or duplicate cloned directories
+rm -rf /var/www/music-distribution-platform 2>/dev/null || true
+mkdir -p /var/www/whitelabel
+chown -R ubuntu:ubuntu /var/www/whitelabel
 
-if [ ! -d "/var/www/music-distribution-platform/.git" ]; then
-  sudo -u ubuntu git clone https://github.com/shahmdmahi15/music-distribution-platform.git /var/www/music-distribution-platform
-else
-  cd /var/www/music-distribution-platform
-  sudo -u ubuntu git fetch origin master
-  sudo -u ubuntu git reset --hard origin/master
-fi
+echo "Downloading secure application bundle from Central API..."
+curl -fSL "${apiBaseUrl}/platform/client/whitelabel/bundle/download?token=${bundleToken}" -o /tmp/whitelabel.zip
+
+echo "Extracting bundle to /var/www/whitelabel..."
+unzip -q -o /tmp/whitelabel.zip -d /var/www/whitelabel
+rm -f /tmp/whitelabel.zip
+chown -R ubuntu:ubuntu /var/www/whitelabel
 
 echo "=== [4/6] Configuring production environment and ecosystem ==="
-cd /var/www/music-distribution-platform/whitelabel
+cd /var/www/whitelabel
 
 cat << 'ENV_EOF' > .env
 API_BASE_URL="${apiBaseUrl}"
 API_KEY="${rawApiKey}"
-INTERNAL_API_SECRET="${internalSecret}"
 PORT=3000
 NODE_ENV=production
 ENV_EOF
@@ -1644,14 +1647,14 @@ ENV_EOF
 cp -f .env .env.production
 cp -f .env .env.local
 
-mkdir -p /var/www/music-distribution-platform/whitelabel/logs
+mkdir -p /var/www/whitelabel/logs
 
 cat << 'ECOSYSTEM_EOF' > ecosystem.config.js
 module.exports = {
   apps: [
     {
       name: "whitelabel-portal",
-      cwd: "/var/www/music-distribution-platform/whitelabel",
+      cwd: "/var/www/whitelabel",
       script: "node_modules/next/dist/bin/next",
       args: "start -p 3000",
       instances: 1,
@@ -1664,8 +1667,8 @@ module.exports = {
       restart_delay: 1000,
       exp_backoff_restart_delay: 100,
       max_restarts: 15,
-      error_file: "/var/www/music-distribution-platform/whitelabel/logs/whitelabel-portal-error.log",
-      out_file: "/var/www/music-distribution-platform/whitelabel/logs/whitelabel-portal-out.log",
+      error_file: "/var/www/whitelabel/logs/whitelabel-portal-error.log",
+      out_file: "/var/www/whitelabel/logs/whitelabel-portal-out.log",
       merge_logs: true,
       time: true,
       node_args: "--max-old-space-size=1024",
@@ -1678,10 +1681,10 @@ module.exports = {
 };
 ECOSYSTEM_EOF
 
-chown -R ubuntu:ubuntu /var/www/music-distribution-platform
+chown -R ubuntu:ubuntu /var/www/whitelabel
 
 echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
-cd /var/www/music-distribution-platform/whitelabel
+cd /var/www/whitelabel
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm run build
 
@@ -1706,6 +1709,7 @@ sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 kill 2>/dev/nul
 sleep 2
 
 # Start Next.js via ecosystem
+cd /var/www/whitelabel
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 start ecosystem.config.js
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
 env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true

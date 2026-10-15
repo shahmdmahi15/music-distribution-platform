@@ -29,10 +29,18 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyMfaDto } from './dto/verify-mfa.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ClientMetadata } from 'src/platform/decorator/client-info.decorator';
 
 const AUTH_MAX_FAILED_ATTEMPTS = 5;
 const AUTH_LOCKOUT_DURATION_MS = 1000 * 60 * 60; // 1 hour
+
+type WhiteLabelAuthFailureCounter =
+  | 'failedLoginAttempts'
+  | 'failedVerificationAttempts'
+  | 'failedPasswordResetAttempts'
+  | 'failedTwoFactorAttempts';
 
 function codesMatch(presented: string, expected: string): boolean {
   const a = crypto.createHash('sha256').update(presented).digest();
@@ -230,6 +238,7 @@ export class WhitelabelAuthService {
 
     const user = await this.prismaService.whiteLabelUser.findUnique({
       where: { id: userId },
+      select: { id: true, emailVerified: true },
     });
 
     if (!user) {
@@ -237,6 +246,23 @@ export class WhitelabelAuthService {
         'User associated with this token does not exist.',
       );
     }
+
+    if (user.emailVerified) {
+      throw new ConflictException('User email is already verified.');
+    }
+
+    await this.prismaService.whiteLabelUser.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        failedLoginAttempts: 0,
+        failedVerificationAttempts: 0,
+        failedPasswordResetAttempts: 0,
+        failedTwoFactorAttempts: 0,
+        lockedUntil: null,
+      },
+    });
 
     await this.redisService.del(
       REDIS_KEYS.whitelabel.user.verification.key(dto.token),
@@ -346,26 +372,25 @@ export class WhitelabelAuthService {
     );
 
     if (!passwordMatches) {
-      const nextAttempts = user.failedLoginAttempts + 1;
-      const shouldLock = nextAttempts >= AUTH_MAX_FAILED_ATTEMPTS;
+      const locked = await this.recordAuthFailure(
+        user.id,
+        'failedLoginAttempts',
+        user.failedLoginAttempts,
+      );
 
-      await this.prismaService.whiteLabelUser.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: nextAttempts,
-          ...(shouldLock && {
-            lockedUntil: new Date(Date.now() + AUTH_LOCKOUT_DURATION_MS),
-          }),
-        },
-      });
-
-      if (shouldLock) {
+      if (locked) {
         throw new UnauthorizedException(
           'Your account has been locked out for 1 hour due to too many failed attempts.',
         );
       }
 
       throw new UnauthorizedException('Invalid Login Credentials');
+    }
+
+    if (!user.emailVerified) {
+      throw new ForbiddenException(
+        'Your email address has not been verified yet. Please check your inbox or request a new verification link.',
+      );
     }
 
     // MFA Challenge
@@ -508,20 +533,13 @@ export class WhitelabelAuthService {
     );
 
     if (!expectedCode || !codesMatch(dto.code, expectedCode)) {
-      const nextAttempts = user.failedTwoFactorAttempts + 1;
-      const shouldLock = nextAttempts >= AUTH_MAX_FAILED_ATTEMPTS;
+      const locked = await this.recordAuthFailure(
+        user.id,
+        'failedTwoFactorAttempts',
+        user.failedTwoFactorAttempts,
+      );
 
-      await this.prismaService.whiteLabelUser.update({
-        where: { id: user.id },
-        data: {
-          failedTwoFactorAttempts: nextAttempts,
-          ...(shouldLock && {
-            lockedUntil: new Date(Date.now() + AUTH_LOCKOUT_DURATION_MS),
-          }),
-        },
-      });
-
-      if (shouldLock) {
+      if (locked) {
         throw new UnauthorizedException(
           'Your account has been locked out for 1 hour due to multiple invalid 2FA codes.',
         );
@@ -692,6 +710,57 @@ export class WhitelabelAuthService {
     };
   }
 
+  /**
+   * Records a failed authentication attempt and locks the account once the
+   * strike limit is reached using an atomic Compare-And-Swap loop.
+   */
+  private async recordAuthFailure(
+    userId: string,
+    counter: WhiteLabelAuthFailureCounter,
+    attemptsSeen: number,
+  ): Promise<boolean> {
+    let attempts = attemptsSeen;
+
+    for (let round = 0; round < AUTH_MAX_FAILED_ATTEMPTS; round++) {
+      const shouldLock = attempts + 1 >= AUTH_MAX_FAILED_ATTEMPTS;
+
+      const data: Prisma.WhiteLabelUserUpdateManyMutationInput = shouldLock
+        ? {
+            [counter]: 0,
+            lockedUntil: new Date(Date.now() + AUTH_LOCKOUT_DURATION_MS),
+          }
+        : { [counter]: attempts + 1 };
+
+      const result = await this.prismaService.whiteLabelUser.updateMany({
+        where: { id: userId, lockedUntil: null, [counter]: attempts },
+        data,
+      });
+
+      if (result.count === 1) {
+        return shouldLock;
+      }
+
+      const current = await this.prismaService.whiteLabelUser.findUnique({
+        where: { id: userId },
+        select: {
+          failedLoginAttempts: true,
+          failedTwoFactorAttempts: true,
+          failedPasswordResetAttempts: true,
+          failedVerificationAttempts: true,
+          lockedUntil: true,
+        },
+      });
+
+      if (!current || current.lockedUntil) {
+        return true;
+      }
+
+      attempts = current[counter];
+    }
+
+    return false;
+  }
+
   async logout(sessionId: string) {
     await this.prismaService.session.update({
       where: { id: sessionId },
@@ -704,6 +773,77 @@ export class WhitelabelAuthService {
     return {
       success: true,
       message: 'Logged out successfully.',
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prismaService.whiteLabelUser.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const updated = await this.prismaService.whiteLabelUser.update({
+      where: { id: userId },
+      data: {
+        firstName: dto.firstName?.trim() || user.firstName,
+        lastName: dto.lastName?.trim() || user.lastName,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Profile updated successfully.',
+      user: {
+        id: updated.id,
+        code: updated.code,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        role: updated.role,
+      },
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prismaService.whiteLabelUser.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (!user.passwordHash) {
+      throw new BadRequestException('Account does not have a password set.');
+    }
+
+    const passwordValid = await argon2.verify(
+      user.passwordHash,
+      dto.currentPassword,
+    );
+
+    if (!passwordValid) {
+      throw new BadRequestException('Current password does not match.');
+    }
+
+    const newHashedPassword = await argon2.hash(
+      dto.newPassword,
+      ARGON2_CONFIG,
+    );
+
+    await this.prismaService.whiteLabelUser.update({
+      where: { id: userId },
+      data: {
+        passwordHash: newHashedPassword,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Password changed successfully.',
     };
   }
 }

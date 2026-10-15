@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyMfaDto } from './dto/verify-mfa.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { WhitelabelSessionGuard } from '../guard/whitelabel-session.guard';
 import { CurrentWhiteLabel } from '../decorator/current-whitelabel.decorator';
 import { CurrentWhiteLabelUser } from '../decorator/current-whitelabel-user.decorator';
@@ -118,6 +121,7 @@ export class WhitelabelAuthController {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        emailVerified: user.emailVerified,
         role: user.role,
         image: user.image,
         twoFactorEnabled: user.twoFactorEnabled,
@@ -137,6 +141,24 @@ export class WhitelabelAuthController {
         accentColor: whiteLabel.accentColor,
       },
     };
+  }
+
+  @Patch('profile')
+  @UseGuards(WhitelabelSessionGuard)
+  async updateProfile(
+    @CurrentWhiteLabelUser('id') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return await this.authService.updateProfile(userId, dto);
+  }
+
+  @Patch('password')
+  @UseGuards(WhitelabelSessionGuard)
+  async changePassword(
+    @CurrentWhiteLabelUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(userId, dto);
   }
 
   @Post('logout')

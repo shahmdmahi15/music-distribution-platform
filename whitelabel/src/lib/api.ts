@@ -27,7 +27,9 @@ api.interceptors.request.use(async (config) => {
 
     if (clientIp) {
       config.headers["x-real-ip"] = clientIp;
-      config.headers["x-internal-secret"] = env.INTERNAL_API_SECRET;
+      if (env.INTERNAL_API_SECRET) {
+        config.headers["x-internal-secret"] = env.INTERNAL_API_SECRET;
+      }
     }
 
     config.headers["User-Agent"] = userAgent;

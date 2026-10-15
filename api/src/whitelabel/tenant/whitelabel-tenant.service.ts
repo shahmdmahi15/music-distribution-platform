@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { RedisService } from 'src/lib/redis/redis.service';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import { WhiteLabel } from 'src/generated/prisma/client';
+import { Prisma, WhiteLabel } from 'src/generated/prisma/client';
 import {
   WhiteLabelStatus,
   WhiteLabelUserRole,
@@ -292,61 +292,67 @@ export class WhitelabelTenantService {
   }
 
   /**
-   * Resolves a subdomain on *.platform.royalmotionit.com to its WhiteLabel tenant.
+   * Resolves a subdomain on *.platform.royalmotionit.com or custom domain to its WhiteLabel tenant.
    * Returns whether the tenant exists, its status, and its designated backstage custom domain.
    */
-  async resolveSubdomain(subdomain: string) {
+  async resolveSubdomain(subdomain: string = '', customDomain: string = '') {
     const cleanSubdomain = (subdomain || '').trim().toLowerCase();
+    const cleanCustomDomain = (customDomain || '').trim().toLowerCase();
 
-    if (!cleanSubdomain) {
+    if (!cleanSubdomain && !cleanCustomDomain) {
       return {
         found: false,
-        message: 'Subdomain parameter is required.',
+        message: 'Subdomain or customDomain parameter is required.',
       };
     }
 
     // 1. Reserved platform infrastructure subdomains check
-    const RESERVED_SUBDOMAINS = new Set([
-      'platform',
-      'api',
-      'admin',
-      'app',
-      'auth',
-      'mail',
-      'status',
-      'backstage',
-      'staging',
-      'dev',
-      'test',
-      'demo',
-      'portal',
-      'console',
-      'dashboard',
-      'billing',
-      'account',
-      'accounts',
-      'pay',
-      'payment',
-      'payments',
-      'static',
-      'assets',
-      'cdn',
-      'ws',
-      'wss',
-      'root',
-      'www',
-    ]);
+    if (cleanSubdomain) {
+      const RESERVED_SUBDOMAINS = new Set([
+        'platform',
+        'api',
+        'admin',
+        'app',
+        'auth',
+        'mail',
+        'status',
+        'backstage',
+        'staging',
+        'dev',
+        'test',
+        'demo',
+        'portal',
+        'console',
+        'dashboard',
+        'billing',
+        'account',
+        'accounts',
+        'pay',
+        'payment',
+        'payments',
+        'static',
+        'assets',
+        'cdn',
+        'ws',
+        'wss',
+        'root',
+        'www',
+      ]);
 
-    if (RESERVED_SUBDOMAINS.has(cleanSubdomain)) {
-      return {
-        found: false,
-        reserved: true,
-        message: `The subdomain "${cleanSubdomain}" is reserved for platform operations.`,
-      };
+      if (RESERVED_SUBDOMAINS.has(cleanSubdomain)) {
+        return {
+          found: false,
+          reserved: true,
+          message: `The subdomain "${cleanSubdomain}" is reserved for platform operations.`,
+        };
+      }
     }
 
     // 2. Check Redis cache for sub-millisecond edge resolution
-    const cacheKey = `whitelabel:subdomain_resolve:${cleanSubdomain}`;
+    const lookupKey = cleanCustomDomain
+      ? `domain:${cleanCustomDomain}`
+      : `subdomain:${cleanSubdomain}`;
+    const cacheKey = `whitelabel:resolve:${lookupKey}`;
     try {
       const cached = await this.redisService.get(cacheKey);
       if (cached) {
@@ -357,10 +363,21 @@ export class WhitelabelTenantService {
     }
 
     // 3. Database lookup for WhiteLabel tenant
+    const whereClause: Prisma.WhiteLabelWhereInput = cleanCustomDomain
+      ? {
+          OR: [
+            { customDomain: cleanCustomDomain },
+            { customDomain: `backstage.${cleanCustomDomain}` },
+            { cloudflareBaseDomain: cleanCustomDomain },
+            { cloudflareBaseDomain: `backstage.${cleanCustomDomain}` },
+          ],
+        }
+      : {
+          subdomain: cleanSubdomain,
+        };
+
     const whiteLabel = await this.prismaService.whiteLabel.findFirst({
-      where: {
-        subdomain: cleanSubdomain,
-      },
+      where: whereClause,
       select: {
         id: true,
         code: true,
@@ -377,8 +394,9 @@ export class WhitelabelTenantService {
     if (!whiteLabel || whiteLabel.status === WhiteLabelStatus.REJECTED) {
       const notFoundResult = {
         found: false,
-        subdomain: cleanSubdomain,
-        message: 'No active WhiteLabel registered for this subdomain.',
+        subdomain: cleanSubdomain || whiteLabel?.subdomain || null,
+        customDomain: cleanCustomDomain || whiteLabel?.customDomain || null,
+        message: 'No active WhiteLabel registered for this host.',
       };
       // Cache negative lookup for 60 seconds to protect DB from scrapers/bots
       try {
@@ -422,13 +440,21 @@ export class WhitelabelTenantService {
   }
 
   /**
-   * Invalidates Redis cache for a given subdomain when domain settings change.
+   * Invalidates Redis cache for a given subdomain or custom domain when settings change.
    */
-  async invalidateSubdomainCache(subdomain: string) {
-    if (!subdomain) return;
-    const cleanSubdomain = subdomain.trim().toLowerCase();
-    try {
-      await this.redisService.del(`whitelabel:subdomain_resolve:${cleanSubdomain}`);
-    } catch {}
+  async invalidateSubdomainCache(subdomain: string, customDomain?: string) {
+    if (subdomain) {
+      const cleanSubdomain = subdomain.trim().toLowerCase();
+      try {
+        await this.redisService.del(`whitelabel:resolve:subdomain:${cleanSubdomain}`);
+        await this.redisService.del(`whitelabel:subdomain_resolve:${cleanSubdomain}`);
+      } catch {}
+    }
+    if (customDomain) {
+      const cleanCustomDomain = customDomain.trim().toLowerCase();
+      try {
+        await this.redisService.del(`whitelabel:resolve:domain:${cleanCustomDomain}`);
+      } catch {}
+    }
   }
 }

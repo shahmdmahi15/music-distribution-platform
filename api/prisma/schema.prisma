@@ -537,6 +537,7 @@ model WhiteLabelUser {
   failedTwoFactorAttempts     Int     @default(0)
 
   // Flags
+  emailVerified    Boolean @default(false)
   twoFactorEnabled Boolean @default(false)
   isApproved       Boolean @default(true)
 
@@ -556,15 +557,17 @@ model WhiteLabelUser {
   releases          Release[]
 
   // Timestamps
-  lastLoginAt DateTime?
-  lockedUntil DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  lockedUntil     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Constraints && Indexes
   @@unique([email, whiteLabelId])
   @@index([whiteLabelId])
   @@index([whiteLabelId, role])
+  @@index([emailVerified])
 }
 
 model WhiteLabelPartner {

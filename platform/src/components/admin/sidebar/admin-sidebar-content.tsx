@@ -280,8 +280,9 @@ function AdminCollapsibleMenuItem({
           <CollapsibleContent>
             <SidebarMenuSub>
               {item.items?.map((subItem) => {
+                const isComingSoon = subItem.url === "#";
                 const isSubActive =
-                  subItem.url !== "#" &&
+                  !isComingSoon &&
                   (pathname === subItem.url ||
                     pathname.startsWith(subItem.url));
                 return (
@@ -289,14 +290,25 @@ function AdminCollapsibleMenuItem({
                     <SidebarMenuSubButton
                       isActive={isSubActive}
                       className={
-                        isSubActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                          : "hover:bg-sidebar-accent/50 text-muted-foreground hover:text-foreground"
+                        isComingSoon
+                          ? "opacity-50 cursor-not-allowed text-muted-foreground/60"
+                          : isSubActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                            : "hover:bg-sidebar-accent/50 text-muted-foreground hover:text-foreground"
                       }
                       render={
-                        <Link href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </Link>
+                        isComingSoon ? (
+                          <div className="flex items-center justify-between w-full px-1">
+                            <span>{subItem.title}</span>
+                            <span className="text-[9px] font-medium tracking-tight px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                              Soon
+                            </span>
+                          </div>
+                        ) : (
+                          <Link href={subItem.url}>
+                            <span>{subItem.title}</span>
+                          </Link>
+                        )
                       }
                     />
                   </SidebarMenuSubItem>

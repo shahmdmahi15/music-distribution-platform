@@ -14,8 +14,11 @@ export class WhitelabelTenantController {
    * to the tenant's backstage.customdomain.
    */
   @Get('resolve-subdomain')
-  async resolveSubdomain(@Query('subdomain') subdomain?: string) {
-    return await this.tenantService.resolveSubdomain(subdomain || '');
+  async resolveSubdomain(
+    @Query('subdomain') subdomain?: string,
+    @Query('customDomain') customDomain?: string,
+  ) {
+    return await this.tenantService.resolveSubdomain(subdomain || '', customDomain || '');
   }
 
   @Get()
