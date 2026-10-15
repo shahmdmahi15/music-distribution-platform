@@ -101,19 +101,10 @@ const navigations = [
         ],
       },
       {
-        title: "Releases",
-        url: "#",
+        title: "Releases Pipeline",
+        url: "/admin/distribution",
         icon: Disc2,
-        items: [
-          {
-            title: "Digital Releases",
-            url: "#",
-          },
-          {
-            title: "Physical Releases",
-            url: "#",
-          },
-        ],
+        items: [],
       },
       {
         title: "Contributors",
@@ -152,34 +143,10 @@ const navigations = [
     name: "Reporting",
     items: [
       {
-        title: "Files",
-        url: "#",
-        icon: Folders,
-        items: [
-          {
-            title: "Upload",
-            url: "#",
-          },
-          {
-            title: "All Files",
-            url: "#",
-          },
-        ],
-      },
-      {
-        title: "Reports",
-        url: "#",
+        title: "Distribution Statements",
+        url: "/admin/reports",
         icon: FileChartColumn,
-        items: [
-          {
-            title: "Process Statements",
-            url: "#",
-          },
-          {
-            title: "All Reports",
-            url: "#",
-          },
-        ],
+        items: [],
       },
     ],
   },

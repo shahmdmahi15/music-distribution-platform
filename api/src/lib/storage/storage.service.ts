@@ -4,9 +4,6 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
-  PutPublicAccessBlockCommand,
-  PutBucketPolicyCommand,
-  PutBucketCorsCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
@@ -42,90 +39,10 @@ export class StorageService implements OnModuleInit {
 
     this.s3Client = new S3Client({
       region,
-      credentials: { accessKeyId, secretAccessKey },
+      ...(accessKeyId && secretAccessKey
+        ? { credentials: { accessKeyId, secretAccessKey } }
+        : {}),
     });
-
-    // Ensure public assets (branding, public media) are accessible while private vault documents remain locked
-    this.ensureBucketPublicMediaPolicyAndCors().catch((err) => {
-      this.logger.warn(
-        `Failed to auto-verify S3 bucket policy and CORS: ${err?.message || err}`,
-      );
-    });
-  }
-
-  /**
-   * Automatically configures S3 public access block, bucket policy, and CORS for public media
-   * such as brand logos, favicons, banners, and public covers, while strictly protecting private files.
-   */
-  async ensureBucketPublicMediaPolicyAndCors(): Promise<void> {
-    if (!this.bucketName) return;
-
-    try {
-      // 1. Enable Public Bucket Policies while maintaining ACL protections
-      await this.s3Client.send(
-        new PutPublicAccessBlockCommand({
-          Bucket: this.bucketName,
-          PublicAccessBlockConfiguration: {
-            BlockPublicAcls: true,
-            IgnorePublicAcls: true,
-            BlockPublicPolicy: false,
-            RestrictPublicBuckets: false,
-          },
-        }),
-      );
-
-      // 2. Set Bucket Policy allowing public s3:GetObject ONLY on public/branding asset paths
-      const policy = {
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Sid: 'AllowPublicReadForBrandingAndMedia',
-            Effect: 'Allow',
-            Principal: '*',
-            Action: 's3:GetObject',
-            Resource: [
-              `arn:aws:s3:::${this.bucketName}/whitelabels/*/branding/*`,
-              `arn:aws:s3:::${this.bucketName}/public/*`,
-              `arn:aws:s3:::${this.bucketName}/covers/*`,
-              `arn:aws:s3:::${this.bucketName}/avatars/*`,
-            ],
-          },
-        ],
-      };
-
-      await this.s3Client.send(
-        new PutBucketPolicyCommand({
-          Bucket: this.bucketName,
-          Policy: JSON.stringify(policy),
-        }),
-      );
-
-      // 3. Configure CORS for browsers loading SVGs/images cross-origin
-      await this.s3Client.send(
-        new PutBucketCorsCommand({
-          Bucket: this.bucketName,
-          CORSConfiguration: {
-            CORSRules: [
-              {
-                AllowedHeaders: ['*'],
-                AllowedMethods: ['GET', 'HEAD'],
-                AllowedOrigins: ['*'],
-                ExposeHeaders: ['ETag'],
-                MaxAgeSeconds: 86400,
-              },
-            ],
-          },
-        }),
-      );
-
-      this.logger.log(
-        `S3 public media policy and CORS verified for bucket "${this.bucketName}".`,
-      );
-    } catch (err: any) {
-      this.logger.warn(
-        `Could not auto-verify S3 bucket policy/CORS: ${err?.message || err}`,
-      );
-    }
   }
 
   /**
@@ -177,6 +94,23 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Generates a presigned PUT URL for direct client-side uploads (lossless audio, artwork, reports).
+   */
+  async getPresignedUploadUrl(
+    key: string,
+    mimeType: string,
+    expiresIn = 900,
+  ): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ContentType: mimeType,
+    });
+
+    return getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
+  /**
    * Delete a file from S3
    */
   async deleteFile(key: string): Promise<boolean> {
@@ -190,5 +124,24 @@ export class StorageService implements OnModuleInit {
     await this.s3Client.send(command);
 
     return true;
+  }
+
+  /**
+   * Retrieves file buffer or partial byte range from S3.
+   */
+  async getFileBuffer(key: string, maxBytes?: number): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ...(maxBytes ? { Range: `bytes=0-${maxBytes - 1}` } : {}),
+    });
+
+    const response = await this.s3Client.send(command);
+    if (!response.Body) {
+      throw new Error(`Object body for key ${key} is empty`);
+    }
+
+    const byteArray = await response.Body.transformToByteArray();
+    return Buffer.from(byteArray);
   }
 }

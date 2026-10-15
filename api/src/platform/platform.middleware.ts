@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NestMiddleware,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,6 +11,8 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class PlatformMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(PlatformMiddleware.name);
+
   constructor(
     private readonly configService: ConfigService<EnvironmentVariables, true>,
   ) {}
@@ -55,8 +58,8 @@ export class PlatformMiddleware implements NestMiddleware {
     }
 
     if (!isDirectMatch && !isHashMatch) {
-      console.warn(
-        `[PlatformMiddleware] API Key mismatch! Received (len ${incomingTrimmed.length}): "${incomingTrimmed.slice(0, 10)}...", Expected (len ${targetTrimmed.length}): "${targetTrimmed.slice(0, 10)}..."`,
+      this.logger.warn(
+        `[PlatformMiddleware] API Key mismatch! Received key length: ${incomingTrimmed.length}, Expected key length: ${targetTrimmed.length}`,
       );
       throw new UnauthorizedException('Invalid API Key');
     }

@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { api } from "@/lib/api";
 import axios from "axios";
 import { WhiteLabelTenant } from "@/types/user";
@@ -7,27 +8,22 @@ import { env } from "@/env";
 
 export interface TenantDiagnostics {
   apiKeyProvided: boolean;
-  maskedKey?: string;
   apiBaseUrl: string;
   statusCode?: number;
   subdomainConfigured?: string;
   details?: string;
 }
 
-export async function getTenantAction(): Promise<{
+export const getTenantAction = cache(async function getTenantAction(): Promise<{
   success: boolean;
   message: string;
   tenant?: WhiteLabelTenant;
   diagnostics?: TenantDiagnostics;
 }> {
   const rawKey = env.API_KEY || "";
-  const maskedKey = rawKey
-    ? `${rawKey.slice(0, 10)}...${rawKey.slice(-6)}`
-    : undefined;
 
   const baseDiagnostics: TenantDiagnostics = {
     apiKeyProvided: !!rawKey && rawKey.length > 5,
-    maskedKey,
     apiBaseUrl: env.API_BASE_URL,
   };
 
@@ -41,7 +37,7 @@ export async function getTenantAction(): Promise<{
         diagnostics: {
           ...baseDiagnostics,
           statusCode: res.status,
-          details: JSON.stringify(res.data, null, 2),
+          details: process.env.NODE_ENV === "development" ? JSON.stringify(res.data, null, 2) : undefined,
         },
       };
     }
@@ -66,15 +62,18 @@ export async function getTenantAction(): Promise<{
         diagnostics: {
           ...baseDiagnostics,
           statusCode: error.response?.status,
-          details: JSON.stringify(
-            {
-              status: error.response?.status,
-              statusText: error.response?.statusText,
-              data: error.response?.data,
-            },
-            null,
-            2,
-          ),
+          details:
+            process.env.NODE_ENV === "development"
+              ? JSON.stringify(
+                  {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                  },
+                  null,
+                  2,
+                )
+              : undefined,
         },
       };
     }
@@ -86,8 +85,8 @@ export async function getTenantAction(): Promise<{
           : "An unexpected network error occurred while reaching the API.",
       diagnostics: {
         ...baseDiagnostics,
-        details: String(error),
+        details: process.env.NODE_ENV === "development" ? String(error) : undefined,
       },
     };
   }
-}
+});

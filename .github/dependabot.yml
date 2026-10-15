@@ -1,0 +1,65 @@
+version: 2
+updates:
+  # Maintain GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci(actions)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Maintain API dependencies (NestJS / Prisma)
+  - package-ecosystem: "npm"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:30"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "fix(deps-api)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "api"
+
+  # Maintain Platform Console dependencies (Next.js)
+  - package-ecosystem: "npm"
+    directory: "/platform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "fix(deps-platform)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "platform"
+
+  # Maintain WhiteLabel Portal dependencies (Next.js Multi-Tenant)
+  - package-ecosystem: "npm"
+    directory: "/whitelabel"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:30"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "fix(deps-whitelabel)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "whitelabel"

@@ -9,6 +9,8 @@ import { SessionModule as AdminSessionModule } from './admin/session/session.mod
 import { PlatformUsersModule as AdminPlatformUsersModule } from './admin/platform-users/platform-users.module';
 import { AdminWhitelabelModule } from './admin/whitelabel/whitelabel.module';
 import { AdminReferrerModule } from './admin/referrer/referrer.module';
+import { AdminDistributionModule } from './admin/distribution/admin-distribution.module';
+import { AdminReportsModule } from './admin/reports/admin-reports.module';
 import { ProfileModule as ClientProfileModule } from './client/profile/profile.module';
 import { SessionModule as ClientSessionModule } from './client/session/session.module';
 import { SubscriptionModule as ClientSubscriptionModule } from './client/subscription/subscription.module';
@@ -50,6 +52,14 @@ import { ClientReferrerModule } from './client/referrer/referrer.module';
               {
                 path: '',
                 module: AdminReferrerModule,
+              },
+              {
+                path: '',
+                module: AdminDistributionModule,
+              },
+              {
+                path: '',
+                module: AdminReportsModule,
               },
             ],
           },

@@ -22,11 +22,16 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
-# 3. Install Node.js 22 LTS & PM2
-echo "⚡ Installing Node.js 22 LTS and PM2..."
+# 3. Install Node.js 22 LTS, PM2 & pnpm
+echo "⚡ Installing Node.js 22 LTS, PM2, and pnpm..."
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs
+apt-get install -y nodejs postgresql postgresql-contrib redis-server
 npm install -g pm2 pnpm
+
+echo "🗄️ Starting PostgreSQL and Redis services..."
+systemctl enable postgresql redis-server
+systemctl restart postgresql redis-server
+
 
 # 4. Prepare Application & Logs Directory
 echo "📁 Setting up /var/www/music-distribution-platform..."
@@ -41,7 +46,27 @@ sudo -u ubuntu pm2 set pm2-logrotate:max_size 50M || true
 sudo -u ubuntu pm2 set pm2-logrotate:retain 10 || true
 sudo -u ubuntu pm2 set pm2-logrotate:compress true || true
 
-# 6. Install Nginx Configuration
+# 6. Generate Origin SSL Certificate for Cloudflare Full Mode
+echo "🔐 Verifying origin SSL certificate for Cloudflare Full Mode..."
+mkdir -p /etc/ssl/certs /etc/ssl/private
+if [ ! -f /etc/ssl/certs/nginx-selfsigned.crt ]; then
+    echo "📜 Generating 10-year Origin SSL Certificate for *.royalmotionit.com..."
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+      -keyout /etc/ssl/private/nginx-selfsigned.key \
+      -out /etc/ssl/certs/nginx-selfsigned.crt \
+      -subj "/C=US/ST=Cloudflare/L=Edge/O=RoyalMotionIT/CN=*.royalmotionit.com"
+    chmod 600 /etc/ssl/private/nginx-selfsigned.key
+    echo "✅ SSL certificate generated successfully."
+fi
+
+# 7. Setup PostgreSQL Database & User
+echo "🗄️ Setting up PostgreSQL database and user..."
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'music_distribution'" | grep -q 1 || \
+sudo -u postgres psql -c "CREATE DATABASE music_distribution;"
+sudo -u postgres psql -c "ALTER USER postgres WITH ENCRYPTED PASSWORD 'postgrespassword';" || true
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE music_distribution TO postgres;" || true
+
+# 8. Install Nginx Configuration
 echo "🌐 Configuring Nginx reverse proxy..."
 if [ -f /var/www/music-distribution-platform/scripts/nginx-mother-company.conf ]; then
     cp /var/www/music-distribution-platform/scripts/nginx-mother-company.conf /etc/nginx/sites-available/music-distribution-platform

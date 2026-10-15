@@ -1,20 +1,26 @@
 "use server";
 
+import { cache } from "react";
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
 import axios from "axios";
 import { User } from "@/types/user";
 
-export async function meAction(sessionToken?: string): Promise<{
+export const meAction = cache(async function meAction(sessionToken?: string): Promise<{
   success: boolean;
   message: string;
   user?: User;
 }> {
   try {
-    const cookieStore = await cookies();
-
-    const token =
-      sessionToken ?? cookieStore.get("__Host-SESSION_TOKEN")?.value;
+    let token = sessionToken;
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+      } catch {
+        // cookies() from next/headers is not available in proxy runtime
+      }
+    }
 
     if (!token) {
       return {
@@ -55,4 +61,4 @@ export async function meAction(sessionToken?: string): Promise<{
       message: "Internal Server Action Error",
     };
   }
-}
+});

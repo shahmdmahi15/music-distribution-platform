@@ -8,7 +8,7 @@ import { useTenant, useCurrentUser } from "./tenant-theme-provider";
 import { TenantLogo } from "./tenant-logo";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { WhiteLabelUserRole } from "@/types/user";
-import { Music, Users, Smartphone, LogOut, Moon, Sun } from "lucide-react";
+import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -110,6 +110,28 @@ export function Navbar() {
                 }`}
               >
                 Dashboard
+              </Link>
+              <Link
+                href="/releases"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  pathname.startsWith("/releases")
+                    ? "bg-accent text-accent-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                }`}
+              >
+                <Music className="w-4 h-4" />
+                Releases
+              </Link>
+              <Link
+                href="/reports"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  pathname.startsWith("/reports")
+                    ? "bg-accent text-accent-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Reports
               </Link>
               <Link
                 href="/sessions"

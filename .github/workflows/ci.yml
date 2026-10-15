@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   validate-api:
-    name: Build & Validate API Backend
+    name: Lint, Test, & Build API Backend
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -43,9 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 11.13.0
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
@@ -58,27 +56,43 @@ jobs:
         working-directory: api
         run: pnpm install --frozen-lockfile
 
+      - name: Validate Prisma Schema
+        working-directory: api
+        run: pnpm exec prisma validate
+
       - name: Generate Prisma Client
         working-directory: api
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/music_distribution_test
-        run: npx prisma generate
+        run: pnpm exec prisma generate
 
-      - name: Build API Bundle
+      - name: Run ESLint
+        working-directory: api
+        run: pnpm run lint
+
+      - name: Run Unit Tests
+        working-directory: api
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/music_distribution_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-super-secret-jwt-key-for-ci-testing-minimum-32-chars
+          NODE_ENV: test
+        run: pnpm run test -- --passWithNoTests
+
+      - name: Build API Production Bundle
         working-directory: api
         run: pnpm run build
 
   validate-platform:
-    name: Typecheck & Validate Platform Console
+    name: Lint, Typecheck, & Build Platform Console
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 11.13.0
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
@@ -93,19 +107,31 @@ jobs:
 
       - name: Verify TypeScript Types
         working-directory: platform
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
+
+      - name: Run ESLint
+        working-directory: platform
+        run: pnpm run lint
+
+      - name: Build Platform Console
+        working-directory: platform
+        env:
+          NEXT_PUBLIC_APP_URL: "https://platform.royalmotionit.com"
+          API_BASE_URL: "http://127.0.0.1:5000"
+          API_KEY: "ci-mock-platform-api-key"
+          INTERNAL_API_SECRET: "ci-mock-internal-api-secret-key-32charsmin!"
+          SKIP_ENV_VALIDATION: "1"
+        run: pnpm run build
 
   validate-whitelabel:
-    name: Typecheck & Validate WhiteLabel Portal
+    name: Lint, Typecheck, & Build WhiteLabel Portal
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 11.13.0
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js 22 LTS
         uses: actions/setup-node@v4
@@ -120,4 +146,17 @@ jobs:
 
       - name: Verify TypeScript Types
         working-directory: whitelabel
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
+
+      - name: Run ESLint
+        working-directory: whitelabel
+        run: pnpm run lint
+
+      - name: Build WhiteLabel Portal
+        working-directory: whitelabel
+        env:
+          API_BASE_URL: "http://127.0.0.1:5000"
+          API_KEY: "ci-mock-whitelabel-api-key"
+          INTERNAL_API_SECRET: "ci-mock-internal-api-secret-key-32charsmin!"
+          SKIP_ENV_VALIDATION: "1"
+        run: pnpm run build

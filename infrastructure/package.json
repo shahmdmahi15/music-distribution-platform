@@ -1,0 +1,27 @@
+{
+  "name": "rmit-infrastructure",
+  "version": "1.0.0",
+  "description": "AWS CDK Production Infrastructure for RoyalMotionIT Music Distribution Platform",
+  "private": true,
+  "bin": {
+    "rmit-infrastructure": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --require-approval broadening"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "aws-cdk": "^2.178.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.178.1",
+    "constructs": "^10.4.2"
+  }
+}

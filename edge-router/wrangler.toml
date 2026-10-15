@@ -1,0 +1,22 @@
+name = "music-edge-router"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PLATFORM_BASE_DOMAIN = "platform.royalmotionit.com"
+API_ORIGIN_URL = "https://api.platform.royalmotionit.com"
+FALLBACK_BACKSTAGE_DOMAIN = "backstage.platform.royalmotionit.com"
+ENVIRONMENT = "production"
+
+# KV Namespace for sub-millisecond dynamic tenant resolution & territorial rights caching
+[[kv_namespaces]]
+binding = "TENANT_KV"
+id = "music_tenant_kv_prod"
+preview_id = "music_tenant_kv_preview"
+
+# R2 Bucket for zero-egress audio and media streaming with 206 Partial Content caching
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "music-distribution-media"
+preview_bucket_name = "music-distribution-media-preview"

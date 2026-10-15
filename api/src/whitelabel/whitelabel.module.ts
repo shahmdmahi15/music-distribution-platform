@@ -5,6 +5,8 @@ import { WhitelabelTenantModule } from './tenant/whitelabel-tenant.module';
 import { WhitelabelAuthModule } from './auth/whitelabel-auth.module';
 import { WhitelabelSessionModule } from './session/whitelabel-session.module';
 import { WhitelabelUsersModule } from './users/whitelabel-users.module';
+import { WhitelabelCatalogModule } from './catalog/whitelabel-catalog.module';
+import { WhitelabelReportsModule } from './reports/whitelabel-reports.module';
 import { PrismaModule } from 'src/lib/prisma/prisma.module';
 import { RedisModule } from 'src/lib/redis/redis.module';
 
@@ -16,6 +18,8 @@ import { RedisModule } from 'src/lib/redis/redis.module';
     WhitelabelAuthModule,
     WhitelabelSessionModule,
     WhitelabelUsersModule,
+    WhitelabelCatalogModule,
+    WhitelabelReportsModule,
 
     RouterModule.register([
       {
@@ -25,6 +29,8 @@ import { RedisModule } from 'src/lib/redis/redis.module';
           WhitelabelAuthModule,
           WhitelabelSessionModule,
           WhitelabelUsersModule,
+          WhitelabelCatalogModule,
+          WhitelabelReportsModule,
         ],
       },
     ]),
@@ -35,6 +41,8 @@ import { RedisModule } from 'src/lib/redis/redis.module';
     WhitelabelAuthModule,
     WhitelabelSessionModule,
     WhitelabelUsersModule,
+    WhitelabelCatalogModule,
+    WhitelabelReportsModule,
   ],
 })
 export class WhitelabelModule implements NestModule {

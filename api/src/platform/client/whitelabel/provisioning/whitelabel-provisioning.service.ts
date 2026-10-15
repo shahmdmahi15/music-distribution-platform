@@ -54,8 +54,11 @@ import {
   SaveCloudCredentialsDto,
 } from '../dto/client-cloud-provisioning.dto';
 import * as crypto from 'crypto';
+import { promisify } from 'util';
 import { Client as SshClient } from 'ssh2';
 import * as forge from 'node-forge';
+
+const generateKeyPairAsync = promisify(crypto.generateKeyPair);
 
 import { CloudflareDnsService } from 'src/lib/cloudflare/cloudflare-dns.service';
 
@@ -358,9 +361,7 @@ export class WhitelabelProvisioningService {
         awsInstanceType: true,
         awsInstanceState: true,
         awsKeyPairName: true,
-        awsKeyPairPrivateKey: true,
         cloudflareOriginCert: true,
-        cloudflareOriginKey: true,
         s3CorsConfigured: true,
         bucketName: true,
         sesIdentityStatus: true,
@@ -379,7 +380,10 @@ export class WhitelabelProvisioningService {
 
     return {
       success: true,
-      data: whiteLabel,
+      data: {
+        ...whiteLabel,
+        hasSshKey: Boolean(whiteLabel.awsKeyPairName),
+      },
     };
   }
 
@@ -390,15 +394,6 @@ export class WhitelabelProvisioningService {
     whiteLabelId: string,
     forceRecreateInstance: boolean = false,
   ) {
-    try {
-      await this.prismaService.$executeRawUnsafe(`
-        ALTER TABLE "WhiteLabel" 
-        ADD COLUMN IF NOT EXISTS "awsKeyPairName" TEXT, 
-        ADD COLUMN IF NOT EXISTS "awsKeyPairPrivateKey" TEXT,
-        ADD COLUMN IF NOT EXISTS "cloudflareOriginCert" TEXT,
-        ADD COLUMN IF NOT EXISTS "cloudflareOriginKey" TEXT;
-      `);
-    } catch {}
 
     const wl = await this.prismaService.whiteLabel.findUnique({
       where: { id: whiteLabelId },
@@ -970,11 +965,10 @@ export class WhitelabelProvisioningService {
       );
 
       const apiBaseUrl = 'https://api.royalmotionit.com';
-      let internalSecret =
+      const internalSecret =
         this.configService.get('INTERNAL_API_SECRET', { infer: true }) || '';
-      if (!internalSecret || internalSecret.length < 32) {
-        internalSecret =
-          'aca33084fe01ee718b5e01d1c5034d308bef8aa984dfbde32f4db51375e5bcd7';
+      if (!internalSecret) {
+        throw new Error('INTERNAL_API_SECRET is not configured in environment.');
       }
 
       const isArm = (wl.awsInstanceType || 't4g.medium').startsWith('t4g');
@@ -2008,13 +2002,20 @@ exit 1
     error?: string;
   }> {
     try {
-      // 1. Generate 2048-bit RSA Keypair locally
-      const keypair = forge.pki.rsa.generateKeyPair(2048);
-      const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
+      // 1. Generate 2048-bit RSA Keypair asynchronously (offloading from Node event loop)
+      const { publicKey: pubKeyPem, privateKey: privateKeyPem } =
+        await generateKeyPairAsync('rsa', {
+          modulusLength: 2048,
+          publicKeyEncoding: { type: 'spki', format: 'pem' },
+          privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        });
+
+      const forgePrivateKey = forge.pki.privateKeyFromPem(privateKeyPem);
+      const forgePublicKey = forge.pki.publicKeyFromPem(pubKeyPem);
 
       // 2. Generate PKCS#10 CSR with SAN extension
       const csr = forge.pki.createCertificationRequest();
-      csr.publicKey = keypair.publicKey;
+      csr.publicKey = forgePublicKey;
       csr.setSubject([
         { name: 'commonName', value: hostnames[0] },
         { name: 'countryName', value: 'US' },
@@ -2032,7 +2033,7 @@ exit 1
           ],
         },
       ]);
-      csr.sign(keypair.privateKey, forge.md.sha256.create());
+      csr.sign(forgePrivateKey, forge.md.sha256.create());
       const csrPem = forge.pki.certificationRequestToPem(csr);
 
       // 3. Request Cloudflare Origin CA Certificate
@@ -2069,7 +2070,7 @@ exit 1
 
       // 4. Generate self-signed fallback certificate
       const cert = forge.pki.createCertificate();
-      cert.publicKey = keypair.publicKey;
+      cert.publicKey = forgePublicKey;
       cert.serialNumber =
         '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
       cert.validity.notBefore = new Date();
@@ -2091,7 +2092,7 @@ exit 1
           altNames: hostnames.map((h) => ({ type: 2, value: h })),
         },
       ]);
-      cert.sign(keypair.privateKey, forge.md.sha256.create());
+      cert.sign(forgePrivateKey, forge.md.sha256.create());
       const selfSignedCertPem = forge.pki.certificateToPem(cert);
 
       return {
@@ -2107,10 +2108,17 @@ exit 1
       );
 
       // Fallback in case of unexpected exception
-      const keypair = forge.pki.rsa.generateKeyPair(2048);
-      const privateKeyPem = forge.pki.privateKeyToPem(keypair.privateKey);
+      const { publicKey: pubKeyPem, privateKey: privateKeyPem } =
+        await generateKeyPairAsync('rsa', {
+          modulusLength: 2048,
+          publicKeyEncoding: { type: 'spki', format: 'pem' },
+          privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        });
+      const forgePrivateKey = forge.pki.privateKeyFromPem(privateKeyPem);
+      const forgePublicKey = forge.pki.publicKeyFromPem(pubKeyPem);
+
       const cert = forge.pki.createCertificate();
-      cert.publicKey = keypair.publicKey;
+      cert.publicKey = forgePublicKey;
       cert.serialNumber = '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
       cert.validity.notBefore = new Date();
       cert.validity.notAfter = new Date();
@@ -2118,7 +2126,7 @@ exit 1
       const attrs = [{ name: 'commonName', value: hostnames[0] }];
       cert.setSubject(attrs);
       cert.setIssuer(attrs);
-      cert.sign(keypair.privateKey, forge.md.sha256.create());
+      cert.sign(forgePrivateKey, forge.md.sha256.create());
       return {
         certificate: forge.pki.certificateToPem(cert).trim(),
         privateKey: privateKeyPem.trim(),

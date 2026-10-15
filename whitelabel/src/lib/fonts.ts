@@ -25,7 +25,7 @@ export const GOOGLE_FONT_WEIGHTS: Record<string, string> = {
 };
 
 export function getGoogleFontUrl(fontFamily?: string | null): string {
-  const fontName = fontFamily?.trim().replace(/['"]/g, "") || "Inter";
+  const fontName = fontFamily?.trim().replace(/[^a-zA-Z0-9 -]/g, "") || "Inter";
   const weightSpec =
     GOOGLE_FONT_WEIGHTS[fontName] || "wght@300;400;500;600;700;800;900";
   const encodedName = encodeURIComponent(fontName).replace(/%20/g, "+");
@@ -33,7 +33,7 @@ export function getGoogleFontUrl(fontFamily?: string | null): string {
 }
 
 export function getFontFamilyCss(fontFamily?: string | null): string {
-  const fontName = fontFamily?.trim().replace(/['"]/g, "") || "Inter";
+  const fontName = fontFamily?.trim().replace(/[^a-zA-Z0-9 -]/g, "") || "Inter";
 
   // Match appropriate system fallbacks based on font archetype
   if (fontName === "Cinzel" || fontName === "Playfair Display") {

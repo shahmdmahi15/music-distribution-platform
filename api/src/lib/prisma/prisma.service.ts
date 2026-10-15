@@ -60,6 +60,12 @@ export class PrismaService
         CREATE SEQUENCE IF NOT EXISTS whitelabelpartner_code_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS whitelabeltopartist_code_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS whitelabeldocument_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS referrer_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS referrerdocument_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS referrerdeal_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS release_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS track_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS distributionreport_code_seq START 1;
       `);
     } catch (error) {
       console.warn(

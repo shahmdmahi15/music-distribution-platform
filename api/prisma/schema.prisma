@@ -71,6 +71,44 @@ enum ProvisioningStatus {
   FAILED
 }
 
+enum ReleaseType {
+  SINGLE
+  EP
+  ALBUM
+}
+
+enum ReleaseStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  DISTRIBUTED
+  REJECTED
+  TAKEDOWN
+}
+
+enum ContributorRole {
+  PRIMARY_ARTIST
+  FEATURED_ARTIST
+  PRODUCER
+  COMPOSER
+  LYRICIST
+  ARRANGER
+}
+
+enum DistributionReportStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AudioScanStatus {
+  PENDING
+  CLEAN
+  MATCH_FOUND
+  FAILED
+}
+
 model OAuthAccount {
   // Primary key
   id String @id @default(cuid())
@@ -107,6 +145,9 @@ model OAuthAccount {
   updatedAt             DateTime  @updatedAt
 
   // Constraints && Indexes
+  @@unique([provider, accountId])
+  @@index([platformUserId])
+  @@index([whiteLabelUserId])
 }
 
 model Session {
@@ -144,6 +185,7 @@ model Session {
   // Constraints && Indexes
   // Supports the active-session lookups and counts filtered by owner + state.
   @@index([platformUserId, revokedAt])
+  @@index([whiteLabelUserId, revokedAt])
   @@index([expiresAt])
 }
 
@@ -182,6 +224,7 @@ model PlatformUser {
   sessions      Session[]
   subscription  PlatformSubscription?
   referrer      Referrer?
+  uploadedDistributionReports DistributionReport[]
 
   // Timestamps
   lastLoginAt DateTime?
@@ -196,6 +239,7 @@ model PlatformUser {
   @@index([emailVerified])
   @@index([twoFactorEnabled])
   @@index([createdAt])
+  @@index([referredByReferrerId])
 }
 
 model PlatformSubscription {
@@ -400,11 +444,13 @@ model WhiteLabel {
   subscription PlatformSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   // Child Relations
-  artists          WhiteLabelTopArtist[]
-  documents        WhiteLabelDocument[]
-  partners         WhiteLabelPartner[]
-  users            WhiteLabelUser[]
-  apiKeys          WhiteLabelApiKey[]
+  artists             WhiteLabelTopArtist[]
+  documents           WhiteLabelDocument[]
+  partners            WhiteLabelPartner[]
+  users               WhiteLabelUser[]
+  apiKeys             WhiteLabelApiKey[]
+  releases            Release[]
+  distributionReports DistributionReport[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -507,6 +553,7 @@ model WhiteLabelUser {
   oAuthAccounts     OAuthAccount[]
   sessions          Session[]
   whiteLabelPartner WhiteLabelPartner?
+  releases          Release[]
 
   // Timestamps
   lastLoginAt DateTime?
@@ -516,6 +563,8 @@ model WhiteLabelUser {
 
   // Constraints && Indexes
   @@unique([email, whiteLabelId])
+  @@index([whiteLabelId])
+  @@index([whiteLabelId, role])
 }
 
 model WhiteLabelPartner {
@@ -577,7 +626,6 @@ model WhiteLabelApiKey {
 
   // Constraints && Indexes
   @@index([whiteLabelId, isActive])
-  @@index([keyHash])
 }
 
 enum ReferrerStatus {
@@ -700,5 +748,209 @@ model ReferrerDeal {
   updatedAt DateTime @updatedAt
 
   @@index([referrerId])
+}
+
+model Release {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code                String        @unique
+  title               String
+  type                ReleaseType   @default(SINGLE)
+  upc                 String?
+  catalogNumber       String?
+  releaseDate         DateTime?
+  originalReleaseDate DateTime?
+  genre               String
+  subgenre            String?
+  labelName           String?
+  cLine               String?
+  pLine               String?
+  coverArtKey         String?
+  coverArtUrl         String?
+  status              ReleaseStatus @default(DRAFT)
+  rejectionReason     String?
+  adminNotes          String?
+
+  // Milestones
+  submittedAt   DateTime?
+  distributedAt DateTime?
+
+  // Foreign Keys
+  whiteLabelId     String
+  whiteLabelUserId String?
+
+  // Parent Relations
+  whiteLabel     WhiteLabel      @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: SetNull)
+
+  // Child Relations
+  tracks       Track[]
+  contributors ReleaseContributor[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([whiteLabelId, status])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Track {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code            String   @unique
+  trackNumber     Int      @default(1)
+  discNumber      Int      @default(1)
+  title           String
+  version         String?
+  isrc            String?
+  iswc            String?
+  durationSeconds Int?
+  explicit        Boolean  @default(false)
+  audioKey        String?
+  audioUrl        String?
+  fileName        String?
+  fileSizeBytes   Int?
+  mimeType        String?
+  lyrics          String?
+  language        String   @default("en")
+
+  // Foreign Keys
+  releaseId String
+
+  // Parent Relations
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  // Child Relations
+  contributors TrackContributor[]
+  audioScan    TrackAudioScan?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([releaseId])
+  @@index([isrc])
+}
+
+model ReleaseContributor {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  name         String
+  role         ContributorRole @default(PRIMARY_ARTIST)
+  spotifyId    String?
+  appleMusicId String?
+
+  // Foreign Keys
+  releaseId String
+
+  // Parent Relations
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([releaseId])
+}
+
+model TrackContributor {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  name         String
+  role         ContributorRole @default(PRIMARY_ARTIST)
+  spotifyId    String?
+  appleMusicId String?
+
+  // Foreign Keys
+  trackId String
+
+  // Parent Relations
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([trackId])
+}
+
+model DistributionReport {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Data Fields
+  code            String                   @unique
+  title           String
+  reportingPeriod String // e.g. YYYY-MM
+  totalRevenueBdt Decimal?                 @db.Decimal(14, 2)
+  totalRevenueUsd Decimal?                 @db.Decimal(14, 2)
+  totalStreams    BigInt?                  @default(0)
+  fileKey         String
+  fileName        String
+  fileSizeBytes   Int?
+  mimeType        String?
+  status          DistributionReportStatus @default(PUBLISHED)
+  notes           String?
+  publishedAt     DateTime                 @default(now())
+
+  // Foreign Keys
+  whiteLabelId             String
+  uploadedByPlatformUserId String?
+
+  // Parent Relations
+  whiteLabel WhiteLabel    @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  uploadedBy PlatformUser? @relation(fields: [uploadedByPlatformUserId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints && Indexes
+  @@index([whiteLabelId, reportingPeriod])
+  @@index([whiteLabelId, status])
+  @@index([createdAt])
+}
+
+model TrackAudioScan {
+  // Primary key
+  id String @id @default(cuid())
+
+  // Status & Telemetry
+  status        AudioScanStatus @default(PENDING)
+  matchScore    Int?            // 0 - 100
+  matchedTitle  String?
+  matchedArtist String?
+  matchedAlbum  String?
+  matchedIsrc   String?
+  matchedLabel  String?
+  externalIds   Json?
+  rawMetadata   Json?
+  errorMessage  String?
+
+  // Foreign Keys
+  trackId String @unique
+
+  // Parent Relations
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  scannedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 

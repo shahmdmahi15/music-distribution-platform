@@ -13,6 +13,9 @@ import {
   Radio,
   Mail,
   Phone,
+  Music,
+  Plus,
+  FileText,
 } from "lucide-react";
 import {
   Card,
@@ -90,6 +93,32 @@ export default async function DashboardPage() {
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Button
+                render={<Link href="/releases" />}
+                size="sm"
+                className="text-xs font-semibold gap-1.5 h-8.5 shadow-sm"
+              >
+                <Music className="h-3.5 w-3.5" />
+                <span>Releases Catalog</span>
+              </Button>
+              <Button
+                render={<Link href="/releases/new" />}
+                variant="outline"
+                size="sm"
+                className="text-xs font-semibold gap-1.5 h-8.5 bg-background shadow-xs"
+              >
+                <Plus className="h-3.5 w-3.5 text-primary" />
+                <span>New Release</span>
+              </Button>
+              <Button
+                render={<Link href="/reports" />}
+                variant="outline"
+                size="sm"
+                className="text-xs font-semibold gap-1.5 h-8.5 bg-background shadow-xs"
+              >
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <span>Monthly Statements</span>
+              </Button>
               <Button
                 render={<Link href="/sessions" />}
                 variant="outline"

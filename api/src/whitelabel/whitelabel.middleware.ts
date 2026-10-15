@@ -77,12 +77,12 @@ export class WhitelabelMiddleware implements NestMiddleware {
 
     // 3. Database Lookup & Redis Re-indexing for persistent tenant API keys
     if (!whiteLabel && incomingKey.startsWith('rmit_live_')) {
-      const dbKey = await this.prismaService.whiteLabelApiKey.findFirst({
-        where: { keyHash: incomingHash, isActive: true },
+      const dbKey = await this.prismaService.whiteLabelApiKey.findUnique({
+        where: { keyHash: incomingHash },
         include: { whiteLabel: true },
       });
 
-      if (dbKey && dbKey.whiteLabel) {
+      if (dbKey && dbKey.isActive && dbKey.whiteLabel) {
         whiteLabel = dbKey.whiteLabel;
         if (whiteLabel.status === WhiteLabelStatus.ACTIVE) {
           // Re-index into Redis for O(1) performance
@@ -103,41 +103,6 @@ export class WhitelabelMiddleware implements NestMiddleware {
             data: { lastUsedAt: new Date() },
           })
           .catch(() => {});
-      }
-
-      // Fallback: check Redis tenant configured keys
-      if (!whiteLabel) {
-        const approvedLabels = await this.prismaService.whiteLabel.findMany({
-          where: { status: WhiteLabelStatus.ACTIVE },
-        });
-
-        for (const wl of approvedLabels) {
-          const cachedKeys = await this.redisService.get(
-            `whitelabel:config:${wl.id}:apikeys`,
-          );
-          if (cachedKeys) {
-            try {
-              const keys = JSON.parse(cachedKeys);
-              const match = keys.find(
-                (k: any) => k.hashed === incomingHash && k.status === 'ACTIVE',
-              );
-              if (match) {
-                whiteLabel = wl;
-                await this.redisService.set(
-                  `whitelabel:apikey:${incomingHash}`,
-                  JSON.stringify({
-                    whiteLabelId: wl.id,
-                    name: match.name,
-                    status: 'ACTIVE',
-                  }),
-                );
-                break;
-              }
-            } catch (e) {
-              // continue
-            }
-          }
-        }
       }
 
       // If key is not found in registered tenant keys or database, reject
@@ -215,10 +180,9 @@ export class WhitelabelMiddleware implements NestMiddleware {
               });
             }
             if (!whiteLabel) {
-              whiteLabel = await this.prismaService.whiteLabel.findFirst({
-                where: { status: WhiteLabelStatus.ACTIVE },
-                orderBy: { createdAt: 'asc' },
-              });
+              throw new BadRequestException(
+                'Tenant context could not be determined for this request. Please specify x-whitelabel-id, x-whitelabel-subdomain, or valid host header.',
+              );
             }
           }
         }

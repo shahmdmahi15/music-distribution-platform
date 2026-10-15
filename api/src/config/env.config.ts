@@ -5,8 +5,8 @@ export const envSchema = z.object({
   DATABASE_URL: z.url('DATABASE_URL must be a valid URL'),
   REDIS_URL: z.url('REDIS_URL must be a valid URL'),
   AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
-  AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS_ACCESS_KEY_ID is required'),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
   SENDER_EMAIL: z.email('SENDER_EMAIL must be a valid email address'),
   AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
   PLATFORM_API_KEY: z.string().min(1, 'PLATFORM_API_KEY is required'),
@@ -17,8 +17,17 @@ export const envSchema = z.object({
   PLATFORM_URL: z.url('PLATFORM_URL must be a valid URL'),
   CLOUDFLARE_API_TOKEN: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
   CLOUDFLARE_BASE_DOMAIN: z.string().default('platform.royalmotionit.com'),
   CLOUDFLARE_TARGET_CNAME: z.string().default('platform.royalmotionit.com'),
+  CLOUDFLARE_FALLBACK_ORIGIN: z.string().optional(),
+  CLOUDFLARE_R2_ACCESS_KEY_ID: z.string().optional(),
+  CLOUDFLARE_R2_SECRET_ACCESS_KEY: z.string().optional(),
+  CLOUDFLARE_R2_BUCKET: z.string().optional(),
+  CLOUDFLARE_R2_PUBLIC_URL: z.string().optional(),
+  ACRCLOUD_HOST: z.string().optional(),
+  ACRCLOUD_ACCESS_KEY: z.string().optional(),
+  ACRCLOUD_ACCESS_SECRET: z.string().optional(),
 });
 
 export type EnvironmentVariables = z.infer<typeof envSchema>;

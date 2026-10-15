@@ -11,6 +11,7 @@ import { PrismaModule } from './lib/prisma/prisma.module';
 import { RedisModule } from './lib/redis/redis.module';
 import { MailModule } from './lib/mail/mail.module';
 import { StorageModule } from './lib/storage/storage.module';
+import { AcrCloudModule } from './lib/acrcloud/acrcloud.module';
 import { PlatformModule } from './platform/platform.module';
 import { SessionModule } from './platform/session/session.module';
 import { WhitelabelModule } from './whitelabel/whitelabel.module';
@@ -33,6 +34,7 @@ import { RolesGuard } from './platform/guard/roles.guard';
     RedisModule,
     MailModule,
     StorageModule,
+    AcrCloudModule,
     CloudflareDnsModule,
     SessionModule,
     PlatformModule,

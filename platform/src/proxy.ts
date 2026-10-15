@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { meAction } from "@/actions/auth/me.action";
-import { Role } from "@/types/user";
+import { Role, User } from "@/types/user";
 
 const ADMIN_ROLES: Role[] = [Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF];
 
@@ -153,10 +152,31 @@ export async function proxy(request: NextRequest) {
   // 2. Mother Company Platform Auth & RBAC (platform.royalmotionit.com)
   // =========================================================================
   const sessionToken = request.cookies.get("__Host-SESSION_TOKEN")?.value;
-  const session = await meAction(sessionToken);
+  let user: User | undefined;
+  let isAuthenticated = false;
 
-  const isAuthenticated = session.success && !!session.user;
-  const user = session.user;
+  if (sessionToken) {
+    try {
+      const apiBase = process.env.API_BASE_URL || "https://api.royalmotionit.com";
+      const meRes = await fetch(`${apiBase}/platform/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          "x-api-key": process.env.API_KEY || "",
+        },
+        signal: AbortSignal.timeout(4000),
+      });
+      if (meRes.ok) {
+        const data = await meRes.json();
+        if (data.success && data.user) {
+          user = data.user;
+          isAuthenticated = true;
+        }
+      }
+    } catch (err) {
+      console.error("[PlatformProxy] Auth verification error:", err);
+    }
+  }
+
   const userRole = user?.role;
 
   const hasAdminPanelAccess = userRole ? ADMIN_ROLES.includes(userRole) : false;

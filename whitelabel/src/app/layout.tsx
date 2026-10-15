@@ -32,6 +32,24 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+function sanitizeColor(val: string | undefined | null, fallback: string): string {
+  if (!val) return fallback;
+  const trimmed = val.trim();
+  const isValid =
+    /^#([0-9a-fA-F]{3,8})$/.test(trimmed) ||
+    /^rgba?\([^<>"'{};]+\)$/.test(trimmed) ||
+    /^hsla?\([^<>"'{};]+\)$/.test(trimmed) ||
+    /^oklch\([^<>"'{};]+\)$/.test(trimmed);
+  return isValid ? trimmed : fallback;
+}
+
+function sanitizeRadius(val: string | undefined | null, fallback = "0.5rem"): string {
+  if (!val) return fallback;
+  const trimmed = val.trim();
+  const isValid = /^(\d+(\.\d+)?)(rem|px|em|%)$/.test(trimmed);
+  return isValid ? trimmed : fallback;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -47,12 +65,18 @@ export default async function RootLayout({
 
   const fontFamily =
     tenant?.theme?.fontFamily || tenant?.themeFont || "Inter";
-  const primaryColor =
-    tenant?.theme?.primaryColor || tenant?.primaryColor || "#6366f1";
-  const accentColor =
-    tenant?.theme?.accentColor || tenant?.accentColor || "#ec4899";
-  const radius =
-    tenant?.theme?.radius || tenant?.themeRadius || "0.5rem";
+  const primaryColor = sanitizeColor(
+    tenant?.theme?.primaryColor || tenant?.primaryColor,
+    "#6366f1",
+  );
+  const accentColor = sanitizeColor(
+    tenant?.theme?.accentColor || tenant?.accentColor,
+    "#ec4899",
+  );
+  const radius = sanitizeRadius(
+    tenant?.theme?.radius || tenant?.themeRadius,
+    "0.5rem",
+  );
   const fontCss = getFontFamilyCss(fontFamily);
   const googleFontUrl = getGoogleFontUrl(fontFamily);
 

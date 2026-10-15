@@ -29,7 +29,6 @@ import { WhiteLabelTenant } from "@/types/user";
 
 interface TenantDiagnostics {
   apiKeyProvided: boolean;
-  maskedKey?: string;
   apiBaseUrl?: string;
   statusCode?: number;
   subdomainConfigured?: string;
@@ -52,7 +51,7 @@ export function UnconfiguredPortalView({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const keyConfigured = diagnostics?.apiKeyProvided ?? false;
-  const maskedKey = diagnostics?.maskedKey || "Not configured in .env";
+  const keyStatus = keyConfigured ? "Authorized & Active" : "Not configured in .env";
   const apiBaseUrl = diagnostics?.apiBaseUrl || "http://localhost:5000";
 
   // Check statuses
@@ -75,7 +74,7 @@ export function UnconfiguredPortalView({
       category: "Environment (.env)",
       title: "API Integration Key",
       status: keyConfigured,
-      value: maskedKey,
+      value: keyStatus,
       description: keyConfigured
         ? "API_KEY loaded and authorized in runtime environment."
         : "Missing API_KEY in whitelabel/.env. Must match an active key from Platform Console.",
@@ -165,7 +164,9 @@ export function UnconfiguredPortalView({
   const totalCount = auditItems.length;
   const configuredPercent = Math.round((configuredCount / totalCount) * 100);
 
-  const platformWizardUrl = "http://localhost:3000/whitelabel/setup";
+  const platformWizardUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/whitelabel/setup`
+    : "https://platform.royalmotionit.com/whitelabel/setup";
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -192,7 +193,7 @@ export function UnconfiguredPortalView({
         : null,
       diagnostics: {
         apiKeyConfigured: keyConfigured,
-        maskedKey,
+        keyStatus,
         apiBaseUrl,
         statusCode: diagnostics?.statusCode,
       },
@@ -570,9 +571,9 @@ export function UnconfiguredPortalView({
                 GET {apiBaseUrl}/whitelabel/tenant
               </div>
 
-              <div className="text-zinc-500 mt-2">Active API Key:</div>
+              <div className="text-zinc-500 mt-2">API Key Configuration:</div>
               <div className="bg-zinc-900 p-2.5 rounded text-zinc-300">
-                {maskedKey}
+                {keyStatus}
               </div>
 
               {diagnostics?.details && (

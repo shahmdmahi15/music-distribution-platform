@@ -1,0 +1,123 @@
+name: CD Mother Company (Zero-Downtime EC2)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: Zero-Downtime EC2 PM2 Deployment
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH Credentials
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H -p ${{ secrets.EC2_PORT || 22 }} ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Execute Zero-Downtime CD Pipeline
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          PORT: ${{ secrets.EC2_PORT || 22 }}
+          APP_DIR: ${{ secrets.EC2_APP_DIR || '/var/www/music-distribution-platform' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p $PORT $USER@$HOST "bash -s -- \"$APP_DIR\"" << 'EOF'
+            set -euo pipefail
+
+            APP_DIR="${1:-/var/www/music-distribution-platform}"
+            export PNPM_HOME="$HOME/.local/share/pnpm"
+            export PATH="$PNPM_HOME:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+            if [ -d "$HOME/.nvm" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            fi
+
+            echo "🚀 [CD] Connecting to application directory: $APP_DIR"
+            cd "$APP_DIR"
+
+            PREV_COMMIT=$(git rev-parse HEAD)
+            echo "📌 Current Active Commit: $PREV_COMMIT"
+
+            cleanup_on_error() {
+              echo "❌ [CD] Error detected! Initiating emergency rollback to $PREV_COMMIT..."
+              cd "$APP_DIR"
+              git reset --hard "$PREV_COMMIT"
+              pm2 reload ecosystem.config.js --update-env || true
+              exit 1
+            }
+            trap cleanup_on_error ERR
+
+            if [ -f "$APP_DIR/api/.env" ]; then
+              sed -i 's/DATABASE_URL="DATABASE_URL="/DATABASE_URL="/g' "$APP_DIR/api/.env"
+            fi
+
+            echo "📥 [CD] Fetching latest commit from origin/master..."
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "📦 [API] Installing dependencies & executing Prisma migrations..."
+            cd "$APP_DIR/api"
+            pnpm install --frozen-lockfile || pnpm install
+            pnpm exec prisma generate
+            pnpm exec prisma migrate deploy
+            pnpm run build
+
+            echo "📦 [Platform] Installing dependencies & building Next.js console..."
+            cd "$APP_DIR/platform"
+            pnpm install --frozen-lockfile || pnpm install
+            pnpm run build
+
+            echo "🔄 [PM2] Performing zero-downtime rolling restart..."
+            cd "$APP_DIR"
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "🏥 [Healthcheck] Validating API backend on 127.0.0.1:5000..."
+            API_HEALTHY=0
+            for i in {1..25}; do
+              if curl -s -f http://127.0.0.1:5000/health > /dev/null; then
+                echo "✅ API Healthcheck successful on attempt $i!"
+                API_HEALTHY=1
+                break
+              fi
+              echo "Waiting for API worker cluster... ($i/25)"
+              sleep 2
+            done
+
+            if [ "$API_HEALTHY" -ne 1 ]; then
+              echo "🚨 API Healthcheck failed after 25 attempts!"
+              false
+            fi
+
+            echo "🏥 [Healthcheck] Validating Platform console on 127.0.0.1:3000..."
+            PLATFORM_HEALTHY=0
+            for i in {1..25}; do
+              if curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308" > /dev/null; then
+                echo "✅ Platform Console Healthcheck successful on attempt $i!"
+                PLATFORM_HEALTHY=1
+                break
+              fi
+              echo "Waiting for Next.js worker cluster... ($i/25)"
+              sleep 2
+            done
+
+            if [ "$PLATFORM_HEALTHY" -ne 1 ]; then
+              echo "🚨 Platform Console Healthcheck failed after 25 attempts!"
+              false
+            fi
+
+            trap - ERR
+            echo "🎉 [Success] Zero-downtime deployment finished cleanly on Mother Company EC2!"
+          EOF

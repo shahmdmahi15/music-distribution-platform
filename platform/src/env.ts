@@ -16,4 +16,5 @@ export const env = createEnv({
     API_KEY: process.env.API_KEY,
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET,
   },
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

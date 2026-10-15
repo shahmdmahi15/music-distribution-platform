@@ -42,7 +42,9 @@ export class MailService implements OnModuleInit {
 
     const sesClient = new SESv2Client({
       region,
-      credentials: { accessKeyId, secretAccessKey },
+      ...(accessKeyId && secretAccessKey
+        ? { credentials: { accessKeyId, secretAccessKey } }
+        : {}),
     });
 
     this.transporter = nodemailer.createTransport({

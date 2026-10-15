@@ -1,0 +1,199 @@
+name: music-distribution-platform
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: music-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: music_distribution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d music_distribution"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # Redis 7
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: music-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # LocalStack 3 (S3 & SES)
+  # ---------------------------------------------------------------------------
+  localstack:
+    image: localstack/localstack:3
+    container_name: music-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,ses
+      - AWS_DEFAULT_REGION=us-east-1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_S3_BUCKET=music-distribution-bucket
+      - SENDER_EMAIL=noreply@royalmotionit.com
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # Prisma Migration Runner
+  # ---------------------------------------------------------------------------
+  api-migrate:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: builder
+    container_name: music-api-migrate
+    command: ["pnpm", "prisma:deploy"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/music_distribution?schema=public
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # NestJS Core API
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: music-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/music_distribution?schema=public
+      REDIS_URL: redis://redis:6379
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: mock_access_key
+      AWS_SECRET_ACCESS_KEY: mock_secret_key
+      AWS_S3_BUCKET: music-distribution-bucket
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ENDPOINT_URL_S3: http://localstack:4566
+      AWS_ENDPOINT_URL_SES: http://localstack:4566
+      SENDER_EMAIL: noreply@royalmotionit.com
+      PLATFORM_API_KEY: platform-dev-api-key-32charsminimumkey123
+      WHITELABEL_API_KEY: whitelabel-dev-api-key-32charsminimumkey123
+      INTERNAL_API_SECRET: development-internal-api-secret-min32charslong-royalmotionit
+      PLATFORM_URL: http://platform:3000
+      ACRCLOUD_HOST: ${ACRCLOUD_HOST:-identify-ap-southeast-1.acrcloud.com}
+      ACRCLOUD_ACCESS_KEY: ${ACRCLOUD_ACCESS_KEY:-e7eb421ae13048f888588e3d03c76cfb}
+      ACRCLOUD_ACCESS_SECRET: ${ACRCLOUD_ACCESS_SECRET:-8zXwVRZfP8TUBc1rpiOLDazjGlFhjMAEzBPVeLyv}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # Platform (Next.js - Port 3000)
+  # ---------------------------------------------------------------------------
+  platform:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    container_name: music-platform
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      API_BASE_URL: http://api:5000
+      API_KEY: platform-dev-api-key-32charsminimumkey123
+      INTERNAL_API_SECRET: development-internal-api-secret-min32charslong-royalmotionit
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SKIP_ENV_VALIDATION: "1"
+    networks:
+      - app-net
+
+  # ---------------------------------------------------------------------------
+  # WhiteLabel (Next.js - Port 3001)
+  # ---------------------------------------------------------------------------
+  whitelabel:
+    build:
+      context: ./whitelabel
+      dockerfile: Dockerfile
+    container_name: music-whitelabel
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      API_BASE_URL: http://api:5000
+      API_KEY: whitelabel-dev-api-key-32charsminimumkey123
+      INTERNAL_API_SECRET: development-internal-api-secret-min32charslong-royalmotionit
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      SKIP_ENV_VALIDATION: "1"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  localstack_data:

@@ -140,7 +140,7 @@
   }
 
   .glow-subtle {
-    box-shadow: 0 0 35px -5px rgba(var(--primary), 0.12);
+    box-shadow: 0 0 35px -5px color-mix(in oklch, var(--primary) 12%, transparent);
   }
 
   /* Custom subtle scrollbar */

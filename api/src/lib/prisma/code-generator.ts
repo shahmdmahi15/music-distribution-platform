@@ -14,6 +14,9 @@ export enum CodePrefix {
   REFERRER = 'RMIT-REF-',
   REFERRER_DOCUMENT = 'RMIT-RDOC-',
   REFERRER_DEAL = 'RMIT-DEAL-',
+  RELEASE = 'RMIT-REL-',
+  TRACK = 'RMIT-TRK-',
+  DISTRIBUTION_REPORT = 'RMIT-REP-',
 }
 
 export type CodeModel =
@@ -29,7 +32,10 @@ export type CodeModel =
   | 'whiteLabelDocument'
   | 'referrer'
   | 'referrerDocument'
-  | 'referrerDeal';
+  | 'referrerDeal'
+  | 'release'
+  | 'track'
+  | 'distributionReport';
 
 /**
  * Sequence backing each model's human-readable code.
@@ -51,6 +57,9 @@ const CODE_SEQUENCES: Record<CodeModel, string> = {
   referrer: 'referrer_code_seq',
   referrerDocument: 'referrerdocument_code_seq',
   referrerDeal: 'referrerdeal_code_seq',
+  release: 'release_code_seq',
+  track: 'track_code_seq',
+  distributionReport: 'distributionreport_code_seq',
 };
 
 export async function generateUniqueCode(
