@@ -30,6 +30,7 @@ import {
   House,
   UserPen,
   ShieldPlus,
+  Tv,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -104,6 +105,12 @@ const navigations = [
         title: "Releases Pipeline",
         url: "/admin/distribution",
         icon: Disc2,
+        items: [],
+      },
+      {
+        title: "VEVO Channels",
+        url: "/admin/channels",
+        icon: Tv,
         items: [],
       },
       {

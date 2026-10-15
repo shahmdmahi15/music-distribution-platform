@@ -162,6 +162,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         return <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">Live on DSPs</Badge>;
       case "REJECTED":
         return <Badge variant="destructive">Action Required (Rejected)</Badge>;
+      case "NEEDS_FIX":
+        return <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">Needs Fix (Upstream Review)</Badge>;
       case "TAKEDOWN":
         return <Badge variant="outline" className="text-zinc-500">Takedown</Badge>;
       default:
@@ -400,15 +402,57 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         </div>
       )}
 
-      {/* Rejection / Note Alert */}
-      {release.status === "REJECTED" && (
-        <div className="p-4 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h4 className="font-semibold text-sm">Release Rejected by Mother Company Staff</h4>
-            <p className="text-xs">
-              Reason: {release.rejectionReason || "Please fix metadata or re-upload high quality audio files."}
-            </p>
+      {/* Rejection / Needs Fix Alert Banner */}
+      {(release.status === "REJECTED" || release.upstreamStatus === "NEEDS_FIX") && (
+        <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+            <div className="space-y-1">
+              <h4 className="font-semibold text-sm">
+                Correction Requested by Upstream Reviewer (ANS Music / VEVO)
+              </h4>
+              <p className="text-xs text-foreground/80">
+                Feedback: {release.upstreamReason || release.rejectionReason || "Please fix metadata or update media assets before resubmission."}
+              </p>
+            </div>
+          </div>
+          <Link href={`/releases/${code}/edit`}>
+            <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-500 hover:bg-amber-500/15">
+              <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+              <span>Edit & Resubmit</span>
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Official VEVO / YouTube Live Player */}
+      {release.youtubeVideoId && (
+        <div className="space-y-3 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="w-5 h-5 text-red-500" />
+              <h3 className="text-base font-semibold">Official VEVO & YouTube Video</h3>
+            </div>
+            {release.youtubeWatchUrl && (
+              <a
+                href={release.youtubeWatchUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <span>Watch on YouTube</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black/90 shadow-md">
+            <iframe
+              src={`https://www.youtube.com/embed/${release.youtubeVideoId}`}
+              title={release.title}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
       )}

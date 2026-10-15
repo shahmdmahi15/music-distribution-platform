@@ -446,4 +446,27 @@ export class AdminDistributionService {
       scan,
     };
   }
+
+  /**
+   * Lists all VEVO channel requests across all WhiteLabel tenants.
+   */
+  async listVevoChannels() {
+    const channels = await this.prisma.vevoChannel.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        whiteLabel: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      channels,
+    };
+  }
 }

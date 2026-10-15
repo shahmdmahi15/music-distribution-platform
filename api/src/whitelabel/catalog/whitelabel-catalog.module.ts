@@ -5,9 +5,15 @@ import { WhitelabelQcValidationService } from './validation/whitelabel-qc-valida
 import { WhitelabelSessionModule } from '../session/whitelabel-session.module';
 import { PrismaModule } from 'src/lib/prisma/prisma.module';
 import { StorageModule } from 'src/lib/storage/storage.module';
+import { AdminDistributionModule } from 'src/platform/admin/distribution/admin-distribution.module';
 
 @Module({
-  imports: [PrismaModule, StorageModule, WhitelabelSessionModule],
+  imports: [
+    PrismaModule,
+    StorageModule,
+    WhitelabelSessionModule,
+    AdminDistributionModule,
+  ],
   controllers: [WhitelabelCatalogController],
   providers: [WhitelabelCatalogService, WhitelabelQcValidationService],
   exports: [WhitelabelCatalogService, WhitelabelQcValidationService],

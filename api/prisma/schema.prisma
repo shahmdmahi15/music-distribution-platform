@@ -75,6 +75,7 @@ enum ReleaseType {
   SINGLE
   EP
   ALBUM
+  MUSIC_VIDEO
 }
 
 enum ReleaseStatus {
@@ -85,6 +86,39 @@ enum ReleaseStatus {
   DISTRIBUTED
   REJECTED
   TAKEDOWN
+  NEEDS_FIX
+}
+
+enum UpstreamProvider {
+  ANS_MUSIC
+  REVELATOR_DIRECT
+  LOCAL_DDEX
+}
+
+enum UpstreamStatus {
+  PENDING
+  NEEDS_FIX
+  APPROVED
+  DELIVERED
+  REJECTED
+  TAKEN_DOWN
+}
+
+enum VideoVersion {
+  OFFICIAL
+  LYRIC
+  AUDIO
+  LIVE
+  INTERVIEW
+  BEHIND_THE_SCENES
+  TEASER
+  ORIGINAL
+}
+
+enum VevoChannelStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ContributorRole {
@@ -560,6 +594,7 @@ model WhiteLabel {
   userStatements      UserRoyaltyStatement[]
   deliveryPackages    DspDeliveryPackage[]
   payoutRequests      PayeePayoutRequest[]
+  vevoChannels        VevoChannel[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -665,6 +700,7 @@ model WhiteLabelUser {
   whiteLabelPartner WhiteLabelPartner?
   releases          Release[]
   payees            Payee[]
+  vevoChannels      VevoChannel[]
 
   // Timestamps
   emailVerifiedAt DateTime?
@@ -890,6 +926,20 @@ model Release {
   qcStatus         QcStatus @default(PENDING)
   validationErrors Json?
   isLocked         Boolean  @default(false)
+
+  // ANS Music & VEVO Upstream Distribution
+  upstreamProvider       UpstreamProvider?
+  upstreamReleaseId      String?
+  upstreamVideoId        String?
+  upstreamStatus         UpstreamStatus?
+  upstreamReason         String?
+  youtubeVideoId         String?
+  youtubeWatchUrl        String?
+  isrcAssignedByUpstream Boolean           @default(false)
+  upcAssignedByUpstream  Boolean           @default(false)
+  videoVersion           VideoVersion?
+  videoUrl               String?
+  vevoChannelName        String?
 
   // Milestones
   submittedAt   DateTime?
@@ -1347,4 +1397,41 @@ model PayeePayoutRequest {
   @@index([payeeId])
   @@index([whiteLabelId])
   @@index([status])
+}
+
+model VevoChannel {
+  id                String            @id @default(cuid())
+  code              String            @unique
+  channelName       String
+  artistName        String?
+  description       String?
+  keywords          String[]
+  status            VevoChannelStatus @default(PENDING)
+  channelUrl        String?
+  youtubeChannelId  String?
+  upstreamChannelId String?
+  whiteLabelId      String
+  whiteLabelUserId  String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  whiteLabel     WhiteLabel      @relation(fields: [whiteLabelId], references: [id], onDelete: Cascade)
+  whiteLabelUser WhiteLabelUser? @relation(fields: [whiteLabelUserId], references: [id], onDelete: SetNull)
+
+  @@index([whiteLabelId])
+  @@index([channelName])
+}
+
+model UpstreamWebhookLog {
+  id           String   @id @default(cuid())
+  eventId      String   @unique
+  eventType    String
+  environment  String   @default("live")
+  payload      Json
+  processedAt  DateTime @default(now())
+  status       String   @default("PROCESSED")
+  errorMessage String?
+
+  @@index([eventType])
+  @@index([processedAt])
 }

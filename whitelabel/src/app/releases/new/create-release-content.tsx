@@ -50,7 +50,7 @@ export function CreateReleaseContent() {
 
   // Step 1: Release Info
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<"SINGLE" | "EP" | "ALBUM">("SINGLE");
+  const [type, setType] = useState<"SINGLE" | "EP" | "ALBUM" | "MUSIC_VIDEO">("SINGLE");
   const [artistName, setArtistName] = useState("");
   const [genre, setGenre] = useState("Pop");
   const [subgenre, setSubgenre] = useState("");
@@ -59,6 +59,9 @@ export function CreateReleaseContent() {
   const [upc, setUpc] = useState("");
   const [cLine, setCLine] = useState("");
   const [pLine, setPLine] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoVersion, setVideoVersion] = useState("OFFICIAL");
+  const [vevoChannelName, setVevoChannelName] = useState("");
 
   // Step 2: Cover Artwork
   const [coverArtKey, setCoverArtKey] = useState<string>("");
@@ -204,6 +207,16 @@ export function CreateReleaseContent() {
       toast.error("Please specify the primary artist name.");
       return false;
     }
+    if (type === "MUSIC_VIDEO") {
+      if (!vevoChannelName.trim()) {
+        toast.error("Please specify the VEVO Channel name (e.g. ArtistVEVO).");
+        return false;
+      }
+      if (!videoUrl.trim()) {
+        toast.error("Please provide the master video URL or cloud storage path.");
+        return false;
+      }
+    }
     return true;
   };
 
@@ -224,7 +237,7 @@ export function CreateReleaseContent() {
         toast.error(`Track #${i + 1} must have a title.`);
         return false;
       }
-      if (!t.audioKey) {
+      if (!t.audioKey && type !== "MUSIC_VIDEO") {
         toast.error(`Track #${i + 1} ("${t.title}") is missing an audio file.`);
         return false;
       }
@@ -239,7 +252,7 @@ export function CreateReleaseContent() {
       // 1. Create release draft
       const releaseRes = await wlCreateReleaseAction({
         title,
-        type,
+        type: type as any,
         genre,
         subgenre: subgenre || undefined,
         labelName: labelName || undefined,
@@ -248,6 +261,9 @@ export function CreateReleaseContent() {
         cLine: cLine || undefined,
         pLine: pLine || undefined,
         coverArtKey,
+        videoUrl: type === "MUSIC_VIDEO" ? videoUrl : undefined,
+        videoVersion: type === "MUSIC_VIDEO" ? (videoVersion as any) : undefined,
+        vevoChannelName: type === "MUSIC_VIDEO" ? vevoChannelName : undefined,
         contributors: [
           {
             name: artistName,
@@ -386,15 +402,70 @@ export function CreateReleaseContent() {
                 id="type"
                 value={type}
                 onChange={(e) =>
-                  setType(e.target.value as "SINGLE" | "EP" | "ALBUM")
+                  setType(e.target.value as "SINGLE" | "EP" | "ALBUM" | "MUSIC_VIDEO")
                 }
                 className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                <option value="SINGLE">Single</option>
-                <option value="EP">EP</option>
-                <option value="ALBUM">Album</option>
+                <option value="SINGLE">Single (Audio)</option>
+                <option value="EP">EP (Audio)</option>
+                <option value="ALBUM">Album (Audio)</option>
+                <option value="MUSIC_VIDEO">Music Video (VEVO / YouTube)</option>
               </select>
             </div>
+
+            {type === "MUSIC_VIDEO" && (
+              <div className="md:col-span-2 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h4 className="text-sm font-semibold">VEVO & YouTube Music Video Settings</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vevoChannel">VEVO Channel Name *</Label>
+                    <Input
+                      id="vevoChannel"
+                      value={vevoChannelName}
+                      onChange={(e) => setVevoChannelName(e.target.value)}
+                      placeholder="e.g. ArtistNameVEVO"
+                      className="text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Must match your approved VEVO channel handle.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="videoVersion">Video Version *</Label>
+                    <select
+                      id="videoVersion"
+                      value={videoVersion}
+                      onChange={(e) => setVideoVersion(e.target.value)}
+                      className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="OFFICIAL">Official Music Video</option>
+                      <option value="LYRIC">Lyric Video</option>
+                      <option value="AUDIO">Official Audio Video</option>
+                      <option value="LIVE">Live Performance</option>
+                      <option value="BEHIND_THE_SCENES">Behind The Scenes</option>
+                      <option value="TEASER">Teaser / Trailer</option>
+                      <option value="ORIGINAL">Original Video</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="videoUrl">Master Video URL / Storage Key *</Label>
+                    <Input
+                      id="videoUrl"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      placeholder="https://storage.yourdomain.com/videos/master.mp4"
+                      className="text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Specification: MP4 (H.264), 16:9 Landscape ≥ 1920x1080, AAC Stereo ≥ 44.1kHz.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="genre">Primary Genre *</Label>

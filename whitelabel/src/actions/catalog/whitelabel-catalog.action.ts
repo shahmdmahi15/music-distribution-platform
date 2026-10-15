@@ -533,3 +533,82 @@ export async function wlValidateReleaseAction(code: string): Promise<{
 export async function validateReleaseAction(code: string) {
   return wlValidateReleaseAction(code);
 }
+
+export async function requestVevoChannelAction(data: {
+  channelName: string;
+  artistName?: string;
+  description?: string;
+}): Promise<{
+  success: boolean;
+  message: string;
+  channel?: any;
+}> {
+  try {
+    const headers = await getAuthHeader();
+    const res = await api.post('/whitelabel/catalog/channels', data, {
+      headers,
+    });
+    return {
+      success: true,
+      message: 'VEVO channel request submitted successfully.',
+      channel: res.data?.channel || res.data,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+export async function getVevoChannelsAction(): Promise<{
+  success: boolean;
+  channels: any[];
+}> {
+  try {
+    const headers = await getAuthHeader();
+    const res = await api.get('/whitelabel/catalog/channels', {
+      headers,
+    });
+    return {
+      success: true,
+      channels: res.data?.channels || res.data || [],
+    };
+  } catch {
+    return { success: false, channels: [] };
+  }
+}
+
+export async function patchReleaseCorrectionAction(
+  code: string,
+  data: any,
+): Promise<{
+  success: boolean;
+  message: string;
+  release?: Release;
+}> {
+  try {
+    const headers = await getAuthHeader();
+    const res = await api.patch(
+      `/whitelabel/catalog/releases/${code}/correction`,
+      data,
+      { headers },
+    );
+    return {
+      success: true,
+      message: res.data?.message || 'Corrections saved successfully.',
+      release: res.data?.release,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+    return { success: false, message: (error as Error).message };
+  }
+}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Release, ReleaseStatus, Track } from "@/types/distribution";
+import { Release, ReleaseStatus, Track, UpstreamStatus } from "@/types/distribution";
 import {
   adminGetDistributionReleasesAction,
   adminGetReleaseDossierAction,
@@ -10,6 +10,8 @@ import {
   adminExportReleaseAction,
   adminRescanTrackAction,
   adminGenerateDdexAction,
+  adminDispatchAnsReleaseAction,
+  adminSimulateAnsStatusAction,
 } from "@/actions/admin/distribution/admin-distribution.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +50,12 @@ import {
   Code2,
   Copy,
   Check,
+  Send,
+  Tv,
+  Video,
+  Play,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 export function AdminDistributionContent() {
@@ -71,6 +79,13 @@ export function AdminDistributionContent() {
   const [ddexXml, setDdexXml] = useState<string>("");
   const [generatingDdex, setGeneratingDdex] = useState(false);
   const [copiedDdex, setCopiedDdex] = useState(false);
+
+  // Upstream ANS Music dispatch & sandbox simulation state
+  const [dispatchingAns, setDispatchingAns] = useState(false);
+  const [showSimulateModal, setShowSimulateModal] = useState(false);
+  const [simulateStatus, setSimulateStatus] = useState<string>("APPROVED");
+  const [simulateReason, setSimulateReason] = useState("");
+  const [simulatingAns, setSimulatingAns] = useState(false);
 
   const fetchReleases = () => {
     startTransition(async () => {
@@ -227,6 +242,54 @@ export function AdminDistributionContent() {
     }
   };
 
+  const handleDispatchAns = async (code: string) => {
+    setDispatchingAns(true);
+    try {
+      const res = await adminDispatchAnsReleaseAction(code);
+      if (res.success) {
+        toast.success("Release successfully dispatched to ANS Music upstream!");
+        const dossierRes = await adminGetReleaseDossierAction(code);
+        if (dossierRes.success && dossierRes.release) {
+          setInspectRelease(dossierRes.release);
+        }
+        fetchReleases();
+      } else {
+        toast.error(res.message || "Failed to dispatch release to ANS Music");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Dispatch error");
+    } finally {
+      setDispatchingAns(false);
+    }
+  };
+
+  const handleSimulateAns = async () => {
+    if (!inspectRelease) return;
+    setSimulatingAns(true);
+    try {
+      const res = await adminSimulateAnsStatusAction(
+        inspectRelease.code,
+        simulateStatus,
+        simulateReason.trim() || undefined,
+      );
+      if (res.success) {
+        toast.success(`Simulated ANS Music status: ${simulateStatus}`);
+        setShowSimulateModal(false);
+        const dossierRes = await adminGetReleaseDossierAction(inspectRelease.code);
+        if (dossierRes.success && dossierRes.release) {
+          setInspectRelease(dossierRes.release);
+        }
+        fetchReleases();
+      } else {
+        toast.error(res.message || "Simulation failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Simulation error");
+    } finally {
+      setSimulatingAns(false);
+    }
+  };
+
   const renderAudioScanBadge = (track: Track) => {
     const scan = track.audioScan;
     if (!scan) {
@@ -299,6 +362,8 @@ export function AdminDistributionContent() {
         return <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">In Review</Badge>;
       case "APPROVED":
         return <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Approved</Badge>;
+      case "NEEDS_FIX":
+        return <Badge className="bg-amber-600/20 text-amber-300 border border-amber-500/30">Needs Fix</Badge>;
       case "DISTRIBUTED":
         return <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">Distributed to DSPs</Badge>;
       case "REJECTED":
@@ -310,11 +375,58 @@ export function AdminDistributionContent() {
     }
   };
 
+  const getUpstreamStatusBadge = (status?: UpstreamStatus) => {
+    switch (status) {
+      case "QUEUED":
+      case "DISPATCHED":
+      case "PROCESSING":
+        return (
+          <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/30 gap-1 text-[10px]">
+            <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+            {status}
+          </Badge>
+        );
+      case "APPROVED":
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px]">
+            ANS: Approved
+          </Badge>
+        );
+      case "NEEDS_FIX":
+        return (
+          <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
+            ANS: Needs Fix
+          </Badge>
+        );
+      case "DELIVERED":
+      case "LIVE":
+        return (
+          <Badge className="bg-green-600/20 text-green-300 border border-green-600/30 text-[10px]">
+            ANS: Delivered
+          </Badge>
+        );
+      case "FAILED":
+      case "TAKEN_DOWN":
+        return (
+          <Badge variant="destructive" className="text-[10px]">
+            ANS: {status}
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="text-[10px] text-muted-foreground border border-border/40">
+            Direct / Pending
+          </Badge>
+        );
+    }
+  };
+
   const statusTabs = [
     { label: "All Releases", value: "ALL" },
     { label: "Submitted Queue", value: "SUBMITTED" },
     { label: "In Review", value: "IN_REVIEW" },
     { label: "Approved", value: "APPROVED" },
+    { label: "Needs Fix", value: "NEEDS_FIX" },
     { label: "Distributed", value: "DISTRIBUTED" },
     { label: "Rejected", value: "REJECTED" },
   ];
@@ -392,6 +504,7 @@ export function AdminDistributionContent() {
                   <TableHead>Tracks</TableHead>
                   <TableHead>Submitted</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Upstream (ANS)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -451,6 +564,7 @@ export function AdminDistributionContent() {
                     </TableCell>
 
                     <TableCell>{getStatusBadge(rel.status)}</TableCell>
+                    <TableCell>{getUpstreamStatusBadge(rel.upstreamStatus)}</TableCell>
 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -582,6 +696,98 @@ export function AdminDistributionContent() {
                     </Button>
                   </div>
                 </div>
+              </div>
+
+              {/* Upstream Direct Deals & ANS Music Distribution Section */}
+              <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Send className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">
+                      Upstream Direct Deals Partner (ANS Music & VEVO)
+                    </span>
+                    {getUpstreamStatusBadge(inspectRelease.upstreamStatus)}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                      disabled={dispatchingAns}
+                      onClick={() => handleDispatchAns(inspectRelease.code)}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{dispatchingAns ? "Dispatching..." : "Dispatch to ANS Music"}</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="text-xs h-7 gap-1.5"
+                      onClick={() => {
+                        setSimulateStatus("APPROVED");
+                        setSimulateReason("");
+                        setShowSimulateModal(true);
+                      }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>ANS Sandbox Simulator</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-background/80 p-3 rounded-lg border border-border/50">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-mono">Provider</span>
+                    <p className="font-medium text-foreground">{inspectRelease.upstreamProvider || "ANS_MUSIC"}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-mono">Upstream Release ID</span>
+                    <p className="font-mono text-foreground">{inspectRelease.upstreamReleaseId || "Pending / None"}</p>
+                  </div>
+                  {inspectRelease.type === "MUSIC_VIDEO" && (
+                    <>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-mono">VEVO Channel</span>
+                        <p className="font-semibold text-primary">{inspectRelease.vevoChannelName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-mono">Video Version</span>
+                        <p className="font-medium text-foreground">{inspectRelease.videoVersion || "OFFICIAL"}</p>
+                      </div>
+                    </>
+                  )}
+                  {inspectRelease.youtubeVideoId && (
+                    <div className="col-span-full flex items-center justify-between p-2 rounded bg-red-500/10 border border-red-500/20 text-xs">
+                      <div className="flex items-center gap-2 text-red-400 font-medium">
+                        <Play className="w-4 h-4 fill-red-500 text-red-500" />
+                        <span>YouTube Live: ID {inspectRelease.youtubeVideoId}</span>
+                      </div>
+                      {inspectRelease.youtubeWatchUrl && (
+                        <a
+                          href={inspectRelease.youtubeWatchUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-red-400 hover:underline font-semibold"
+                        >
+                          Watch on YouTube
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {inspectRelease.upstreamReason && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold">Upstream Reviewer Feedback:</span>{" "}
+                      <span>{inspectRelease.upstreamReason}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tracks Section with Lossless Download */}
@@ -793,6 +999,69 @@ export function AdminDistributionContent() {
             {/* XML Display Container */}
             <div className="flex-1 overflow-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 font-mono text-xs text-zinc-300 leading-relaxed max-h-[55vh]">
               <pre className="whitespace-pre">{ddexXml}</pre>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ANS Music Sandbox Status Simulator Dialog */}
+      <Dialog open={showSimulateModal} onOpenChange={setShowSimulateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <span>ANS Sandbox Status Simulator</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Simulate upstream review feedback and status webhook updates from the ANS Music Sandbox environment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Target Simulated Status:
+              </label>
+              <select
+                value={simulateStatus}
+                onChange={(e) => setSimulateStatus(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="APPROVED">APPROVED (Upstream QC Pass)</option>
+                <option value="NEEDS_FIX">NEEDS_FIX (Request Metadata / Asset Fix)</option>
+                <option value="DELIVERED">DELIVERED (Distributed to DSPs / YouTube Live)</option>
+                <option value="TAKEN_DOWN">TAKEN_DOWN (Takedown from DSPs)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Reviewer Note / Fix Instructions (Optional):
+              </label>
+              <Input
+                value={simulateReason}
+                onChange={(e) => setSimulateReason(e.target.value)}
+                placeholder="e.g. Artwork cropped incorrectly / Track 2 ISRC mismatch"
+                className="text-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSimulateModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={simulatingAns}
+                onClick={handleSimulateAns}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {simulatingAns ? "Simulating..." : "Trigger Simulated Status"}
+              </Button>
             </div>
           </div>
         </DialogContent>

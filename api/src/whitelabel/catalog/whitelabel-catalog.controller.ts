@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -137,6 +138,37 @@ export class WhitelabelCatalogController {
     return await this.catalogService.getAudioPresignedUrl(
       whiteLabel.id,
       trackCode,
+    );
+  }
+
+  @Post('channels')
+  async requestVevoChannel(
+    @CurrentWhiteLabel() whiteLabel: WhiteLabel,
+    @CurrentWhiteLabelUser() currentUser: WhiteLabelUser,
+    @Body() dto: any,
+  ) {
+    return await this.catalogService.requestVevoChannel(
+      whiteLabel.id,
+      currentUser.id,
+      dto,
+    );
+  }
+
+  @Get('channels')
+  async listVevoChannels(@CurrentWhiteLabel() whiteLabel: WhiteLabel) {
+    return await this.catalogService.listVevoChannels(whiteLabel.id);
+  }
+
+  @Patch('releases/:code/correction')
+  async patchReleaseCorrection(
+    @CurrentWhiteLabel() whiteLabel: WhiteLabel,
+    @Param('code') code: string,
+    @Body() dto: UpdateReleaseDto,
+  ) {
+    return await this.catalogService.patchReleaseCorrection(
+      whiteLabel.id,
+      code,
+      dto,
     );
   }
 }

@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { api } from "@/lib/api";
-import { Release, ReleaseStatus } from "@/types/distribution";
+import { Release, ReleaseStatus, VevoChannel } from "@/types/distribution";
 import axios from "axios";
 
 export async function adminGetDistributionReleasesAction(params?: {
@@ -420,5 +420,164 @@ ${releaseResourceReferences}
       success: false,
       message: (error as Error).message,
     };
+  }
+}
+
+/**
+ * Manually dispatches a release to ANS Music / Revelator upstream.
+ */
+export async function adminDispatchAnsReleaseAction(code: string): Promise<{
+  success: boolean;
+  message: string;
+  data?: any;
+}> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+
+    if (!token) {
+      return { success: false, message: "Session token not found." };
+    }
+
+    const res = await api.post(
+      `/platform/admin/distribution/releases/${code}/ans-dispatch`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    return {
+      success: true,
+      message: "Release successfully dispatched to ANS Music!",
+      data: res.data,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+/**
+ * Simulates a status update from ANS Music Sandbox environment.
+ */
+export async function adminSimulateAnsStatusAction(
+  code: string,
+  status: string,
+  reason?: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: any;
+}> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+
+    if (!token) {
+      return { success: false, message: "Session token not found." };
+    }
+
+    const res = await api.post(
+      `/platform/admin/distribution/releases/${code}/ans-simulate`,
+      { status, reason },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    return {
+      success: true,
+      message: `ANS Music Sandbox status simulated: ${status}`,
+      data: res.data,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+/**
+ * Lists all VEVO channel requests across all WhiteLabel tenants.
+ */
+export async function adminGetVevoChannelsAction(): Promise<{
+  success: boolean;
+  message: string;
+  channels: VevoChannel[];
+}> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+
+    if (!token) {
+      return { success: false, message: "Session token not found.", channels: [] };
+    }
+
+    const res = await api.get("/platform/admin/distribution/channels", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return {
+      success: true,
+      message: "VEVO channels retrieved successfully.",
+      channels: res.data.channels || [],
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+        channels: [],
+      };
+    }
+    return {
+      success: false,
+      message: (error as Error).message,
+      channels: [],
+    };
+  }
+}
+
+/**
+ * Dispatches a VEVO channel request to ANS Music upstream.
+ */
+export async function adminDispatchAnsVevoChannelAction(code: string): Promise<{
+  success: boolean;
+  message: string;
+  data?: any;
+}> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__Host-SESSION_TOKEN")?.value;
+
+    if (!token) {
+      return { success: false, message: "Session token not found." };
+    }
+
+    const res = await api.post(
+      `/platform/admin/distribution/channels/${code}/ans-dispatch`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    return {
+      success: true,
+      message: "VEVO channel dispatched to ANS Music successfully!",
+      data: res.data,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message,
+      };
+    }
+    return { success: false, message: (error as Error).message };
   }
 }

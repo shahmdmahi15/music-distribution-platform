@@ -24,6 +24,7 @@ export enum CodePrefix {
   USER_ROYALTY_STATEMENT = 'RMIT-URS-',
   DSP_DELIVERY_PACKAGE = 'RMIT-DDX-',
   PAYEE_PAYOUT_REQUEST = 'RMIT-PAYOUT-',
+  VEVO_CHANNEL = 'RMIT-VEVO-',
 }
 
 export type CodeModel =
@@ -49,7 +50,8 @@ export type CodeModel =
   | 'royaltyRun'
   | 'userRoyaltyStatement'
   | 'dspDeliveryPackage'
-  | 'payeePayoutRequest';
+  | 'payeePayoutRequest'
+  | 'vevoChannel';
 
 /**
  * Sequence backing each model's human-readable code.
@@ -81,6 +83,7 @@ const CODE_SEQUENCES: Record<CodeModel, string> = {
   userRoyaltyStatement: 'userroyaltystatement_code_seq',
   dspDeliveryPackage: 'dspdeliverypackage_code_seq',
   payeePayoutRequest: 'payeepayoutrequest_code_seq',
+  vevoChannel: 'vevochannel_code_seq',
 };
 
 export async function generateUniqueCode(

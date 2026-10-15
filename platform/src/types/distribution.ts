@@ -3,11 +3,58 @@ export type ReleaseStatus =
   | 'SUBMITTED'
   | 'IN_REVIEW'
   | 'APPROVED'
+  | 'NEEDS_FIX'
   | 'DISTRIBUTED'
   | 'REJECTED'
   | 'TAKEDOWN';
 
-export type ReleaseType = 'SINGLE' | 'EP' | 'ALBUM';
+export type ReleaseType = 'SINGLE' | 'EP' | 'ALBUM' | 'MUSIC_VIDEO';
+
+export type UpstreamProvider = 'DIRECT_DDEX' | 'ANS_MUSIC' | 'REVELATOR' | 'OTHER';
+export type UpstreamStatus =
+  | 'NOT_SUBMITTED'
+  | 'QUEUED'
+  | 'DISPATCHED'
+  | 'PROCESSING'
+  | 'APPROVED'
+  | 'NEEDS_FIX'
+  | 'DELIVERED'
+  | 'LIVE'
+  | 'TAKEN_DOWN'
+  | 'FAILED';
+export type VideoVersion = 'OFFICIAL' | 'LYRIC_VIDEO' | 'VISUALIZER' | 'LIVE' | 'TEASER';
+export type VevoChannelStatus = 'PENDING' | 'REQUESTED' | 'APPROVED' | 'REJECTED';
+
+export interface VevoChannel {
+  id: string;
+  code: string;
+  artistName: string;
+  channelName: string;
+  vevoChannelName: string;
+  description?: string;
+  status: VevoChannelStatus;
+  upstreamChannelId?: string;
+  youtubeChannelId?: string;
+  youtubeChannelUrl?: string;
+  rejectionReason?: string;
+  whiteLabelId: string;
+  whiteLabelUserId?: string;
+  whiteLabel?: {
+    id: string;
+    code: string;
+    name: string;
+    subdomain?: string;
+  };
+  whiteLabelUser?: {
+    id: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type ContributorRole =
   | 'PRIMARY_ARTIST'
@@ -110,6 +157,18 @@ export interface Release {
   tracks?: Track[];
   contributors?: Contributor[];
   trackCount?: number;
+  upstreamProvider?: UpstreamProvider;
+  upstreamReleaseId?: string;
+  upstreamVideoId?: string;
+  upstreamStatus?: UpstreamStatus;
+  upstreamReason?: string;
+  youtubeVideoId?: string;
+  youtubeWatchUrl?: string;
+  isrcAssignedByUpstream?: boolean;
+  upcAssignedByUpstream?: boolean;
+  videoVersion?: VideoVersion;
+  videoUrl?: string;
+  vevoChannelName?: string;
   createdAt: string;
   updatedAt: string;
 }

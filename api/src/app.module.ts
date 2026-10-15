@@ -16,6 +16,8 @@ import { PlatformModule } from './platform/platform.module';
 import { SessionModule } from './platform/session/session.module';
 import { WhitelabelModule } from './whitelabel/whitelabel.module';
 import { CloudflareDnsModule } from './lib/cloudflare/cloudflare-dns.module';
+import { AnsMusicModule } from './lib/ans-music/ans-music.module';
+import { WebhooksModule } from './platform/webhooks/webhooks.module';
 import { RolesGuard } from './platform/guard/roles.guard';
 
 @Module({
@@ -36,6 +38,8 @@ import { RolesGuard } from './platform/guard/roles.guard';
     StorageModule,
     AcrCloudModule,
     CloudflareDnsModule,
+    AnsMusicModule,
+    WebhooksModule,
     SessionModule,
     PlatformModule,
     WhitelabelModule,

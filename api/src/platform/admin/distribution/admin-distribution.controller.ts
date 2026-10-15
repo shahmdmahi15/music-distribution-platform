@@ -8,6 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { AdminDistributionService } from './admin-distribution.service';
+import { AnsDispatchService } from './ans-dispatch.service';
+import { AnsMusicClientService } from 'src/lib/ans-music/ans-music-client.service';
 import { DdexGeneratorService } from 'src/lib/ddex/ddex-generator.service';
 import { AdminDistributionQueryDto } from './dto/admin-distribution-query.dto';
 import { UpdateReleaseStatusDto } from './dto/update-release-status.dto';
@@ -20,6 +22,8 @@ import type { PlatformUser } from 'src/generated/prisma/client';
 export class AdminDistributionController {
   constructor(
     private readonly distributionService: AdminDistributionService,
+    private readonly ansDispatchService: AnsDispatchService,
+    private readonly ansMusicClient: AnsMusicClientService,
     private readonly ddexGeneratorService: DdexGeneratorService,
   ) {}
 
@@ -28,6 +32,37 @@ export class AdminDistributionController {
   async getReleaseDdexXml(@Param('code') code: string) {
     const xml = await this.ddexGeneratorService.generateReleaseErnXml(code);
     return { success: true, code, ddexXml: xml };
+  }
+
+  @Post('releases/:code/ans-dispatch')
+  @Roles(...ADMIN_ROLES)
+  async dispatchReleaseToAns(@Param('code') code: string) {
+    return await this.ansDispatchService.autoDispatchRelease(code);
+  }
+
+  @Post('releases/:code/ans-simulate')
+  @Roles(...ADMIN_ROLES)
+  async simulateAnsStatus(
+    @Param('code') code: string,
+    @Body() body: { status: string; reason?: string },
+  ) {
+    const dossier = await this.distributionService.getReleaseDossier(code);
+    const upstreamId = dossier.upstreamReleaseId || dossier.code;
+    return await this.ansMusicClient.simulateStatus(upstreamId, body.status, {
+      reason: body.reason,
+    });
+  }
+
+  @Get('channels')
+  @Roles(...ADMIN_ROLES)
+  async listVevoChannels() {
+    return await this.distributionService.listVevoChannels();
+  }
+
+  @Post('channels/:code/ans-dispatch')
+  @Roles(...ADMIN_ROLES)
+  async dispatchChannelToAns(@Param('code') code: string) {
+    return await this.ansDispatchService.autoDispatchVevoChannel(code);
   }
 
   @Get('releases')

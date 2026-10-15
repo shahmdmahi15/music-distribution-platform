@@ -76,6 +76,18 @@ export class CreateReleaseDto {
   @IsOptional()
   coverArtKey?: string;
 
+  @IsString()
+  @IsOptional()
+  videoUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  videoVersion?: any;
+
+  @IsString()
+  @IsOptional()
+  vevoChannelName?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ReleaseContributorDto)

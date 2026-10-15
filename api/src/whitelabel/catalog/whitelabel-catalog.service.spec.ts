@@ -12,6 +12,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReleaseStatus, ReleaseType } from 'src/generated/prisma/client';
 
 import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
+import { AnsDispatchService } from 'src/platform/admin/distribution/ans-dispatch.service';
 
 describe('WhitelabelCatalogService', () => {
   let service: WhitelabelCatalogService;
@@ -34,6 +35,11 @@ describe('WhitelabelCatalogService', () => {
       }),
     };
 
+    const mockAnsDispatch = {
+      autoDispatchRelease: jest.fn().mockResolvedValue({ success: true }),
+      autoDispatchVevoChannel: jest.fn().mockResolvedValue({ success: true }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WhitelabelCatalogService,
@@ -41,6 +47,7 @@ describe('WhitelabelCatalogService', () => {
         { provide: StorageService, useValue: storage },
         { provide: AcrCloudService, useValue: acrcloud },
         { provide: WhitelabelQcValidationService, useValue: mockQcService },
+        { provide: AnsDispatchService, useValue: mockAnsDispatch },
       ],
     }).compile();
 

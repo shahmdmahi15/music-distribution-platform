@@ -5,9 +5,32 @@ export type ReleaseStatus =
   | 'APPROVED'
   | 'DISTRIBUTED'
   | 'REJECTED'
-  | 'TAKEDOWN';
+  | 'TAKEDOWN'
+  | 'NEEDS_FIX';
 
-export type ReleaseType = 'SINGLE' | 'EP' | 'ALBUM';
+export type ReleaseType = 'SINGLE' | 'EP' | 'ALBUM' | 'MUSIC_VIDEO';
+
+export type VideoVersion =
+  | 'OFFICIAL'
+  | 'LYRIC'
+  | 'AUDIO'
+  | 'LIVE'
+  | 'INTERVIEW'
+  | 'BEHIND_THE_SCENES'
+  | 'TEASER'
+  | 'ORIGINAL';
+
+export interface VevoChannel {
+  id: string;
+  code: string;
+  channelName: string;
+  artistName?: string;
+  description?: string;
+  status: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  channelUrl?: string;
+  youtubeChannelId?: string;
+  createdAt: string;
+}
 
 export type ContributorRole =
   | 'PRIMARY_ARTIST'
@@ -87,6 +110,19 @@ export interface Release {
   adminNotes?: string;
   submittedAt?: string;
   distributedAt?: string;
+  releaseType?: ReleaseType;
+  upstreamProvider?: string;
+  upstreamReleaseId?: string;
+  upstreamVideoId?: string;
+  upstreamStatus?: 'PENDING' | 'NEEDS_FIX' | 'APPROVED' | 'DELIVERED' | 'REJECTED' | 'TAKEN_DOWN';
+  upstreamReason?: string;
+  youtubeVideoId?: string;
+  youtubeWatchUrl?: string;
+  isrcAssignedByUpstream?: boolean;
+  upcAssignedByUpstream?: boolean;
+  videoVersion?: VideoVersion;
+  videoUrl?: string;
+  vevoChannelName?: string;
   tracks?: Track[];
   contributors?: Contributor[];
   trackCount?: number;

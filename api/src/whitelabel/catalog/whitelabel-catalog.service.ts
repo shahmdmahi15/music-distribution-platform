@@ -20,6 +20,8 @@ import { QueryReleaseDto } from './dto/query-release.dto';
 import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
 import { QcStatus, ReleaseStatus } from 'src/generated/prisma/client';
 import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
+import { AnsDispatchService } from 'src/platform/admin/distribution/ans-dispatch.service';
+import { RequestVevoChannelDto } from './dto/request-vevo-channel.dto';
 
 @Injectable()
 export class WhitelabelCatalogService {
@@ -30,6 +32,7 @@ export class WhitelabelCatalogService {
     private readonly storageService: StorageService,
     private readonly acrCloudService: AcrCloudService,
     private readonly qcValidationService: WhitelabelQcValidationService,
+    private readonly ansDispatchService: AnsDispatchService,
   ) {}
 
   /**
@@ -120,6 +123,9 @@ export class WhitelabelCatalogService {
         pLine: dto.pLine,
         coverArtKey: dto.coverArtKey,
         coverArtUrl,
+        videoUrl: dto.videoUrl,
+        videoVersion: dto.videoVersion,
+        vevoChannelName: dto.vevoChannelName,
         status: ReleaseStatus.DRAFT,
         whiteLabelId,
         whiteLabelUserId,
@@ -328,6 +334,9 @@ export class WhitelabelCatalogService {
         pLine: dto.pLine ?? existing.pLine,
         coverArtKey: dto.coverArtKey ?? existing.coverArtKey,
         coverArtUrl,
+        videoUrl: dto.videoUrl ?? existing.videoUrl,
+        videoVersion: dto.videoVersion ?? existing.videoVersion,
+        vevoChannelName: dto.vevoChannelName ?? existing.vevoChannelName,
         contributors: dto.contributors?.length
           ? {
               create: dto.contributors.map((c) => ({
@@ -710,11 +719,24 @@ export class WhitelabelCatalogService {
       }
     }
 
+    // Zero-Touch Automation: Auto-dispatch to ANS Music upstream immediately
+    let autoDispatchResult: any = null;
+    try {
+      autoDispatchResult = await this.ansDispatchService.autoDispatchRelease(
+        release.code,
+      );
+    } catch (dispatchErr: any) {
+      this.logger.warn(
+        `Auto-dispatch for release ${release.code} queued/failed: ${dispatchErr.message}. Release remains in SUBMITTED state.`,
+      );
+    }
+
     return {
       success: true,
       message:
         'Release submitted successfully to Mother Company for DSP distribution!',
-      release: updated,
+      release: autoDispatchResult?.release || updated,
+      dispatched: !!autoDispatchResult?.success,
     };
   }
 
@@ -755,6 +777,103 @@ export class WhitelabelCatalogService {
       title: track.title,
       fileName: track.fileName,
       streamUrl: url,
+    };
+  }
+
+  /**
+   * Patches a release that received NEEDS_FIX or REJECTED status from upstream review.
+   */
+  async patchReleaseCorrection(
+    whiteLabelId: string,
+    releaseCode: string,
+    dto: UpdateReleaseDto,
+  ) {
+    const release = await this.prisma.release.findFirst({
+      where: { code: releaseCode, whiteLabelId },
+    });
+
+    if (!release) {
+      throw new NotFoundException(`Release ${releaseCode} not found`);
+    }
+
+    // Unlock and update release fields
+    const updated = await this.prisma.release.update({
+      where: { id: release.id },
+      data: {
+        title: dto.title ?? release.title,
+        genre: dto.genre ?? release.genre,
+        subgenre: dto.subgenre ?? release.subgenre,
+        cLine: dto.cLine ?? release.cLine,
+        pLine: dto.pLine ?? release.pLine,
+        videoUrl: dto.videoUrl ?? release.videoUrl,
+        videoVersion: dto.videoVersion ?? release.videoVersion,
+        vevoChannelName: dto.vevoChannelName ?? release.vevoChannelName,
+        coverArtKey: dto.coverArtKey ?? release.coverArtKey,
+        isLocked: false,
+        rejectionReason: null,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Release corrections saved successfully. You may now resubmit.',
+      release: updated,
+    };
+  }
+
+  /**
+   * Requests a new VEVO channel for an artist under the WhiteLabel tenant.
+   */
+  async requestVevoChannel(
+    whiteLabelId: string,
+    whiteLabelUserId: string,
+    dto: RequestVevoChannelDto,
+  ) {
+    const code = await generateUniqueCode(
+      this.prisma,
+      'vevoChannel',
+      CodePrefix.VEVO_CHANNEL,
+    );
+
+    const channel = await this.prisma.vevoChannel.create({
+      data: {
+        code,
+        channelName: dto.channelName,
+        artistName: dto.artistName,
+        description: dto.description,
+        status: 'PENDING',
+        whiteLabelId,
+        whiteLabelUserId,
+      },
+    });
+
+    // Zero-Touch Auto-Dispatch to ANS Music upstream
+    try {
+      await this.ansDispatchService.autoDispatchVevoChannel(channel.code);
+    } catch (err: any) {
+      this.logger.warn(
+        `Auto-dispatch for VEVO channel ${channel.code} queued/failed: ${err.message}`,
+      );
+    }
+
+    return {
+      success: true,
+      channel,
+    };
+  }
+
+  /**
+   * Lists all VEVO channels for a WhiteLabel tenant.
+   */
+  async listVevoChannels(whiteLabelId: string) {
+    const channels = await this.prisma.vevoChannel.findMany({
+      where: { whiteLabelId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      channels,
     };
   }
 }

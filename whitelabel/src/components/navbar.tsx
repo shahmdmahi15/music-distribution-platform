@@ -8,7 +8,7 @@ import { useTenant, useCurrentUser } from "./tenant-theme-provider";
 import { TenantLogo } from "./tenant-logo";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { WhiteLabelUserRole } from "@/types/user";
-import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText, Menu, X, User } from "lucide-react";
+import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText, Menu, X, User, Radio } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -122,6 +122,17 @@ export function Navbar() {
               >
                 <Music className="w-4 h-4" />
                 Releases
+              </Link>
+              <Link
+                href="/channels"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  pathname.startsWith("/channels")
+                    ? "bg-accent text-accent-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                }`}
+              >
+                <Radio className="w-4 h-4 text-red-500" />
+                VEVO Channels
               </Link>
               <Link
                 href="/reports"
@@ -272,6 +283,18 @@ export function Navbar() {
           >
             <Music className="w-4 h-4" />
             Releases
+          </Link>
+          <Link
+            href="/channels"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+              pathname.startsWith("/channels")
+                ? "bg-accent text-accent-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            <Radio className="w-4 h-4 text-red-500" />
+            VEVO Channels
           </Link>
           <Link
             href="/reports"
