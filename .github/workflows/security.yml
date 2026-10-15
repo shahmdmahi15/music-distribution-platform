@@ -82,4 +82,4 @@ jobs:
 
       - name: Run pnpm Audit (${{ matrix.workspace }})
         working-directory: ${{ matrix.workspace }}
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=high --ignore-workspace

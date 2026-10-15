@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: api
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Validate Prisma Schema
         working-directory: api
@@ -107,7 +107,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: platform
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Verify TypeScript Types
         working-directory: platform
@@ -148,7 +148,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: whitelabel
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Verify TypeScript Types
         working-directory: whitelabel
