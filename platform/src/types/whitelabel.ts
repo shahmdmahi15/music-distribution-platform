@@ -275,6 +275,10 @@ export interface WhiteLabel {
   isSetupComplete?: boolean;
   isSetupCompleted?: boolean;
 
+  // Commercial Revenue Share Rate
+  revShareTenantPercentage?: number | string | null;
+  revSharePlatformPercentage?: number | string | null;
+
   artists?: WhiteLabelTopArtist[];
   documents?: WhiteLabelDocument[];
   createdAt: string;

@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "WhiteLabel" ADD COLUMN IF NOT EXISTS "revShareTenantPercentage" DECIMAL(5,2) NOT NULL DEFAULT 85.00;
+ALTER TABLE "WhiteLabel" ADD COLUMN IF NOT EXISTS "revSharePlatformPercentage" DECIMAL(5,2) NOT NULL DEFAULT 15.00;
+
+-- AlterTable
+ALTER TABLE "RoyaltyRun" ADD COLUMN IF NOT EXISTS "totalPlatformGrossCutUsd" DECIMAL(14,2) NOT NULL DEFAULT 0;

@@ -46,9 +46,26 @@ export interface RoyaltyRunResult {
   totalStreams: number;
   totalRevenueUsd: number;
   totalRevenueBdt: number;
+  totalPlatformCutUsd?: number;
   unmatchedLines: DspSalesLine[];
   payeeSummaries: PayeeSummary[];
   royaltyRun?: any;
+  run?: {
+    id: string;
+    code: string;
+    reportingPeriod: string;
+    store?: string;
+    exchangeRateBdtUsd: number;
+    totalGrossUsd: number;
+    totalPayoutsUsd: number;
+    totalPayoutsBdt: number;
+    totalPlatformCutUsd?: number;
+    status: string;
+    whiteLabelId?: string;
+    processedRowsCount?: number;
+    completedAt?: string;
+    createdAt?: string;
+  };
 }
 
 @Injectable()
@@ -105,6 +122,7 @@ export class RoyaltyRunService {
       cleanPeriod,
       exchangeRate,
       executedByUserId,
+      whiteLabelId,
     );
   }
 
@@ -211,6 +229,23 @@ export class RoyaltyRunService {
       });
     }
 
+    const normalizedRun = {
+      id: `run-${Date.now()}`,
+      code: `RUN-${cleanPeriod}-${Math.floor(1000 + Math.random() * 9000)}`,
+      reportingPeriod: cleanPeriod,
+      store: 'ALL',
+      exchangeRateBdtUsd: exchangeRate,
+      totalGrossUsd: totalRevenueUsd,
+      totalPayoutsUsd: totalRevenueUsd,
+      totalPayoutsBdt: totalRevenueBdt,
+      totalPlatformCutUsd: 0,
+      status: 'COMPLETED',
+      whiteLabelId: defaultWhiteLabelId,
+      processedRowsCount: lines.length,
+      completedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
     return {
       success: true,
       matchedLinesCount,
@@ -218,8 +253,10 @@ export class RoyaltyRunService {
       totalStreams,
       totalRevenueUsd,
       totalRevenueBdt,
+      totalPlatformCutUsd: 0,
       unmatchedLines,
       payeeSummaries,
+      run: normalizedRun,
     };
   }
 
@@ -227,11 +264,13 @@ export class RoyaltyRunService {
     cleanPeriod: string,
     exchangeRateUsdToBdt: number,
     executedByUserId?: string,
+    targetWhiteLabelId?: string,
   ): Promise<RoyaltyRunResult> {
     const existingRun = await this.prisma.royaltyRun.findFirst({
       where: {
         reportingPeriod: cleanPeriod,
         status: RoyaltyRunStatus.COMPLETED,
+        ...(targetWhiteLabelId ? { whiteLabelId: targetWhiteLabelId } : {}),
       },
     });
 
@@ -242,13 +281,16 @@ export class RoyaltyRunService {
     }
 
     const salesLines = await this.prisma.dspSaleLine.findMany({
-      where: { reportingPeriod: cleanPeriod },
+      where: {
+        reportingPeriod: cleanPeriod,
+        ...(targetWhiteLabelId ? { whiteLabelId: targetWhiteLabelId } : {}),
+      },
       include: { report: true },
     });
 
     if (!salesLines.length) {
       throw new BadRequestException(
-        `No DSP sales lines found for period ${cleanPeriod}. Please upload DSP reports before running calculations.`,
+        `No DSP sales lines found for period ${cleanPeriod}${targetWhiteLabelId ? ` and WhiteLabel ${targetWhiteLabelId}` : ''}. Please upload DSP reports before running calculations.`,
       );
     }
 
@@ -263,6 +305,7 @@ export class RoyaltyRunService {
         code: runCode,
         title: `Royalty Run ${cleanPeriod}`,
         reportingPeriod: cleanPeriod,
+        whiteLabelId: targetWhiteLabelId || null,
         exchangeRateUsdToBdt: new Prisma.Decimal(exchangeRateUsdToBdt),
         status: RoyaltyRunStatus.PROCESSING,
       },
@@ -320,6 +363,39 @@ export class RoyaltyRunService {
         trackSalesMap.set(key, current);
       }
 
+      // Collect unique WhiteLabels to query their specific contractual revenue share rates
+      const wlIds = new Set<string>();
+      if (targetWhiteLabelId) wlIds.add(targetWhiteLabelId);
+      for (const line of salesLines) {
+        if (line.whiteLabelId) wlIds.add(line.whiteLabelId);
+      }
+
+      const whiteLabels = await this.prisma.whiteLabel.findMany({
+        where: { id: { in: Array.from(wlIds) } },
+        select: {
+          id: true,
+          name: true,
+          revShareTenantPercentage: true,
+          revSharePlatformPercentage: true,
+        },
+      });
+
+      const wlRateMap = new Map<
+        string,
+        { tenantRate: number; platformRate: number; name: string }
+      >();
+      for (const wl of whiteLabels) {
+        const tenantRate =
+          wl.revShareTenantPercentage != null
+            ? Number(wl.revShareTenantPercentage)
+            : 85.0;
+        const platformRate =
+          wl.revSharePlatformPercentage != null
+            ? Number(wl.revSharePlatformPercentage)
+            : 15.0;
+        wlRateMap.set(wl.id, { tenantRate, platformRate, name: wl.name });
+      }
+
       const payeeAggregates = new Map<
         string,
         {
@@ -332,7 +408,23 @@ export class RoyaltyRunService {
         }
       >();
 
+      let totalPlatformCutUsd = 0;
+
       for (const [trackId, data] of trackSalesMap.entries()) {
+        const rates = wlRateMap.get(data.whiteLabelId) || {
+          tenantRate: 85.0,
+          platformRate: 15.0,
+          name: 'Standard Platform Deal',
+        };
+        const tenantDistributableRatio = rates.tenantRate / 100.0;
+        const platformCutRatio = rates.platformRate / 100.0;
+
+        const trackPlatformCutUsd = data.netUsd * platformCutRatio;
+        totalPlatformCutUsd += trackPlatformCutUsd;
+
+        const trackTenantDistributableNetUsd =
+          data.netUsd * tenantDistributableRatio;
+
         let splits: PayeeSplit[] = [];
 
         try {
@@ -394,7 +486,8 @@ export class RoyaltyRunService {
           currentPayee.streamCount += Math.round(data.streamCount * ratio);
           currentPayee.downloadCount += Math.round(data.downloadCount * ratio);
           currentPayee.grossEarningsUsd += data.grossUsd * ratio;
-          currentPayee.netEarningsUsd += data.netUsd * ratio;
+          currentPayee.netEarningsUsd +=
+            trackTenantDistributableNetUsd * ratio;
 
           payeeAggregates.set(payeeKey, currentPayee);
         }
@@ -449,11 +542,35 @@ export class RoyaltyRunService {
         data: {
           status: RoyaltyRunStatus.COMPLETED,
           totalRawGrossUsd: new Prisma.Decimal(totalGrossUsd),
+          totalPlatformGrossCutUsd: new Prisma.Decimal(totalPlatformCutUsd),
           totalNetPayoutUsd: new Prisma.Decimal(totalNetUsd),
           totalNetPayoutBdt: new Prisma.Decimal(totalNetBdt),
           processedAt: new Date(),
         },
       });
+
+      const normalizedRun = {
+        id: completedRun.id,
+        code: completedRun.code,
+        reportingPeriod: completedRun.reportingPeriod,
+        store: 'ALL',
+        exchangeRateBdtUsd: exchangeRateUsdToBdt,
+        totalGrossUsd: Number(completedRun.totalRawGrossUsd ?? totalGrossUsd),
+        totalPayoutsUsd: Number(completedRun.totalNetPayoutUsd ?? totalNetUsd),
+        totalPayoutsBdt: Number(completedRun.totalNetPayoutBdt ?? totalNetBdt),
+        totalPlatformCutUsd: Number(
+          completedRun.totalPlatformGrossCutUsd ?? totalPlatformCutUsd,
+        ),
+        status: completedRun.status,
+        whiteLabelId: completedRun.whiteLabelId || targetWhiteLabelId,
+        processedRowsCount: matchedLinesCount + unmatchedLinesCount,
+        completedAt: completedRun.processedAt
+          ? completedRun.processedAt.toISOString()
+          : new Date().toISOString(),
+        createdAt: completedRun.createdAt
+          ? completedRun.createdAt.toISOString()
+          : new Date().toISOString(),
+      };
 
       return {
         success: true,
@@ -463,9 +580,11 @@ export class RoyaltyRunService {
         totalStreams,
         totalRevenueUsd: totalNetUsd,
         totalRevenueBdt: totalNetBdt,
+        totalPlatformCutUsd,
         unmatchedLines,
         payeeSummaries,
         royaltyRun: completedRun,
+        run: normalizedRun,
       };
     } catch (error: any) {
       await this.prisma.royaltyRun.update({

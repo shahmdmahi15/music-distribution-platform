@@ -117,4 +117,14 @@ export class AdminUpdateApplicationDto {
   @IsOptional()
   @IsString()
   statusReason?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  revShareTenantPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  revSharePlatformPercentage?: number;
 }

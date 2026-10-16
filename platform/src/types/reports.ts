@@ -48,6 +48,7 @@ export interface RoyaltyRun {
   totalGrossUsd: number;
   totalPayoutsUsd: number;
   totalPayoutsBdt: number;
+  totalPlatformCutUsd?: number;
   status: RoyaltyRunStatus;
   whiteLabelId?: string | null;
   whiteLabelName?: string | null;

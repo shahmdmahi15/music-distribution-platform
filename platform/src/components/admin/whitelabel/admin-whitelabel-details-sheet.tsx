@@ -449,6 +449,44 @@ export function AdminWhiteLabelDetailsDialog({
   const [contractFile, setContractFile] = useState<File | null>(null);
   const [contractPreviewLoading, setContractPreviewLoading] = useState(false);
 
+  // Commercial Revenue Share Terms State
+  const [revShareSaving, setRevShareSaving] = useState(false);
+  const [customTenantPct, setCustomTenantPct] = useState<number>(
+    Number(whiteLabel?.revShareTenantPercentage ?? 85),
+  );
+  const [customPlatformPct, setCustomPlatformPct] = useState<number>(
+    Number(whiteLabel?.revSharePlatformPercentage ?? 15),
+  );
+
+  const handleUpdateRevShare = async (
+    tenantPct: number,
+    platformPct: number,
+  ) => {
+    if (!whiteLabel) return;
+    setRevShareSaving(true);
+    try {
+      const res = await adminUpdateWhiteLabelApplicationAction(whiteLabel.id, {
+        revShareTenantPercentage: tenantPct,
+        revSharePlatformPercentage: platformPct,
+      });
+      if (res.success) {
+        toast.success(
+          `Revenue share deal updated to ${tenantPct}% Tenant / ${platformPct}% Mother Platform!`,
+        );
+        setCustomTenantPct(tenantPct);
+        setCustomPlatformPct(platformPct);
+        router.refresh();
+        if (onRefresh) onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to update commercial revenue share terms.");
+    } finally {
+      setRevShareSaving(false);
+    }
+  };
+
   // Document Upload Modal State
   const [showDocModal, setShowDocModal] = useState(false);
   const [docLoading, setDocLoading] = useState(false);
@@ -595,6 +633,8 @@ export function AdminWhiteLabelDetailsDialog({
     : "";
   if (whiteLabel && currentSyncKey !== prevSyncKey) {
     setPrevSyncKey(currentSyncKey);
+    setCustomTenantPct(Number(whiteLabel.revShareTenantPercentage ?? 85));
+    setCustomPlatformPct(Number(whiteLabel.revSharePlatformPercentage ?? 15));
     setBrandingForm({
       name: whiteLabel.name || "",
       subdomain: whiteLabel.subdomain || "",
@@ -3164,6 +3204,132 @@ export function AdminWhiteLabelDetailsDialog({
             {/* TAB 4: Documents & Signed Agreements */}
             {activeTab === "documents" && (
               <div className="space-y-4">
+                {/* Commercial Terms & Custom Revenue Share Rate Card */}
+                <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <BadgePercent className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <h5 className="font-bold text-xs uppercase tracking-wider text-foreground">
+                        Commercial Terms & Revenue Share Split
+                      </h5>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs">
+                        Current Deal: {Number(whiteLabel.revShareTenantPercentage ?? 85)}% Tenant / {Number(whiteLabel.revSharePlatformPercentage ?? 15)}% Platform
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Define the wholesale contract rate between Mother Platform and this WhiteLabel tenant. When DSP monthly sales reports are processed, the automated royalty calculation engine apportions gross revenue according to this exact ratio.
+                  </p>
+
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-semibold text-muted-foreground">Quick Deal Presets:</span>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={revShareSaving}
+                        onClick={() => handleUpdateRevShare(100, 0)}
+                        className={`h-7 text-xs gap-1 ${
+                          Number(whiteLabel.revShareTenantPercentage ?? 85) === 100
+                            ? "border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                            : ""
+                        }`}
+                      >
+                        100% Tenant / 0% Platform (RoyalMusic Deal)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={revShareSaving}
+                        onClick={() => handleUpdateRevShare(90, 10)}
+                        className={`h-7 text-xs gap-1 ${
+                          Number(whiteLabel.revShareTenantPercentage ?? 85) === 90
+                            ? "border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                            : ""
+                        }`}
+                      >
+                        90% Tenant / 10% Platform (Dhaka Records Deal)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={revShareSaving}
+                        onClick={() => handleUpdateRevShare(85, 15)}
+                        className={`h-7 text-xs gap-1 ${
+                          Number(whiteLabel.revShareTenantPercentage ?? 85) === 85
+                            ? "border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                            : ""
+                        }`}
+                      >
+                        85% Tenant / 15% Platform (Standard Baseline)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={revShareSaving}
+                        onClick={() => handleUpdateRevShare(80, 20)}
+                        className={`h-7 text-xs gap-1 ${
+                          Number(whiteLabel.revShareTenantPercentage ?? 85) === 80
+                            ? "border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                            : ""
+                        }`}
+                      >
+                        80% Tenant / 20% Platform (SSR Deal)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 border-t border-border/40">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Custom Tenant %:</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={customTenantPct}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setCustomTenantPct(val);
+                          setCustomPlatformPct(Math.max(0, 100 - val));
+                        }}
+                        className="w-20 h-7 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">Platform %:</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={customPlatformPct}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setCustomPlatformPct(val);
+                          setCustomTenantPct(Math.max(0, 100 - val));
+                        }}
+                        className="w-20 h-7 text-xs font-mono"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={revShareSaving || Math.abs(customTenantPct + customPlatformPct - 100) > 0.01}
+                      onClick={() => handleUpdateRevShare(customTenantPct, customPlatformPct)}
+                      className="h-7 text-xs gap-1 sm:ml-auto"
+                    >
+                      {revShareSaving ? "Saving Terms..." : "Apply Custom Split"}
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Primary Executed Contract Card */}
                 <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="space-y-1">

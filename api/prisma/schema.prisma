@@ -567,6 +567,10 @@ model WhiteLabel {
   approvedAt            DateTime?
   reviewedAt            DateTime?
 
+  // Commercial Terms & Custom Revenue Share (e.g. 100/0, 90/10, 85/15, 80/20)
+  revShareTenantPercentage   Decimal @default(85.00) @db.Decimal(5, 2)
+  revSharePlatformPercentage Decimal @default(15.00) @db.Decimal(5, 2)
+
   // Contract Information
   contractKey        String?
   contractFileName   String?
@@ -1291,16 +1295,17 @@ model DspSaleLine {
 }
 
 model RoyaltyRun {
-  id                   String           @id @default(cuid())
-  code                 String           @unique
-  reportingPeriod      String
-  title                String
-  exchangeRateUsdToBdt Decimal          @default(120.0) @db.Decimal(10, 4)
-  totalRawGrossUsd     Decimal          @default(0) @db.Decimal(14, 2)
-  totalNetPayoutUsd    Decimal          @default(0) @db.Decimal(14, 2)
-  totalNetPayoutBdt    Decimal          @default(0) @db.Decimal(14, 2)
-  status               RoyaltyRunStatus @default(QUEUED)
-  processedAt          DateTime?
+  id                       String           @id @default(cuid())
+  code                     String           @unique
+  reportingPeriod          String
+  title                    String
+  exchangeRateUsdToBdt     Decimal          @default(120.0) @db.Decimal(10, 4)
+  totalRawGrossUsd         Decimal          @default(0) @db.Decimal(14, 2)
+  totalNetPayoutUsd        Decimal          @default(0) @db.Decimal(14, 2)
+  totalNetPayoutBdt        Decimal          @default(0) @db.Decimal(14, 2)
+  totalPlatformGrossCutUsd Decimal          @default(0) @db.Decimal(14, 2)
+  status                   RoyaltyRunStatus @default(QUEUED)
+  processedAt              DateTime?
 
   whiteLabelId String?
   whiteLabel   WhiteLabel? @relation(fields: [whiteLabelId], references: [id], onDelete: SetNull)

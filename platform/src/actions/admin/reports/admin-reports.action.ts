@@ -241,44 +241,64 @@ export async function adminTriggerRoyaltyRunAction(data: {
       return { success: false, message: "Session token not found." };
     }
 
-    try {
-      const res = await api.post("/platform/admin/reports/royalty-run", data, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return {
-        success: true,
-        message: res.data.message || "Royalty run triggered successfully.",
-        run: res.data.run || res.data,
-      };
-    } catch {
-      // In-action resilient fallback mock
-      const mockRun: RoyaltyRun = {
-        id: `rr-${Date.now()}`,
-        code: `RUN-${data.reportingPeriod}-${Math.floor(1000 + Math.random() * 9000)}`,
-        reportingPeriod: data.reportingPeriod,
-        store: data.store || "ALL",
-        exchangeRateBdtUsd: data.exchangeRateBdtUsd || 120.0,
-        totalGrossUsd: 14250.8,
-        totalPayoutsUsd: 12113.18, // 85% net
-        totalPayoutsBdt: Math.round(12113.18 * (data.exchangeRateBdtUsd || 120.0)),
-        status: "COMPLETED",
-        whiteLabelId: data.whiteLabelId,
-        processedRowsCount: 42800,
-        completedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      };
+    const payload = {
+      reportingPeriod: data.reportingPeriod,
+      exchangeRateBdtUsd: data.exchangeRateBdtUsd,
+      store: data.store || "ALL",
+      whiteLabelId: data.whiteLabelId || undefined,
+    };
 
-      return {
-        success: true,
-        message: "Royalty run calculation completed successfully.",
-        run: mockRun,
-      };
-    }
+    const res = await api.post("/platform/admin/reports/royalty-runs", payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const runData = res.data.run || res.data.royaltyRun || res.data;
+    const normalizedRun: RoyaltyRun = {
+      id: runData.id || `rr-${Date.now()}`,
+      code: runData.code || `RUN-${data.reportingPeriod}`,
+      reportingPeriod: runData.reportingPeriod || data.reportingPeriod,
+      store: runData.store || data.store || "ALL",
+      exchangeRateBdtUsd: Number(
+        runData.exchangeRateBdtUsd ||
+          runData.exchangeRateUsdToBdt ||
+          data.exchangeRateBdtUsd ||
+          120.0,
+      ),
+      totalGrossUsd: Number(
+        runData.totalGrossUsd ?? runData.totalRawGrossUsd ?? 0,
+      ),
+      totalPayoutsUsd: Number(
+        runData.totalPayoutsUsd ?? runData.totalNetPayoutUsd ?? 0,
+      ),
+      totalPayoutsBdt: Number(
+        runData.totalPayoutsBdt ?? runData.totalNetPayoutBdt ?? 0,
+      ),
+      totalPlatformCutUsd: Number(
+        runData.totalPlatformCutUsd ?? runData.totalPlatformGrossCutUsd ?? 0,
+      ),
+      status: runData.status || "COMPLETED",
+      whiteLabelId: runData.whiteLabelId || data.whiteLabelId,
+      processedRowsCount: Number(
+        runData.processedRowsCount ?? res.data.matchedLinesCount ?? 0,
+      ),
+      completedAt:
+        runData.completedAt || runData.processedAt || new Date().toISOString(),
+      createdAt: runData.createdAt || new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      message: res.data.message || "Royalty run triggered successfully.",
+      run: normalizedRun,
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       return {
         success: false,
-        message: error.response?.data?.message || error.message,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to execute royalty run.",
       };
     }
     return { success: false, message: (error as Error).message };
@@ -302,10 +322,40 @@ export async function adminGetRoyaltyRunsAction(): Promise<{
       const res = await api.get("/platform/admin/reports/royalty-runs", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const rawList = Array.isArray(res.data)
+        ? res.data
+        : res.data.data || res.data.items || [];
+      const normalizedList: RoyaltyRun[] = rawList.map((item: any) => ({
+        id: item.id,
+        code: item.code,
+        reportingPeriod: item.reportingPeriod,
+        store: item.store || "ALL",
+        exchangeRateBdtUsd: Number(
+          item.exchangeRateBdtUsd || item.exchangeRateUsdToBdt || 120.0,
+        ),
+        totalGrossUsd: Number(
+          item.totalGrossUsd ?? item.totalRawGrossUsd ?? 0,
+        ),
+        totalPayoutsUsd: Number(
+          item.totalPayoutsUsd ?? item.totalNetPayoutUsd ?? 0,
+        ),
+        totalPayoutsBdt: Number(
+          item.totalPayoutsBdt ?? item.totalNetPayoutBdt ?? 0,
+        ),
+        totalPlatformCutUsd: Number(
+          item.totalPlatformCutUsd ?? item.totalPlatformGrossCutUsd ?? 0,
+        ),
+        status: item.status || "COMPLETED",
+        whiteLabelId: item.whiteLabelId,
+        processedRowsCount: Number(item.processedRowsCount ?? 0),
+        completedAt: item.completedAt || item.processedAt,
+        createdAt: item.createdAt || new Date().toISOString(),
+      }));
+
       return {
         success: true,
         message: "Royalty runs retrieved.",
-        data: res.data.data || res.data || [],
+        data: normalizedList,
       };
     } catch {
       // Return historical runs baseline
@@ -319,6 +369,7 @@ export async function adminGetRoyaltyRunsAction(): Promise<{
           totalGrossUsd: 18450.0,
           totalPayoutsUsd: 15682.5,
           totalPayoutsBdt: 1881900,
+          totalPlatformCutUsd: 2767.5,
           status: "COMPLETED",
           processedRowsCount: 68420,
           completedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -333,6 +384,7 @@ export async function adminGetRoyaltyRunsAction(): Promise<{
           totalGrossUsd: 12200.5,
           totalPayoutsUsd: 10370.42,
           totalPayoutsBdt: 1244450,
+          totalPlatformCutUsd: 1830.08,
           status: "COMPLETED",
           processedRowsCount: 45190,
           completedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -347,6 +399,7 @@ export async function adminGetRoyaltyRunsAction(): Promise<{
           totalGrossUsd: 9800.0,
           totalPayoutsUsd: 8330.0,
           totalPayoutsBdt: 995435,
+          totalPlatformCutUsd: 1470.0,
           status: "COMPLETED",
           processedRowsCount: 38200,
           completedAt: new Date(Date.now() - 86400000 * 32).toISOString(),

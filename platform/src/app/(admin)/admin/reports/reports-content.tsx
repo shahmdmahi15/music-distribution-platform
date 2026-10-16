@@ -142,14 +142,18 @@ export function AdminReportsContent() {
       });
 
       if (res.success && res.run) {
-        toast.success(`Royalty run completed! Total Payouts: $${res.run.totalPayoutsUsd.toLocaleString()} (৳${res.run.totalPayoutsBdt.toLocaleString()})`);
+        const payoutsUsd = Number(res.run.totalPayoutsUsd ?? 0);
+        const payoutsBdt = Number(res.run.totalPayoutsBdt ?? 0);
+        toast.success(
+          `Royalty run completed! Total Payouts: $${payoutsUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (৳${payoutsBdt.toLocaleString()})`,
+        );
         setRoyaltyRuns((prev) => [res.run!, ...prev]);
         setShowRunModal(false);
       } else {
         toast.error(res.message || "Failed to trigger royalty run");
       }
     } catch (err: any) {
-      toast.error("Royalty run error: " + err.message);
+      toast.error("Royalty run error: " + (err.message || String(err)));
     } finally {
       setRunningCalculation(false);
     }
@@ -332,6 +336,7 @@ export function AdminReportsContent() {
                       <TableHead>Store</TableHead>
                       <TableHead>Exchange Rate</TableHead>
                       <TableHead>Total Gross USD</TableHead>
+                      <TableHead>Platform Cut USD</TableHead>
                       <TableHead>Total Payouts USD</TableHead>
                       <TableHead>Total Payouts BDT</TableHead>
                       <TableHead>Status</TableHead>
@@ -354,22 +359,30 @@ export function AdminReportsContent() {
                           {run.store}
                         </TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">
-                          {run.exchangeRateBdtUsd.toFixed(2)} BDT/$
+                          {Number(run.exchangeRateBdtUsd || 120.0).toFixed(2)} BDT/$
                         </TableCell>
                         <TableCell className="text-xs">
-                          ${run.totalGrossUsd.toLocaleString(undefined, {
+                          ${Number(run.totalGrossUsd ?? 0).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </TableCell>
+                        <TableCell className="text-xs font-medium text-blue-500">
+                          {run.totalPlatformCutUsd !== undefined
+                            ? `$${Number(run.totalPlatformCutUsd).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : "—"}
+                        </TableCell>
                         <TableCell className="text-xs font-bold text-foreground">
-                          ${run.totalPayoutsUsd.toLocaleString(undefined, {
+                          ${Number(run.totalPayoutsUsd ?? 0).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </TableCell>
                         <TableCell className="text-xs font-bold text-emerald-500">
-                          ৳{run.totalPayoutsBdt.toLocaleString()}
+                          ৳{Number(run.totalPayoutsBdt ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(run.status)}
@@ -684,16 +697,46 @@ export function AdminReportsContent() {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-xs space-y-1">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Revenue Share:</span>
-                <span className="font-semibold text-foreground">85% Tenant / 15% Mother Platform</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Calculation Engine:</span>
-                <span className="font-semibold text-foreground">Revelator Net-Apportionment</span>
-              </div>
-            </div>
+            {(() => {
+              const selectedWl = whiteLabels.find((wl) => wl.id === runWlId);
+              const tenantPct = selectedWl
+                ? Number(selectedWl.revShareTenantPercentage ?? 85)
+                : null;
+              const platformPct = selectedWl
+                ? Number(selectedWl.revSharePlatformPercentage ?? 15)
+                : null;
+
+              return (
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-xs space-y-1.5">
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Revenue Share Model:</span>
+                    <span className="font-semibold text-foreground">
+                      {selectedWl ? (
+                        <span className="text-emerald-500 font-mono">
+                          {tenantPct}% Tenant / {platformPct}% Mother Platform
+                        </span>
+                      ) : (
+                        <span className="text-blue-500">
+                          Dynamic per Tenant Deal (100/0, 90/10, 85/15, 80/20)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Target Tenant:</span>
+                    <span className="font-medium text-foreground">
+                      {selectedWl ? selectedWl.name : "All Contracted WhiteLabels"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-muted-foreground">
+                    <span>Calculation Engine:</span>
+                    <span className="font-semibold text-foreground">
+                      Revelator Precedence & Net-Apportionment
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
               <Button

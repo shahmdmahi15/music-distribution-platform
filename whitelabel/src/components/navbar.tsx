@@ -8,7 +8,7 @@ import { useTenant, useCurrentUser } from "./tenant-theme-provider";
 import { TenantLogo } from "./tenant-logo";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { WhiteLabelUserRole } from "@/types/user";
-import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText, Menu, X, User, Radio } from "lucide-react";
+import { Music, Users, Smartphone, LogOut, Moon, Sun, FileText, Menu, X, User, Radio, Scale } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -157,17 +157,30 @@ export function Navbar() {
                 Sessions
               </Link>
               {isManagement && (
-                <Link
-                  href="/users"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                    pathname === "/users"
-                      ? "bg-accent text-accent-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  Team & Users
-                </Link>
+                <>
+                  <Link
+                    href="/contracts"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                      pathname.startsWith("/contracts")
+                        ? "bg-accent text-accent-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <Scale className="w-4 h-4 text-primary" />
+                    Contracts & Splits
+                  </Link>
+                  <Link
+                    href="/users"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                      pathname === "/users"
+                        ? "bg-accent text-accent-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    Team & Users
+                  </Link>
+                </>
               )}
             </nav>
           )}
@@ -321,18 +334,32 @@ export function Navbar() {
             Sessions
           </Link>
           {isManagement && (
-            <Link
-              href="/users"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
-                pathname === "/users"
-                  ? "bg-accent text-accent-foreground font-semibold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Team & Users
-            </Link>
+            <>
+              <Link
+                href="/contracts"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+                  pathname.startsWith("/contracts")
+                    ? "bg-accent text-accent-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                }`}
+              >
+                <Scale className="w-4 h-4 text-primary" />
+                Contracts & Splits
+              </Link>
+              <Link
+                href="/users"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
+                  pathname === "/users"
+                    ? "bg-accent text-accent-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Team & Users
+              </Link>
+            </>
           )}
           <Link
             href="/profile"

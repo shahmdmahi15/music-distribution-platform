@@ -49,11 +49,26 @@ export class AdminReportsController {
     @Body() dto: ExecuteRoyaltyRunDto,
     @CurrentUser() adminUser: PlatformUser,
   ) {
+    const period = (dto.period || dto.reportingPeriod || '').trim();
+    const rate = dto.exchangeRateUsdToBdt || dto.exchangeRateBdtUsd || 120.0;
     return await this.royaltyRunService.executeRoyaltyRun(
-      dto.period,
-      dto.exchangeRateUsdToBdt,
+      {
+        reportingPeriod: period,
+        exchangeRateUsdToBdt: rate,
+        whiteLabelId: dto.whiteLabelId,
+      },
+      rate,
       adminUser.id,
     );
+  }
+
+  @Post('royalty-run')
+  @Roles(...ADMIN_ROLES)
+  async executeRoyaltyRunAlias(
+    @Body() dto: ExecuteRoyaltyRunDto,
+    @CurrentUser() adminUser: PlatformUser,
+  ) {
+    return await this.executeRoyaltyRun(dto, adminUser);
   }
 
   @Get('royalty-runs')

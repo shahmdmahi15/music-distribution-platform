@@ -1263,6 +1263,12 @@ export class AdminWhitelabelService {
         ...(dto.statusReason !== undefined && {
           statusReason: dto.statusReason.trim() || null,
         }),
+        ...(dto.revShareTenantPercentage !== undefined && {
+          revShareTenantPercentage: new Prisma.Decimal(dto.revShareTenantPercentage),
+        }),
+        ...(dto.revSharePlatformPercentage !== undefined && {
+          revSharePlatformPercentage: new Prisma.Decimal(dto.revSharePlatformPercentage),
+        }),
         ...(mergedOnboardingDetails !== undefined && {
           onboardingDetails: mergedOnboardingDetails,
         }),
