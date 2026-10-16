@@ -5,10 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
-import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
 import { CreateDistributionReportDto } from './dto/create-distribution-report.dto';
 import { RequestReportUploadUrlDto } from './dto/request-report-upload-url.dto';
 import { AdminReportsQueryDto } from './dto/admin-reports-query.dto';
@@ -56,10 +53,7 @@ export class AdminReportsService {
   /**
    * Creates and publishes a monthly distribution statement for a WhiteLabel tenant.
    */
-  async createReport(
-    dto: CreateDistributionReportDto,
-    adminUserId: string,
-  ) {
+  async createReport(dto: CreateDistributionReportDto, adminUserId: string) {
     const whiteLabel = await this.prisma.whiteLabel.findUnique({
       where: { id: dto.whiteLabelId },
     });
@@ -113,8 +107,13 @@ export class AdminReportsService {
    * Lists uploaded reports across all or selected whitelabels.
    */
   async listReports(query: AdminReportsQueryDto) {
-    const { whiteLabelId, reportingPeriod, search, page = 1, limit = 20 } =
-      query;
+    const {
+      whiteLabelId,
+      reportingPeriod,
+      search,
+      page = 1,
+      limit = 20,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};

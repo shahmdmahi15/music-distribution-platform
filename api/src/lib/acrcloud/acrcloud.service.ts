@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -57,7 +53,9 @@ export class AcrCloudService {
   ) {
     this.host = this.configService.get<string>('ACRCLOUD_HOST');
     this.accessKey = this.configService.get<string>('ACRCLOUD_ACCESS_KEY');
-    this.accessSecret = this.configService.get<string>('ACRCLOUD_ACCESS_SECRET');
+    this.accessSecret = this.configService.get<string>(
+      'ACRCLOUD_ACCESS_SECRET',
+    );
   }
 
   /**
@@ -170,7 +168,8 @@ export class AcrCloudService {
         const musicList: AcrCloudMatchMetadata[] = json.metadata?.music || [];
         if (musicList.length > 0) {
           const match = musicList[0];
-          const artistName = match.artists?.map((a) => a.name).join(', ') || null;
+          const artistName =
+            match.artists?.map((a) => a.name).join(', ') || null;
 
           return {
             statusCode: 0,
@@ -222,7 +221,9 @@ export class AcrCloudService {
         rawResponse: json,
       };
     } catch (err: any) {
-      this.logger.error(`Failed to identify audio via ACRCloud: ${err.message}`);
+      this.logger.error(
+        `Failed to identify audio via ACRCloud: ${err.message}`,
+      );
       return {
         statusCode: 500,
         statusMsg: 'Network Error',
@@ -254,7 +255,9 @@ export class AcrCloudService {
     }
 
     if (!track.audioKey) {
-      this.logger.warn(`Track ${track.code} has no audioKey, skipping audio scan.`);
+      this.logger.warn(
+        `Track ${track.code} has no audioKey, skipping audio scan.`,
+      );
       return null;
     }
 
@@ -281,12 +284,7 @@ export class AcrCloudService {
       // Pull first 2MB snippet (~15-30s) of lossless audio using S3 byte-range request
       let sampleBuffer: Buffer;
       const wl = track.release?.whiteLabel;
-      if (
-        wl &&
-        wl.awsAccessKeyId &&
-        wl.awsSecretAccessKey &&
-        wl.bucketName
-      ) {
+      if (wl && wl.awsAccessKeyId && wl.awsSecretAccessKey && wl.bucketName) {
         sampleBuffer = await this.storageService.getTenantFileBuffer(
           wl.id,
           track.audioKey,
@@ -343,8 +341,7 @@ export class AcrCloudService {
             matchedLabel: null,
             externalIds: Prisma.JsonNull,
             rawMetadata:
-              (result.rawResponse as Prisma.InputJsonValue) ??
-              Prisma.JsonNull,
+              (result.rawResponse as Prisma.InputJsonValue) ?? Prisma.JsonNull,
             errorMessage: result.error ?? null,
             scannedAt: new Date(),
           },

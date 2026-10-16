@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
 import {
   ContractLevel,
   ContractStatus,
@@ -42,15 +39,22 @@ export class WhitelabelContractsService {
    */
   async createContract(dto: CreateContractDto) {
     if (!dto.splits || dto.splits.length === 0) {
-      throw new BadRequestException('Contract must contain at least one payee split');
+      throw new BadRequestException(
+        'Contract must contain at least one payee split',
+      );
     }
 
     const hasNonPositive = dto.splits.some((s) => s.percentage <= 0);
     if (hasNonPositive) {
-      throw new BadRequestException('Split percentages must be strictly positive');
+      throw new BadRequestException(
+        'Split percentages must be strictly positive',
+      );
     }
 
-    const totalPercentage = dto.splits.reduce((acc, curr) => acc + Number(curr.percentage), 0);
+    const totalPercentage = dto.splits.reduce(
+      (acc, curr) => acc + Number(curr.percentage),
+      0,
+    );
     if (Math.abs(totalPercentage - 100) > 0.001) {
       throw new BadRequestException(
         `Total payee split percentage must equal exactly 100% (currently ${totalPercentage}%)`,
@@ -94,8 +98,10 @@ export class WhitelabelContractsService {
         create: [
           {
             trackId: level === ContractLevel.TRACK ? dto.targetId : undefined,
-            releaseId: level === ContractLevel.RELEASE ? dto.targetId : undefined,
-            artistName: level === ContractLevel.ARTIST ? dto.targetId : undefined,
+            releaseId:
+              level === ContractLevel.RELEASE ? dto.targetId : undefined,
+            artistName:
+              level === ContractLevel.ARTIST ? dto.targetId : undefined,
             labelName: level === ContractLevel.LABEL ? dto.targetId : undefined,
           },
         ],

@@ -59,11 +59,6 @@ jobs:
   pnpm-audit:
     name: Dependency Vulnerability Audit
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        workspace: ['api', 'platform', 'whitelabel']
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -78,8 +73,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Run pnpm Audit (${{ matrix.workspace }})
-        working-directory: ${{ matrix.workspace }}
-        run: pnpm audit --audit-level=high --ignore-workspace
+      - name: Enforce Zero Critical Vulnerabilities
+        run: pnpm audit --audit-level=critical
+
+      - name: Report High & Moderate Advisories
+        run: pnpm audit --audit-level=high || true

@@ -58,7 +58,10 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
   const signWebhookPayload = (payload: any, timestamp: number): string => {
     const rawBody = JSON.stringify(payload);
     const toSign = `${timestamp}.${rawBody}`;
-    return crypto.createHmac('sha256', WEBHOOK_SECRET).update(toSign).digest('hex');
+    return crypto
+      .createHmac('sha256', WEBHOOK_SECRET)
+      .update(toSign)
+      .digest('hex');
   };
 
   beforeAll(async () => {
@@ -69,7 +72,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         return [{ nextval: BigInt(codeSeq++) }];
       }),
       $executeRawUnsafe: jest.fn().mockResolvedValue(1),
-      $transaction: jest.fn(async (cb) => (typeof cb === 'function' ? cb(mockPrismaService) : Promise.all(cb))),
+      $transaction: jest.fn(async (cb) =>
+        typeof cb === 'function' ? cb(mockPrismaService) : Promise.all(cb),
+      ),
       whiteLabel: {
         findUnique: jest.fn().mockResolvedValue(mockWhiteLabel),
       },
@@ -99,10 +104,15 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
           }
           return null;
         }),
-        findMany: jest.fn().mockImplementation(async () => Array.from(new Set(store.channels.values()))),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () =>
+            Array.from(new Set(store.channels.values())),
+          ),
         update: jest.fn().mockImplementation(async ({ where, data }) => {
           const key = where.code || where.id;
-          const existing = store.channels.get(key) || store.channels.get(where.id);
+          const existing =
+            store.channels.get(key) || store.channels.get(where.id);
           if (!existing) throw new Error('Channel not found');
           const updated = { ...existing, ...data, updatedAt: new Date() };
           store.channels.set(updated.code, updated);
@@ -116,12 +126,16 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
     };
 
     const mockRedisService = {
-      get: jest.fn().mockImplementation(async (k: string) => store.redis.get(k) || null),
+      get: jest
+        .fn()
+        .mockImplementation(async (k: string) => store.redis.get(k) || null),
       set: jest.fn().mockImplementation(async (k: string, v: string) => {
         store.redis.set(k, v);
         return 'OK';
       }),
-      del: jest.fn().mockImplementation(async (k: string) => store.redis.delete(k)),
+      del: jest
+        .fn()
+        .mockImplementation(async (k: string) => store.redis.delete(k)),
     };
 
     const mockAnsMusicClient = {
@@ -145,7 +159,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         {
           provide: StorageService,
           useValue: {
-            getTenantPresignedUrl: jest.fn().mockResolvedValue('https://storage.example.com'),
+            getTenantPresignedUrl: jest
+              .fn()
+              .mockResolvedValue('https://storage.example.com'),
             getFileUrl: jest.fn((k) => `https://cdn.example.com/${k}`),
           },
         },
@@ -158,7 +174,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         { provide: AnsMusicClientService, useValue: mockAnsMusicClient },
         {
           provide: DdexGeneratorService,
-          useValue: { generateReleaseErnXml: jest.fn().mockResolvedValue('<XML/>') },
+          useValue: {
+            generateReleaseErnXml: jest.fn().mockResolvedValue('<XML/>'),
+          },
         },
       ],
     })
@@ -173,7 +191,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         {
           provide: StorageService,
           useValue: {
-            getTenantPresignedUrl: jest.fn().mockResolvedValue('https://storage.example.com'),
+            getTenantPresignedUrl: jest
+              .fn()
+              .mockResolvedValue('https://storage.example.com'),
             getFileUrl: jest.fn((k) => `https://cdn.example.com/${k}`),
           },
         },
@@ -186,7 +206,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         { provide: AnsMusicClientService, useValue: mockAnsMusicClient },
         {
           provide: DdexGeneratorService,
-          useValue: { generateReleaseErnXml: jest.fn().mockResolvedValue('<XML/>') },
+          useValue: {
+            generateReleaseErnXml: jest.fn().mockResolvedValue('<XML/>'),
+          },
         },
       ],
     })
@@ -201,8 +223,10 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: (key: string) => (key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null),
-            getOrThrow: (key: string) => (key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null),
+            get: (key: string) =>
+              key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null,
+            getOrThrow: (key: string) =>
+              key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null,
           },
         },
       ],
@@ -253,7 +277,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
         },
       }),
     );
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -291,7 +317,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
 
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.channels)).toBe(true);
-      expect(res.body.channels.some((c: any) => c.code === requestedChannelCode)).toBe(true);
+      expect(
+        res.body.channels.some((c: any) => c.code === requestedChannelCode),
+      ).toBe(true);
     });
   });
 
@@ -302,7 +330,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
       ch.status = 'PENDING';
 
       const res = await request(app.getHttpServer())
-        .post(`/platform/admin/distribution/channels/${requestedChannelCode}/ans-dispatch`)
+        .post(
+          `/platform/admin/distribution/channels/${requestedChannelCode}/ans-dispatch`,
+        )
         .expect(201);
 
       expect(res.body.success).toBe(true);
@@ -315,7 +345,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
 
     it('POST /platform/admin/distribution/channels/:code/ans-dispatch - returns 409 Conflict if channel already submitted', async () => {
       await request(app.getHttpServer())
-        .post(`/platform/admin/distribution/channels/${requestedChannelCode}/ans-dispatch`)
+        .post(
+          `/platform/admin/distribution/channels/${requestedChannelCode}/ans-dispatch`,
+        )
         .expect(409);
     });
   });
@@ -346,7 +378,9 @@ describe('VEVO Channel Lifecycle Journey (e2e)', () => {
 
       const channelRecord = store.channels.get(requestedChannelCode);
       expect(channelRecord.status).toBe('APPROVED');
-      expect(channelRecord.channelUrl).toBe('https://www.youtube.com/@FarhanAliVEVO');
+      expect(channelRecord.channelUrl).toBe(
+        'https://www.youtube.com/@FarhanAliVEVO',
+      );
       expect(channelRecord.youtubeChannelId).toBe('UC9900FarhanAliVevoId');
     });
 

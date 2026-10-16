@@ -8,7 +8,10 @@ import {
   MinLength,
 } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
-import { WhiteLabelSignupModel, WhiteLabelBusinessType } from 'src/generated/prisma/enums';
+import {
+  WhiteLabelSignupModel,
+  WhiteLabelBusinessType,
+} from 'src/generated/prisma/enums';
 
 export class ClientSetupWhiteLabelDto {
   @IsNotEmpty({ message: 'Brand name is required.' })

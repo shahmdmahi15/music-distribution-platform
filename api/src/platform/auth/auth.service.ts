@@ -158,7 +158,10 @@ export class AuthService {
           },
         });
       } catch (dealErr) {
-        console.error('[AuthService] Failed to auto-create ReferrerDeal on registration:', dealErr);
+        console.error(
+          '[AuthService] Failed to auto-create ReferrerDeal on registration:',
+          dealErr,
+        );
       }
     }
 
@@ -920,7 +923,8 @@ export class AuthService {
     if (referrer.status === ReferrerStatus.SUSPENDED) {
       return {
         valid: false,
-        message: 'This partner referral account is suspended and cannot be used.',
+        message:
+          'This partner referral account is suspended and cannot be used.',
         status: referrer.status,
       };
     }
@@ -928,7 +932,8 @@ export class AuthService {
     if (referrer.status !== ReferrerStatus.ACTIVE) {
       return {
         valid: false,
-        message: 'This partner referral code is pending onboarding and is not yet active.',
+        message:
+          'This partner referral code is pending onboarding and is not yet active.',
         status: referrer.status,
       };
     }

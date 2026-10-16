@@ -6,14 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { WhitelabelContractsService } from 'src/whitelabel/contracts/whitelabel-contracts.service';
-import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
-import {
-  RoyaltyRunStatus,
-  Prisma,
-} from 'src/generated/prisma/client';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
+import { RoyaltyRunStatus, Prisma } from 'src/generated/prisma/client';
 
 export interface PayeeSplit {
   payeeId: string;
@@ -164,7 +158,8 @@ export class RoyaltyRunService {
       }
 
       matchedLinesCount++;
-      const wlId = matchedTrack.release?.whiteLabelId || defaultWhiteLabelId || 'wl-1';
+      const wlId =
+        matchedTrack.release?.whiteLabelId || defaultWhiteLabelId || 'wl-1';
 
       let splits: Array<{ payeeId: string; percentage: number }> = [];
       try {
@@ -200,7 +195,8 @@ export class RoyaltyRunService {
       }
     }
 
-    const totalRevenueBdt = Math.round(totalRevenueUsd * exchangeRate * 100) / 100;
+    const totalRevenueBdt =
+      Math.round(totalRevenueUsd * exchangeRate * 100) / 100;
 
     const payeeSummaries: PayeeSummary[] = [];
     for (const [payeeId, data] of payeeMap.entries()) {
@@ -340,10 +336,12 @@ export class RoyaltyRunService {
         let splits: PayeeSplit[] = [];
 
         try {
-          const contract = await this.contractsService.resolveEffectiveContract({
-            whiteLabelId: data.whiteLabelId,
-            trackId,
-          });
+          const contract = await this.contractsService.resolveEffectiveContract(
+            {
+              whiteLabelId: data.whiteLabelId,
+              trackId,
+            },
+          );
 
           if (contract?.splits?.length) {
             splits = contract.splits.map((s: any) => ({
@@ -538,7 +536,11 @@ export class RoyaltyRunService {
     };
   }
 
-  async getStatementByCode(whiteLabelId: string, code: string, payeeId?: string) {
+  async getStatementByCode(
+    whiteLabelId: string,
+    code: string,
+    payeeId?: string,
+  ) {
     const statement = await this.prisma.userRoyaltyStatement.findFirst({
       where: {
         code,
@@ -574,7 +576,9 @@ export class RoyaltyRunService {
 
   async listRoyaltyRuns(page: number = 1, limit: number = 20, period?: string) {
     const skip = (Math.max(1, page) - 1) * limit;
-    const where: Prisma.RoyaltyRunWhereInput = period ? { reportingPeriod: period } : {};
+    const where: Prisma.RoyaltyRunWhereInput = period
+      ? { reportingPeriod: period }
+      : {};
 
     const [total, items] = await Promise.all([
       this.prisma.royaltyRun.count({ where }),

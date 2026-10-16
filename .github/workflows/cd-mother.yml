@@ -67,56 +67,9 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
 
-            echo "📦 [API] Installing dependencies & executing Prisma migrations..."
-            cd "$APP_DIR/api"
-            pnpm install --frozen-lockfile || pnpm install
-            pnpm exec prisma generate
-            pnpm exec prisma db push --accept-data-loss || pnpm exec prisma migrate deploy
-            pnpm run build
-
-            echo "📦 [Platform] Installing dependencies & building Next.js console..."
-            cd "$APP_DIR/platform"
-            pnpm install --frozen-lockfile || pnpm install
-            pnpm run build
-
-            echo "🔄 [PM2] Performing zero-downtime rolling restart..."
-            cd "$APP_DIR"
-            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
-            pm2 save
-
-            echo "🏥 [Healthcheck] Validating API backend on 127.0.0.1:5000..."
-            API_HEALTHY=0
-            for i in {1..25}; do
-              if curl -s -f http://127.0.0.1:5000/health > /dev/null; then
-                echo "✅ API Healthcheck successful on attempt $i!"
-                API_HEALTHY=1
-                break
-              fi
-              echo "Waiting for API worker cluster... ($i/25)"
-              sleep 2
-            done
-
-            if [ "$API_HEALTHY" -ne 1 ]; then
-              echo "🚨 API Healthcheck failed after 25 attempts!"
-              false
-            fi
-
-            echo "🏥 [Healthcheck] Validating Platform console on 127.0.0.1:3000..."
-            PLATFORM_HEALTHY=0
-            for i in {1..25}; do
-              if curl -s -I http://127.0.0.1:3000 | grep -E "200|307|308" > /dev/null; then
-                echo "✅ Platform Console Healthcheck successful on attempt $i!"
-                PLATFORM_HEALTHY=1
-                break
-              fi
-              echo "Waiting for Next.js worker cluster... ($i/25)"
-              sleep 2
-            done
-
-            if [ "$PLATFORM_HEALTHY" -ne 1 ]; then
-              echo "🚨 Platform Console Healthcheck failed after 25 attempts!"
-              false
-            fi
+            echo "📦 [Deploy] Executing Mother Company zero-downtime deployment script..."
+            chmod +x "$APP_DIR/scripts/deploy-mother-company.sh"
+            "$APP_DIR/scripts/deploy-mother-company.sh"
 
             trap - ERR
             echo "🎉 [Success] Zero-downtime deployment finished cleanly on Mother Company EC2!"

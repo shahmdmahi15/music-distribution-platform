@@ -8,10 +8,7 @@ import {
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { AcrCloudService } from 'src/lib/acrcloud/acrcloud.service';
-import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
 import { CreateReleaseDto } from './dto/create-release.dto';
 import { UpdateReleaseDto } from './dto/update-release.dto';
 import { CreateTrackDto } from './dto/create-track.dto';
@@ -591,7 +588,9 @@ export class WhitelabelCatalogService {
     }
 
     if (release.isLocked) {
-      throw new ForbiddenException('Cannot delete tracks from a locked release');
+      throw new ForbiddenException(
+        'Cannot delete tracks from a locked release',
+      );
     }
 
     const track = await this.prisma.track.findFirst({

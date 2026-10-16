@@ -142,7 +142,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
           return { count: data.length };
         }),
         findMany: jest.fn().mockImplementation(async ({ where }) => {
-          return store.dspSaleLines.filter((l) => l.reportingPeriod === where.reportingPeriod);
+          return store.dspSaleLines.filter(
+            (l) => l.reportingPeriod === where.reportingPeriod,
+          );
         }),
       },
       contract: {
@@ -151,10 +153,16 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
           const contract = {
             id,
             ...data,
-            contractPayees: (data.contractPayees?.create || []).map((cp: any) => ({
-              ...cp,
-              payee: [mockPayeeArtist, mockPayeeProducer, mockPayeeLabel].find((p) => p.id === cp.payeeId),
-            })),
+            contractPayees: (data.contractPayees?.create || []).map(
+              (cp: any) => ({
+                ...cp,
+                payee: [
+                  mockPayeeArtist,
+                  mockPayeeProducer,
+                  mockPayeeLabel,
+                ].find((p) => p.id === cp.payeeId),
+              }),
+            ),
             contractAssets: data.contractAssets?.create || [],
           };
           store.contracts.set(id, contract);
@@ -163,19 +171,26 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
         findFirst: jest.fn().mockImplementation(async ({ where }) => {
           for (const c of store.contracts.values()) {
             if (where.level && c.level !== where.level) continue;
-            if (where.whiteLabelId && c.whiteLabelId !== where.whiteLabelId) continue;
-            if (where.targetId && c.targetId && c.targetId !== where.targetId) continue;
+            if (where.whiteLabelId && c.whiteLabelId !== where.whiteLabelId)
+              continue;
+            if (where.targetId && c.targetId && c.targetId !== where.targetId)
+              continue;
             return c;
           }
           return null;
         }),
-        findMany: jest.fn().mockImplementation(async () => Array.from(store.contracts.values())),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () => Array.from(store.contracts.values())),
         count: jest.fn().mockImplementation(async () => store.contracts.size),
       },
       royaltyRun: {
         findFirst: jest.fn().mockImplementation(async ({ where }) => {
           for (const r of store.royaltyRuns.values()) {
-            if (where.reportingPeriod && r.reportingPeriod === where.reportingPeriod) {
+            if (
+              where.reportingPeriod &&
+              r.reportingPeriod === where.reportingPeriod
+            ) {
               if (where.status && r.status === where.status) return r;
             }
           }
@@ -193,7 +208,11 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
           store.royaltyRuns.set(where.id, updated);
           return updated;
         }),
-        findMany: jest.fn().mockImplementation(async () => Array.from(store.royaltyRuns.values())),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () =>
+            Array.from(store.royaltyRuns.values()),
+          ),
         count: jest.fn().mockImplementation(async () => store.royaltyRuns.size),
       },
       userRoyaltyStatement: {
@@ -204,7 +223,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
           return stmt;
         }),
         findMany: jest.fn().mockImplementation(async () => store.statements),
-        count: jest.fn().mockImplementation(async () => store.statements.length),
+        count: jest
+          .fn()
+          .mockImplementation(async () => store.statements.length),
       },
     };
 
@@ -219,7 +240,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
         {
           provide: StorageService,
           useValue: {
-            getTenantPresignedUrl: jest.fn().mockResolvedValue('https://storage.example.com'),
+            getTenantPresignedUrl: jest
+              .fn()
+              .mockResolvedValue('https://storage.example.com'),
             getFileUrl: jest.fn((k) => `https://cdn.example.com/${k}`),
           },
         },
@@ -253,7 +276,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
       req.user = mockAdminUser;
       next();
     });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -286,7 +311,7 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
       expect(res.body.report.rowCount).toBe(4);
       expect(res.body.report.matchedCount).toBe(3);
       expect(res.body.report.unmatchedCount).toBe(1);
-      expect(res.body.report.totalNetUsd).toBeCloseTo(74.20, 2);
+      expect(res.body.report.totalNetUsd).toBeCloseTo(74.2, 2);
     });
 
     it('POST /platform/admin/reports/dsp-ingest - rejects empty or header-only DSP CSV file', async () => {
@@ -305,7 +330,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
     let contractsService: WhitelabelContractsService;
 
     beforeAll(() => {
-      contractsService = app.get<WhitelabelContractsService>(WhitelabelContractsService);
+      contractsService = app.get<WhitelabelContractsService>(
+        WhitelabelContractsService,
+      );
     });
 
     it('creates contract splits and enforces 100% total allocation', async () => {
@@ -317,8 +344,16 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
         targetId: mockTrack1.id,
         status: ContractStatus.ACTIVE,
         splits: [
-          { payeeId: mockPayeeArtist.id, percentage: 70.0, role: PayeeRole.ARTIST },
-          { payeeId: mockPayeeProducer.id, percentage: 30.0, role: PayeeRole.PRODUCER },
+          {
+            payeeId: mockPayeeArtist.id,
+            percentage: 70.0,
+            role: PayeeRole.ARTIST,
+          },
+          {
+            payeeId: mockPayeeProducer.id,
+            percentage: 30.0,
+            role: PayeeRole.PRODUCER,
+          },
         ],
       });
 
@@ -332,8 +367,16 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
         targetId: mockRelease.id,
         status: ContractStatus.ACTIVE,
         splits: [
-          { payeeId: mockPayeeLabel.id, percentage: 60.0, role: PayeeRole.LABEL },
-          { payeeId: mockPayeeArtist.id, percentage: 40.0, role: PayeeRole.ARTIST },
+          {
+            payeeId: mockPayeeLabel.id,
+            percentage: 60.0,
+            role: PayeeRole.LABEL,
+          },
+          {
+            payeeId: mockPayeeArtist.id,
+            percentage: 40.0,
+            role: PayeeRole.ARTIST,
+          },
         ],
       });
 
@@ -346,8 +389,16 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
         level: ContractLevel.ACCOUNT,
         status: ContractStatus.ACTIVE,
         splits: [
-          { payeeId: mockPayeeLabel.id, percentage: 50.0, role: PayeeRole.LABEL },
-          { payeeId: mockPayeeArtist.id, percentage: 50.0, role: PayeeRole.ARTIST },
+          {
+            payeeId: mockPayeeLabel.id,
+            percentage: 50.0,
+            role: PayeeRole.LABEL,
+          },
+          {
+            payeeId: mockPayeeArtist.id,
+            percentage: 50.0,
+            role: PayeeRole.ARTIST,
+          },
         ],
       });
 
@@ -361,8 +412,16 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
           name: 'Invalid Split Contract',
           level: ContractLevel.RELEASE,
           splits: [
-            { payeeId: mockPayeeArtist.id, percentage: 60.0, role: PayeeRole.ARTIST },
-            { payeeId: mockPayeeProducer.id, percentage: 30.0, role: PayeeRole.PRODUCER },
+            {
+              payeeId: mockPayeeArtist.id,
+              percentage: 60.0,
+              role: PayeeRole.ARTIST,
+            },
+            {
+              payeeId: mockPayeeProducer.id,
+              percentage: 30.0,
+              role: PayeeRole.PRODUCER,
+            },
           ], // sums to 90%
         }),
       ).rejects.toThrow('Total payee split percentage must equal exactly 100%');
@@ -376,8 +435,12 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
       });
 
       expect(effective.level).toBe(ContractLevel.TRACK);
-      const artistSplit = effective.splits.find((s: any) => s.payeeId === mockPayeeArtist.id);
-      const producerSplit = effective.splits.find((s: any) => s.payeeId === mockPayeeProducer.id);
+      const artistSplit = effective.splits.find(
+        (s: any) => s.payeeId === mockPayeeArtist.id,
+      );
+      const producerSplit = effective.splits.find(
+        (s: any) => s.payeeId === mockPayeeProducer.id,
+      );
       expect(artistSplit?.percentage).toBe(70);
       expect(producerSplit?.percentage).toBe(30);
     });
@@ -389,7 +452,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
       });
 
       expect(effective.level).toBe(ContractLevel.RELEASE);
-      const labelSplit = effective.splits.find((s: any) => s.payeeId === mockPayeeLabel.id);
+      const labelSplit = effective.splits.find(
+        (s: any) => s.payeeId === mockPayeeLabel.id,
+      );
       expect(labelSplit?.percentage).toBe(60);
     });
   });
@@ -418,7 +483,9 @@ describe('DSP Royalty Pipeline Lifecycle (e2e)', () => {
 
       // Verify statements were persisted
       expect(store.statements.length).toBeGreaterThan(0);
-      const artistStatements = store.statements.filter((s) => s.payeeId === mockPayeeArtist.id);
+      const artistStatements = store.statements.filter(
+        (s) => s.payeeId === mockPayeeArtist.id,
+      );
       expect(artistStatements.length).toBeGreaterThan(0);
 
       for (const stmt of store.statements) {

@@ -42,7 +42,8 @@ export interface CustomHostnameOwnershipVerification {
 export interface CustomHostnameResult {
   id: string;
   hostname: string;
-  status: 'active' | 'pending' | 'pending_migration' | 'blocked' | 'provisioned';
+  status:
+    'active' | 'pending' | 'pending_migration' | 'blocked' | 'provisioned';
   ssl: CustomHostnameSslRecord;
   ownership_verification?: CustomHostnameOwnershipVerification;
   ownership_verification_http?: { http_url: string; http_body: string };
@@ -190,7 +191,7 @@ export class CloudflareSaasService {
         body: JSON.stringify(payload),
       });
 
-      const data = (await res.json()) as any;
+      const data = await res.json();
 
       if (!res.ok || !data?.success) {
         const errorMsg =
@@ -271,7 +272,7 @@ export class CloudflareSaasService {
         },
       });
 
-      const data = (await res.json()) as any;
+      const data = await res.json();
       const list: CustomHostnameResult[] = data?.result || [];
 
       if (!list || list.length === 0) {
@@ -345,10 +346,11 @@ export class CloudflareSaasService {
         },
       });
 
-      const data = (await res.json()) as any;
+      const data = await res.json();
       if (!res.ok || !data?.success) {
         throw new Error(
-          data?.errors?.[0]?.message || 'Failed to fetch custom hostname details',
+          data?.errors?.[0]?.message ||
+            'Failed to fetch custom hostname details',
         );
       }
 
@@ -400,13 +402,18 @@ export class CloudflareSaasService {
     customHostnameIdOrName: string,
   ): Promise<{ success: boolean; message: string }> {
     if (!this.apiToken || !this.zoneId) {
-      return { success: true, message: 'Cloudflare SaaS not configured, skipped.' };
+      return {
+        success: true,
+        message: 'Cloudflare SaaS not configured, skipped.',
+      };
     }
 
     try {
       let hostnameId = customHostnameIdOrName;
       if (customHostnameIdOrName.includes('.')) {
-        const found = await this.findCustomHostnameByName(customHostnameIdOrName);
+        const found = await this.findCustomHostnameByName(
+          customHostnameIdOrName,
+        );
         if (!found?.customHostnameId) {
           return {
             success: true,
@@ -425,7 +432,7 @@ export class CloudflareSaasService {
         },
       });
 
-      const data = (await res.json()) as any;
+      const data = await res.json();
       if (!res.ok || !data?.success) {
         throw new Error(
           data?.errors?.[0]?.message || 'Failed to delete custom hostname',

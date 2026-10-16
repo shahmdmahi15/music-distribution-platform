@@ -16,7 +16,12 @@ import {
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { CreateWhiteLabelDto } from './dto/create-whitelabel.dto';
 import { UpdateBrandingDto } from 'src/platform/dto/update-branding.dto';
-import { Prisma, WhiteLabelStatus, WhiteLabelBusinessType, WhiteLabelSignupModel } from 'src/generated/prisma/client';
+import {
+  Prisma,
+  WhiteLabelStatus,
+  WhiteLabelBusinessType,
+  WhiteLabelSignupModel,
+} from 'src/generated/prisma/client';
 import { RedisService } from 'src/lib/redis/redis.service';
 import * as crypto from 'node:crypto';
 import * as dns from 'node:dns/promises';
@@ -510,7 +515,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         where: { id: subscription.whiteLabel.id },
         data: {
           name: dto.name,
-          businessType: dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+          businessType:
+            dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
           companyWebsite: dto.companyWebsite,
           country: dto.country,
           yearsInBusiness: dto.yearsInBusiness ?? 0,
@@ -530,10 +536,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
           wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
           hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
-          userSignupModel: dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
+          userSignupModel:
+            dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
           privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
           marketingConsent: dto.marketingConsent ?? false,
-          ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
+          ...(dto.onboardingDetails
+            ? { onboardingDetails: dto.onboardingDetails }
+            : {}),
           subdomain: finalSubdomain,
           elasticIpv4: finalElasticIpv4,
           primaryColor: dto.primaryColor || '#6366f1',
@@ -558,14 +567,20 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
       if (finalSubdomain) {
         const targetDomain = updated.customDomain
-          ? (updated.customDomain.startsWith('backstage.') ? updated.customDomain : `backstage.${updated.customDomain}`)
-          : (updated.cloudflareBaseDomain ? `backstage.${updated.cloudflareBaseDomain}` : undefined);
+          ? updated.customDomain.startsWith('backstage.')
+            ? updated.customDomain
+            : `backstage.${updated.customDomain}`
+          : updated.cloudflareBaseDomain
+            ? `backstage.${updated.cloudflareBaseDomain}`
+            : undefined;
 
         await this.cloudflareDnsService.provisionSubdomain(
           finalSubdomain,
           targetDomain,
         );
-        await this.redisService.del(`whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`);
+        await this.redisService.del(
+          `whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`,
+        );
       }
 
       await this.clearOnboardingDraft(userId);
@@ -610,7 +625,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         code: whiteLabelCode,
         name: dto.name,
-        businessType: dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+        businessType:
+          dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
         subdomain: finalSubdomain,
         elasticIpv4: cleanElasticIpv4,
         primaryColor: dto.primaryColor || '#6366f1',
@@ -638,10 +654,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         primaryCatalogLanguage: dto.primaryCatalogLanguage ?? 'en',
         wantsCatalogMigration: dto.wantsCatalogMigration ?? false,
         hasSampleBasedCovers: dto.hasSampleBasedCovers ?? false,
-        userSignupModel: dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
+        userSignupModel:
+          dto.userSignupModel || WhiteLabelSignupModel.INVITE_ONLY,
         privacyPolicyAccepted: dto.privacyPolicyAccepted ?? true,
         marketingConsent: dto.marketingConsent ?? false,
-        ...(dto.onboardingDetails ? { onboardingDetails: dto.onboardingDetails } : {}),
+        ...(dto.onboardingDetails
+          ? { onboardingDetails: dto.onboardingDetails }
+          : {}),
         status: WhiteLabelStatus.PENDING,
         subscriptionId: subscription.id,
         artists: {
@@ -657,14 +676,20 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
     if (finalSubdomain) {
       const targetDomain = whiteLabel.customDomain
-        ? (whiteLabel.customDomain.startsWith('backstage.') ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`)
-        : (whiteLabel.cloudflareBaseDomain ? `backstage.${whiteLabel.cloudflareBaseDomain}` : undefined);
+        ? whiteLabel.customDomain.startsWith('backstage.')
+          ? whiteLabel.customDomain
+          : `backstage.${whiteLabel.customDomain}`
+        : whiteLabel.cloudflareBaseDomain
+          ? `backstage.${whiteLabel.cloudflareBaseDomain}`
+          : undefined;
 
       await this.cloudflareDnsService.provisionSubdomain(
         finalSubdomain,
         targetDomain,
       );
-      await this.redisService.del(`whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`);
+      await this.redisService.del(
+        `whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`,
+      );
     }
 
     await this.clearOnboardingDraft(userId);
@@ -1099,12 +1124,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       data: {
         // Brand name and business archetype are permanent and immutable once approved/selected
         name: wl.name || dto.name.trim(),
-        businessType: wl.businessType || dto.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+        businessType:
+          wl.businessType ||
+          dto.businessType ||
+          WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
         companyWebsite: dto.companyWebsite?.trim() || wl.companyWebsite,
         ...(dto.onboardingDetails
           ? {
               onboardingDetails: {
-                ...(typeof wl.onboardingDetails === 'object' && wl.onboardingDetails ? (wl.onboardingDetails as Record<string, any>) : {}),
+                ...(typeof wl.onboardingDetails === 'object' &&
+                wl.onboardingDetails
+                  ? (wl.onboardingDetails as Record<string, any>)
+                  : {}),
                 ...dto.onboardingDetails,
               },
             }
@@ -1154,8 +1185,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         ...(dto.cloudflareBaseDomain !== undefined &&
           dto.cloudflareBaseDomain.trim() !== '' && {
             cloudflareBaseDomain: dto.cloudflareBaseDomain.trim().toLowerCase(),
-            customDomain: dto.customDomain?.trim() || `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`,
-            subdomain: wl.subdomain && wl.subdomain !== 'backstage' ? wl.subdomain : this.slugifyBrandName(wl.name),
+            customDomain:
+              dto.customDomain?.trim() ||
+              `backstage.${dto.cloudflareBaseDomain.trim().toLowerCase()}`,
+            subdomain:
+              wl.subdomain && wl.subdomain !== 'backstage'
+                ? wl.subdomain
+                : this.slugifyBrandName(wl.name),
           }),
         ...(dto.cloudflareApiToken !== undefined &&
           dto.cloudflareApiToken.trim() !== '' && {
@@ -1319,7 +1355,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         ...(dto.onboardingDetails
           ? {
               onboardingDetails: {
-                ...(typeof subscription.whiteLabel.onboardingDetails === 'object' && subscription.whiteLabel.onboardingDetails ? (subscription.whiteLabel.onboardingDetails as Record<string, any>) : {}),
+                ...(typeof subscription.whiteLabel.onboardingDetails ===
+                  'object' && subscription.whiteLabel.onboardingDetails
+                  ? (subscription.whiteLabel.onboardingDetails as Record<
+                      string,
+                      any
+                    >)
+                  : {}),
                 ...dto.onboardingDetails,
               },
             }
@@ -1344,8 +1386,20 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     }
 
     const ALLOWED_MIME_TYPES: Record<string, string[]> = {
-      logo: ['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg', 'image/jpg'],
-      logoDark: ['image/png', 'image/svg+xml', 'image/webp', 'image/jpeg', 'image/jpg'],
+      logo: [
+        'image/png',
+        'image/svg+xml',
+        'image/webp',
+        'image/jpeg',
+        'image/jpg',
+      ],
+      logoDark: [
+        'image/png',
+        'image/svg+xml',
+        'image/webp',
+        'image/jpeg',
+        'image/jpg',
+      ],
       favicon: [
         'image/x-icon',
         'image/vnd.microsoft.icon',
@@ -1353,7 +1407,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         'image/svg+xml',
         'image/webp',
       ],
-      banner: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'],
+      banner: [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/svg+xml',
+      ],
     };
 
     const MAX_FILE_SIZES: Record<string, number> = {
@@ -1601,8 +1661,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         cloudflareBaseDomain: cleanBaseDomain || null,
         expectedCustomDomain,
         cloudflareZoneId: wl.cloudflareZoneId || null,
-        cnameTarget:
-          platformSubdomainFqdn || 'platform.royalmotionit.com',
+        cnameTarget: platformSubdomainFqdn || 'platform.royalmotionit.com',
         cnameHost: 'backstage',
         health,
         // Step 1: DNS TXT Ownership Verification
@@ -1622,8 +1681,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         step2: {
           title: 'Step 2: Traffic Routing Configuration',
           unlocked: wl.domainVerified,
-          cnameTarget:
-            platformSubdomainFqdn || 'platform.royalmotionit.com',
+          cnameTarget: platformSubdomainFqdn || 'platform.royalmotionit.com',
           serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
           note: wl.domainVerified
             ? `Point CNAME for "backstage" to your platform subdomain: ${platformSubdomainFqdn || 'platform.royalmotionit.com'}`
@@ -1705,8 +1763,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     let cloudflareMessage = '';
     if (wl.subdomain) {
       const targetDomain = customDomain
-        ? (customDomain.startsWith('backstage.') ? customDomain : `backstage.${customDomain}`)
-        : (cleanBaseDomain ? `backstage.${cleanBaseDomain}` : undefined);
+        ? customDomain.startsWith('backstage.')
+          ? customDomain
+          : `backstage.${customDomain}`
+        : cleanBaseDomain
+          ? `backstage.${cleanBaseDomain}`
+          : undefined;
 
       if (targetDomain) {
         const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
@@ -1720,7 +1782,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         }
         cloudflareMessage = ` Cloudflare DNS: ${dnsRes.message}`;
       }
-      await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
+      await this.redisService.del(
+        `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
+      );
     }
 
     // Auto-sync custom domain DNS into user's Cloudflare zone if credentials exist
@@ -1743,7 +1807,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(customDomain)}`,
           { headers: cfHeaders },
         );
-        const cfSearchData = (await cfSearch.json()) as any;
+        const cfSearchData = await cfSearch.json();
         if (cfSearchData.success && Array.isArray(cfSearchData.result)) {
           if (cfSearchData.result.length === 0) {
             await fetch(
@@ -1771,7 +1835,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(txtName)}`,
           { headers: cfHeaders },
         );
-        const cfTxtData = (await cfTxtSearch.json()) as any;
+        const cfTxtData = await cfTxtSearch.json();
         if (cfTxtData.success && Array.isArray(cfTxtData.result)) {
           if (cfTxtData.result.length === 0) {
             await fetch(
@@ -1816,7 +1880,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(wl.customDomain)}`,
           { headers: cfHeaders },
         );
-        const searchData = (await searchRes.json()) as any;
+        const searchData = await searchRes.json();
         if (searchData.success && Array.isArray(searchData.result)) {
           for (const rec of searchData.result) {
             await fetch(
@@ -1912,7 +1976,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               },
             },
           );
-          const cfData = (await cfRes.json()) as any;
+          const cfData = await cfRes.json();
           if (
             cfData.success &&
             Array.isArray(cfData.result) &&
@@ -2078,7 +2142,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           },
         },
       );
-      const data = (await res.json()) as any;
+      const data = await res.json();
 
       if (!data.success || !data.result) {
         const errMsg =
@@ -2241,7 +2305,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(txtFullFqdn)}&type=TXT`,
         { headers: cfHeaders },
       );
-      const cfTxtData = (await cfTxtSearch.json()) as any;
+      const cfTxtData = await cfTxtSearch.json();
 
       if (
         cfTxtData.success &&
@@ -2293,7 +2357,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             }),
           },
         );
-        const createData = (await createRes.json()) as any;
+        const createData = await createRes.json();
         if (createData.success) {
           autoVerified = true;
           autoSyncMessage = 'TXT ownership record created in Cloudflare.';
@@ -2315,7 +2379,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         if (
           flat.some(
             (r) =>
-              r.includes(verificationToken!) ||
+              r.includes(verificationToken) ||
               r === `royalmotionit-verification=${verificationToken}`,
           )
         ) {
@@ -2414,7 +2478,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(cnameFqdn)}`,
       { headers: cfHeaders },
     );
-    const searchData = (await searchRes.json()) as any;
+    const searchData = await searchRes.json();
 
     if (!searchData.success) {
       const errMsg =
@@ -2443,7 +2507,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           }),
         },
       );
-      const updateData = (await updateRes.json()) as any;
+      const updateData = await updateRes.json();
       if (!updateData.success) {
         throw new BadRequestException(
           `Failed to update Cloudflare CNAME record: ${updateData.errors?.[0]?.message || 'Unknown error'}`,
@@ -2465,7 +2529,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           }),
         },
       );
-      const createData = (await createRes.json()) as any;
+      const createData = await createRes.json();
       if (!createData.success) {
         throw new BadRequestException(
           `Failed to create Cloudflare CNAME record: ${createData.errors?.[0]?.message || 'Unknown error'}`,
@@ -2520,14 +2584,20 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     }
 
     const targetDomain = wl.customDomain
-      ? (wl.customDomain.startsWith('backstage.') ? wl.customDomain : `backstage.${wl.customDomain}`)
-      : (wl.cloudflareBaseDomain ? `backstage.${wl.cloudflareBaseDomain}` : undefined);
+      ? wl.customDomain.startsWith('backstage.')
+        ? wl.customDomain
+        : `backstage.${wl.customDomain}`
+      : wl.cloudflareBaseDomain
+        ? `backstage.${wl.cloudflareBaseDomain}`
+        : undefined;
 
     const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
       wl.subdomain,
       targetDomain,
     );
-    await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
+    await this.redisService.del(
+      `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
+    );
 
     return {
       success: dnsRes.success,
@@ -2601,8 +2671,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     if (wl.subdomain) {
       try {
         const targetDomain = wl.customDomain
-          ? (wl.customDomain.startsWith('backstage.') ? wl.customDomain : `backstage.${wl.customDomain}`)
-          : (wl.cloudflareBaseDomain ? `backstage.${wl.cloudflareBaseDomain}` : undefined);
+          ? wl.customDomain.startsWith('backstage.')
+            ? wl.customDomain
+            : `backstage.${wl.customDomain}`
+          : wl.cloudflareBaseDomain
+            ? `backstage.${wl.cloudflareBaseDomain}`
+            : undefined;
 
         const subDns = await this.cloudflareDnsService.verifySubdomainDns(
           wl.subdomain,
@@ -2630,7 +2704,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             wl.subdomain,
             targetDomain,
           );
-          await this.redisService.del(`whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`);
+          await this.redisService.del(
+            `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
+          );
         }
       } catch (err: any) {
         subdomainHealth.status = 'FAILED';
@@ -2675,7 +2751,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             signal: AbortSignal.timeout(6000),
           },
         );
-        const cfData = (await cfRes.json()) as any;
+        const cfData = await cfRes.json();
         if (cfData.success && cfData.result) {
           const zoneName = (cfData.result.name || '').toLowerCase().trim();
           const zoneStatus = cfData.result.status || 'unknown';
@@ -2747,7 +2823,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               signal: AbortSignal.timeout(6000),
             },
           );
-          const cfTxtData = (await cfTxtRes.json()) as any;
+          const cfTxtData = await cfTxtRes.json();
           let hasMatchingTxt = false;
 
           if (
@@ -2822,7 +2898,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               signal: AbortSignal.timeout(6000),
             },
           );
-          const cfCnameData = (await cfCnameRes.json()) as any;
+          const cfCnameData = await cfCnameRes.json();
 
           if (cfCnameData.success && Array.isArray(cfCnameData.result)) {
             if (cfCnameData.result.length === 0) {
@@ -2982,7 +3058,9 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           wl.subdomain = correctSlug;
           await this.cloudflareDnsService.deprovisionSubdomain('backstage');
           await this.redisService.del(`whitelabel:subdomain_resolve:backstage`);
-          await this.redisService.del(`whitelabel:subdomain_resolve:${correctSlug.toLowerCase()}`);
+          await this.redisService.del(
+            `whitelabel:subdomain_resolve:${correctSlug.toLowerCase()}`,
+          );
         }
 
         const report = await this.evaluateFullDomainHealth(wl);

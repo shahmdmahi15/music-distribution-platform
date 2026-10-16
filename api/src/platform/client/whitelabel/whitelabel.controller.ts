@@ -49,10 +49,7 @@ export class ClientWhitelabelController {
   ) {}
 
   @Get('bundle/download')
-  async downloadBundle(
-    @Query('token') token: string,
-    @Res() res: Response,
-  ) {
+  async downloadBundle(@Query('token') token: string, @Res() res: Response) {
     await this.bundleService.validateAndConsumeToken(token);
     const bundlePath = this.bundleService.getBundleFilePath();
     const checksum = this.bundleService.getBundleChecksum();
@@ -192,7 +189,8 @@ export class ClientWhitelabelController {
   @Patch('policy')
   async updateRegistrationPolicy(
     @CurrentUser('id') userId: string,
-    @Body() dto: { userSignupModel?: any; policySettings?: Record<string, any> },
+    @Body()
+    dto: { userSignupModel?: any; policySettings?: Record<string, any> },
   ) {
     return await this.clientWhitelabelService.updateRegistrationPolicy(
       userId,

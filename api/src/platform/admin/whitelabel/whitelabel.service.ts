@@ -48,7 +48,8 @@ export class AdminWhitelabelService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.WhiteLabelWhereInput = {
-      businessType: query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+      businessType:
+        query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
     };
 
     if (query.status) {
@@ -140,7 +141,8 @@ export class AdminWhitelabelService {
       this.prismaService.whiteLabel.groupBy({
         by: ['status'],
         where: {
-          businessType: query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
+          businessType:
+            query.businessType || WhiteLabelBusinessType.DISTRIBUTOR_AGGREGATOR,
         },
         _count: { _all: true },
       }),
@@ -372,15 +374,21 @@ export class AdminWhitelabelService {
 
       if (existing.subdomain) {
         const targetDomain = existing.customDomain
-          ? (existing.customDomain.startsWith('backstage.') ? existing.customDomain : `backstage.${existing.customDomain}`)
-          : (existing.cloudflareBaseDomain ? `backstage.${existing.cloudflareBaseDomain}` : undefined);
+          ? existing.customDomain.startsWith('backstage.')
+            ? existing.customDomain
+            : `backstage.${existing.customDomain}`
+          : existing.cloudflareBaseDomain
+            ? `backstage.${existing.cloudflareBaseDomain}`
+            : undefined;
 
         const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
           existing.subdomain,
           targetDomain,
         );
         cloudflareMessage = ` (${dnsResult.message})`;
-        await this.redisService.del(`whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`);
+        await this.redisService.del(
+          `whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`,
+        );
       }
     }
 
@@ -584,7 +592,8 @@ export class AdminWhitelabelService {
     });
 
     // Automatically synchronize with Referrer Deal Ledger if subscriber was referred
-    const referredByReferrerId = whiteLabel.subscription?.subscriber?.referredByReferrerId;
+    const referredByReferrerId =
+      whiteLabel.subscription?.subscriber?.referredByReferrerId;
     if (referredByReferrerId) {
       try {
         const referrer = await this.prismaService.referrer.findUnique({
@@ -635,7 +644,10 @@ export class AdminWhitelabelService {
           }
         }
       } catch (err) {
-        console.error('[WhiteLabelService] Failed to sync payment to ReferrerDeal:', err);
+        console.error(
+          '[WhiteLabelService] Failed to sync payment to ReferrerDeal:',
+          err,
+        );
       }
     }
 
@@ -690,15 +702,21 @@ export class AdminWhitelabelService {
     let cloudflareMessage = '';
     if (whiteLabel.subdomain) {
       const targetDomain = whiteLabel.customDomain
-        ? (whiteLabel.customDomain.startsWith('backstage.') ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`)
-        : (whiteLabel.cloudflareBaseDomain ? `backstage.${whiteLabel.cloudflareBaseDomain}` : undefined);
+        ? whiteLabel.customDomain.startsWith('backstage.')
+          ? whiteLabel.customDomain
+          : `backstage.${whiteLabel.customDomain}`
+        : whiteLabel.cloudflareBaseDomain
+          ? `backstage.${whiteLabel.cloudflareBaseDomain}`
+          : undefined;
 
       const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
         whiteLabel.subdomain,
         targetDomain,
       );
       cloudflareMessage = ` (${dnsRes.message})`;
-      await this.redisService.del(`whitelabel:subdomain_resolve:${whiteLabel.subdomain.toLowerCase()}`);
+      await this.redisService.del(
+        `whitelabel:subdomain_resolve:${whiteLabel.subdomain.toLowerCase()}`,
+      );
     }
 
     const updated = await this.prismaService.whiteLabel.update({
@@ -1260,7 +1278,8 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: 'WhiteLabel application & operations dossier updated successfully.',
+      message:
+        'WhiteLabel application & operations dossier updated successfully.',
       whiteLabel: updated,
     };
   }
@@ -1281,14 +1300,20 @@ export class AdminWhitelabelService {
     }
 
     const targetDomain = existing.customDomain
-      ? (existing.customDomain.startsWith('backstage.') ? existing.customDomain : `backstage.${existing.customDomain}`)
-      : (existing.cloudflareBaseDomain ? `backstage.${existing.cloudflareBaseDomain}` : undefined);
+      ? existing.customDomain.startsWith('backstage.')
+        ? existing.customDomain
+        : `backstage.${existing.customDomain}`
+      : existing.cloudflareBaseDomain
+        ? `backstage.${existing.cloudflareBaseDomain}`
+        : undefined;
 
     const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
       existing.subdomain,
       targetDomain,
     );
-    await this.redisService.del(`whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`);
+    await this.redisService.del(
+      `whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`,
+    );
 
     return {
       success: true,

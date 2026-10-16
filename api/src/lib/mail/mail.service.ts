@@ -182,7 +182,10 @@ export class MailService implements OnModuleInit {
     let senderEmail = this.senderEmail;
     if (whiteLabel.senderEmail && whiteLabel.senderEmail.trim() !== '') {
       senderEmail = whiteLabel.senderEmail.trim().toLowerCase();
-    } else if (whiteLabel.customDomain && whiteLabel.customDomain.trim() !== '') {
+    } else if (
+      whiteLabel.customDomain &&
+      whiteLabel.customDomain.trim() !== ''
+    ) {
       const cleanDomain = whiteLabel.customDomain
         .trim()
         .replace(/^https?:\/\//i, '')
@@ -361,4 +364,3 @@ export class MailService implements OnModuleInit {
     });
   }
 }
-

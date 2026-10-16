@@ -21,7 +21,12 @@ import { StorageService } from '../src/lib/storage/storage.service';
 import { AcrCloudService } from '../src/lib/acrcloud/acrcloud.service';
 import { ConfigService } from '@nestjs/config';
 import { RolesGuard } from '../src/platform/guard/roles.guard';
-import { ReleaseStatus, ReleaseType, QcStatus, UpstreamStatus } from '../src/generated/prisma/client';
+import {
+  ReleaseStatus,
+  ReleaseType,
+  QcStatus,
+  UpstreamStatus,
+} from '../src/generated/prisma/client';
 
 describe('Release Distribution Lifecycle (e2e)', () => {
   jest.setTimeout(30000);
@@ -67,7 +72,10 @@ describe('Release Distribution Lifecycle (e2e)', () => {
   const signWebhookPayload = (payload: any, timestamp: number): string => {
     const rawBody = JSON.stringify(payload);
     const toSign = `${timestamp}.${rawBody}`;
-    return crypto.createHmac('sha256', WEBHOOK_SECRET).update(toSign).digest('hex');
+    return crypto
+      .createHmac('sha256', WEBHOOK_SECRET)
+      .update(toSign)
+      .digest('hex');
   };
 
   beforeAll(async () => {
@@ -127,11 +135,16 @@ describe('Release Distribution Lifecycle (e2e)', () => {
           if (where.id) return store.releases.get(where.id) || null;
           return null;
         }),
-        findMany: jest.fn().mockImplementation(async () => Array.from(new Set(store.releases.values()))),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () =>
+            Array.from(new Set(store.releases.values())),
+          ),
         count: jest.fn().mockImplementation(async () => store.releases.size),
         update: jest.fn().mockImplementation(async ({ where, data }) => {
           const key = where.code || where.id;
-          const existing = store.releases.get(key) || store.releases.get(where.id);
+          const existing =
+            store.releases.get(key) || store.releases.get(where.id);
           if (!existing) throw new Error(`Release not found`);
           const updated = { ...existing, ...data, updatedAt: new Date() };
           store.releases.set(updated.code, updated);
@@ -175,7 +188,11 @@ describe('Release Distribution Lifecycle (e2e)', () => {
           }
           return null;
         }),
-        findMany: jest.fn().mockImplementation(async () => Array.from(new Set(store.tracks.values()))),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () =>
+            Array.from(new Set(store.tracks.values())),
+          ),
         update: jest.fn().mockImplementation(async ({ where, data }) => {
           const key = where.code || where.id;
           const existing = store.tracks.get(key) || store.tracks.get(where.id);
@@ -189,7 +206,8 @@ describe('Release Distribution Lifecycle (e2e)', () => {
           let count = 0;
           for (const trk of store.tracks.values()) {
             const matchesCode = !where.code || trk.code === where.code;
-            const matchesRel = !where.releaseId || trk.releaseId === where.releaseId;
+            const matchesRel =
+              !where.releaseId || trk.releaseId === where.releaseId;
             if (matchesCode && matchesRel) {
               Object.assign(trk, data);
               for (const rel of store.releases.values()) {
@@ -213,26 +231,46 @@ describe('Release Distribution Lifecycle (e2e)', () => {
     };
 
     const mockRedisService = {
-      get: jest.fn().mockImplementation(async (k: string) => store.redis.get(k) || null),
+      get: jest
+        .fn()
+        .mockImplementation(async (k: string) => store.redis.get(k) || null),
       set: jest.fn().mockImplementation(async (k: string, v: string) => {
         store.redis.set(k, v);
         return 'OK';
       }),
-      del: jest.fn().mockImplementation(async (k: string) => store.redis.delete(k)),
+      del: jest
+        .fn()
+        .mockImplementation(async (k: string) => store.redis.delete(k)),
     };
 
     const mockStorageService = {
-      getTenantPresignedUploadUrl: jest.fn().mockResolvedValue('https://s3.ap-southeast-1.amazonaws.com/upload-signed'),
-      getTenantPresignedUrl: jest.fn().mockResolvedValue('https://s3.ap-southeast-1.amazonaws.com/file-stream'),
-      getPresignedUrl: jest.fn().mockResolvedValue('https://s3.ap-southeast-1.amazonaws.com/file-stream'),
+      getTenantPresignedUploadUrl: jest
+        .fn()
+        .mockResolvedValue(
+          'https://s3.ap-southeast-1.amazonaws.com/upload-signed',
+        ),
+      getTenantPresignedUrl: jest
+        .fn()
+        .mockResolvedValue(
+          'https://s3.ap-southeast-1.amazonaws.com/file-stream',
+        ),
+      getPresignedUrl: jest
+        .fn()
+        .mockResolvedValue(
+          'https://s3.ap-southeast-1.amazonaws.com/file-stream',
+        ),
       getFileUrl: jest.fn((k: string) => `https://cdn.royalmotionit.com/${k}`),
       deleteFile: jest.fn().mockResolvedValue(undefined),
       deleteTenantFile: jest.fn().mockResolvedValue(undefined),
     };
 
     const mockAcrCloudService = {
-      scanTrack: jest.fn().mockResolvedValue({ status: 'CLEAN', matchScore: 0 }),
-      scanTrackByCode: jest.fn().mockResolvedValue({ status: 'CLEAN', matchScore: 0 }),
+      scanTrack: jest
+        .fn()
+        .mockResolvedValue({ status: 'CLEAN', matchScore: 0 }),
+      scanTrackByCode: jest
+        .fn()
+        .mockResolvedValue({ status: 'CLEAN', matchScore: 0 }),
       identifyAudio: jest.fn().mockResolvedValue({ isClean: true }),
     };
 
@@ -293,8 +331,10 @@ describe('Release Distribution Lifecycle (e2e)', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: (key: string) => (key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null),
-            getOrThrow: (key: string) => (key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null),
+            get: (key: string) =>
+              key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null,
+            getOrThrow: (key: string) =>
+              key === 'ANS_WEBHOOK_SECRET' ? WEBHOOK_SECRET : null,
           },
         },
       ],
@@ -345,7 +385,9 @@ describe('Release Distribution Lifecycle (e2e)', () => {
         },
       }),
     );
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -410,7 +452,9 @@ describe('Release Distribution Lifecycle (e2e)', () => {
       expect(res.body).toHaveProperty('code');
       expect(res.body.code).toMatch(/^RMIT-TRK-\d{7}$/);
       expect(res.body.title).toBe('Neon Odyssey (Original Mix)');
-      expect(res.body.audioKey).toBe('catalog/wl-prod-01/audio/neon-odyssey.flac');
+      expect(res.body.audioKey).toBe(
+        'catalog/wl-prod-01/audio/neon-odyssey.flac',
+      );
 
       createdTrackCode = res.body.code;
     });
@@ -434,7 +478,11 @@ describe('Release Distribution Lifecycle (e2e)', () => {
 
       expect(res.body.isValid).toBe(false);
       expect(res.body.severity1Errors.length).toBeGreaterThan(0);
-      expect(res.body.severity1Errors.some((e: any) => e.code === 'MISSING_COVER_ARTWORK')).toBe(true);
+      expect(
+        res.body.severity1Errors.some(
+          (e: any) => e.code === 'MISSING_COVER_ARTWORK',
+        ),
+      ).toBe(true);
     });
 
     it('PUT /whitelabel/catalog/releases/:code - uploads valid cover art and re-validates to PASSED', async () => {
@@ -467,7 +515,9 @@ describe('Release Distribution Lifecycle (e2e)', () => {
         .get(`/whitelabel/catalog/releases/${createdReleaseCode}`)
         .expect(200);
 
-      expect([ReleaseStatus.SUBMITTED, ReleaseStatus.DISTRIBUTED]).toContain(inspect.body.status);
+      expect([ReleaseStatus.SUBMITTED, ReleaseStatus.DISTRIBUTED]).toContain(
+        inspect.body.status,
+      );
     });
 
     it('POST /whitelabel/catalog/releases/:code/tracks - forbids adding tracks to a locked/submitted release', async () => {
@@ -489,7 +539,9 @@ describe('Release Distribution Lifecycle (e2e)', () => {
       rel.status = ReleaseStatus.SUBMITTED;
 
       const res = await request(app.getHttpServer())
-        .post(`/platform/admin/distribution/releases/${createdReleaseCode}/ans-dispatch`)
+        .post(
+          `/platform/admin/distribution/releases/${createdReleaseCode}/ans-dispatch`,
+        )
         .expect(201);
 
       expect(res.body.success).toBe(true);
@@ -568,7 +620,10 @@ describe('Release Distribution Lifecycle (e2e)', () => {
       await request(app.getHttpServer())
         .post('/webhooks/ans-music')
         .set('x-ans-timestamp', String(ts))
-        .set('x-ans-signature', 'v1=deadbeefcafebabe000000000000000000000000000000000000000000000000')
+        .set(
+          'x-ans-signature',
+          'v1=deadbeefcafebabe000000000000000000000000000000000000000000000000',
+        )
         .send(eventPayload)
         .expect(401);
     });

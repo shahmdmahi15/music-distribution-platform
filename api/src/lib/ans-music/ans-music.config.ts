@@ -6,7 +6,9 @@ export class AnsMusicConfigService {
   constructor(private readonly config: ConfigService) {}
 
   get environment(): 'test' | 'live' {
-    return (this.config.get<string>('ANS_ENVIRONMENT') || 'test').toLowerCase() === 'live'
+    return (
+      this.config.get<string>('ANS_ENVIRONMENT') || 'test'
+    ).toLowerCase() === 'live'
       ? 'live'
       : 'test';
   }

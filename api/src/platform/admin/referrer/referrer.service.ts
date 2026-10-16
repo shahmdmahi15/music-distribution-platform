@@ -9,7 +9,11 @@ import { generateUniqueCode, CodePrefix } from 'src/lib/prisma/code-generator';
 import { StorageService } from 'src/lib/storage/storage.service';
 import { IMMUTABLE_CACHE_CONTROL } from 'src/config/storage-keys.config';
 import { Prisma, ReferrerStatus } from 'src/generated/prisma/client';
-import { AdminReferrerQueryDto, ReferrerSortBy, SortOrder } from './dto/admin-referrer-query.dto';
+import {
+  AdminReferrerQueryDto,
+  ReferrerSortBy,
+  SortOrder,
+} from './dto/admin-referrer-query.dto';
 import { UpdateReferrerStatusDto } from './dto/update-referrer-status.dto';
 import { UpdateReferrerDossierDto } from './dto/update-referrer-dossier.dto';
 import { CreateReferrerDealDto } from './dto/create-referrer-deal.dto';
@@ -115,7 +119,9 @@ export class AdminReferrerService {
               3600 * 24,
             );
           } catch (e) {
-            this.logger.warn(`Failed to generate contract presigned URL for ${ref.id}: ${e}`);
+            this.logger.warn(
+              `Failed to generate contract presigned URL for ${ref.id}: ${e}`,
+            );
           }
         }
 
@@ -123,7 +129,9 @@ export class AdminReferrerService {
           ref.documents.map(async (doc) => ({
             ...doc,
             fileUrl: doc.fileKey
-              ? await this.storageService.getPresignedUrl(doc.fileKey, 3600 * 24).catch(() => null)
+              ? await this.storageService
+                  .getPresignedUrl(doc.fileKey, 3600 * 24)
+                  .catch(() => null)
               : null,
           })),
         );
@@ -199,7 +207,9 @@ export class AdminReferrerService {
       referrer.documents.map(async (doc) => ({
         ...doc,
         fileUrl: doc.fileKey
-          ? await this.storageService.getPresignedUrl(doc.fileKey, 3600 * 24).catch(() => null)
+          ? await this.storageService
+              .getPresignedUrl(doc.fileKey, 3600 * 24)
+              .catch(() => null)
           : null,
       })),
     );
@@ -382,7 +392,9 @@ export class AdminReferrerService {
     }
 
     if (!referrer.contractKey) {
-      throw new NotFoundException('No contract document uploaded for this referrer.');
+      throw new NotFoundException(
+        'No contract document uploaded for this referrer.',
+      );
     }
 
     const previewUrl = await this.storageService.getPresignedUrl(
@@ -447,7 +459,10 @@ export class AdminReferrerService {
       },
     });
 
-    const fileUrl = await this.storageService.getPresignedUrl(fileKey, 3600 * 24);
+    const fileUrl = await this.storageService.getPresignedUrl(
+      fileKey,
+      3600 * 24,
+    );
 
     return {
       success: true,

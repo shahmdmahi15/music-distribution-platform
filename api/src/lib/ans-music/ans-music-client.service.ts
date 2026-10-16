@@ -86,7 +86,9 @@ export class AnsMusicClientService {
         headers,
       });
     } catch (err: any) {
-      this.logger.error(`Network error calling ANS Music API at ${url}: ${err.message}`);
+      this.logger.error(
+        `Network error calling ANS Music API at ${url}: ${err.message}`,
+      );
       throw new HttpException(
         err.message || 'ANS Music upstream network failure',
         HttpStatus.BAD_GATEWAY,
@@ -162,7 +164,12 @@ export class AnsMusicClientService {
     }
 
     // Unwrap standard envelope if present: { success: true, data: ... }
-    if (body && typeof body === 'object' && 'data' in body && 'success' in body) {
+    if (
+      body &&
+      typeof body === 'object' &&
+      'data' in body &&
+      'success' in body
+    ) {
       return body.data as T;
     }
 
@@ -248,27 +255,36 @@ export class AnsMusicClientService {
   async startMultipartUpload(
     params: AnsUploadMultipartStartRequest,
   ): Promise<AnsUploadMultipartStartResponse> {
-    return this.request<AnsUploadMultipartStartResponse>('/uploads/multipart/start', {
-      method: 'POST',
-      body: JSON.stringify(params),
-    });
+    return this.request<AnsUploadMultipartStartResponse>(
+      '/uploads/multipart/start',
+      {
+        method: 'POST',
+        body: JSON.stringify(params),
+      },
+    );
   }
 
   async signUploadParts(
     params: AnsUploadMultipartSignPartsRequest,
   ): Promise<AnsUploadMultipartSignPartsResponse> {
-    return this.request<AnsUploadMultipartSignPartsResponse>('/uploads/multipart/sign-parts', {
-      method: 'POST',
-      body: JSON.stringify(params),
-    });
+    return this.request<AnsUploadMultipartSignPartsResponse>(
+      '/uploads/multipart/sign-parts',
+      {
+        method: 'POST',
+        body: JSON.stringify(params),
+      },
+    );
   }
 
   async completeUpload(
     params: AnsUploadMultipartCompleteRequest,
   ): Promise<{ storageKey: string; location: string }> {
-    return this.request<{ storageKey: string; location: string }>('/uploads/multipart/complete', {
-      method: 'POST',
-      body: JSON.stringify(params),
-    });
+    return this.request<{ storageKey: string; location: string }>(
+      '/uploads/multipart/complete',
+      {
+        method: 'POST',
+        body: JSON.stringify(params),
+      },
+    );
   }
 }

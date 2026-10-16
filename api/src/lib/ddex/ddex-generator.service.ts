@@ -4,11 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
 import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
-import { DeliveryStatus, DdexVersion, DspStore } from 'src/generated/prisma/client';
+  DeliveryStatus,
+  DdexVersion,
+  DspStore,
+} from 'src/generated/prisma/client';
 
 @Injectable()
 export class DdexGeneratorService {
@@ -65,7 +66,9 @@ export class DdexGeneratorService {
     }
 
     if (!release.tracks.length) {
-      throw new BadRequestException('Release must contain at least one track to generate DDEX manifest.');
+      throw new BadRequestException(
+        'Release must contain at least one track to generate DDEX manifest.',
+      );
     }
 
     const messageId = `RMIT_ERN_${release.code}_${Date.now()}`;
@@ -77,15 +80,23 @@ export class DdexGeneratorService {
       ? release.releaseDate.toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
 
-    const senderPartyName = this.escapeXml(release.whiteLabel?.name || 'Royal Motion IT Distribution');
-    const labelName = this.escapeXml(release.labelName || release.whiteLabel?.name || 'Royal Motion IT Records');
+    const senderPartyName = this.escapeXml(
+      release.whiteLabel?.name || 'Royal Motion IT Distribution',
+    );
+    const labelName = this.escapeXml(
+      release.labelName ||
+        release.whiteLabel?.name ||
+        'Royal Motion IT Records',
+    );
 
     // 1. Build SoundRecording Elements
     const soundRecordingXml = release.tracks
       .map((track, idx) => {
         const trackRef = `A${idx + 1}`;
         const duration = this.formatIsoDuration(track.durationSeconds || 180);
-        const isrc = track.isrc ? `<ISRC>${this.escapeXml(track.isrc)}</ISRC>` : '';
+        const isrc = track.isrc
+          ? `<ISRC>${this.escapeXml(track.isrc)}</ISRC>`
+          : '';
         const title = this.escapeXml(track.title);
 
         const trackContributors = track.contributors?.length

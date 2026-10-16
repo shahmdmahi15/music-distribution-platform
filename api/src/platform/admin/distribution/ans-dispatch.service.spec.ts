@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AnsDispatchService } from './ans-dispatch.service';
 import { AnsMusicClientService } from 'src/lib/ans-music/ans-music-client.service';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
@@ -54,14 +58,10 @@ describe('AnsDispatchService', () => {
           status: 'CLEAN',
           matchScore: 0,
         },
-        contributors: [
-          { name: 'Neon Artist', role: 'PRIMARY_ARTIST' },
-        ],
+        contributors: [{ name: 'Neon Artist', role: 'PRIMARY_ARTIST' }],
       },
     ],
-    contributors: [
-      { name: 'Neon Artist', role: 'PRIMARY_ARTIST' },
-    ],
+    contributors: [{ name: 'Neon Artist', role: 'PRIMARY_ARTIST' }],
   };
 
   beforeEach(async () => {
@@ -114,7 +114,9 @@ describe('AnsDispatchService', () => {
 
   describe('Zero-Touch Auto-Dispatch on Clean QC Release Submission', () => {
     it('should successfully dispatch release when QC passes and assets are clean', async () => {
-      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(mockCleanRelease);
+      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(
+        mockCleanRelease,
+      );
       (storage.getTenantPresignedUrl as jest.Mock)
         .mockResolvedValueOnce('https://presigned.s3.aws.com/cover.jpg')
         .mockResolvedValueOnce('https://presigned.s3.aws.com/track1.wav');
@@ -124,7 +126,9 @@ describe('AnsDispatchService', () => {
         externalId: mockReleaseCode,
         status: 'SUBMITTED',
       };
-      (ansClient.createRelease as jest.Mock).mockResolvedValueOnce(ansCreateResponse);
+      (ansClient.createRelease as jest.Mock).mockResolvedValueOnce(
+        ansCreateResponse,
+      );
 
       (prisma.release.update as jest.Mock).mockResolvedValueOnce({
         ...mockCleanRelease,
@@ -143,7 +147,8 @@ describe('AnsDispatchService', () => {
       });
 
       expect(ansClient.createRelease).toHaveBeenCalledTimes(1);
-      const [dispatchPayload] = (ansClient.createRelease as jest.Mock).mock.calls[0];
+      const [dispatchPayload] = (ansClient.createRelease as jest.Mock).mock
+        .calls[0];
       expect(dispatchPayload).toMatchObject({
         externalId: mockReleaseCode,
         title: mockCleanRelease.title,
@@ -176,13 +181,17 @@ describe('AnsDispatchService', () => {
       const failedQcRelease = {
         ...mockCleanRelease,
         qcStatus: QcStatus.FAILED_BLOCKING,
-        validationErrors: [{ field: 'lyrics', message: 'Contains forbidden terms' }],
+        validationErrors: [
+          { field: 'lyrics', message: 'Contains forbidden terms' },
+        ],
       };
-      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(failedQcRelease);
-
-      await expect(service.autoDispatchRelease(mockReleaseCode)).rejects.toThrow(
-        BadRequestException,
+      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(
+        failedQcRelease,
       );
+
+      await expect(
+        service.autoDispatchRelease(mockReleaseCode),
+      ).rejects.toThrow(BadRequestException);
       expect(ansClient.createRelease).not.toHaveBeenCalled();
       expect(prisma.release.update).not.toHaveBeenCalled();
     });
@@ -193,11 +202,13 @@ describe('AnsDispatchService', () => {
         isLocked: true,
         status: ReleaseStatus.DISTRIBUTED,
       };
-      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(alreadyLockedRelease);
-
-      await expect(service.autoDispatchRelease(mockReleaseCode)).rejects.toThrow(
-        ConflictException,
+      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(
+        alreadyLockedRelease,
       );
+
+      await expect(
+        service.autoDispatchRelease(mockReleaseCode),
+      ).rejects.toThrow(ConflictException);
       expect(ansClient.createRelease).not.toHaveBeenCalled();
     });
 
@@ -206,24 +217,30 @@ describe('AnsDispatchService', () => {
         ...mockCleanRelease,
         tracks: [],
       };
-      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(emptyTracksRelease);
-
-      await expect(service.autoDispatchRelease(mockReleaseCode)).rejects.toThrow(
-        BadRequestException,
+      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(
+        emptyTracksRelease,
       );
+
+      await expect(
+        service.autoDispatchRelease(mockReleaseCode),
+      ).rejects.toThrow(BadRequestException);
       expect(ansClient.createRelease).not.toHaveBeenCalled();
     });
 
     it('should handle ANS Music API failure gracefully without locking the release', async () => {
-      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(mockCleanRelease);
-      (storage.getTenantPresignedUrl as jest.Mock).mockResolvedValue('https://presigned.s3.aws.com/asset');
+      (prisma.release.findFirst as jest.Mock).mockResolvedValueOnce(
+        mockCleanRelease,
+      );
+      (storage.getTenantPresignedUrl as jest.Mock).mockResolvedValue(
+        'https://presigned.s3.aws.com/asset',
+      );
       (ansClient.createRelease as jest.Mock).mockRejectedValueOnce(
         new Error('Upstream ANS network timeout'),
       );
 
-      await expect(service.autoDispatchRelease(mockReleaseCode)).rejects.toThrow(
-        'Upstream ANS network timeout',
-      );
+      await expect(
+        service.autoDispatchRelease(mockReleaseCode),
+      ).rejects.toThrow('Upstream ANS network timeout');
 
       expect(prisma.release.update).not.toHaveBeenCalledWith(
         expect.objectContaining({
@@ -248,7 +265,9 @@ describe('AnsDispatchService', () => {
     };
 
     it('should auto-dispatch valid VEVO channel request and update status to SUBMITTED', async () => {
-      (prisma.vevoChannel.findFirst as jest.Mock).mockResolvedValueOnce(mockChannelRecord);
+      (prisma.vevoChannel.findFirst as jest.Mock).mockResolvedValueOnce(
+        mockChannelRecord,
+      );
       (ansClient.requestChannel as jest.Mock).mockResolvedValueOnce({
         id: 'ans_chan_req_501',
         externalId: mockChannelCode,
@@ -287,18 +306,18 @@ describe('AnsDispatchService', () => {
         status: 'APPROVED',
       });
 
-      await expect(service.autoDispatchVevoChannel(mockChannelCode)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.autoDispatchVevoChannel(mockChannelCode),
+      ).rejects.toThrow(ConflictException);
       expect(ansClient.requestChannel).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if channel record does not exist', async () => {
       (prisma.vevoChannel.findFirst as jest.Mock).mockResolvedValueOnce(null);
 
-      await expect(service.autoDispatchVevoChannel('NON_EXISTENT')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.autoDispatchVevoChannel('NON_EXISTENT'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

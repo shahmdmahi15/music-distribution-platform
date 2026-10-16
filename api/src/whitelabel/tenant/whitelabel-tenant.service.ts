@@ -83,16 +83,12 @@ export class WhitelabelTenantService {
           whiteLabel.primaryColor || themeMeta?.primaryColor || '#6366f1',
         accentColor:
           whiteLabel.accentColor || themeMeta?.accentColor || '#ec4899',
-        themeRadius:
-          whiteLabel.themeRadius || themeMeta?.radius || '0.5rem',
-        themeFont:
-          whiteLabel.themeFont || themeMeta?.fontFamily || 'Inter',
-        themeMode:
-          whiteLabel.themeMode || themeMeta?.mode || 'dark',
+        themeRadius: whiteLabel.themeRadius || themeMeta?.radius || '0.5rem',
+        themeFont: whiteLabel.themeFont || themeMeta?.fontFamily || 'Inter',
+        themeMode: whiteLabel.themeMode || themeMeta?.mode || 'dark',
         navbarStyle:
           whiteLabel.navbarStyle || themeMeta?.navbarStyle || 'glass',
-        cardStyle:
-          whiteLabel.cardStyle || themeMeta?.cardStyle || 'modern',
+        cardStyle: whiteLabel.cardStyle || themeMeta?.cardStyle || 'modern',
         supportEmail: whiteLabel.supportEmail,
         supportPhone: whiteLabel.supportPhone,
         copyrightText:
@@ -400,7 +396,11 @@ export class WhitelabelTenantService {
       };
       // Cache negative lookup for 60 seconds to protect DB from scrapers/bots
       try {
-        await this.redisService.set(cacheKey, JSON.stringify(notFoundResult), 60);
+        await this.redisService.set(
+          cacheKey,
+          JSON.stringify(notFoundResult),
+          60,
+        );
       } catch {}
       return notFoundResult;
     }
@@ -446,14 +446,20 @@ export class WhitelabelTenantService {
     if (subdomain) {
       const cleanSubdomain = subdomain.trim().toLowerCase();
       try {
-        await this.redisService.del(`whitelabel:resolve:subdomain:${cleanSubdomain}`);
-        await this.redisService.del(`whitelabel:subdomain_resolve:${cleanSubdomain}`);
+        await this.redisService.del(
+          `whitelabel:resolve:subdomain:${cleanSubdomain}`,
+        );
+        await this.redisService.del(
+          `whitelabel:subdomain_resolve:${cleanSubdomain}`,
+        );
       } catch {}
     }
     if (customDomain) {
       const cleanCustomDomain = customDomain.trim().toLowerCase();
       try {
-        await this.redisService.del(`whitelabel:resolve:domain:${cleanCustomDomain}`);
+        await this.redisService.del(
+          `whitelabel:resolve:domain:${cleanCustomDomain}`,
+        );
       } catch {}
     }
   }

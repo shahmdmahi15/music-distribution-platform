@@ -93,7 +93,8 @@ export class ClientReferrerService {
 
       return {
         success: true,
-        message: 'Referrer application submitted successfully and is pending review.',
+        message:
+          'Referrer application submitted successfully and is pending review.',
         referrer: updated,
       };
     }
@@ -195,7 +196,9 @@ export class ClientReferrerService {
           3600 * 24,
         );
       } catch (e) {
-        this.logger.warn(`Failed to presign contract for referrer ${referrer.id}: ${e}`);
+        this.logger.warn(
+          `Failed to presign contract for referrer ${referrer.id}: ${e}`,
+        );
       }
     }
 
@@ -267,7 +270,9 @@ export class ClientReferrerService {
           3600 * 24,
         );
       } catch (e) {
-        this.logger.warn(`Failed to presign contract for referrer ${referrer.id}: ${e}`);
+        this.logger.warn(
+          `Failed to presign contract for referrer ${referrer.id}: ${e}`,
+        );
       }
     }
 
@@ -275,7 +280,9 @@ export class ClientReferrerService {
       referrer.documents.map(async (doc) => ({
         ...doc,
         fileUrl: doc.fileKey
-          ? await this.storageService.getPresignedUrl(doc.fileKey, 3600 * 24).catch(() => null)
+          ? await this.storageService
+              .getPresignedUrl(doc.fileKey, 3600 * 24)
+              .catch(() => null)
           : null,
       })),
     );
@@ -290,14 +297,17 @@ export class ClientReferrerService {
     };
   }
 
-  async createDeal(userId: string, dto: {
-    clientName: string;
-    clientEmail?: string;
-    contactName?: string;
-    contactPhone?: string;
-    sellingPriceBdt?: number;
-    notes?: string;
-  }) {
+  async createDeal(
+    userId: string,
+    dto: {
+      clientName: string;
+      clientEmail?: string;
+      contactName?: string;
+      contactPhone?: string;
+      sellingPriceBdt?: number;
+      notes?: string;
+    },
+  ) {
     const referrer = await this.prismaService.referrer.findUnique({
       where: { userId },
     });
@@ -307,10 +317,13 @@ export class ClientReferrerService {
     }
 
     if (referrer.status !== ReferrerStatus.ACTIVE) {
-      throw new BadRequestException('Only active referrer partners can log pipeline deals.');
+      throw new BadRequestException(
+        'Only active referrer partners can log pipeline deals.',
+      );
     }
 
-    const sellingPrice = dto.sellingPriceBdt || referrer.dealBenchmarkBdt || 60000;
+    const sellingPrice =
+      dto.sellingPriceBdt || referrer.dealBenchmarkBdt || 60000;
     const rate = referrer.commissionRate || 15.0;
     const bounty = Math.round(sellingPrice * (rate / 100));
 
@@ -416,7 +429,10 @@ export class ClientReferrerService {
       },
     });
 
-    const fileUrl = await this.storageService.getPresignedUrl(fileKey, 3600 * 24);
+    const fileUrl = await this.storageService.getPresignedUrl(
+      fileKey,
+      3600 * 24,
+    );
 
     return {
       success: true,

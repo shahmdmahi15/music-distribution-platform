@@ -1,4 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { PayeeRole, PayeeStatus } from 'src/generated/prisma/client';
 
 export class CreatePayeeDto {

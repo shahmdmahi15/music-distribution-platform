@@ -96,17 +96,18 @@ export class AdminDistributionService {
               wl.awsSecretAccessKey &&
               wl.bucketName
             ) {
-              presignedCoverUrl = await this.storageService.getTenantPresignedUrl(
-                wl.id,
-                r.coverArtKey,
-                3600,
-                {
-                  bucketName: wl.bucketName,
-                  awsRegion: wl.awsRegion || 'ap-southeast-1',
-                  awsAccessKeyId: wl.awsAccessKeyId,
-                  awsSecretAccessKey: wl.awsSecretAccessKey,
-                },
-              );
+              presignedCoverUrl =
+                await this.storageService.getTenantPresignedUrl(
+                  wl.id,
+                  r.coverArtKey,
+                  3600,
+                  {
+                    bucketName: wl.bucketName,
+                    awsRegion: wl.awsRegion || 'ap-southeast-1',
+                    awsAccessKeyId: wl.awsAccessKeyId,
+                    awsSecretAccessKey: wl.awsSecretAccessKey,
+                  },
+                );
             } else {
               presignedCoverUrl = await this.storageService.getPresignedUrl(
                 r.coverArtKey,
@@ -199,17 +200,18 @@ export class AdminDistributionService {
     let coverArtDownloadUrl = release.coverArtUrl;
     if (release.coverArtKey) {
       try {
-        coverArtDownloadUrl = tenantStorage && wl
-          ? await this.storageService.getTenantPresignedUrl(
-              wl.id,
-              release.coverArtKey,
-              7200,
-              tenantStorage,
-            )
-          : await this.storageService.getPresignedUrl(
-              release.coverArtKey,
-              7200,
-            );
+        coverArtDownloadUrl =
+          tenantStorage && wl
+            ? await this.storageService.getTenantPresignedUrl(
+                wl.id,
+                release.coverArtKey,
+                7200,
+                tenantStorage,
+              )
+            : await this.storageService.getPresignedUrl(
+                release.coverArtKey,
+                7200,
+              );
       } catch {
         coverArtDownloadUrl = release.coverArtUrl;
       }
@@ -220,17 +222,18 @@ export class AdminDistributionService {
         let audioDownloadUrl = track.audioUrl;
         if (track.audioKey) {
           try {
-            audioDownloadUrl = tenantStorage && wl
-              ? await this.storageService.getTenantPresignedUrl(
-                  wl.id,
-                  track.audioKey,
-                  7200,
-                  tenantStorage,
-                )
-              : await this.storageService.getPresignedUrl(
-                  track.audioKey,
-                  7200,
-                );
+            audioDownloadUrl =
+              tenantStorage && wl
+                ? await this.storageService.getTenantPresignedUrl(
+                    wl.id,
+                    track.audioKey,
+                    7200,
+                    tenantStorage,
+                  )
+                : await this.storageService.getPresignedUrl(
+                    track.audioKey,
+                    7200,
+                  );
           } catch {
             audioDownloadUrl = track.audioUrl;
           }
@@ -265,10 +268,7 @@ export class AdminDistributionService {
       throw new NotFoundException(`Release ${code} not found`);
     }
 
-    if (
-      dto.status === ReleaseStatus.REJECTED &&
-      !dto.rejectionReason?.trim()
-    ) {
+    if (dto.status === ReleaseStatus.REJECTED && !dto.rejectionReason?.trim()) {
       throw new BadRequestException(
         'Rejection reason is required when rejecting a release',
       );
@@ -397,17 +397,15 @@ export class AdminDistributionService {
           }
         : null;
 
-    const downloadUrl = tenantStorage && wl
-      ? await this.storageService.getTenantPresignedUrl(
-          wl.id,
-          track.audioKey,
-          7200,
-          tenantStorage,
-        )
-      : await this.storageService.getPresignedUrl(
-          track.audioKey,
-          7200,
-        );
+    const downloadUrl =
+      tenantStorage && wl
+        ? await this.storageService.getTenantPresignedUrl(
+            wl.id,
+            track.audioKey,
+            7200,
+            tenantStorage,
+          )
+        : await this.storageService.getPresignedUrl(track.audioKey, 7200);
 
     return {
       code: track.code,

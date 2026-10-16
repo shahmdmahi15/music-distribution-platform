@@ -15,10 +15,6 @@ import { WhitelabelContractsModule } from 'src/whitelabel/contracts/whitelabel-c
     DspReportIngestionService,
     RoyaltyRunService,
   ],
-  exports: [
-    AdminReportsService,
-    DspReportIngestionService,
-    RoyaltyRunService,
-  ],
+  exports: [AdminReportsService, DspReportIngestionService, RoyaltyRunService],
 })
 export class AdminReportsModule {}

@@ -98,7 +98,15 @@ export interface AnsReleaseInput {
   coverArtUrl: string;
   channel?: string;
   videoUrl?: string;
-  videoVersion?: 'OFFICIAL' | 'LYRIC' | 'AUDIO' | 'LIVE' | 'INTERVIEW' | 'BEHIND_THE_SCENES' | 'TEASER' | 'ORIGINAL';
+  videoVersion?:
+    | 'OFFICIAL'
+    | 'LYRIC'
+    | 'AUDIO'
+    | 'LIVE'
+    | 'INTERVIEW'
+    | 'BEHIND_THE_SCENES'
+    | 'TEASER'
+    | 'ORIGINAL';
   tracks: AnsTrackInput[];
   contributors: AnsContributorInput[];
 }
@@ -110,7 +118,13 @@ export interface AnsRelease {
   videoId?: string;
   externalId?: string;
   title: string;
-  status: 'PENDING' | 'NEEDS_FIX' | 'APPROVED' | 'DELIVERED' | 'REJECTED' | 'TAKEN_DOWN';
+  status:
+    | 'PENDING'
+    | 'NEEDS_FIX'
+    | 'APPROVED'
+    | 'DELIVERED'
+    | 'REJECTED'
+    | 'TAKEN_DOWN';
   reason?: string;
   upc?: string;
   youtubeVideoId?: string;

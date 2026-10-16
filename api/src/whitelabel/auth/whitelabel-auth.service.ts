@@ -83,11 +83,15 @@ export class WhitelabelAuthService {
 
     const onboarding =
       (whiteLabel.onboardingDetails as Record<string, any>) || {};
-    const regPolicy = (onboarding.registrationPolicy as Record<string, any>) || {};
+    const regPolicy =
+      (onboarding.registrationPolicy as Record<string, any>) || {};
     const inviteCodes = (regPolicy.inviteCodes as Array<any>) || [];
 
     // Enforce Registration Policy for non-first users
-    if (!isFirstUser && whiteLabel.userSignupModel === WhiteLabelSignupModel.INVITE_ONLY) {
+    if (
+      !isFirstUser &&
+      whiteLabel.userSignupModel === WhiteLabelSignupModel.INVITE_ONLY
+    ) {
       if (!dto.inviteCode || !dto.inviteCode.trim()) {
         throw new ForbiddenException(
           'This portal operates on an invitation-only policy. A valid invitation code is required to register.',
@@ -108,7 +112,10 @@ export class WhitelabelAuthService {
         );
       }
 
-      if (matchingCode.expiresAt && new Date(matchingCode.expiresAt) < new Date()) {
+      if (
+        matchingCode.expiresAt &&
+        new Date(matchingCode.expiresAt) < new Date()
+      ) {
         throw new ForbiddenException(
           'This invitation code has expired. Please request a new invitation.',
         );
@@ -141,7 +148,8 @@ export class WhitelabelAuthService {
 
     const initialRole = isFirstUser
       ? WhiteLabelUserRole.OWNER
-      : (regPolicy.defaultRole as WhiteLabelUserRole) || WhiteLabelUserRole.CLIENT;
+      : (regPolicy.defaultRole as WhiteLabelUserRole) ||
+        WhiteLabelUserRole.CLIENT;
 
     const isApproved =
       whiteLabel.userSignupModel === WhiteLabelSignupModel.ADMIN_APPROVAL
@@ -829,10 +837,7 @@ export class WhitelabelAuthService {
       throw new BadRequestException('Current password does not match.');
     }
 
-    const newHashedPassword = await argon2.hash(
-      dto.newPassword,
-      ARGON2_CONFIG,
-    );
+    const newHashedPassword = await argon2.hash(dto.newPassword, ARGON2_CONFIG);
 
     await this.prismaService.whiteLabelUser.update({
       where: { id: userId },

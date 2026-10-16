@@ -111,7 +111,7 @@ export class WhitelabelProvisioningService {
           },
         },
       );
-      const cfData = (await cfRes.json()) as any;
+      const cfData = await cfRes.json();
 
       if (!cfData?.success || !cfData?.result) {
         throw new Error(
@@ -238,16 +238,28 @@ export class WhitelabelProvisioningService {
         cloudflareZoneId: dto.cloudflareZoneId.trim(),
         cloudflareBaseDomain: cleanBaseDomain,
         customDomain: targetCustomDomain,
-        ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
-        ...(dto.instanceType ? { awsInstanceType: dto.instanceType.trim() } : {}),
-        ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
-        ...(dto.cloudflareOriginKey ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() } : {}),
+        ...(dto.elasticIpv4
+          ? {
+              elasticIpv4: dto.elasticIpv4.trim(),
+              awsElasticIp: dto.elasticIpv4.trim(),
+            }
+          : {}),
+        ...(dto.instanceType
+          ? { awsInstanceType: dto.instanceType.trim() }
+          : {}),
+        ...(dto.cloudflareOriginCert
+          ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() }
+          : {}),
+        ...(dto.cloudflareOriginKey
+          ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() }
+          : {}),
       },
     });
 
     return {
       success: true,
-      message: 'Cloud infrastructure credentials saved securely to your tenant profile.',
+      message:
+        'Cloud infrastructure credentials saved securely to your tenant profile.',
       whiteLabelId: updated.id,
       customDomain: updated.customDomain,
       senderEmail: updated.senderEmail,
@@ -311,9 +323,18 @@ export class WhitelabelProvisioningService {
         cloudflareZoneId: dto.cloudflareZoneId.trim(),
         cloudflareBaseDomain: cleanBaseDomain,
         customDomain: targetCustomDomain,
-        ...(dto.elasticIpv4 ? { elasticIpv4: dto.elasticIpv4.trim(), awsElasticIp: dto.elasticIpv4.trim() } : {}),
-        ...(dto.cloudflareOriginCert ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() } : {}),
-        ...(dto.cloudflareOriginKey ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() } : {}),
+        ...(dto.elasticIpv4
+          ? {
+              elasticIpv4: dto.elasticIpv4.trim(),
+              awsElasticIp: dto.elasticIpv4.trim(),
+            }
+          : {}),
+        ...(dto.cloudflareOriginCert
+          ? { cloudflareOriginCert: dto.cloudflareOriginCert.trim() }
+          : {}),
+        ...(dto.cloudflareOriginKey
+          ? { cloudflareOriginKey: dto.cloudflareOriginKey.trim() }
+          : {}),
         awsInstanceType: dto.instanceType || 't4g.medium',
         provisioningStatus: ProvisioningStatus.CREDENTIALS_VALIDATED,
         provisioningProgress: 15,
@@ -325,7 +346,10 @@ export class WhitelabelProvisioningService {
 
     // Fire background asynchronous pipeline (unawaited)
     setImmediate(() => {
-      this.executeProvisioningPipeline(updated.id, dto.recreateInstance || false).catch((err) => {
+      this.executeProvisioningPipeline(
+        updated.id,
+        dto.recreateInstance || false,
+      ).catch((err) => {
         this.logger.error(
           `[ProvisioningPipeline] Error on tenant ${updated.id}: ${err.message}`,
           err.stack,
@@ -396,7 +420,6 @@ export class WhitelabelProvisioningService {
     whiteLabelId: string,
     forceRecreateInstance: boolean = false,
   ) {
-
     const wl = await this.prismaService.whiteLabel.findUnique({
       where: { id: whiteLabelId },
     });
@@ -593,7 +616,9 @@ export class WhitelabelProvisioningService {
       // Clean up any legacy root domain identity from AWS SES if previously created
       if (baseDomain && baseDomain !== identityBackstage) {
         try {
-          await ses.send(new DeleteEmailIdentityCommand({ EmailIdentity: baseDomain }));
+          await ses.send(
+            new DeleteEmailIdentityCommand({ EmailIdentity: baseDomain }),
+          );
           this.logger.log(`Pruned legacy SES root identity: ${baseDomain}`);
         } catch {}
       }
@@ -622,7 +647,9 @@ export class WhitelabelProvisioningService {
           }),
         );
       } catch (mfErr: any) {
-        this.logger.warn(`Could not set MailFrom on ${identityBackstage}: ${mfErr.message}`);
+        this.logger.warn(
+          `Could not set MailFrom on ${identityBackstage}: ${mfErr.message}`,
+        );
       }
 
       // 3. Clean up any stale DKIM CNAME records for backstage domain
@@ -696,12 +723,7 @@ export class WhitelabelProvisioningService {
       );
 
       // 8. Prune obsolete legacy mail records on mail.${baseDomain} if present
-      await this.pruneLegacyMailRecords(
-        cfToken,
-        zoneId,
-        baseDomain,
-        cfEmail,
-      );
+      await this.pruneLegacyMailRecords(cfToken, zoneId, baseDomain, cfEmail);
 
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
@@ -861,7 +883,9 @@ export class WhitelabelProvisioningService {
           try {
             await ec2.send(new DeleteKeyPairCommand({ KeyName: keyPairName }));
           } catch (e: any) {
-            this.logger.warn(`Could not delete previous AWS key pair: ${e.message}`);
+            this.logger.warn(
+              `Could not delete previous AWS key pair: ${e.message}`,
+            );
           }
         }
 
@@ -922,7 +946,7 @@ export class WhitelabelProvisioningService {
       );
 
       // Generate or retrieve API Key for the tenant's EC2 to communicate with Mother API
-      let rawApiKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
+      const rawApiKey = `rmit_live_${crypto.randomBytes(24).toString('hex')}`;
       const hashedKey = crypto
         .createHash('sha256')
         .update(rawApiKey)
@@ -1219,7 +1243,10 @@ chmod 755 /var/www
               {
                 ResourceType: 'instance',
                 Tags: [
-                  { Key: 'Name', Value: `rmit-${wl.code.toLowerCase()}-portal` },
+                  {
+                    Key: 'Name',
+                    Value: `rmit-${wl.code.toLowerCase()}-portal`,
+                  },
                   { Key: 'Project', Value: 'RoyalMotionIT-WhiteLabel' },
                   { Key: 'TenantCode', Value: wl.code },
                   { Key: 'Domain', Value: customDomain },
@@ -1241,7 +1268,12 @@ chmod 755 /var/www
           'INFO',
         );
 
-        const isRunning = await this.waitForInstanceState(ec2, instanceId, 'running', 180);
+        const isRunning = await this.waitForInstanceState(
+          ec2,
+          instanceId,
+          'running',
+          180,
+        );
         if (!isRunning) {
           throw new Error(
             `EC2 instance (${instanceId}) failed to reach RUNNING state within 180 seconds.`,
@@ -1272,7 +1304,9 @@ chmod 755 /var/www
           break;
         } catch (assocErr: any) {
           if (attempt === 15) {
-            throw new Error(`Failed to associate Elastic IP: ${assocErr.message}`);
+            throw new Error(
+              `Failed to associate Elastic IP: ${assocErr.message}`,
+            );
           }
           await new Promise((r) => setTimeout(r, 3000));
         }
@@ -1311,7 +1345,9 @@ chmod 755 /var/www
       );
 
       // Harmonize Cloudflare SSL mode (full / strict) to eliminate Error 521
-      const targetSslMode = originCertData?.isCloudflareOrigin ? 'strict' : 'full';
+      const targetSslMode = originCertData?.isCloudflareOrigin
+        ? 'strict'
+        : 'full';
       const sslModeSet = await this.setCloudflareSslMode(
         cfToken,
         zoneId,
@@ -1365,10 +1401,11 @@ chmod 755 /var/www
         );
 
         try {
-          const cnameResult = await this.cloudflareDnsService.provisionSubdomain(
-            tenantSubdomain,
-            customDomain,
-          );
+          const cnameResult =
+            await this.cloudflareDnsService.provisionSubdomain(
+              tenantSubdomain,
+              customDomain,
+            );
           if (cnameResult.success) {
             await this.appendLog(
               whiteLabelId,
@@ -1419,7 +1456,12 @@ chmod 755 /var/www
         'SSH connection & automated production deployment on customer EC2',
       );
 
-      const ssh = await this.connectSsh(elasticIp, currentSshKey, 'ubuntu', 300000);
+      const ssh = await this.connectSsh(
+        elasticIp,
+        currentSshKey,
+        'ubuntu',
+        300000,
+      );
       await this.appendLog(
         whiteLabelId,
         'DEPLOY',
@@ -1472,14 +1514,20 @@ chmod 755 /var/www
             `Writing SSL certificate and private key to /etc/ssl/certs/whitelabel_origin.crt...`,
             'INFO',
           );
-          const crtB64 = Buffer.from(originCertData.certificate.trim()).toString('base64');
-          const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString('base64');
+          const crtB64 = Buffer.from(
+            originCertData.certificate.trim(),
+          ).toString('base64');
+          const keyB64 = Buffer.from(originCertData.privateKey.trim()).toString(
+            'base64',
+          );
           const sslRes = await this.execSsh(
             ssh,
             `echo "${crtB64}" | base64 -d | sudo tee /etc/ssl/certs/whitelabel_origin.crt > /dev/null && echo "${keyB64}" | base64 -d | sudo tee /etc/ssl/private/whitelabel_origin.key > /dev/null && sudo chmod 644 /etc/ssl/certs/whitelabel_origin.crt && sudo chmod 600 /etc/ssl/private/whitelabel_origin.key`,
           );
           if (sslRes.code !== 0) {
-            throw new Error(`Failed to write SSL certificates on customer EC2: ${sslRes.stderr || sslRes.stdout}`);
+            throw new Error(
+              `Failed to write SSL certificates on customer EC2: ${sslRes.stderr || sslRes.stdout}`,
+            );
           }
           await this.appendLog(
             whiteLabelId,
@@ -1497,7 +1545,12 @@ chmod 755 /var/www
           'INFO',
         );
 
-        const serverNames = [customDomain, platformSubdomainFqdn, baseDomain, `*.${baseDomain}`]
+        const serverNames = [
+          customDomain,
+          platformSubdomainFqdn,
+          baseDomain,
+          `*.${baseDomain}`,
+        ]
           .filter(Boolean)
           .join(' ');
 
@@ -1799,7 +1852,9 @@ exit 1
             ssh.end();
           } catch {}
         }
-        throw new Error(`Deployment on customer EC2 failed: ${deployErr.message}`);
+        throw new Error(
+          `Deployment on customer EC2 failed: ${deployErr.message}`,
+        );
       }
 
       // =========================================================================
@@ -1871,7 +1926,7 @@ exit 1
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&type=${type}&per_page=50`,
       { headers },
     );
-    const listData = (await listRes.json()) as any;
+    const listData = await listRes.json();
     const records = (listData?.result || []) as any[];
 
     const bodyPayload: any = {
@@ -1948,7 +2003,7 @@ exit 1
         `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=CNAME&per_page=100`,
         { headers },
       );
-      const data = (await res.json()) as any;
+      const data = await res.json();
       const records = (data?.result || []) as any[];
 
       for (const rec of records) {
@@ -1975,7 +2030,10 @@ exit 1
   /**
    * Helper to format Cloudflare API headers supporting both API tokens and Global API keys.
    */
-  private getCloudflareHeaders(token: string, email?: string): Record<string, string> {
+  private getCloudflareHeaders(
+    token: string,
+    email?: string,
+  ): Record<string, string> {
     const trimmed = (token || '').trim();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -2023,7 +2081,10 @@ exit 1
       csr.setSubject([
         { name: 'commonName', value: hostnames[0] },
         { name: 'countryName', value: 'US' },
-        { name: 'organizationName', value: 'RoyalMotionIT WhiteLabel Platform' },
+        {
+          name: 'organizationName',
+          value: 'RoyalMotionIT WhiteLabel Platform',
+        },
       ]);
       const altNames = hostnames.map((h) => ({ type: 2, value: h }));
       csr.setAttributes([
@@ -2042,17 +2103,20 @@ exit 1
 
       // 3. Request Cloudflare Origin CA Certificate
       const headers = this.getCloudflareHeaders(token, email);
-      const res = await fetch('https://api.cloudflare.com/client/v4/certificates', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          hostnames,
-          requested_validity: 5475, // 15 years
-          request_type: 'origin-rsa',
-          csr: csrPem,
-        }),
-      });
-      const data = (await res.json()) as any;
+      const res = await fetch(
+        'https://api.cloudflare.com/client/v4/certificates',
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            hostnames,
+            requested_validity: 5475, // 15 years
+            request_type: 'origin-rsa',
+            csr: csrPem,
+          }),
+        },
+      );
+      const data = await res.json();
 
       if (data?.success && data?.result?.certificate) {
         return {
@@ -2064,7 +2128,9 @@ exit 1
 
       // If Cloudflare returns an error, capture it clearly
       const errDetails =
-        data?.errors?.map((e: any) => `${e.code ? `[${e.code}] ` : ''}${e.message}`).join(', ') ||
+        data?.errors
+          ?.map((e: any) => `${e.code ? `[${e.code}] ` : ''}${e.message}`)
+          .join(', ') ||
         data?.messages?.map((m: any) => m.message).join(', ') ||
         'API Token lacks Origin CA permissions or account-level Origin CA access';
 
@@ -2085,7 +2151,10 @@ exit 1
       const attrs = [
         { name: 'commonName', value: hostnames[0] },
         { name: 'countryName', value: 'US' },
-        { name: 'organizationName', value: 'RoyalMotionIT WhiteLabel Platform' },
+        {
+          name: 'organizationName',
+          value: 'RoyalMotionIT WhiteLabel Platform',
+        },
       ];
       cert.setSubject(attrs);
       cert.setIssuer(attrs);
@@ -2123,10 +2192,13 @@ exit 1
 
       const cert = forge.pki.createCertificate();
       cert.publicKey = forgePublicKey;
-      cert.serialNumber = '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
+      cert.serialNumber =
+        '01' + forge.util.bytesToHex(forge.random.getBytesSync(16));
       cert.validity.notBefore = new Date();
       cert.validity.notAfter = new Date();
-      cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 5);
+      cert.validity.notAfter.setFullYear(
+        cert.validity.notBefore.getFullYear() + 5,
+      );
       const attrs = [{ name: 'commonName', value: hostnames[0] }];
       cert.setSubject(attrs);
       cert.setIssuer(attrs);
@@ -2292,7 +2364,7 @@ exit 1
           body: JSON.stringify({ value: mode }),
         },
       );
-      const data = (await res.json()) as any;
+      const data = await res.json();
       return !!data?.success;
     } catch (err: any) {
       this.logger.warn(`Could not set Cloudflare SSL mode: ${err.message}`);
@@ -2497,7 +2569,7 @@ exit 1
       `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(cleanDomain)}&type=TXT&per_page=50`,
       { headers },
     );
-    const listData = (await listRes.json()) as any;
+    const listData = await listRes.json();
     const txtRecords = (listData?.result || []) as any[];
 
     // Filter only SPF records (those starting with "v=spf1")
@@ -2583,7 +2655,7 @@ exit 1
         `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(legacyMailDomain)}&type=MX&per_page=20`,
         { headers },
       );
-      const mxData = (await mxRes.json()) as any;
+      const mxData = await mxRes.json();
       for (const rec of mxData?.result || []) {
         if ((rec.content || '').includes('amazonses.com')) {
           await fetch(

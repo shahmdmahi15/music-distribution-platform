@@ -1,7 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  WhitelabelSessionAuthService,
-} from './whitelabel-session-auth.service';
+import { WhitelabelSessionAuthService } from './whitelabel-session-auth.service';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { StorageService } from 'src/lib/storage/storage.service';
 import {
@@ -63,7 +61,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should throw UnauthorizedException when session is revoked', async () => {
     const rawToken = 'my-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     prismaMock.session.findUnique.mockResolvedValue({
       id: 'sess-1',
@@ -84,7 +85,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should throw UnauthorizedException when session has expired', async () => {
     const rawToken = 'my-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     prismaMock.session.findUnique.mockResolvedValue({
       id: 'sess-1',
@@ -105,7 +109,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should throw ForbiddenException on cross-tenant access violation', async () => {
     const rawToken = 'cross-tenant-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     prismaMock.session.findUnique.mockResolvedValue({
       id: 'sess-1',
@@ -127,7 +134,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should throw ForbiddenException if account is locked', async () => {
     const rawToken = 'locked-user-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     prismaMock.session.findUnique.mockResolvedValue({
       id: 'sess-1',
@@ -149,7 +159,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should throw ForbiddenException if user role is not permitted', async () => {
     const rawToken = 'client-role-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     prismaMock.session.findUnique.mockResolvedValue({
       id: 'sess-1',
@@ -173,7 +186,10 @@ describe('WhitelabelSessionAuthService', () => {
 
   it('should authenticate successfully with valid session and matching tenant', async () => {
     const rawToken = 'valid-token';
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     const mockUser = {
       id: 'user-1',
@@ -194,13 +210,17 @@ describe('WhitelabelSessionAuthService', () => {
 
     prismaMock.session.findUnique.mockResolvedValue(mockSession);
 
-    const result = await service.authenticate(`Bearer ${rawToken}`, 'tenant-a', [
-      WhiteLabelUserRole.CLIENT,
-    ]);
+    const result = await service.authenticate(
+      `Bearer ${rawToken}`,
+      'tenant-a',
+      [WhiteLabelUserRole.CLIENT],
+    );
 
     expect(result).toBeDefined();
     expect(result.user.id).toBe('user-1');
-    expect(result.user.image).toBe('https://cdn.example.com/avatars/artist.png');
+    expect(result.user.image).toBe(
+      'https://cdn.example.com/avatars/artist.png',
+    );
     expect(result.session.id).toBe('sess-1');
   });
 });

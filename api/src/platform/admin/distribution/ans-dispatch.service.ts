@@ -6,7 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import { StorageService, TenantStorageConfig } from 'src/lib/storage/storage.service';
+import {
+  StorageService,
+  TenantStorageConfig,
+} from 'src/lib/storage/storage.service';
 import { AnsMusicClientService } from 'src/lib/ans-music/ans-music-client.service';
 import {
   QcStatus,
@@ -16,7 +19,11 @@ import {
   UpstreamStatus,
   VevoChannelStatus,
 } from 'src/generated/prisma/client';
-import { AnsContributorInput, AnsReleaseInput, AnsTrackInput } from 'src/lib/ans-music/ans-music.types';
+import {
+  AnsContributorInput,
+  AnsReleaseInput,
+  AnsTrackInput,
+} from 'src/lib/ans-music/ans-music.types';
 
 @Injectable()
 export class AnsDispatchService {
@@ -133,14 +140,15 @@ export class AnsDispatchService {
       role: c.role,
     }));
 
-    if (releaseContributors.length === 0 && release.tracks[0]?.contributors?.length) {
+    if (
+      releaseContributors.length === 0 &&
+      release.tracks[0]?.contributors?.length
+    ) {
       releaseContributors.push(...mappedTracks[0].contributors);
     }
 
     const releaseTypeMapped =
-      release.type === ReleaseType.MUSIC_VIDEO
-        ? 'MUSIC_VIDEO'
-        : (release.type as 'SINGLE' | 'ALBUM' | 'EP');
+      release.type === ReleaseType.MUSIC_VIDEO ? 'MUSIC_VIDEO' : release.type;
 
     const dispatchPayload: AnsReleaseInput = {
       externalId: release.code,

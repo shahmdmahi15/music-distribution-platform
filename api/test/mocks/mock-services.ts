@@ -83,7 +83,9 @@ export const createMockPrismaService = () => ({
     delete: jest.fn(),
     count: jest.fn(),
   },
-  $transaction: jest.fn((callback) => (typeof callback === 'function' ? callback(this) : Promise.all(callback))),
+  $transaction: jest.fn((callback) =>
+    typeof callback === 'function' ? callback(this) : Promise.all(callback),
+  ),
   $executeRawUnsafe: jest.fn(),
   $queryRaw: jest.fn(),
 });
@@ -100,10 +102,18 @@ export const createMockRedisService = () => ({
 });
 
 export const createMockStorageService = () => ({
-  uploadFileBuffer: jest.fn().mockResolvedValue('https://storage.example.com/file.jpg'),
-  getSignedFileUrl: jest.fn().mockResolvedValue('https://storage.example.com/signed-url'),
-  getPresignedUrl: jest.fn().mockResolvedValue('https://storage.example.com/presigned-url'),
-  getPresignedUploadUrl: jest.fn().mockResolvedValue('https://storage.example.com/presigned-upload-url'),
+  uploadFileBuffer: jest
+    .fn()
+    .mockResolvedValue('https://storage.example.com/file.jpg'),
+  getSignedFileUrl: jest
+    .fn()
+    .mockResolvedValue('https://storage.example.com/signed-url'),
+  getPresignedUrl: jest
+    .fn()
+    .mockResolvedValue('https://storage.example.com/presigned-url'),
+  getPresignedUploadUrl: jest
+    .fn()
+    .mockResolvedValue('https://storage.example.com/presigned-upload-url'),
   getFileUrl: jest.fn((key: string) => `https://cdn.example.com/${key}`),
   getFileBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-audio-data')),
   deleteFile: jest.fn().mockResolvedValue(undefined),
@@ -165,4 +175,3 @@ export const createMockAcrCloudService = () => ({
   generateSignature: jest.fn().mockReturnValue('mock-sig'),
   isConfigured: jest.fn().mockReturnValue(true),
 });
-

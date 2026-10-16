@@ -27,7 +27,7 @@ describe('WhitelabelQcValidationService', () => {
   beforeEach(async () => {
     prismaMock = {
       release: {
-        findUnique: jest.MockedFunction = jest.fn(),
+        findUnique: (jest.MockedFunction = jest.fn()),
         findFirst: jest.fn(),
       },
       track: {
@@ -180,7 +180,9 @@ describe('WhitelabelQcValidationService', () => {
           e.message.includes('ACRCloud Copyright match detected'),
       );
       expect(copyrightError).toBeDefined();
-      expect(copyrightError?.message).toContain('ACRCloud Copyright match detected');
+      expect(copyrightError?.message).toContain(
+        'ACRCloud Copyright match detected',
+      );
     });
 
     it('should NOT return copyright Severity 1 error when ACRCloud match score is strictly below 80', async () => {
@@ -200,9 +202,8 @@ describe('WhitelabelQcValidationService', () => {
         ],
       });
 
-      const result: QcValidationResult = await service.validateRelease(
-        releaseWithLowScore,
-      );
+      const result: QcValidationResult =
+        await service.validateRelease(releaseWithLowScore);
 
       const copyrightError = result.errors.find((e) =>
         e.message.includes('ACRCloud Copyright match detected'),
@@ -302,7 +303,9 @@ describe('WhitelabelQcValidationService', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.errors.filter((e) => e.severity === QcSeverity.SEVERITY_1)).toHaveLength(0);
+      expect(
+        result.errors.filter((e) => e.severity === QcSeverity.SEVERITY_1),
+      ).toHaveLength(0);
     });
   });
 });

@@ -96,7 +96,8 @@ export class R2StorageService implements OnModuleInit {
       Key: key,
       Body: fileBuffer,
       ContentType: options?.contentType || mimeType,
-      CacheControl: options?.cacheControl || 'public, max-age=31536000, immutable',
+      CacheControl:
+        options?.cacheControl || 'public, max-age=31536000, immutable',
       Metadata: options?.metadata,
     });
 
@@ -166,9 +167,11 @@ export class R2StorageService implements OnModuleInit {
   /**
    * Checks file existence and retrieves metadata
    */
-  async headFile(
-    key: string,
-  ): Promise<{ contentLength?: number; contentType?: string; eTag?: string } | null> {
+  async headFile(key: string): Promise<{
+    contentLength?: number;
+    contentType?: string;
+    eTag?: string;
+  } | null> {
     try {
       const command = new HeadObjectCommand({
         Bucket: this.bucketName,

@@ -104,7 +104,9 @@ describe('AcrCloudService', () => {
       }).compile();
 
       const unconfiguredService = module.get<AcrCloudService>(AcrCloudService);
-      const res = await unconfiguredService.identifyAudio(Buffer.from('sample-audio-bytes'));
+      const res = await unconfiguredService.identifyAudio(
+        Buffer.from('sample-audio-bytes'),
+      );
 
       expect(res.isClean).toBe(true);
       expect(res.hasMatch).toBe(false);
@@ -132,7 +134,9 @@ describe('AcrCloudService', () => {
       });
       global.fetch = mockFetch;
 
-      const res = await service.identifyAudio(Buffer.from('test-audio-content'));
+      const res = await service.identifyAudio(
+        Buffer.from('test-audio-content'),
+      );
 
       expect(res.hasMatch).toBe(true);
       expect(res.isClean).toBe(false);
@@ -152,7 +156,9 @@ describe('AcrCloudService', () => {
       });
       global.fetch = mockFetch;
 
-      const res = await service.identifyAudio(Buffer.from('original-unregistered-audio'));
+      const res = await service.identifyAudio(
+        Buffer.from('original-unregistered-audio'),
+      );
 
       expect(res.hasMatch).toBe(false);
       expect(res.isClean).toBe(true);
@@ -193,7 +199,9 @@ describe('AcrCloudService', () => {
         status: AudioScanStatus.PENDING,
       });
 
-      mockStorage.getFileBuffer.mockResolvedValue(Buffer.from('sample-audio-bytes'));
+      mockStorage.getFileBuffer.mockResolvedValue(
+        Buffer.from('sample-audio-bytes'),
+      );
 
       jest.spyOn(service, 'identifyAudio').mockResolvedValue({
         statusCode: 0,
@@ -252,7 +260,9 @@ describe('AcrCloudService', () => {
         status: AudioScanStatus.PENDING,
       });
 
-      mockStorage.getFileBuffer.mockResolvedValue(Buffer.from('indie-audio-bytes'));
+      mockStorage.getFileBuffer.mockResolvedValue(
+        Buffer.from('indie-audio-bytes'),
+      );
 
       jest.spyOn(service, 'identifyAudio').mockResolvedValue({
         statusCode: 1001,

@@ -35,10 +35,7 @@ export class WhitelabelReportsController {
     @CurrentWhiteLabel() whiteLabel: WhiteLabel,
     @Param('code') code: string,
   ) {
-    return await this.royaltyRunService.getStatementByCode(
-      whiteLabel.id,
-      code,
-    );
+    return await this.royaltyRunService.getStatementByCode(whiteLabel.id, code);
   }
 
   @Get()

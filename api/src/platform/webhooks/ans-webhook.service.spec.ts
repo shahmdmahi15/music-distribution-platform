@@ -12,7 +12,8 @@ describe('AnsWebhookService', () => {
   let prisma: PrismaService;
   let redis: RedisService;
 
-  const webhookSecret = 'test_ans_secret_key_64_characters_long_for_hmac_sha256_verification';
+  const webhookSecret =
+    'test_ans_secret_key_64_characters_long_for_hmac_sha256_verification';
 
   // Helper to construct exact HMAC-SHA256 signatures matching the implementation contract:
   // Signature = HMAC-SHA256(secret, `${timestamp}.${rawBody}`)
@@ -22,7 +23,10 @@ describe('AnsWebhookService', () => {
     secret: string = webhookSecret,
   ): string => {
     const payloadToSign = `${timestamp}.${body}`;
-    return crypto.createHmac('sha256', secret).update(payloadToSign).digest('hex');
+    return crypto
+      .createHmac('sha256', secret)
+      .update(payloadToSign)
+      .digest('hex');
   };
 
   beforeEach(async () => {

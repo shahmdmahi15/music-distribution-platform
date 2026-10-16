@@ -17,9 +17,7 @@ import { CreateContractDto } from './dto/create-contract.dto';
 @Controller('contracts')
 @UseGuards(WhitelabelSessionGuard)
 export class WhitelabelContractsController {
-  constructor(
-    private readonly contractsService: WhitelabelContractsService,
-  ) {}
+  constructor(private readonly contractsService: WhitelabelContractsService) {}
 
   @Post()
   async createContract(

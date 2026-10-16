@@ -36,7 +36,11 @@ export class AnsWebhookService {
     return secret;
   }
 
-  verifySignature(rawBody: string, signatureHeader?: string, timestampHeader?: string): {
+  verifySignature(
+    rawBody: string,
+    signatureHeader?: string,
+    timestampHeader?: string,
+  ): {
     timestamp: number;
     signature: string;
   } {
@@ -74,8 +78,12 @@ export class AnsWebhookService {
     const nowSec = Math.floor(Date.now() / 1000);
     const drift = Math.abs(nowSec - timestamp);
     if (drift > 300) {
-      this.logger.warn(`Webhook timestamp drift exceeded: ${drift}s (limit: 300s)`);
-      throw new UnauthorizedException('Webhook timestamp outside allowed tolerance');
+      this.logger.warn(
+        `Webhook timestamp drift exceeded: ${drift}s (limit: 300s)`,
+      );
+      throw new UnauthorizedException(
+        'Webhook timestamp outside allowed tolerance',
+      );
     }
 
     const secret = this.getWebhookSecret();
@@ -93,13 +101,17 @@ export class AnsWebhookService {
       !crypto.timingSafeEqual(expectedBuffer, actualBuffer)
     ) {
       this.logger.warn('Webhook signature mismatch detected');
-      throw new UnauthorizedException('Invalid webhook cryptographic signature');
+      throw new UnauthorizedException(
+        'Invalid webhook cryptographic signature',
+      );
     }
 
     return { timestamp, signature: signatureHex };
   }
 
-  async handleWebhook(input: WebhookPayloadInput): Promise<{ received: boolean; deduplicated?: boolean }> {
+  async handleWebhook(
+    input: WebhookPayloadInput,
+  ): Promise<{ received: boolean; deduplicated?: boolean }> {
     const { signatureHeader, timestampHeader, rawBody } = input;
 
     // Verify cryptographic signature and timestamp
@@ -112,7 +124,8 @@ export class AnsWebhookService {
       throw new UnauthorizedException('Invalid JSON payload');
     }
 
-    const eventId = parsedEvent.id || parsedEvent.eventId || `evt_${Date.now()}`;
+    const eventId =
+      parsedEvent.id || parsedEvent.eventId || `evt_${Date.now()}`;
     const eventType = parsedEvent.type || parsedEvent.eventType || '';
     const eventData = parsedEvent.data || {};
 
@@ -120,7 +133,9 @@ export class AnsWebhookService {
     const dedupKey = `ans:webhook:event:${eventId}`;
     const existing = await this.redis.get(dedupKey);
     if (existing) {
-      this.logger.log(`Webhook event ${eventId} already processed (deduplicated)`);
+      this.logger.log(
+        `Webhook event ${eventId} already processed (deduplicated)`,
+      );
       return { received: true, deduplicated: true };
     }
 
@@ -180,7 +195,9 @@ export class AnsWebhookService {
 
     if (!releaseCode) return;
 
-    this.logger.log(`Processing release.approved for ${releaseCode} (UPC: ${upc})`);
+    this.logger.log(
+      `Processing release.approved for ${releaseCode} (UPC: ${upc})`,
+    );
 
     await this.prisma.release.update({
       where: { code: releaseCode },
@@ -207,7 +224,9 @@ export class AnsWebhookService {
   private async handleReleaseNeedsFix(data: any) {
     const releaseCode = data.releaseCode || data.externalId;
     const upstreamReason =
-      data.upstreamReason || data.reason || 'Upstream quality review requested corrections';
+      data.upstreamReason ||
+      data.reason ||
+      'Upstream quality review requested corrections';
 
     if (!releaseCode) return;
 
@@ -275,7 +294,8 @@ export class AnsWebhookService {
 
   private async handleReleaseRejected(data: any) {
     const releaseCode = data.releaseCode || data.externalId;
-    const reason = data.reason || data.upstreamReason || 'Release rejected by DSP upstream';
+    const reason =
+      data.reason || data.upstreamReason || 'Release rejected by DSP upstream';
     if (!releaseCode) return;
 
     await this.prisma.release.update({

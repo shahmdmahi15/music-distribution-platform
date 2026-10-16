@@ -52,39 +52,33 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: api/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Dependencies
-        working-directory: api
-        run: pnpm install --frozen-lockfile --ignore-workspace
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma Schema
-        working-directory: api
-        run: pnpm exec prisma validate
+        run: pnpm --filter api exec prisma validate
 
       - name: Generate Prisma Client
-        working-directory: api
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/music_distribution_test
-        run: pnpm exec prisma generate
+        run: pnpm --filter api exec prisma generate
 
       - name: Run ESLint
-        working-directory: api
-        run: pnpm run lint
+        run: pnpm --filter api run lint
 
       - name: Run Unit Tests
-        working-directory: api
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/music_distribution_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           JWT_SECRET: test-super-secret-jwt-key-for-ci-testing-minimum-32-chars
           NODE_ENV: test
-        run: pnpm run test -- --passWithNoTests
+        run: pnpm --filter api test -- --passWithNoTests
 
       - name: Build API Production Bundle
-        working-directory: api
-        run: pnpm run build
+        run: pnpm --filter api run build
 
   validate-platform:
     name: Lint, Typecheck, & Build Platform Console
@@ -103,29 +97,25 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: platform/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Dependencies
-        working-directory: platform
-        run: pnpm install --frozen-lockfile --ignore-workspace
+        run: pnpm install --frozen-lockfile
 
       - name: Verify TypeScript Types
-        working-directory: platform
-        run: pnpm exec tsc --noEmit
+        run: pnpm --filter platform exec tsc --noEmit
 
       - name: Run ESLint
-        working-directory: platform
-        run: pnpm run lint
+        run: pnpm --filter platform run lint
 
       - name: Build Platform Console
-        working-directory: platform
         env:
           NEXT_PUBLIC_APP_URL: "https://platform.royalmotionit.com"
           API_BASE_URL: "http://127.0.0.1:5000"
           API_KEY: "ci-mock-platform-api-key"
           INTERNAL_API_SECRET: "ci-mock-internal-api-secret-key-32charsmin!"
           SKIP_ENV_VALIDATION: "1"
-        run: pnpm run build
+        run: pnpm --filter platform run build
 
   validate-whitelabel:
     name: Lint, Typecheck, & Build WhiteLabel Portal
@@ -144,25 +134,21 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: whitelabel/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Dependencies
-        working-directory: whitelabel
-        run: pnpm install --frozen-lockfile --ignore-workspace
+        run: pnpm install --frozen-lockfile
 
       - name: Verify TypeScript Types
-        working-directory: whitelabel
-        run: pnpm exec tsc --noEmit
+        run: pnpm --filter whitelabel exec tsc --noEmit
 
       - name: Run ESLint
-        working-directory: whitelabel
-        run: pnpm run lint
+        run: pnpm --filter whitelabel run lint
 
       - name: Build WhiteLabel Portal
-        working-directory: whitelabel
         env:
           API_BASE_URL: "http://127.0.0.1:5000"
           API_KEY: "ci-mock-whitelabel-api-key"
           INTERNAL_API_SECRET: "ci-mock-internal-api-secret-key-32charsmin!"
           SKIP_ENV_VALIDATION: "1"
-        run: pnpm run build
+        run: pnpm --filter whitelabel run build

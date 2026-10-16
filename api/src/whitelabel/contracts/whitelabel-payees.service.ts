@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import {
-  CodePrefix,
-  generateUniqueCode,
-} from 'src/lib/prisma/code-generator';
+import { CodePrefix, generateUniqueCode } from 'src/lib/prisma/code-generator';
 import { CreatePayeeDto } from './dto/create-payee.dto';
 
 @Injectable()

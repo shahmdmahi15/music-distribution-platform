@@ -167,7 +167,10 @@ describe('WhitelabelContractsService', () => {
       name: 'Track Level Contract',
       level: ContractLevel.TRACK,
       targetId: 'track-999',
-      splits: [{ payeeId: 'artist-payee', percentage: 70 }, { payeeId: 'label-payee', percentage: 30 }],
+      splits: [
+        { payeeId: 'artist-payee', percentage: 70 },
+        { payeeId: 'label-payee', percentage: 30 },
+      ],
     };
 
     const releaseContract = {
@@ -175,7 +178,10 @@ describe('WhitelabelContractsService', () => {
       name: 'Release Level Contract',
       level: ContractLevel.RELEASE,
       targetId: 'rel-888',
-      splits: [{ payeeId: 'artist-payee', percentage: 50 }, { payeeId: 'label-payee', percentage: 50 }],
+      splits: [
+        { payeeId: 'artist-payee', percentage: 50 },
+        { payeeId: 'label-payee', percentage: 50 },
+      ],
     };
 
     const artistContract = {
@@ -183,7 +189,10 @@ describe('WhitelabelContractsService', () => {
       name: 'Artist Level Contract',
       level: ContractLevel.ARTIST,
       targetId: 'art-777',
-      splits: [{ payeeId: 'artist-payee', percentage: 80 }, { payeeId: 'label-payee', percentage: 20 }],
+      splits: [
+        { payeeId: 'artist-payee', percentage: 80 },
+        { payeeId: 'label-payee', percentage: 20 },
+      ],
     };
 
     const accountContract = {
@@ -196,18 +205,21 @@ describe('WhitelabelContractsService', () => {
 
     it('Precedence Check 1: Track contract overrides Release, Artist, and Account contract', async () => {
       // Mock returns contract for track
-      prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
-        if (
-          where?.level === ContractLevel.TRACK &&
-          (where?.targetId === 'track-999' || where?.contractAssets?.some?.trackId === 'track-999')
-        ) {
-          return trackContract;
-        }
-        if (where?.level === ContractLevel.RELEASE) return releaseContract;
-        if (where?.level === ContractLevel.ARTIST) return artistContract;
-        if (where?.level === ContractLevel.ACCOUNT) return accountContract;
-        return null;
-      });
+      prismaMock.contract.findFirst.mockImplementation(
+        async ({ where }: any) => {
+          if (
+            where?.level === ContractLevel.TRACK &&
+            (where?.targetId === 'track-999' ||
+              where?.contractAssets?.some?.trackId === 'track-999')
+          ) {
+            return trackContract;
+          }
+          if (where?.level === ContractLevel.RELEASE) return releaseContract;
+          if (where?.level === ContractLevel.ARTIST) return artistContract;
+          if (where?.level === ContractLevel.ACCOUNT) return accountContract;
+          return null;
+        },
+      );
 
       const resolved = await service.resolveEffectiveContract({
         whiteLabelId: 'wl-tenant-1',
@@ -222,18 +234,21 @@ describe('WhitelabelContractsService', () => {
     });
 
     it('Precedence Check 2: Release contract overrides Artist and Account contract when no Track contract exists', async () => {
-      prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
-        if (where?.level === ContractLevel.TRACK) return null; // No track contract
-        if (
-          where?.level === ContractLevel.RELEASE &&
-          (where?.targetId === 'rel-888' || where?.contractAssets?.some?.releaseId === 'rel-888')
-        ) {
-          return releaseContract;
-        }
-        if (where?.level === ContractLevel.ARTIST) return artistContract;
-        if (where?.level === ContractLevel.ACCOUNT) return accountContract;
-        return null;
-      });
+      prismaMock.contract.findFirst.mockImplementation(
+        async ({ where }: any) => {
+          if (where?.level === ContractLevel.TRACK) return null; // No track contract
+          if (
+            where?.level === ContractLevel.RELEASE &&
+            (where?.targetId === 'rel-888' ||
+              where?.contractAssets?.some?.releaseId === 'rel-888')
+          ) {
+            return releaseContract;
+          }
+          if (where?.level === ContractLevel.ARTIST) return artistContract;
+          if (where?.level === ContractLevel.ACCOUNT) return accountContract;
+          return null;
+        },
+      );
 
       const resolved = await service.resolveEffectiveContract({
         whiteLabelId: 'wl-tenant-1',
@@ -248,18 +263,21 @@ describe('WhitelabelContractsService', () => {
     });
 
     it('Precedence Check 3: Artist contract overrides Account default contract when no Track or Release contract exists', async () => {
-      prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
-        if (where?.level === ContractLevel.TRACK) return null;
-        if (where?.level === ContractLevel.RELEASE) return null;
-        if (
-          where?.level === ContractLevel.ARTIST &&
-          (where?.targetId === 'art-777' || where?.contractAssets?.some?.artistName === 'art-777')
-        ) {
-          return artistContract;
-        }
-        if (where?.level === ContractLevel.ACCOUNT) return accountContract;
-        return null;
-      });
+      prismaMock.contract.findFirst.mockImplementation(
+        async ({ where }: any) => {
+          if (where?.level === ContractLevel.TRACK) return null;
+          if (where?.level === ContractLevel.RELEASE) return null;
+          if (
+            where?.level === ContractLevel.ARTIST &&
+            (where?.targetId === 'art-777' ||
+              where?.contractAssets?.some?.artistName === 'art-777')
+          ) {
+            return artistContract;
+          }
+          if (where?.level === ContractLevel.ACCOUNT) return accountContract;
+          return null;
+        },
+      );
 
       const resolved = await service.resolveEffectiveContract({
         whiteLabelId: 'wl-tenant-1',
@@ -274,13 +292,15 @@ describe('WhitelabelContractsService', () => {
     });
 
     it('Precedence Check 4: Falls back to Account default contract when no specific contract exists', async () => {
-      prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
-        if (where?.level === ContractLevel.TRACK) return null;
-        if (where?.level === ContractLevel.RELEASE) return null;
-        if (where?.level === ContractLevel.ARTIST) return null;
-        if (where?.level === ContractLevel.ACCOUNT) return accountContract;
-        return null;
-      });
+      prismaMock.contract.findFirst.mockImplementation(
+        async ({ where }: any) => {
+          if (where?.level === ContractLevel.TRACK) return null;
+          if (where?.level === ContractLevel.RELEASE) return null;
+          if (where?.level === ContractLevel.ARTIST) return null;
+          if (where?.level === ContractLevel.ACCOUNT) return accountContract;
+          return null;
+        },
+      );
 
       const resolved = await service.resolveEffectiveContract({
         whiteLabelId: 'wl-tenant-1',

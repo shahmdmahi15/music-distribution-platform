@@ -173,7 +173,11 @@ export class WhitelabelQcValidationService {
     }
 
     // 5. Global UPC uniqueness conflict (excluding sandbox)
-    if (release.upc && release.upc.trim().length > 0 && this.prisma?.release?.findFirst) {
+    if (
+      release.upc &&
+      release.upc.trim().length > 0 &&
+      this.prisma?.release?.findFirst
+    ) {
       const trimmedUpc = release.upc.trim();
       const isSandboxTenant =
         release.whiteLabel?.subdomain?.toLowerCase() === 'sandbox' ||
@@ -209,7 +213,10 @@ export class WhitelabelQcValidationService {
 
     // 1. Track duration < 30 seconds
     for (const track of tracks) {
-      if (track.durationSeconds !== null && track.durationSeconds !== undefined) {
+      if (
+        track.durationSeconds !== null &&
+        track.durationSeconds !== undefined
+      ) {
         if (track.durationSeconds < 30) {
           severity2Warnings.push({
             field: 'durationSeconds',

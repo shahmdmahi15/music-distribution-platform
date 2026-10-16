@@ -53,6 +53,8 @@ export class RegisterDto {
   @Transform(({ value }: TransformFnParams) =>
     typeof value === 'string' ? value.trim().toUpperCase() : (value as unknown),
   )
-  @MaxLength(64, { message: 'Referral code must be at most 64 characters long.' })
+  @MaxLength(64, {
+    message: 'Referral code must be at most 64 characters long.',
+  })
   referralCode?: string;
 }

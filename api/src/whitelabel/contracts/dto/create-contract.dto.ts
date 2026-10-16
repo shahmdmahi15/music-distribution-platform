@@ -9,7 +9,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContractLevel, ContractStatus, MechanicalType, PayeeRole } from 'src/generated/prisma/client';
+import {
+  ContractLevel,
+  ContractStatus,
+  MechanicalType,
+  PayeeRole,
+} from 'src/generated/prisma/client';
 
 export class ContractSplitItemDto {
   @IsString()

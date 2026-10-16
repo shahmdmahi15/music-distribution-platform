@@ -91,7 +91,7 @@ export class CloudflareDnsService {
         },
       });
 
-      const searchData = (await searchRes.json()) as any;
+      const searchData = await searchRes.json();
       const records = searchData?.result || [];
       return records.length === 0;
     } catch (error: any) {
@@ -192,7 +192,7 @@ export class CloudflareDnsService {
       body: JSON.stringify(currentPayload),
     });
 
-    let data = (await res.json()) as any;
+    let data = await res.json();
 
     // Check if Cloudflare rejected proxying (code 1004 or message mentioning "not allowed for a proxied record")
     const errMessage: string = data?.errors?.[0]?.message || '';
@@ -221,7 +221,7 @@ export class CloudflareDnsService {
         body: JSON.stringify(currentPayload),
       });
 
-      data = (await res.json()) as any;
+      data = await res.json();
     }
 
     return {
@@ -280,7 +280,9 @@ export class CloudflareDnsService {
     let normalizedContent = cleanTarget;
     if (!isIpRouting) {
       const lower = cleanTarget.toLowerCase();
-      normalizedContent = lower.startsWith('backstage.') ? lower : `backstage.${lower}`;
+      normalizedContent = lower.startsWith('backstage.')
+        ? lower
+        : `backstage.${lower}`;
     }
 
     const recordType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
@@ -312,7 +314,7 @@ export class CloudflareDnsService {
         },
       });
 
-      const searchData = (await searchRes.json()) as any;
+      const searchData = await searchRes.json();
       const existingRecords = searchData?.result || [];
 
       if (existingRecords.length > 0) {
@@ -440,7 +442,7 @@ export class CloudflareDnsService {
         },
       });
 
-      const searchData = (await searchRes.json()) as any;
+      const searchData = await searchRes.json();
       const existingRecords = searchData?.result || [];
       if (existingRecords.length > 0) {
         for (const rec of existingRecords) {
@@ -495,7 +497,9 @@ export class CloudflareDnsService {
     let normalizedTarget = cleanTarget;
     if (cleanTarget && !isIpRouting) {
       const lower = cleanTarget.toLowerCase();
-      normalizedTarget = lower.startsWith('backstage.') ? lower : `backstage.${lower}`;
+      normalizedTarget = lower.startsWith('backstage.')
+        ? lower
+        : `backstage.${lower}`;
     }
 
     const expectedType: 'A' | 'CNAME' = isIpRouting ? 'A' : 'CNAME';
@@ -531,7 +535,7 @@ export class CloudflareDnsService {
         signal: AbortSignal.timeout(6000),
       });
 
-      const searchData = (await searchRes.json()) as any;
+      const searchData = await searchRes.json();
       const records = searchData?.result || [];
 
       if (records.length === 0) {

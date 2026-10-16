@@ -18,7 +18,10 @@ export class WhitelabelTenantController {
     @Query('subdomain') subdomain?: string,
     @Query('customDomain') customDomain?: string,
   ) {
-    return await this.tenantService.resolveSubdomain(subdomain || '', customDomain || '');
+    return await this.tenantService.resolveSubdomain(
+      subdomain || '',
+      customDomain || '',
+    );
   }
 
   @Get()
@@ -34,4 +37,3 @@ export class WhitelabelTenantController {
     return await this.tenantService.completeSetup(whiteLabel, dto);
   }
 }
-

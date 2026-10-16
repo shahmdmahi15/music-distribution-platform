@@ -71,8 +71,7 @@ export class CreateWhiteLabelDto {
   // Business Type
   @IsNotEmpty({ message: 'Business type is required.' })
   @IsEnum(WhiteLabelBusinessType, {
-    message:
-      'Business type must be DISTRIBUTOR_AGGREGATOR or REFERRER.',
+    message: 'Business type must be DISTRIBUTOR_AGGREGATOR or REFERRER.',
   })
   businessType!: WhiteLabelBusinessType;
 
