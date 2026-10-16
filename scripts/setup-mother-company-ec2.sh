@@ -11,7 +11,7 @@ export DEBIAN_FRONTEND=noninteractive
 # 1. Update system packages
 echo "📦 Updating base system..."
 apt-get update && apt-get upgrade -y
-apt-get install -y ca-certificates curl gnupg lsb-release ufw git nginx jq unzip htop
+apt-get install -y ca-certificates curl gnupg lsb-release ufw git nginx jq zip unzip htop
 
 # 2. Configure UFW Firewall
 echo "🛡️ Configuring firewall rules..."

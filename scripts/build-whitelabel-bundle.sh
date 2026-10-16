@@ -46,7 +46,27 @@ if [ -f "${WHITELABEL_DIR}/.env.example" ]; then
 fi
 
 echo "[+] Compressing into isolated distribution archive..."
-(cd "${STAGE_DIR}" && zip -rq9 "${BUNDLE_ZIP}" .)
+if command -v zip >/dev/null 2>&1; then
+  (cd "${STAGE_DIR}" && zip -rq9 "${BUNDLE_ZIP}" .)
+elif command -v python3 >/dev/null 2>&1; then
+  echo "    (zip utility not found; using python3 zipfile fallback)"
+  python3 -c "
+import os, sys, zipfile
+
+stage_dir = sys.argv[1]
+bundle_zip = sys.argv[2]
+
+with zipfile.ZipFile(bundle_zip, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(stage_dir):
+        for file in sorted(files):
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, stage_dir)
+            zf.write(full_path, rel_path)
+" "${STAGE_DIR}" "${BUNDLE_ZIP}"
+else
+  echo "[-] Error: Neither 'zip' nor 'python3' is available to build distribution archive." >&2
+  exit 1
+fi
 
 echo "[+] Computing SHA-256 integrity digest..."
 sha256sum "${BUNDLE_ZIP}" | cut -d ' ' -f 1 > "${CHECKSUM_FILE}"

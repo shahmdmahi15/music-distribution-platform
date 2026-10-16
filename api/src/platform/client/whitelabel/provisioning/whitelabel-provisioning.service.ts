@@ -1636,7 +1636,7 @@ done
 
 echo "=== [2/6] Ensuring system packages & Node.js 22 LTS ==="
 DEBIAN_FRONTEND=noninteractive apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git unzip openssl build-essential
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg nginx ufw git zip unzip openssl build-essential
 
 if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]; then
   echo "Installing Node.js 22 LTS..."
@@ -1683,7 +1683,11 @@ echo "Downloading secure application bundle from Central API..."
 curl -fSL "${apiBaseUrl}/platform/client/whitelabel/bundle/download?token=${bundleToken}" -o /tmp/whitelabel.zip
 
 echo "Extracting bundle to /var/www/whitelabel..."
-unzip -q -o /tmp/whitelabel.zip -d /var/www/whitelabel
+if command -v unzip >/dev/null 2>&1; then
+  unzip -q -o /tmp/whitelabel.zip -d /var/www/whitelabel
+elif command -v python3 >/dev/null 2>&1; then
+  python3 -m zipfile -e /tmp/whitelabel.zip /var/www/whitelabel
+fi
 rm -f /tmp/whitelabel.zip
 chown -R ubuntu:ubuntu /var/www/whitelabel
 
