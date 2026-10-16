@@ -9,6 +9,8 @@ import { cookies } from "next/headers";
 /** Roles admitted to the admin realm. Mirrors the API's admin middleware. */
 const ADMIN_ROLES: Role[] = [Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF];
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: Readonly<{

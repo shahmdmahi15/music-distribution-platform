@@ -13,6 +13,8 @@ import {
 import Link from "next/link";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 
+export const dynamic = "force-dynamic";
+
 export default async function AuthLayout({
   children,
 }: Readonly<{

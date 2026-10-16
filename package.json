@@ -2,5 +2,15 @@
   "name": "music-distribution-platform",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.15.4"
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "deploy:mother": "./scripts/deploy-mother-company.sh",
+    "smoke:ans": "./scripts/smoke-test-ans-music.js",
+    "test:api": "pnpm --filter api run test",
+    "bundle:whitelabel": "./scripts/build-whitelabel-bundle.sh",
+    "pm2:status": "pm2 status"
+  },
+  "devDependencies": {
+    "pm2": "^7.0.4"
+  }
 }

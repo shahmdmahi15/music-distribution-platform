@@ -5,7 +5,7 @@ import axios from "axios";
 
 export async function operationalAction(): Promise<{ operational: boolean }> {
   try {
-    const res = await api.get("/operational");
+    const res = await api.get("/operational", { timeout: 3000 });
 
     if (res.data.error) {
       return {
