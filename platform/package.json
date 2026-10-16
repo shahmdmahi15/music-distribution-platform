@@ -14,7 +14,7 @@
     "@base-ui/react": "^1.6.0",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@tanstack/react-form": "^1.33.2",
-    "axios": "^1.18.1",
+    "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "input-otp": "^1.4.2",
