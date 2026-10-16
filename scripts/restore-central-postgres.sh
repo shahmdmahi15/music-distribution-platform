@@ -18,7 +18,18 @@ if [ ! -f "${BACKUP_FILE}" ]; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 # 2. Connection Defaults
+DATABASE_URL="${DATABASE_URL:-}"
+if [ -z "${DATABASE_URL}" ] && [ -f "${ROOT_DIR}/api/.env" ]; then
+  ENV_DB_URL=$(grep "^DATABASE_URL=" "${ROOT_DIR}/api/.env" | head -n 1 | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+  if [ -n "$ENV_DB_URL" ]; then
+    DATABASE_URL="$ENV_DB_URL"
+  fi
+fi
+
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-music_distribution}"
@@ -66,23 +77,24 @@ fi
 
 # 5. Execute pg_restore
 echo "🔄 [DR Drill] Executing pg_restore --clean --if-exists..."
-export PGPASSWORD="${DB_PASSWORD}"
-
-# pg_restore returns non-zero if warnings are encountered (e.g. drop table if exists when not yet existing).
-# We allow exit status 0 or clean execution.
-pg_restore \
-  -h "${DB_HOST}" \
-  -p "${DB_PORT}" \
-  -U "${DB_USER}" \
-  -d "${DB_NAME}" \
-  --clean \
-  --if-exists \
-  --no-owner \
-  --no-privileges \
-  -v \
-  "${BACKUP_FILE}" || true
-
-unset PGPASSWORD
+if [ -n "${DATABASE_URL}" ]; then
+  CLEAN_DB_URL="${DATABASE_URL%%\?*}"
+  pg_restore -d "${CLEAN_DB_URL}" --clean --if-exists --no-owner --no-privileges -v "${BACKUP_FILE}" || true
+else
+  export PGPASSWORD="${DB_PASSWORD}"
+  pg_restore \
+    -h "${DB_HOST}" \
+    -p "${DB_PORT}" \
+    -U "${DB_USER}" \
+    -d "${DB_NAME}" \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-privileges \
+    -v \
+    "${BACKUP_FILE}" || true
+  unset PGPASSWORD
+fi
 
 echo "=============================================================================="
 echo "✅ [DR Drill] Database restore completed for '${DB_NAME}'."

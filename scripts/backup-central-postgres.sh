@@ -57,7 +57,8 @@ mkdir -p "${BACKUP_DIR}"
 # 3. Execute pg_dump with Custom Compressed Format (-Fc)
 echo "🔄 [Postgres Backup] Dumping database to ${BACKUP_FILEPATH}..."
 if [ -n "${DATABASE_URL}" ]; then
-  pg_dump -d "${DATABASE_URL}" -Fc -f "${BACKUP_FILEPATH}"
+  CLEAN_DB_URL="${DATABASE_URL%%\?*}"
+  pg_dump -d "${CLEAN_DB_URL}" -Fc -f "${BACKUP_FILEPATH}"
 elif [ "$(id -u)" -eq 0 ]; then
   sudo -u postgres pg_dump -d "${DB_NAME}" -Fc -f "${BACKUP_FILEPATH}"
 else
