@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-export const bankTransferProofSchema = z.object({
+const bankTransferProofSchema = z.object({
   bankName: z.string().min(2, "Bank name is required"),
   branchName: z.string().optional(),
   transactionReference: z
@@ -17,7 +17,7 @@ export const bankTransferProofSchema = z.object({
   remarks: z.string().optional(),
 });
 
-export type BankTransferProofInput = z.infer<typeof bankTransferProofSchema>;
+type BankTransferProofInput = z.infer<typeof bankTransferProofSchema>;
 
 export async function clientSubmitBankTransferProofAction(formData: FormData) {
   const cookieStore = await cookies();
