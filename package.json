@@ -7,6 +7,7 @@
     "deploy:mother": "./scripts/deploy-mother-company.sh",
     "smoke:ans": "./scripts/smoke-test-ans-music.js",
     "test:api": "pnpm --filter api run test",
+    "seed:admin": "pnpm --filter api run seed:admin",
     "bundle:whitelabel": "./scripts/build-whitelabel-bundle.sh",
     "pm2:status": "pm2 status"
   },
