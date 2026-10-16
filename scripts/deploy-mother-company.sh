@@ -38,6 +38,28 @@ echo "⚡ [Deploy: Platform] Installing dependencies..."
 cd "$APP_DIR/platform"
 pnpm install --frozen-lockfile
 
+# Pre-build verification: ensure platform/.env exists and contains all required variables
+echo "🔍 [Deploy: Platform] Verifying environment configuration in platform/.env..."
+PLATFORM_ENV_FILE="$APP_DIR/platform/.env"
+if [ ! -f "$PLATFORM_ENV_FILE" ]; then
+    echo "❌ [DEPLOYMENT FAILURE] Environment file '$PLATFORM_ENV_FILE' does not exist!" >&2
+    exit 1
+fi
+
+REQUIRED_PLATFORM_VARS=("NEXT_PUBLIC_APP_URL" "API_BASE_URL" "API_KEY" "INTERNAL_API_SECRET")
+MISSING_VARS=()
+for var in "${REQUIRED_PLATFORM_VARS[@]}"; do
+    if ! grep -q "^${var}=" "$PLATFORM_ENV_FILE" || [ -z "$(grep "^${var}=" "$PLATFORM_ENV_FILE" | cut -d '=' -f2-)" ]; then
+        MISSING_VARS+=("$var")
+    fi
+done
+
+if [ ${#MISSING_VARS[@]} -ne 0 ]; then
+    echo "❌ [DEPLOYMENT FAILURE] platform/.env is missing required configuration keys: ${MISSING_VARS[*]}" >&2
+    exit 1
+fi
+echo "✅ [Deploy: Platform] Environment configuration verified."
+
 echo "🏗️ [Deploy: Platform] Compiling Next.js Platform build..."
 pnpm run build
 

@@ -23,9 +23,8 @@ export class AnsWebhookController {
   ) {
     const signatureHeader = xAnsSignature || genericSignature;
     const rawBody =
-      typeof req.body === 'string'
-        ? req.body
-        : JSON.stringify(req.body);
+      (req as any).rawBody ||
+      (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
     return this.webhookService.handleWebhook({
       signatureHeader,

@@ -1,29 +1,43 @@
+import { adminGetWhiteLabelUsersAction } from "@/actions/admin/users/whitelabel/admin-get-whitelabel-users.action";
+import { WhiteLabelUsersTable } from "@/components/admin/users/whitelabel/whitelabel-users-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Users,
   Building2,
   ShieldCheck,
   Disc3,
-  Search,
-  Filter,
-  ArrowRight,
-  ExternalLink,
   Layers,
   Sparkles,
-  Info,
 } from "lucide-react";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
 
-export default function AdminWhiteLabelUsersPage() {
+interface PageProps {
+  searchParams: Promise<{
+    search?: string;
+    role?: string;
+    page?: string;
+  }>;
+}
+
+export default async function AdminWhiteLabelUsersPage({
+  searchParams,
+}: PageProps) {
+  const params = await searchParams;
+
+  const data = await adminGetWhiteLabelUsersAction({
+    search: params.search,
+    role: params.role,
+    page: params.page ? parseInt(params.page, 10) : 1,
+    limit: 50,
+  });
+
+  const { stats, users, pagination } = data;
+
   return (
     <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Page Header */}
@@ -69,7 +83,7 @@ export default function AdminWhiteLabelUsersPage() {
                 Tenant Organizations
               </span>
               <div className="text-2xl font-bold tracking-tight text-foreground">
-                0
+                {stats.totalTenants}
               </div>
               <span className="text-[11px] text-muted-foreground">
                 Active isolated tenants
@@ -88,7 +102,7 @@ export default function AdminWhiteLabelUsersPage() {
                 Tenant Administrators
               </span>
               <div className="text-2xl font-bold tracking-tight text-foreground">
-                0
+                {stats.totalAdmins}
               </div>
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                 Delegated tenant managers
@@ -104,10 +118,10 @@ export default function AdminWhiteLabelUsersPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Managed Artists
+                Managed Artists / Creators
               </span>
               <div className="text-2xl font-bold tracking-tight text-foreground">
-                0
+                {stats.totalArtists}
               </div>
               <span className="text-[11px] text-muted-foreground">
                 WhiteLabel-bound creators
@@ -123,90 +137,27 @@ export default function AdminWhiteLabelUsersPage() {
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Tenant Security
+                2FA Adoption Rate
               </span>
-              <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                100%
+              <div className="text-2xl font-bold tracking-tight text-foreground">
+                {stats.twoFactorRate}%
               </div>
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                Cryptographically isolated
+                Security compliance
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <ShieldCheck className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Multi-Tenant Security Architecture Notice */}
-      <Card className="border-border/80 bg-muted/20">
-        <CardContent className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
-              <Info className="h-5 w-5" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">
-                Multi-Tenant Partitioning Active
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-3xl leading-relaxed">
-                WhiteLabel users are scoped strictly to their respective tenant
-                domains via cryptographic sub-account partitioning. Platform
-                administrators can inspect aggregate rosters once partner
-                instances complete vetting and onboarding approval.
-              </p>
-            </div>
-          </div>
-          <Button
-            render={<Link href="/admin/whitelabels" />}
-            variant="outline"
-            size="sm"
-            className="text-xs shrink-0 gap-1.5"
-          >
-            Review Inbound Applications
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Empty State / Directory Container */}
-      <Card className="glass-card shadow-sm border-dashed border-border/80">
-        <CardContent className="p-12 text-center space-y-4">
-          <div className="p-4 rounded-full bg-primary/5 text-primary mx-auto w-fit border border-primary/20">
-            <Building2 className="h-8 w-8" />
-          </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-base font-bold text-foreground">
-              No WhiteLabel User Accounts Provisioned Yet
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              When a WhiteLabel enterprise instance is approved and launched,
-              its tenant administrators and enrolled artists will automatically
-              appear here with telemetry and audit controls.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <Button
-              render={<Link href="/admin/whitelabels" />}
-              size="sm"
-              className="text-xs font-semibold gap-1.5"
-            >
-              <Disc3 className="h-3.5 w-3.5" />
-              Manage WhiteLabel Applications
-            </Button>
-            <Button
-              render={<Link href="/admin/users/platform" />}
-              variant="outline"
-              size="sm"
-              className="text-xs font-semibold gap-1.5"
-            >
-              <Users className="h-3.5 w-3.5" />
-              Platform Operators
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Interactive Users Data Table */}
+      <WhiteLabelUsersTable
+        initialUsers={users}
+        total={pagination.total}
+      />
     </div>
   );
 }

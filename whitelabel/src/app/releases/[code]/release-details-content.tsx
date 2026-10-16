@@ -59,6 +59,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -104,7 +105,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
     if (activeTrackPlaying === trackCode) {
       if (audioRef.current) {
         if (audioRef.current.paused) {
-          audioRef.current.play();
+          audioRef.current.play().catch(() => {});
         } else {
           audioRef.current.pause();
         }
@@ -121,7 +122,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         setPlayingTrackTitle(trk?.title || "Audio Preview");
         if (audioRef.current) {
           audioRef.current.src = res.streamUrl;
-          audioRef.current.play();
+          audioRef.current.load();
+          audioRef.current.play().catch(() => {});
         }
       } else {
         toast.error("Audio streaming URL unavailable.");
@@ -610,35 +612,62 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         </div>
       </div>
 
-      {/* Sticky Bottom Audio Player */}
+      {/* Hidden HTML5 Audio Element */}
+      <audio
+        ref={audioRef}
+        src={audioUrl || undefined}
+        onTimeUpdate={() => {
+          if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+          }
+        }}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+          }
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }}
+      />
+
+      {/* Sticky Bottom Audio Player with Interactive Waveform Visualizer */}
       {activeTrackPlaying && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 p-4 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-2xl flex flex-col gap-2">
+        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 p-4 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-2xl flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => {
                   if (audioRef.current) {
                     if (audioRef.current.paused) {
-                      audioRef.current.play();
+                      audioRef.current.play().catch(() => {});
                     } else {
                       audioRef.current.pause();
                     }
                   }
                 }}
-                className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md hover:opacity-90 transition-opacity"
+                className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md hover:opacity-90 transition-opacity cursor-pointer"
               >
-                {audioRef.current?.paused ? (
-                  <Play className="w-4 h-4 ml-0.5" />
-                ) : (
+                {isPlaying ? (
                   <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4 ml-0.5" />
                 )}
               </button>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground truncate">
-                  {playingTrackTitle}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-foreground truncate">
+                    {playingTrackTitle}
+                  </p>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    Lossless FLAC / WAV
+                  </span>
+                </div>
                 <p className="text-[11px] text-muted-foreground truncate">
-                  {release.title} • Lossless Preview
+                  {release.title} • Upstream Ingestion Master Preview
                 </p>
               </div>
             </div>
@@ -653,7 +682,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                       setIsMuted(!isMuted);
                     }
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   {isMuted ? (
                     <VolumeX className="w-4 h-4" />
@@ -686,9 +715,10 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                   if (audioRef.current) {
                     audioRef.current.pause();
                   }
+                  setIsPlaying(false);
                   setActiveTrackPlaying(null);
                 }}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
                 title="Close Player"
               >
                 <X className="w-4 h-4" />
@@ -696,28 +726,58 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             </div>
           </div>
 
-          {/* Scrubber & Timestamps */}
-          <div className="flex items-center gap-3 w-full">
-            <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">
-              {formatTime(currentTime)}
-            </span>
-            <input
-              type="range"
-              min="0"
-              max={duration || 100}
-              value={currentTime}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                setCurrentTime(val);
-                if (audioRef.current) {
-                  audioRef.current.currentTime = val;
+          {/* Interactive Multi-Bar Frequency Waveform Visualizer */}
+          <div className="space-y-1">
+            <div
+              className="h-10 w-full flex items-center justify-between gap-[3px] py-1 px-2 rounded-xl bg-muted/30 border border-border/40 cursor-pointer group relative"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+                if (audioRef.current && duration > 0) {
+                  audioRef.current.currentTime = ratio * duration;
+                  setCurrentTime(ratio * duration);
                 }
               }}
-              className="flex-1 h-1.5 accent-primary cursor-pointer rounded-lg bg-accent"
-            />
-            <span className="text-[10px] font-mono text-muted-foreground w-8">
-              {formatTime(duration)}
-            </span>
+              title="Click anywhere along the waveform to seek"
+            >
+              {Array.from({ length: 44 }).map((_, i) => {
+                const barRatio = i / 44;
+                const currentRatio = duration > 0 ? currentTime / duration : 0;
+                const isPlayed = barRatio <= currentRatio;
+                // Generate natural pseudo-random frequency wave heights
+                const baseHeight = 25 + Math.sin(i * 0.45) * 35 + ((i * 7) % 35);
+                const activeScale = isPlaying ? 0.7 + ((i * 3 + Math.floor(currentTime * 4)) % 5) * 0.15 : 0.65;
+                const heightPercent = Math.min(95, Math.max(18, baseHeight * activeScale));
+
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-full transition-all duration-150"
+                    style={{
+                      height: `${heightPercent}%`,
+                      backgroundColor: isPlayed
+                        ? "var(--primary, #9333ea)"
+                        : "currentColor",
+                      opacity: isPlayed ? 1 : 0.25,
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Timestamps & Scrubber */}
+            <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-1">
+              <span>{formatTime(currentTime)}</span>
+              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-sans">
+                {isPlaying ? "Playing Lossless Stream" : "Paused"}
+              </span>
+              <span>
+                {duration > 0
+                  ? `-${formatTime(Math.max(0, duration - currentTime))}`
+                  : formatTime(duration)}
+              </span>
+            </div>
           </div>
         </div>
       )}

@@ -66,6 +66,14 @@ export class PrismaService
         CREATE SEQUENCE IF NOT EXISTS release_code_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS track_code_seq START 1;
         CREATE SEQUENCE IF NOT EXISTS distributionreport_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS payee_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS contract_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS dsprawreport_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS royaltyrun_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS userroyaltystatement_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS dspdeliverypackage_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS payeepayoutrequest_code_seq START 1;
+        CREATE SEQUENCE IF NOT EXISTS vevochannel_code_seq START 1;
       `);
     } catch (error) {
       console.warn(

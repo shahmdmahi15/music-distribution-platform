@@ -220,7 +220,7 @@ export class DspReportIngestionService {
     for (const r of matchedReleases) {
       if (r.upc) {
         upcToReleaseMap.set(r.upc, {
-          trackId: r.tracks[0]?.id,
+          trackId: r.tracks?.[0]?.id,
           whiteLabelId: r.whiteLabelId,
         });
       }

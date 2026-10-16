@@ -101,9 +101,13 @@ export class WhitelabelCatalogService {
       CodePrefix.RELEASE,
     );
 
-    const coverArtUrl = dto.coverArtKey
-      ? this.storageService.getFileUrl(dto.coverArtKey)
-      : null;
+    const tenantConfig = await this.getTenantStorageConfig(whiteLabelId);
+    let coverArtUrl: string | null = null;
+    if (dto.coverArtKey) {
+      coverArtUrl = tenantConfig?.bucketName
+        ? `https://${tenantConfig.bucketName}.s3.${tenantConfig.awsRegion || 'ap-southeast-1'}.amazonaws.com/${dto.coverArtKey}`
+        : this.storageService.getFileUrl(dto.coverArtKey);
+    }
 
     const release = await this.prisma.release.create({
       data: {
@@ -303,9 +307,13 @@ export class WhitelabelCatalogService {
       );
     }
 
-    const coverArtUrl = dto.coverArtKey
-      ? this.storageService.getFileUrl(dto.coverArtKey)
-      : existing.coverArtUrl;
+    const tenantConfig = await this.getTenantStorageConfig(whiteLabelId);
+    let coverArtUrl = existing.coverArtUrl;
+    if (dto.coverArtKey) {
+      coverArtUrl = tenantConfig?.bucketName
+        ? `https://${tenantConfig.bucketName}.s3.${tenantConfig.awsRegion || 'ap-southeast-1'}.amazonaws.com/${dto.coverArtKey}`
+        : this.storageService.getFileUrl(dto.coverArtKey);
+    }
 
     // Replace contributors if provided
     if (dto.contributors) {

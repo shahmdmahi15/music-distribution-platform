@@ -197,7 +197,10 @@ describe('WhitelabelContractsService', () => {
     it('Precedence Check 1: Track contract overrides Release, Artist, and Account contract', async () => {
       // Mock returns contract for track
       prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
-        if (where?.level === ContractLevel.TRACK && where?.targetId === 'track-999') {
+        if (
+          where?.level === ContractLevel.TRACK &&
+          (where?.targetId === 'track-999' || where?.contractAssets?.some?.trackId === 'track-999')
+        ) {
           return trackContract;
         }
         if (where?.level === ContractLevel.RELEASE) return releaseContract;
@@ -221,7 +224,10 @@ describe('WhitelabelContractsService', () => {
     it('Precedence Check 2: Release contract overrides Artist and Account contract when no Track contract exists', async () => {
       prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
         if (where?.level === ContractLevel.TRACK) return null; // No track contract
-        if (where?.level === ContractLevel.RELEASE && where?.targetId === 'rel-888') {
+        if (
+          where?.level === ContractLevel.RELEASE &&
+          (where?.targetId === 'rel-888' || where?.contractAssets?.some?.releaseId === 'rel-888')
+        ) {
           return releaseContract;
         }
         if (where?.level === ContractLevel.ARTIST) return artistContract;
@@ -245,7 +251,10 @@ describe('WhitelabelContractsService', () => {
       prismaMock.contract.findFirst.mockImplementation(async ({ where }: any) => {
         if (where?.level === ContractLevel.TRACK) return null;
         if (where?.level === ContractLevel.RELEASE) return null;
-        if (where?.level === ContractLevel.ARTIST && where?.targetId === 'art-777') {
+        if (
+          where?.level === ContractLevel.ARTIST &&
+          (where?.targetId === 'art-777' || where?.contractAssets?.some?.artistName === 'art-777')
+        ) {
           return artistContract;
         }
         if (where?.level === ContractLevel.ACCOUNT) return accountContract;

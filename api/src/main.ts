@@ -9,8 +9,20 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  app.use(json({ limit: '100mb' }));
+  app.use(
+    json({
+      limit: '100mb',
+      verify: (req: any, res, buf) => {
+        req.rawBody = buf.toString('utf-8');
+      },
+    }),
+  );
   app.use(urlencoded({ extended: true, limit: '100mb' }));
+
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

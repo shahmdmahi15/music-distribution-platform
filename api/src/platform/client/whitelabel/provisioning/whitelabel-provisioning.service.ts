@@ -1685,7 +1685,7 @@ chown -R ubuntu:ubuntu /var/www/whitelabel
 
 echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
 cd /var/www/whitelabel
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install --frozen-lockfile || sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm run build
 
 echo "=== [6/6] Starting PM2 process on Port 3000 ==="

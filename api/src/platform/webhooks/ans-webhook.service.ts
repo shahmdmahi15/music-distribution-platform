@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
@@ -22,10 +27,13 @@ export class AnsWebhookService {
   ) {}
 
   private getWebhookSecret(): string {
-    return (
-      this.configService.get<string>('ANS_WEBHOOK_SECRET') ||
-      'rmit_ans_webhook_hmac_secret_2026_secure'
-    );
+    const secret = this.configService.get<string>('ANS_WEBHOOK_SECRET');
+    if (!secret) {
+      throw new InternalServerErrorException(
+        'ANS_WEBHOOK_SECRET is not configured on the central API',
+      );
+    }
+    return secret;
   }
 
   verifySignature(rawBody: string, signatureHeader?: string, timestampHeader?: string): {

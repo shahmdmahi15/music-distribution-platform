@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
-import { StorageService } from 'src/lib/storage/storage.service';
+import { StorageService, TenantStorageConfig } from 'src/lib/storage/storage.service';
 import { AnsMusicClientService } from 'src/lib/ans-music/ans-music-client.service';
 import {
   QcStatus,
@@ -14,6 +14,7 @@ import {
   ReleaseType,
   UpstreamProvider,
   UpstreamStatus,
+  VevoChannelStatus,
 } from 'src/generated/prisma/client';
 import { AnsContributorInput, AnsReleaseInput, AnsTrackInput } from 'src/lib/ans-music/ans-music.types';
 
@@ -67,6 +68,19 @@ export class AnsDispatchService {
       );
     }
 
+    // Resolve tenant BYOC storage configuration if provisioned
+    const tenantStorageConfig: TenantStorageConfig | undefined =
+      release.whiteLabel?.awsAccessKeyId &&
+      release.whiteLabel?.awsSecretAccessKey &&
+      release.whiteLabel?.bucketName
+        ? {
+            awsAccessKeyId: release.whiteLabel.awsAccessKeyId,
+            awsSecretAccessKey: release.whiteLabel.awsSecretAccessKey,
+            awsRegion: release.whiteLabel.awsRegion || 'ap-southeast-1',
+            bucketName: release.whiteLabel.bucketName,
+          }
+        : undefined;
+
     // Resolve cover art URL
     let coverUrl = release.coverArtUrl || '';
     if (!coverUrl && release.coverArtKey) {
@@ -74,6 +88,7 @@ export class AnsDispatchService {
         release.whiteLabelId,
         release.coverArtKey,
         3600 * 24,
+        tenantStorageConfig,
       );
     }
 
@@ -90,6 +105,7 @@ export class AnsDispatchService {
           release.whiteLabelId,
           track.audioKey,
           3600 * 24,
+          tenantStorageConfig,
         );
       }
 
@@ -207,8 +223,8 @@ export class AnsDispatchService {
     }
 
     if (
-      channel.status === ('APPROVED' as any) ||
-      channel.status === ('SUBMITTED' as any)
+      channel.status === VevoChannelStatus.APPROVED ||
+      channel.status === VevoChannelStatus.SUBMITTED
     ) {
       throw new ConflictException(
         `Channel request ${channel.code} is already approved or submitted`,
@@ -225,7 +241,7 @@ export class AnsDispatchService {
     await this.prisma.vevoChannel.update({
       where: { id: channel.id },
       data: {
-        status: 'SUBMITTED' as any,
+        status: VevoChannelStatus.SUBMITTED,
         upstreamChannelId: ansChan.id,
       },
     });

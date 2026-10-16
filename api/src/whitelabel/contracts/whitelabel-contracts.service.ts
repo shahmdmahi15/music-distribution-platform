@@ -138,8 +138,10 @@ export class WhitelabelContractsService {
         where: {
           whiteLabelId,
           level: ContractLevel.TRACK,
-          targetId: trackId,
-        } as any,
+          contractAssets: {
+            some: { trackId },
+          },
+        },
         include: {
           contractPayees: {
             include: { payee: true },
@@ -158,8 +160,10 @@ export class WhitelabelContractsService {
         where: {
           whiteLabelId,
           level: ContractLevel.RELEASE,
-          targetId: releaseId,
-        } as any,
+          contractAssets: {
+            some: { releaseId },
+          },
+        },
         include: {
           contractPayees: {
             include: { payee: true },
@@ -178,8 +182,10 @@ export class WhitelabelContractsService {
         where: {
           whiteLabelId,
           level: ContractLevel.ARTIST,
-          targetId: artistId,
-        } as any,
+          contractAssets: {
+            some: { artistName: artistId },
+          },
+        },
         include: {
           contractPayees: {
             include: { payee: true },
@@ -192,12 +198,34 @@ export class WhitelabelContractsService {
       }
     }
 
-    // 4. Account Default Contract
+    // 4. Label Level Contract
+    if (labelId) {
+      const labelContract = await this.prisma.contract.findFirst({
+        where: {
+          whiteLabelId,
+          level: ContractLevel.LABEL,
+          contractAssets: {
+            some: { labelName: labelId },
+          },
+        },
+        include: {
+          contractPayees: {
+            include: { payee: true },
+          },
+        },
+      });
+
+      if (labelContract) {
+        return this.formatContractResult(labelContract);
+      }
+    }
+
+    // 5. Account Default Contract
     const accountContract = await this.prisma.contract.findFirst({
       where: {
         whiteLabelId,
         level: ContractLevel.ACCOUNT,
-      } as any,
+      },
       include: {
         contractPayees: {
           include: { payee: true },

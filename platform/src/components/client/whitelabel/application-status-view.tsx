@@ -75,6 +75,7 @@ import { clientGetContractPreviewAction } from "@/actions/client/whitelabel/clie
 import { clientUploadDocumentAction } from "@/actions/client/whitelabel/client-upload-document.action";
 import { clientDeleteDocumentAction } from "@/actions/client/whitelabel/client-delete-document.action";
 import { clientGetDocumentPreviewAction } from "@/actions/client/whitelabel/client-get-document-preview.action";
+import { clientSubmitBankTransferProofAction } from "@/actions/client/whitelabel/client-submit-bank-proof.action";
 
 const DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
   INCORPORATION_DOC: "Company Incorporation / Business Certificate",
@@ -83,6 +84,7 @@ const DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
   IDENTITY_PROOF: "Government ID / Passport of Contact Person",
   TAX_DOCUMENT: "Tax Form (W-8 / W-9 / Tax ID Certificate)",
   SUPPLEMENTARY_DOCUMENT: "Other Supplementary Verification Document",
+  BANK_TRANSFER_RECEIPT: "Bank Wire / Deposit Slip Receipt",
 };
 
 interface ApplicationStatusViewProps {
@@ -107,6 +109,80 @@ export function WhiteLabelApplicationStatusView({
   const [docType, setDocType] = useState("INCORPORATION_DOC");
   const [isDeletingDocId, setIsDeletingDocId] = useState<string | null>(null);
   const [previewingDocId, setPreviewingDocId] = useState<string | null>(null);
+
+  // Manual Bank Wire / Deposit Proof Modal State
+  const [showBankProofModal, setShowBankProofModal] = useState(false);
+  const [bankProofFile, setBankProofFile] = useState<File | null>(null);
+  const [bankName, setBankName] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [transactionRef, setTransactionRef] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositCurrency, setDepositCurrency] = useState<"BDT" | "USD">("BDT");
+  const [paymentDate, setPaymentDate] = useState(() =>
+    new Date().toISOString().split("T")[0],
+  );
+  const [bankRemarks, setBankRemarks] = useState("");
+  const [isSubmittingBankProof, setIsSubmittingBankProof] = useState(false);
+
+  // Check if bank transfer proof document was already uploaded
+  const existingBankReceiptDoc = whiteLabel.documents?.find(
+    (d) =>
+      d.type === "BANK_TRANSFER_RECEIPT" ||
+      d.name?.toLowerCase().includes("bank wire") ||
+      d.name?.toLowerCase().includes("deposit receipt"),
+  );
+
+  const handleBankProofSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankProofFile) {
+      toast.error(
+        "Please attach a deposit slip, wire confirmation, or bank receipt file.",
+      );
+      return;
+    }
+    if (!bankName.trim() || !transactionRef.trim() || !depositAmount.trim()) {
+      toast.error("Please fill in all required bank transfer details.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", bankProofFile);
+    formData.append("bankName", bankName.trim());
+    formData.append("branchName", branchName.trim());
+    formData.append("transactionReference", transactionRef.trim());
+    formData.append("depositAmount", depositAmount.trim());
+    formData.append("depositCurrency", depositCurrency);
+    formData.append("paymentDate", paymentDate);
+    formData.append("remarks", bankRemarks.trim());
+
+    setIsSubmittingBankProof(true);
+    const toastId = toast.loading(
+      "Submitting wire transfer proof to administrative desk...",
+    );
+
+    try {
+      const res = await clientSubmitBankTransferProofAction(formData);
+      if (res.success) {
+        toast.success(res.message, { id: toastId });
+        setShowBankProofModal(false);
+        setBankProofFile(null);
+        setBankName("");
+        setBranchName("");
+        setTransactionRef("");
+        setDepositAmount("");
+        setBankRemarks("");
+        router.refresh();
+      } else {
+        toast.error(res.message, { id: toastId });
+      }
+    } catch {
+      toast.error("An error occurred while uploading bank transfer proof.", {
+        id: toastId,
+      });
+    } finally {
+      setIsSubmittingBankProof(false);
+    }
+  };
 
   const handlePreviewDocument = async (doc: any) => {
     if (doc.fileUrl) {
@@ -790,6 +866,120 @@ export function WhiteLabelApplicationStatusView({
           )}
         </CardContent>
       </Card>
+
+      {/* Contracted / Pending Payment Manual Wire Transfer Action Card */}
+      {(whiteLabel.status === WhiteLabelStatus.CONTRACTED ||
+        (whiteLabel.contractUploadedAt &&
+          whiteLabel.status !== WhiteLabelStatus.PAID &&
+          whiteLabel.status !== WhiteLabelStatus.ACTIVE)) && (
+        <Card className="border-purple-500/40 bg-gradient-to-br from-purple-500/10 via-background to-primary/5 shadow-md overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+          <CardContent className="p-6 sm:p-7 space-y-5 relative">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-purple-600 hover:bg-purple-600 text-white font-bold text-xs uppercase tracking-wide gap-1">
+                    <Receipt className="h-3.5 w-3.5" />
+                    Contract Executed • Offline Payment Step
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-purple-500/30 text-purple-600 dark:text-purple-400 font-mono text-[11px]"
+                  >
+                    Bank Wire / Manual Deposit
+                  </Badge>
+                </div>
+                <h2 className="text-xl font-extrabold text-foreground tracking-tight">
+                  Upload Bank Wire or Cash Deposit Proof
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Your distribution agreement has been executed! To complete your
+                  onboarding verification and unlock Cloudflare DNS tenant
+                  provisioning, please upload your wire transfer advice, BEFTN /
+                  NPSB transaction receipt, or cash deposit slip.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="lg"
+                  onClick={() => setShowBankProofModal(true)}
+                  className="h-11 px-5 text-xs sm:text-sm font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20 shrink-0 gap-2 cursor-pointer"
+                >
+                  <Upload className="h-4 w-4" />
+                  {existingBankReceiptDoc
+                    ? "Upload Additional Receipt"
+                    : "Upload Bank Wire / Deposit Proof"}
+                </Button>
+              </div>
+            </div>
+
+            {/* If receipt was already submitted */}
+            {existingBankReceiptDoc && (
+              <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate">
+                      {existingBankReceiptDoc.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Receipt uploaded on {formatDate(existingBankReceiptDoc.createdAt)} • Platform administrative team is verifying the deposit.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePreviewDocument(existingBankReceiptDoc)}
+                  className="h-8 text-xs shrink-0 gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Slip
+                </Button>
+              </div>
+            )}
+
+            {/* Official RMIT Bank Wire Routing Details */}
+            <div className="rounded-xl border border-purple-500/20 bg-background/80 dark:bg-card/80 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                  Designated Bank
+                </span>
+                <span className="font-bold text-foreground">
+                  City Bank PLC / BRAC Bank
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                  Account Name
+                </span>
+                <span className="font-bold text-foreground">
+                  Royal Motion IT Ltd.
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                  Account Number (BDT)
+                </span>
+                <span className="font-mono font-bold text-foreground">
+                  1502849201001
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                  Routing / SWIFT
+                </span>
+                <span className="font-mono font-bold text-foreground">
+                  225272635 / CIBLBDDH
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payment Information Section */}
       {(latestPayment ||
@@ -1589,6 +1779,171 @@ export function WhiteLabelApplicationStatusView({
               >
                 <Upload className="h-3.5 w-3.5" />
                 {isUploadingDoc ? "Uploading to Storage..." : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interactive Bank Wire / Deposit Proof Modal */}
+      <Dialog open={showBankProofModal} onOpenChange={setShowBankProofModal}>
+        <DialogContent className="sm:max-w-[560px] z-[70]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+              <Receipt className="h-5 w-5 text-purple-600" />
+              Upload Bank Wire / Deposit Transfer Proof
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Provide transaction reference details and upload your bank deposit
+              slip or EFT confirmation receipt. Our financial review desk verifies
+              remittances promptly.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleBankProofSubmit} className="space-y-4 py-2 text-xs">
+            {/* Bank Name & Branch */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Bank Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. City Bank, BRAC Bank, Chase"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="h-9 text-xs"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Branch Name</Label>
+                <Input
+                  placeholder="e.g. Gulshan Branch, Dhaka"
+                  value={branchName}
+                  onChange={(e) => setBranchName(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Transaction Reference & Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Remittance / Reference Number <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. TXN-89234190 or FT261016"
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                  className="h-9 text-xs font-mono"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Payment Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="h-9 text-xs"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Deposit Amount & Currency */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Deposit Amount <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="1"
+                  placeholder="e.g. 60000"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  className="h-9 text-xs font-mono"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Currency</Label>
+                <Select
+                  value={depositCurrency}
+                  onValueChange={(val) => {
+                    if (val === "BDT" || val === "USD") setDepositCurrency(val);
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs w-full">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[80]">
+                    <SelectItem value="BDT">BDT (৳)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* File Upload */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Deposit Slip / Receipt Receipt <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setBankProofFile(e.target.files[0]);
+                  }
+                }}
+                className="h-9 text-xs"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Accepted formats: PDF, PNG, JPG (Max 25MB). Must clearly show reference number and transaction stamp.
+              </p>
+            </div>
+
+            {/* Optional Remarks */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Notes / Depositor Remarks</Label>
+              <Input
+                placeholder="e.g. Deposited from City Touch app by Shah Md Mahi"
+                value={bankRemarks}
+                onChange={(e) => setBankRemarks(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBankProofModal(false)}
+                disabled={isSubmittingBankProof}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmittingBankProof || !bankProofFile}
+                className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white gap-1.5"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {isSubmittingBankProof ? "Submitting Proof..." : "Submit Wire Proof"}
               </Button>
             </DialogFooter>
           </form>
