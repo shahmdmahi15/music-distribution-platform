@@ -20,7 +20,18 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 # 1. Configuration & Defaults
+DATABASE_URL="${DATABASE_URL:-}"
+if [ -z "${DATABASE_URL}" ] && [ -f "${ROOT_DIR}/api/.env" ]; then
+  ENV_DB_URL=$(grep "^DATABASE_URL=" "${ROOT_DIR}/api/.env" | head -n 1 | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+  if [ -n "$ENV_DB_URL" ]; then
+    DATABASE_URL="$ENV_DB_URL"
+  fi
+fi
+
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-music_distribution}"
@@ -37,25 +48,29 @@ CHECKSUM_FILENAME="${BACKUP_FILENAME}.sha256"
 CHECKSUM_FILEPATH="${BACKUP_DIR}/${CHECKSUM_FILENAME}"
 
 echo "=============================================================================="
-echo "📦 [Postgres Backup] Starting backup: ${DB_NAME} on ${DB_HOST}:${DB_PORT}"
+echo "📦 [Postgres Backup] Starting backup: ${DB_NAME}"
 echo "=============================================================================="
 
 # 2. Ensure Backup Directory Exists
 mkdir -p "${BACKUP_DIR}"
 
 # 3. Execute pg_dump with Custom Compressed Format (-Fc)
-export PGPASSWORD="${DB_PASSWORD}"
-
 echo "🔄 [Postgres Backup] Dumping database to ${BACKUP_FILEPATH}..."
-pg_dump \
-  -h "${DB_HOST}" \
-  -p "${DB_PORT}" \
-  -U "${DB_USER}" \
-  -d "${DB_NAME}" \
-  -Fc \
-  -f "${BACKUP_FILEPATH}"
-
-unset PGPASSWORD
+if [ -n "${DATABASE_URL}" ]; then
+  pg_dump -d "${DATABASE_URL}" -Fc -f "${BACKUP_FILEPATH}"
+elif [ "$(id -u)" -eq 0 ]; then
+  sudo -u postgres pg_dump -d "${DB_NAME}" -Fc -f "${BACKUP_FILEPATH}"
+else
+  export PGPASSWORD="${DB_PASSWORD}"
+  pg_dump \
+    -h "${DB_HOST}" \
+    -p "${DB_PORT}" \
+    -U "${DB_USER}" \
+    -d "${DB_NAME}" \
+    -Fc \
+    -f "${BACKUP_FILEPATH}"
+  unset PGPASSWORD
+fi
 
 # 4. Generate SHA-256 Checksum Alongside Dump
 echo "🔐 [Postgres Backup] Generating SHA-256 checksum..."
