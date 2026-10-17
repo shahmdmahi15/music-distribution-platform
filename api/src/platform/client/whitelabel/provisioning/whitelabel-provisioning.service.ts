@@ -1680,8 +1680,9 @@ if [ ! -f /swapfile ]; then
 fi
 
 echo "=== [3/6] Fetching WhiteLabel standalone distribution bundle ==="
-# Clean up any legacy or duplicate cloned directories
+# Clean up any legacy or duplicate cloned directories AND stale deployment artifacts
 rm -rf /var/www/music-distribution-platform 2>/dev/null || true
+rm -rf /var/www/whitelabel 2>/dev/null || true
 mkdir -p /var/www/whitelabel
 chown -R ubuntu:ubuntu /var/www/whitelabel
 
