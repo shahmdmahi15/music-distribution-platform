@@ -38,6 +38,7 @@ rsync -av \
   --exclude=".turbo" \
   --exclude="dist-package" \
   --exclude="whitelabel.zip" \
+  --exclude="pnpm-workspace.yaml" \
   "${WHITELABEL_DIR}/" "${STAGE_DIR}/"
 
 # Guarantee .env.example exists in the distribution package
