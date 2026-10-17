@@ -39,14 +39,24 @@ export class MediaController {
   @Head('public/*')
   @SkipThrottle()
   async headPublicMediaWildcard(@Req() req: Request, @Res() res: Response) {
-    const rawKey = req.params[0] || (req.params as any)['0'] || '';
+    const rawKey =
+      (req.params as any)?.[0] ||
+      (req.params as any)?.['0'] ||
+      (req.params as any)?.key ||
+      (req.path || '').replace(/^\/?media\/public\/?/, '') ||
+      '';
     return this.streamPublicMedia(rawKey, req, res, true);
   }
 
   @Get('public/*')
   @SkipThrottle()
   async getPublicMediaWildcard(@Req() req: Request, @Res() res: Response) {
-    const rawKey = req.params[0] || (req.params as any)['0'] || '';
+    const rawKey =
+      (req.params as any)?.[0] ||
+      (req.params as any)?.['0'] ||
+      (req.params as any)?.key ||
+      (req.path || '').replace(/^\/?media\/public\/?/, '') ||
+      '';
     return this.streamPublicMedia(rawKey, req, res, false);
   }
 
