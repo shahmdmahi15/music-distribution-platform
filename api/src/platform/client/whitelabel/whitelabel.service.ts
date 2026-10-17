@@ -1042,6 +1042,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         provisionedAt: wl.provisionedAt ? wl.provisionedAt.toISOString() : null,
         provisioningError: wl.provisioningError || null,
         isSetupComplete: Boolean(wl.isSetupComplete),
+        installedVersion: wl.installedVersion || '1.0.0',
+        installedCommitHash: wl.installedCommitHash || null,
+        lastUpdateCheckedAt: wl.lastUpdateCheckedAt
+          ? wl.lastUpdateCheckedAt.toISOString()
+          : null,
+        lastUpdatedAt: wl.lastUpdatedAt ? wl.lastUpdatedAt.toISOString() : null,
+        updateStatus: wl.updateStatus || 'UP_TO_DATE',
+        updateError: wl.updateError || null,
+        autoUpdateEnabled: wl.autoUpdateEnabled ?? true,
         hasOwner:
           (await this.prismaService.whiteLabelUser.count({
             where: {

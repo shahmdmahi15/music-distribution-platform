@@ -467,4 +467,14 @@ export class ClientWhitelabelController {
   async getProvisioningStatus(@CurrentUser('id') userId: string) {
     return await this.provisioningService.getProvisioningStatus(userId);
   }
+
+  @Get('provision/version')
+  async getTenantVersion(@CurrentUser('id') userId: string) {
+    return await this.provisioningService.getTenantVersionStatus(userId);
+  }
+
+  @Post('provision/trigger-update')
+  async triggerTenantUpdate(@CurrentUser('id') userId: string) {
+    return await this.provisioningService.triggerTenantUpdateForUser(userId);
+  }
 }

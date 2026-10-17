@@ -399,6 +399,13 @@ export class WhitelabelProvisioningService {
         provisioningLogs: true,
         provisionedAt: true,
         provisioningError: true,
+        installedVersion: true,
+        installedCommitHash: true,
+        lastUpdateCheckedAt: true,
+        lastUpdatedAt: true,
+        updateStatus: true,
+        updateError: true,
+        autoUpdateEnabled: true,
       },
     });
 
@@ -2805,10 +2812,16 @@ WantedBy=timers.target
         'SUCCESS',
       );
 
+      const latestManifest = this.bundleService.getVersionManifest();
       await this.prismaService.whiteLabel.update({
         where: { id: whiteLabelId },
         data: {
           updateStatus: 'UPDATE_SUCCESS',
+          installedVersion: latestManifest.version,
+          installedCommitHash:
+            latestManifest.commitHash && latestManifest.commitHash !== 'unknown'
+              ? latestManifest.commitHash
+              : undefined,
           lastUpdatedAt: new Date(),
           updateError: null,
         },
@@ -2848,5 +2861,88 @@ WantedBy=timers.target
         } catch {}
       }
     }
+  }
+
+  /**
+   * Retrieves tenant software version, latest release manifest, and update telemetry for a client user.
+   */
+  async getTenantVersionStatus(userId: string) {
+    const wl = await this.prismaService.whiteLabel.findFirst({
+      where: {
+        subscription: {
+          subscriberId: userId,
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        subdomain: true,
+        customDomain: true,
+        awsElasticIp: true,
+        awsInstanceId: true,
+        awsInstanceState: true,
+        installedVersion: true,
+        installedCommitHash: true,
+        lastUpdateCheckedAt: true,
+        lastUpdatedAt: true,
+        updateStatus: true,
+        updateError: true,
+        autoUpdateEnabled: true,
+      },
+    });
+
+    if (!wl) {
+      throw new NotFoundException('WhiteLabel not found for this account.');
+    }
+
+    const latestRelease = this.bundleService.getVersionManifest();
+    const isUpToDate =
+      Boolean(wl.installedVersion) &&
+      wl.installedVersion === latestRelease.version &&
+      (latestRelease.commitHash === 'unknown' ||
+        !wl.installedCommitHash ||
+        wl.installedCommitHash === latestRelease.commitHash);
+
+    return {
+      success: true,
+      data: {
+        ...wl,
+        isUpToDate,
+        hasDedicatedEc2: Boolean(wl.awsElasticIp),
+        latestRelease,
+      },
+    };
+  }
+
+  /**
+   * Triggers an immediate update for a client's dedicated WhiteLabel EC2 instance.
+   */
+  async triggerTenantUpdateForUser(userId: string) {
+    const wl = await this.prismaService.whiteLabel.findFirst({
+      where: {
+        subscription: {
+          subscriberId: userId,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        awsElasticIp: true,
+        awsKeyPairPrivateKey: true,
+      },
+    });
+
+    if (!wl) {
+      throw new NotFoundException('WhiteLabel not found for this account.');
+    }
+
+    if (!wl.awsElasticIp || !wl.awsKeyPairPrivateKey) {
+      throw new BadRequestException(
+        `Your WhiteLabel "${wl.name}" does not have an active dedicated EC2 instance deployed yet.`,
+      );
+    }
+
+    return await this.triggerTenantUpdate(wl.id);
   }
 }

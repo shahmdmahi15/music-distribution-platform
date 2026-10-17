@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Layers,
@@ -18,6 +19,11 @@ import {
   Globe,
   Terminal,
   Zap,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,9 +34,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatDate } from "@/lib/utils";
 import { WhiteLabelBranding, ProvisioningStatus } from "@/types/whitelabel";
 import { WhiteLabelSubNav } from "./whitelabel-subnav";
 import { ClientCloudProvisioningTerminal } from "./client-cloud-provisioning-terminal";
+import { clientTriggerWhiteLabelUpdateAction } from "@/actions/client/whitelabel/client-whitelabel-update.action";
 
 interface ClientOverviewViewProps {
   branding: WhiteLabelBranding;
@@ -45,8 +61,11 @@ export function ClientOverviewView({
   latestKeyPrefix,
   userCount,
 }: ClientOverviewViewProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showUpdateConfirmModal, setShowUpdateConfirmModal] = useState(false);
 
   const portalUrl = branding.customDomain
     ? `https://${branding.customDomain}`
@@ -65,6 +84,34 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
     setCopied(true);
     toast.success("Environment snippet copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleTriggerUpdate = async () => {
+    setShowUpdateConfirmModal(false);
+    setIsUpdating(true);
+    toast.info(
+      "Initiating autonomous update rollout on your dedicated server... This takes about 1-2 minutes.",
+    );
+
+    try {
+      const res = await clientTriggerWhiteLabelUpdateAction();
+      if (res.success) {
+        toast.success(
+          res.message || "Autonomous update successfully deployed to your server!",
+        );
+        router.refresh();
+      } else {
+        toast.error(
+          res.message || res.error || "Failed to trigger WhiteLabel update.",
+        );
+      }
+    } catch (err: any) {
+      toast.error(
+        err?.message || "An unexpected error occurred while pushing update.",
+      );
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const isSetupDone = Boolean(branding.isSetupComplete);
@@ -508,6 +555,183 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         </CardContent>
       </Card>
 
+      {/* Autonomous Instance Updates & Software Maintenance */}
+      <Card className="border-border/70 shadow-xs bg-card overflow-hidden">
+        <CardHeader className="pb-4 border-b border-border/60 bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/30 text-primary flex items-center justify-center shrink-0">
+                <RefreshCw
+                  className={`h-5 w-5 ${
+                    isUpdating || branding.updateStatus === "UPDATING"
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Instance Maintenance &amp; Software Updates
+                  </CardTitle>
+                  {branding.updateStatus === "UPDATING" || isUpdating ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-500 border-amber-500/30 gap-1"
+                    >
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      UPDATING SERVER...
+                    </Badge>
+                  ) : branding.updateStatus === "UPDATE_FAILED" ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-500 border-rose-500/30 gap-1"
+                    >
+                      <AlertCircle className="h-3 w-3" />
+                      UPDATE FAILED
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      UP TO DATE
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription className="text-xs">
+                  On-demand and scheduled automated updates for your dedicated
+                  EC2 instance. Zero-downtime blue-green deployments with instant
+                  symlink switching.
+                </CardDescription>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                disabled={
+                  isUpdating ||
+                  branding.updateStatus === "UPDATING" ||
+                  !configuredElasticIp
+                }
+                onClick={() => setShowUpdateConfirmModal(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 gap-1.5 shadow-sm"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${
+                    isUpdating || branding.updateStatus === "UPDATING"
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                />
+                <span>
+                  {isUpdating || branding.updateStatus === "UPDATING"
+                    ? "Rollout in Progress..."
+                    : "Push Latest Update to Server"}
+                </span>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Installed Version */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                <span>Active Server Build</span>
+                <span className="font-mono text-[10px] text-primary">PORTAL</span>
+              </div>
+              <div className="font-mono font-bold text-sm text-foreground">
+                v{branding.installedVersion || "1.0.0"}
+              </div>
+              <div className="text-[11px] font-mono text-muted-foreground truncate">
+                {branding.installedCommitHash
+                  ? `Commit: ${branding.installedCommitHash.slice(0, 7)}`
+                  : "Release: Production Stable"}
+              </div>
+            </div>
+
+            {/* 2. Target EC2 Host */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                <span>Deployment Target</span>
+                <span className="font-mono text-[10px] text-emerald-500">EC2</span>
+              </div>
+              <div className="font-mono font-bold text-sm text-foreground truncate">
+                {configuredElasticIp || "Shared Platform"}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {configuredElasticIp
+                  ? "Dedicated Elastic IPv4"
+                  : "Cloudflare Edge Proxy"}
+              </div>
+            </div>
+
+            {/* 3. Schedule Daemon */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                <span>Automated Cron Schedule</span>
+                <span className="font-mono text-[10px] text-sky-500">SYSTEMD</span>
+              </div>
+              <div className="font-mono font-bold text-sm text-foreground">
+                Daily at 03:00 UTC
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Autonomous background sync
+              </div>
+            </div>
+
+            {/* 4. Last Updated */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                <span>Last Updated</span>
+                <Clock className="h-3 w-3 text-muted-foreground" />
+              </div>
+              <div className="text-xs font-semibold text-foreground truncate">
+                {branding.lastUpdatedAt
+                  ? formatDate(branding.lastUpdatedAt)
+                  : "Initial Deployment"}
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                {branding.lastUpdateCheckedAt
+                  ? `Checked ${formatDate(branding.lastUpdateCheckedAt)}`
+                  : "Monitoring active"}
+              </div>
+            </div>
+          </div>
+
+          {branding.updateError && (
+            <div className="p-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs text-rose-500 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Last Update Execution Notice:</p>
+                <p className="font-mono text-[11px] mt-0.5 whitespace-pre-wrap">
+                  {branding.updateError}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="p-3 rounded-lg border border-border/60 bg-muted/10 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span>
+                Updates pull from the verified central repository, execute
+                independent builds in an isolated release folder, verify PM2
+                health, and atomically swap symlinks.
+              </span>
+            </span>
+            <span className="font-mono text-[10px] shrink-0 text-muted-foreground">
+              /usr/local/bin/rmit-whitelabel-updater.sh
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 5-Step Production Launch Roadmap */}
       <Card className="border-border/70 shadow-xs bg-card">
         <CardHeader className="pb-4 border-b border-border/60">
@@ -758,6 +982,82 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
           </div>
         </CardContent>
       </Card>
+
+      {/* Update Confirmation Modal */}
+      <Dialog
+        open={showUpdateConfirmModal}
+        onOpenChange={setShowUpdateConfirmModal}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+              <RefreshCw className="h-5 w-5" />
+            </div>
+            <DialogTitle>Push Update to Dedicated Server?</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
+              This triggers an immediate zero-downtime update rollout on your
+              dedicated AWS EC2 instance (
+              <span className="font-mono text-foreground font-semibold">
+                {configuredElasticIp}
+              </span>
+              ).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 rounded-lg border border-border/60 bg-muted/30 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current Active Version:</span>
+                <span className="font-mono font-bold text-foreground">
+                  v{branding.installedVersion || "1.0.0"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Deployment Method:</span>
+                <span className="font-semibold text-foreground">
+                  Atomic Blue-Green Symlink Swap
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Estimated Downtime:</span>
+                <span className="font-semibold text-emerald-500">
+                  0 Seconds (Hitless Reload)
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              The updater fetches the latest certified build bundle from Mother
+              Company, compiles dependencies in an isolated directory, verifies
+              port 3000 health, and reloads PM2 without disconnecting streaming
+              listeners or uploaders.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUpdateConfirmModal(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isUpdating}
+              onClick={handleTriggerUpdate}
+              className="gap-1.5 font-semibold"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isUpdating ? "animate-spin" : ""}`}
+              />
+              <span>{isUpdating ? "Deploying..." : "Confirm & Push Update"}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

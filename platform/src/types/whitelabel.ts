@@ -359,6 +359,13 @@ export interface WhiteLabelBranding {
   provisioningError?: string | null;
   isSetupComplete?: boolean;
   isSetupCompleted?: boolean;
+  installedVersion?: string | null;
+  installedCommitHash?: string | null;
+  lastUpdateCheckedAt?: string | null;
+  lastUpdatedAt?: string | null;
+  updateStatus?: string | null;
+  updateError?: string | null;
+  autoUpdateEnabled?: boolean;
   hasOwner?: boolean;
   ownerCount?: number;
   themeRadius?: string;

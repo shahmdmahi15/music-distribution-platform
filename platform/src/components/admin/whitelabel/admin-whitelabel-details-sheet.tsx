@@ -111,6 +111,7 @@ import { adminGetActiveReferrersAction } from "@/actions/admin/whitelabel/admin-
 import { adminAssignWhiteLabelReferrerAction } from "@/actions/admin/whitelabel/admin-assign-whitelabel-referrer.action";
 import { adminRecordWhiteLabelReferrerDealAction } from "@/actions/admin/whitelabel/admin-record-whitelabel-referrer-deal.action";
 import { adminUpdateWhiteLabelReferrerDealStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-referrer-deal-status.action";
+import { adminTriggerWhiteLabelUpdateAction } from "@/actions/admin/whitelabel/admin-trigger-whitelabel-update.action";
 
 const paymentMethodLabels: Record<string, string> = {
   HAND_TO_HAND: "Hand-to-Hand (Cash / Direct)",
@@ -231,6 +232,40 @@ export function AdminWhiteLabelDetailsDialog({
   const [dealNotes, setDealNotes] = useState<string>("");
   const [recordingDeal, setRecordingDeal] = useState(false);
   const [updatingDealId, setUpdatingDealId] = useState<string | null>(null);
+
+  // Autonomous EC2 Update Rollout State
+  const [isUpdatingTenant, setIsUpdatingTenant] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const handleTriggerUpdate = async () => {
+    const targetWl = currentWhiteLabel || whiteLabel;
+    if (!targetWl) return;
+    setShowUpdateModal(false);
+    setIsUpdatingTenant(true);
+    toast.info(
+      `Initiating autonomous update rollout for "${targetWl.name}" on dedicated EC2...`,
+    );
+
+    try {
+      const res = await adminTriggerWhiteLabelUpdateAction(targetWl.id);
+      if (res.success) {
+        toast.success(
+          `Autonomous update successfully deployed on ${targetWl.name}'s EC2!`,
+        );
+        router.refresh();
+      } else {
+        toast.error(
+          `Update failed: ${res.message || res.error || "Unknown error"}`,
+        );
+      }
+    } catch (err: any) {
+      toast.error(
+        `Error triggering update: ${err?.message || "Failed to connect"}`,
+      );
+    } finally {
+      setIsUpdatingTenant(false);
+    }
+  };
 
   const loadActiveReferrers = async () => {
     setLoadingActiveReferrers(true);
@@ -1742,6 +1777,34 @@ export function AdminWhiteLabelDetailsDialog({
                       className={`h-3.5 w-3.5 ${dnsSyncLoading ? "animate-spin" : ""}`}
                     />
                     {dnsSyncLoading ? "Syncing DNS..." : "Sync DNS"}
+                  </Button>
+                )}
+
+                {Boolean(
+                  whiteLabel?.elasticIpv4 ||
+                    (whiteLabel as any)?.awsElasticIp,
+                ) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUpdateModal(true)}
+                    disabled={
+                      isUpdatingTenant || whiteLabel?.updateStatus === "UPDATING"
+                    }
+                    className="h-8 text-xs font-semibold gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                    title="Push immediate update rollout to dedicated EC2"
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${
+                        isUpdatingTenant ||
+                        whiteLabel.updateStatus === "UPDATING"
+                          ? "animate-spin"
+                          : ""
+                      }`}
+                    />
+                    {isUpdatingTenant || whiteLabel.updateStatus === "UPDATING"
+                      ? "Updating..."
+                      : "Push Update"}
                   </Button>
                 )}
 
@@ -4707,6 +4770,84 @@ export function AdminWhiteLabelDetailsDialog({
               className="text-xs font-bold bg-primary text-primary-foreground"
             >
               {assigningReferrer ? "Saving Attribution..." : "Save Partner Attribution"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Autonomous Update Confirmation Modal */}
+      <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+              <RefreshCw className="h-5 w-5" />
+            </div>
+            <DialogTitle>Deploy Autonomous Update to EC2?</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
+              This triggers an immediate zero-downtime blue-green update on{" "}
+              <span className="font-bold text-foreground">
+                {whiteLabel?.name || "WhiteLabel Tenant"}
+              </span>
+              's dedicated EC2 instance (
+              <span className="font-mono text-foreground font-semibold">
+                {whiteLabel?.elasticIpv4 || (whiteLabel as any)?.awsElasticIp}
+              </span>
+              ).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 rounded-lg border border-border/60 bg-muted/30 space-y-1.5 font-mono text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tenant Code:</span>
+                <span className="font-bold text-foreground">
+                  {whiteLabel?.code || "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Installed Version:</span>
+                <span className="font-bold text-foreground">
+                  v{whiteLabel?.installedVersion || "1.0.0"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Update Status:</span>
+                <span className="font-semibold text-emerald-500">
+                  {whiteLabel?.updateStatus || "UP_TO_DATE"}
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Central Platform opens a secure SSH connection to the tenant
+              instance and executes{" "}
+              <code className="text-foreground bg-muted px-1 py-0.5 rounded">
+                rmit-whitelabel-updater.sh --force
+              </code>
+              . Traffic seamlessly cutovers once the release port 3000 health check passes.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUpdateModal(false)}
+              disabled={isUpdatingTenant}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isUpdatingTenant}
+              onClick={handleTriggerUpdate}
+              className="gap-1.5 font-semibold"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isUpdatingTenant ? "animate-spin" : ""}`}
+              />
+              <span>{isUpdatingTenant ? "Rollout in Progress..." : "Confirm & Deploy Update"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>

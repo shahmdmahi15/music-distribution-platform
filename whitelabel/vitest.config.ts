@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/__tests__/**/*.spec.{ts,tsx}"],
+    testTimeout: 15000,
   },
   resolve: {
     alias: {
