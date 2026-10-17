@@ -27,6 +27,7 @@ CURRENT_LINK="${BASE_DIR}/current"
 LOG_FILE="${SHARED_DIR}/logs/updater.log"
 
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+export PM2_HOME="/home/ubuntu/.pm2"
 export COREPACK_ENABLE_STRICT=0
 export COREPACK_ENABLE_AUTO_PIN=0
 
@@ -49,6 +50,8 @@ error() {
 # 1. Structure Initialization & Legacy Layout Migration
 mkdir -p "$SHARED_DIR" "$RELEASES_DIR" "${SHARED_DIR}/logs"
 chown -R ubuntu:ubuntu "$SHARED_DIR" "$RELEASES_DIR" 2>/dev/null || true
+ln -sfn "${SHARED_DIR}/logs" "${BASE_DIR}/logs"
+chown -h ubuntu:ubuntu "${BASE_DIR}/logs" 2>/dev/null || true
 
 # Migrate legacy flat directory to releases/current architecture if needed
 if [ ! -L "$CURRENT_LINK" ]; then
@@ -303,9 +306,10 @@ ln -sf "${SHARED_DIR}/ecosystem.config.js" "${CURRENT_LINK}/ecosystem.config.js"
 # 8. Reload PM2 with Zero Downtime
 log "Reloading PM2 application process..."
 cd "$CURRENT_LINK"
-sudo -u ubuntu env "PATH=$PATH" pm2 reload "${SHARED_DIR}/ecosystem.config.js" --update-env || \
-  sudo -u ubuntu env "PATH=$PATH" pm2 start "${SHARED_DIR}/ecosystem.config.js"
-sudo -u ubuntu env "PATH=$PATH" pm2 save 2>/dev/null || true
+sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 reload "${SHARED_DIR}/ecosystem.config.js" --update-env || \
+  sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 restart "${SHARED_DIR}/ecosystem.config.js" --update-env || \
+  (sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 delete all && sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 start "${SHARED_DIR}/ecosystem.config.js")
+sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 save 2>/dev/null || true
 
 # 9. Verify Service Health on Port 3000
 log "Verifying health check on Port 3000..."
@@ -327,7 +331,8 @@ if [ "$HEALTHY" -ne 1 ]; then
     log "Rolling back to previous release: $PREV_RELEASE"
     ln -sfn "$PREV_RELEASE" "${BASE_DIR}/current_tmp"
     mv -Tf "${BASE_DIR}/current_tmp" "$CURRENT_LINK"
-    sudo -u ubuntu env "PATH=$PATH" pm2 reload "${SHARED_DIR}/ecosystem.config.js" || true
+    sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 reload "${SHARED_DIR}/ecosystem.config.js" --update-env || \
+      sudo -u ubuntu env "PATH=$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 restart "${SHARED_DIR}/ecosystem.config.js" --update-env || true
   fi
   send_telemetry "UPDATE_FAILED" "$LOCAL_VERSION" "$LOCAL_COMMIT" "Health check failed after reload"
   exit 1

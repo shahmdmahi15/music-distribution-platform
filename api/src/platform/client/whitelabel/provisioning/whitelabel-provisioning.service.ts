@@ -1688,6 +1688,7 @@ fi
 echo "=== [3/6] Setting up WhiteLabel atomic directories & auto-updater ==="
 rm -rf /var/www/music-distribution-platform 2>/dev/null || true
 mkdir -p /var/www/whitelabel/shared /var/www/whitelabel/releases /var/www/whitelabel/shared/logs
+ln -sfn /var/www/whitelabel/shared/logs /var/www/whitelabel/logs
 chown -R ubuntu:ubuntu /var/www/whitelabel
 
 cat << 'ENV_EOF' > /var/www/whitelabel/shared/.env
@@ -1712,11 +1713,11 @@ echo "=== [4/6] Executing autonomous build & zero-downtime atomic deployment ===
 /usr/local/bin/rmit-whitelabel-updater.sh --force
 
 echo "=== [5/6] Finalizing PM2 process and reverse proxy ==="
-env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 install pm2-logrotate 2>/dev/null || true
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:retain 5 2>/dev/null || true
+env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" PM2_HOME="/home/ubuntu/.pm2" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 save
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 install pm2-logrotate 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "PM2_HOME=/home/ubuntu/.pm2" pm2 set pm2-logrotate:retain 5 2>/dev/null || true
 
 systemctl enable nginx
 systemctl restart nginx
