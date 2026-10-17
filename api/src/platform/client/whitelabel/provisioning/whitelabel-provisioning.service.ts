@@ -1696,6 +1696,7 @@ elif command -v python3 >/dev/null 2>&1; then
   python3 -m zipfile -e /tmp/whitelabel.zip /var/www/whitelabel
 fi
 rm -f /tmp/whitelabel.zip
+rm -f /var/www/whitelabel/pnpm-workspace.yaml 2>/dev/null || true
 chown -R ubuntu:ubuntu /var/www/whitelabel
 
 echo "=== [4/6] Configuring production environment and ecosystem ==="

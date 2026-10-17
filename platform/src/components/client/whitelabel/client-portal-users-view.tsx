@@ -899,7 +899,10 @@ export function ClientPortalUsersView({
                       </TableCell>
 
                       {/* Actions */}
-                      <TableCell className="text-right pr-4">
+                      <TableCell
+                        className="text-right pr-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Quick Approve Action for Pending Users */}
                           {isPending && (
@@ -925,69 +928,80 @@ export function ClientPortalUsersView({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
                                 </Button>
                               }
                             />
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel className="text-xs">
-                                User Actions
-                              </DropdownMenuLabel>
-                              <DropdownMenuSeparator />
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuGroup>
+                                <DropdownMenuLabel className="text-xs font-semibold">
+                                  User Actions
+                                </DropdownMenuLabel>
 
-                              {isPending && (
-                                <DropdownMenuItem
-                                  onClick={() => handleApproveUser(u)}
-                                  className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold cursor-pointer"
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
-                                  Approve &amp; Activate
-                                </DropdownMenuItem>
-                              )}
-
-                              <DropdownMenuItem
-                                onClick={() => handleOpenEdit(u)}
-                                className="text-xs cursor-pointer"
-                              >
-                                <UserPen className="h-3.5 w-3.5 mr-2" />
-                                Edit Profile
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={() => handleOpenPasswordReset(u)}
-                                className="text-xs cursor-pointer"
-                              >
-                                <KeyRound className="h-3.5 w-3.5 mr-2" />
-                                Reset Password
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={() => handleToggleLock(u)}
-                                className="text-xs cursor-pointer"
-                              >
-                                {isLocked ? (
-                                  <>
-                                    <Unlock className="h-3.5 w-3.5 mr-2 text-emerald-500" />
-                                    Unlock User Access
-                                  </>
-                                ) : (
-                                  <>
-                                    <Lock className="h-3.5 w-3.5 mr-2 text-amber-500" />
-                                    Lock User Access
-                                  </>
+                                {isPending && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleApproveUser(u)}
+                                    className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                                    Approve &amp; Activate
+                                  </DropdownMenuItem>
                                 )}
-                              </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEdit(u)}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  <UserPen className="h-3.5 w-3.5 mr-2" />
+                                  Edit Profile
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenPasswordReset(u)}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  <KeyRound className="h-3.5 w-3.5 mr-2" />
+                                  Reset Password
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleLock(u)}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  {isLocked ? (
+                                    <>
+                                      <Unlock className="h-3.5 w-3.5 mr-2 text-emerald-500" />
+                                      Unlock User Access
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Lock className="h-3.5 w-3.5 mr-2 text-amber-500" />
+                                      Lock User Access
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
 
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setDeletingUser(u)}
-                                className="text-xs text-destructive focus:text-destructive cursor-pointer"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                Delete Account
-                              </DropdownMenuItem>
+
+                              <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                  onClick={() => setDeletingUser(u)}
+                                  disabled={u.role === WhiteLabelUserRole.OWNER}
+                                  className={cn(
+                                    "text-xs cursor-pointer",
+                                    u.role === WhiteLabelUserRole.OWNER
+                                      ? "opacity-50 cursor-not-allowed text-muted-foreground"
+                                      : "text-destructive focus:text-destructive",
+                                  )}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  Delete Account
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
