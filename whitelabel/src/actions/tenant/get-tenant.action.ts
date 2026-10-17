@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "react";
 import { api } from "@/lib/api";
 import axios from "axios";
 import { WhiteLabelTenant } from "@/types/user";
@@ -14,7 +13,7 @@ export interface TenantDiagnostics {
   details?: string;
 }
 
-export const getTenantAction = cache(async function getTenantAction(): Promise<{
+export async function getTenantAction(): Promise<{
   success: boolean;
   message: string;
   tenant?: WhiteLabelTenant;
@@ -89,4 +88,4 @@ export const getTenantAction = cache(async function getTenantAction(): Promise<{
       },
     };
   }
-});
+}

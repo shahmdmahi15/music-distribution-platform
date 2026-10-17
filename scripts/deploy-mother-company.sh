@@ -24,15 +24,8 @@ echo "🗄️ [Deploy: API] Generating Prisma Client..."
 pnpm --filter api exec prisma generate
 
 echo "🔄 [Deploy: API] Executing database migrations..."
-if ! pnpm --filter api exec prisma migrate deploy; then
-    echo "⚠️ [Deploy: API] Detected legacy or failed migration state in database. Resetting schema and baselining clean init migration..."
-    INIT_MIGRATION=$(basename $(find "$APP_DIR/api/prisma/migrations" -mindepth 1 -maxdepth 1 -type d | head -n 1))
-    pnpm --filter api exec prisma db push --force-reset --accept-data-loss
-    if [ -n "$INIT_MIGRATION" ]; then
-        pnpm --filter api exec prisma migrate resolve --applied "$INIT_MIGRATION" || true
-    fi
-    echo "✅ [Deploy: API] Database cleanly reset and baselined to $INIT_MIGRATION."
-fi
+pnpm --filter api exec prisma migrate deploy
+
 
 echo "🏗️ [Deploy: API] Compiling NestJS production build..."
 pnpm --filter api run build

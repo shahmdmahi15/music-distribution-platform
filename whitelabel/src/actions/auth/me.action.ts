@@ -1,13 +1,12 @@
 "use server";
 
-import { cache } from "react";
 import { api } from "@/lib/api";
 import { WL_SESSION_COOKIE } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
 import axios from "axios";
 import { WhiteLabelUser, WhiteLabelTenant } from "@/types/user";
 
-export const meAction = cache(async function meAction(sessionToken?: string): Promise<{
+export async function meAction(sessionToken?: string): Promise<{
   success: boolean;
   message: string;
   user?: WhiteLabelUser;
@@ -72,4 +71,4 @@ export const meAction = cache(async function meAction(sessionToken?: string): Pr
       message: "An internal server error occurred.",
     };
   }
-});
+}

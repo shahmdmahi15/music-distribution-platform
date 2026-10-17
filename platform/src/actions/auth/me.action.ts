@@ -1,12 +1,11 @@
 "use server";
 
-import { cache } from "react";
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
 import axios from "axios";
 import { User } from "@/types/user";
 
-export const meAction = cache(async function meAction(sessionToken?: string): Promise<{
+export async function meAction(sessionToken?: string): Promise<{
   success: boolean;
   message: string;
   user?: User;
@@ -61,4 +60,4 @@ export const meAction = cache(async function meAction(sessionToken?: string): Pr
       message: "Internal Server Action Error",
     };
   }
-});
+}
