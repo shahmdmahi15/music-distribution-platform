@@ -24,7 +24,7 @@ export class WhitelabelTenantService {
   private resolveUrl(keyOrUrl: string | null | undefined): string | null {
     if (!keyOrUrl) return null;
     if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
-      return keyOrUrl;
+      return this.storageService.normalizeMediaUrl(keyOrUrl);
     }
     return this.storageService.getFileUrl(keyOrUrl);
   }

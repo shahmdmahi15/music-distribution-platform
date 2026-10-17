@@ -12,14 +12,24 @@ interface TenantLogoProps {
   fallbackContainerClassName?: string;
 }
 
+function resolveTenantMediaUrl(url?: string | null): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (trimmed.includes(".amazonaws.com/")) {
+    const key = trimmed.split(".amazonaws.com/")[1];
+    return `https://api.royalmotionit.com/media/public/${key}`;
+  }
+  return trimmed;
+}
+
 export function TenantLogo({
   tenant,
   className = "h-8 w-auto object-contain rounded",
   fallbackIconClassName = "w-5 h-5",
   fallbackContainerClassName = "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm",
 }: TenantLogoProps) {
-  const logoLight = tenant?.logoUrl;
-  const logoDark = tenant?.logoDarkUrl;
+  const logoLight = resolveTenantMediaUrl(tenant?.logoUrl);
+  const logoDark = resolveTenantMediaUrl(tenant?.logoDarkUrl);
   const primaryColor =
     tenant?.theme?.primaryColor || tenant?.primaryColor || "#6366f1";
 

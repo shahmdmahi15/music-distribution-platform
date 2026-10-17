@@ -34,6 +34,7 @@ import { clientUpdateBrandingAction } from "@/actions/client/whitelabel/client-u
 import { clientUploadBrandingAssetAction } from "@/actions/client/whitelabel/client-upload-branding-asset.action";
 import { clientDeleteBrandingAssetAction } from "@/actions/client/whitelabel/client-delete-branding-asset.action";
 import { WhiteLabelSubNav } from "./whitelabel-subnav";
+import { resolveMediaPreviewUrl } from "./client-whitelabel-setup-wizard";
 
 interface ClientBrandingViewProps {
   initialBranding: WhiteLabelBranding;
@@ -264,9 +265,8 @@ export function ClientBrandingView({
                   {branding.logoUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={branding.logoUrl}
+                      src={resolveMediaPreviewUrl(branding.logoUrl)}
                       alt="Primary Logo"
-                      crossOrigin="anonymous"
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
@@ -333,9 +333,8 @@ export function ClientBrandingView({
                   {branding.logoDarkUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={branding.logoDarkUrl}
+                      src={resolveMediaPreviewUrl(branding.logoDarkUrl)}
                       alt="Dark Mode Logo"
-                      crossOrigin="anonymous"
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
@@ -402,9 +401,8 @@ export function ClientBrandingView({
                   {branding.faviconUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={branding.faviconUrl}
+                      src={resolveMediaPreviewUrl(branding.faviconUrl)}
                       alt="Favicon"
-                      crossOrigin="anonymous"
                       className="h-10 w-10 object-contain rounded"
                     />
                   ) : (
@@ -506,9 +504,8 @@ export function ClientBrandingView({
                 {branding.bannerUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
-                    src={branding.bannerUrl}
+                    src={resolveMediaPreviewUrl(branding.bannerUrl)}
                     alt="Platform Banner"
-                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                   />
                 ) : (

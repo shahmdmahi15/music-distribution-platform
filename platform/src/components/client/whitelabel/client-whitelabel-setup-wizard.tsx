@@ -86,6 +86,16 @@ import {
 import { ClientCloudProvisioningTerminal } from "./client-cloud-provisioning-terminal";
 import Link from "next/link";
 
+export function resolveMediaPreviewUrl(url?: string | null): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (trimmed.includes(".amazonaws.com/")) {
+    const key = trimmed.split(".amazonaws.com/")[1];
+    return `/media/public/${key}`;
+  }
+  return trimmed;
+}
+
 interface ClientWhiteLabelSetupWizardProps {
   branding: WhiteLabelBranding;
   user: {
@@ -1067,9 +1077,8 @@ NODE_ENV=production`;
               <div className="h-14 w-full flex items-center justify-center overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={logoUrl || branding.logoUrl || ""}
+                  src={resolveMediaPreviewUrl(logoUrl || branding.logoUrl || "")}
                   alt={name}
-                  crossOrigin="anonymous"
                   className="max-h-full max-w-[160px] object-contain"
                 />
               </div>
@@ -2461,13 +2470,13 @@ NODE_ENV=production`;
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               key={`logo-${assetCacheBuster}`}
-                              src={
-                                logoUrl.includes("?")
-                                  ? `${logoUrl}&t=${assetCacheBuster}`
-                                  : `${logoUrl}?t=${assetCacheBuster}`
-                              }
+                              src={(() => {
+                                const dUrl = resolveMediaPreviewUrl(logoUrl);
+                                return dUrl.includes("?")
+                                  ? `${dUrl}&t=${assetCacheBuster}`
+                                  : `${dUrl}?t=${assetCacheBuster}`;
+                              })()}
                               alt="Light Logo Preview"
-                              crossOrigin="anonymous"
                               className="max-h-full max-w-full object-contain"
                               onError={() =>
                                 setAssetImgErrors((p) => ({ ...p, logo: true }))
@@ -2596,13 +2605,13 @@ NODE_ENV=production`;
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               key={`logoDark-${assetCacheBuster}`}
-                              src={
-                                logoDarkUrl.includes("?")
-                                  ? `${logoDarkUrl}&t=${assetCacheBuster}`
-                                  : `${logoDarkUrl}?t=${assetCacheBuster}`
-                              }
+                              src={(() => {
+                                const dUrl = resolveMediaPreviewUrl(logoDarkUrl);
+                                return dUrl.includes("?")
+                                  ? `${dUrl}&t=${assetCacheBuster}`
+                                  : `${dUrl}?t=${assetCacheBuster}`;
+                              })()}
                               alt="Dark Logo Preview"
-                              crossOrigin="anonymous"
                               className="max-h-full max-w-full object-contain"
                               onError={() =>
                                 setAssetImgErrors((p) => ({ ...p, logoDark: true }))
@@ -2729,13 +2738,13 @@ NODE_ENV=production`;
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               key={`favicon-${assetCacheBuster}`}
-                              src={
-                                faviconUrl.includes("?")
-                                  ? `${faviconUrl}&t=${assetCacheBuster}`
-                                  : `${faviconUrl}?t=${assetCacheBuster}`
-                              }
+                              src={(() => {
+                                const dUrl = resolveMediaPreviewUrl(faviconUrl);
+                                return dUrl.includes("?")
+                                  ? `${dUrl}&t=${assetCacheBuster}`
+                                  : `${dUrl}?t=${assetCacheBuster}`;
+                              })()}
                               alt="Favicon Preview"
-                              crossOrigin="anonymous"
                               className="w-8 h-8 object-contain"
                               onError={() =>
                                 setAssetImgErrors((p) => ({ ...p, favicon: true }))
@@ -2862,13 +2871,13 @@ NODE_ENV=production`;
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               key={`banner-${assetCacheBuster}`}
-                              src={
-                                bannerUrl.includes("?")
-                                  ? `${bannerUrl}&t=${assetCacheBuster}`
-                                  : `${bannerUrl}?t=${assetCacheBuster}`
-                              }
+                              src={(() => {
+                                const dUrl = resolveMediaPreviewUrl(bannerUrl);
+                                return dUrl.includes("?")
+                                  ? `${dUrl}&t=${assetCacheBuster}`
+                                  : `${dUrl}?t=${assetCacheBuster}`;
+                              })()}
                               alt="Banner Preview"
-                              crossOrigin="anonymous"
                               className="w-full h-full object-cover"
                               onError={() =>
                                 setAssetImgErrors((p) => ({ ...p, banner: true }))

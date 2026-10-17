@@ -80,14 +80,88 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
-   * Returns standard S3 public / object URL.
-   *
-   * Only valid for objects the bucket policy exposes publicly. Anything
-   * sensitive must be served through `getPresignedUrl` instead.
+   * Returns standard public media URL routed through the high-performance media gateway.
    */
   getFileUrl(key: string): string {
-    const region = this.configService.get('AWS_REGION', { infer: true });
-    return `https://${this.bucketName}.s3.${region}.amazonaws.com/${key}`;
+    const rawKey = key.replace(/^\/+/, '');
+    const baseUrl =
+      this.configService.get('API_BASE_URL', { infer: true }) ||
+      'https://api.royalmotionit.com';
+    const cleanBase = baseUrl.replace(/\/+$/, '');
+    return `${cleanBase}/media/public/${rawKey}`;
+  }
+
+  /**
+   * Normalizes any raw direct S3 URLs to the public media gateway URL.
+   */
+  normalizeMediaUrl(url?: string | null): string | null {
+    if (!url) return null;
+    if (url.includes('.amazonaws.com/')) {
+      const parts = url.split('.amazonaws.com/');
+      if (parts[1]) {
+        return this.getFileUrl(parts[1]);
+      }
+    }
+    return url;
+  }
+
+  /**
+   * Retrieves an object stream and metadata from S3.
+   * If tenantId and config are provided, attempts reading from tenant's BYOC bucket first,
+   * falling back to the central storage bucket if not found.
+   */
+  async getObjectStream(
+    key: string,
+    tenantId?: string,
+    config?: TenantStorageConfig,
+  ): Promise<{
+    stream: any;
+    contentType: string;
+    contentLength?: number;
+    etag?: string;
+  }> {
+    const rawKey = key.replace(/^\/+/, '');
+
+    // 1. If tenant config is provided, attempt reading from tenant's bucket first
+    if (tenantId && config?.bucketName && config?.awsAccessKeyId) {
+      try {
+        const { client, bucket } = this.getTenantS3Context(tenantId, config);
+        const command = new GetObjectCommand({
+          Bucket: bucket,
+          Key: rawKey,
+        });
+        const res = await client.send(command);
+        if (res.Body) {
+          return {
+            stream: res.Body,
+            contentType: res.ContentType || 'application/octet-stream',
+            contentLength: res.ContentLength,
+            etag: res.ETag,
+          };
+        }
+      } catch (err: any) {
+        this.logger.debug(
+          `Tenant bucket lookup failed for ${rawKey}, falling back to central bucket: ${err?.message || err}`,
+        );
+      }
+    }
+
+    // 2. Central Mother Company bucket
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: rawKey,
+    });
+    const response = await this.s3Client.send(command);
+    if (!response.Body) {
+      throw new Error(`Object body for key ${rawKey} is empty`);
+    }
+
+    return {
+      stream: response.Body,
+      contentType: response.ContentType || 'application/octet-stream',
+      contentLength: response.ContentLength,
+      etag: response.ETag,
+    };
   }
 
   /**

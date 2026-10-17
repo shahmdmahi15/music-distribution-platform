@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "100mb",
     },
   },
+  async rewrites() {
+    const apiBase = (process.env.API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+    return [
+      {
+        source: "/media/:path*",
+        destination: `${apiBase}/media/:path*`,
+      },
+    ];
+  },
   async redirects() {
     return [
       {
