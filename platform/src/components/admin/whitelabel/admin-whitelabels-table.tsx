@@ -58,6 +58,8 @@ import { formatDate } from "@/lib/utils";
 import { AdminWhiteLabelDetailsDialog } from "./admin-whitelabel-details-sheet";
 import { adminUpdateWhiteLabelStatusAction } from "@/actions/admin/whitelabel/admin-update-whitelabel-status.action";
 import { adminActivateWhiteLabelAction } from "@/actions/admin/whitelabel/admin-activate-whitelabel.action";
+import { adminTriggerWhiteLabelUpdateAction } from "@/actions/admin/whitelabel/admin-trigger-whitelabel-update.action";
+import type { AdminFleetVersionsResponse } from "@/actions/admin/whitelabel/admin-get-fleet-versions.action";
 
 interface AdminWhiteLabelsTableProps {
   initialData: {
@@ -80,6 +82,7 @@ interface AdminWhiteLabelsTableProps {
       suspended?: number;
     };
   };
+  fleetVersions?: AdminFleetVersionsResponse;
 }
 
 const BUSINESS_TYPE_META: Record<
@@ -106,6 +109,7 @@ const LIFECYCLE_STEP_MAP: Record<string, number> = {
 
 export function AdminWhiteLabelsTable({
   initialData,
+  fleetVersions,
 }: AdminWhiteLabelsTableProps) {
   const router = useRouter();
   const [items, setItems] = useState<WhiteLabel[]>(initialData.items || []);
@@ -131,6 +135,42 @@ export function AdminWhiteLabelsTable({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedWhiteLabel, setSelectedWhiteLabel] =
     useState<WhiteLabel | null>(null);
+  const [updatingTenantId, setUpdatingTenantId] = useState<string | null>(null);
+
+  const handleTriggerUpdate = async (e: React.MouseEvent, wl: WhiteLabel) => {
+    e.stopPropagation();
+    if (!wl.elasticIpv4 && !(wl as any).awsElasticIp) {
+      toast.error(
+        "This WhiteLabel does not have a dedicated EC2 instance deployed yet.",
+      );
+      return;
+    }
+
+    setUpdatingTenantId(wl.id);
+    toast.info(
+      `Initiating autonomous update rollout for "${wl.name}" on dedicated EC2...`,
+    );
+
+    try {
+      const res = await adminTriggerWhiteLabelUpdateAction(wl.id);
+      if (res.success) {
+        toast.success(
+          `Autonomous update successfully deployed on ${wl.name}'s EC2!`,
+        );
+        router.refresh();
+      } else {
+        toast.error(
+          `Update failed: ${res.message || res.error || "Unknown error"}`,
+        );
+      }
+    } catch (err: any) {
+      toast.error(
+        `Error triggering update: ${err?.message || "Failed to connect"}`,
+      );
+    } finally {
+      setUpdatingTenantId(null);
+    }
+  };
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [quickActionLoadingId, setQuickActionLoadingId] = useState<
@@ -1069,6 +1109,9 @@ export function AdminWhiteLabelsTable({
                     Domain & Cloud Routing
                   </TableHead>
                   <TableHead className="font-bold">
+                    Portal Version & Updates
+                  </TableHead>
+                  <TableHead className="font-bold">
                     Business Model & Focus
                   </TableHead>
                   <TableHead className="font-bold">
@@ -1217,6 +1260,105 @@ export function AdminWhiteLabelsTable({
                               </span>
                             )}
                           </div>
+                        </div>
+                      </TableCell>
+
+                      {/* 2.5. Portal Version & Updates */}
+                      <TableCell>
+                        <div
+                          className="space-y-1.5 min-w-[165px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {wl.elasticIpv4 || (wl as any).awsElasticIp ? (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-mono font-bold px-1.5 py-0 border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 gap-1"
+                                >
+                                  <Disc3 className="h-2.5 w-2.5 shrink-0" />
+                                  v{wl.installedVersion || "1.0.0"}
+                                </Badge>
+                                {wl.installedCommitHash && (
+                                  <span
+                                    className="text-[9px] font-mono px-1 py-0 rounded bg-muted text-muted-foreground border border-border/50"
+                                    title={`Git Commit: ${wl.installedCommitHash}`}
+                                  >
+                                    {wl.installedCommitHash.slice(0, 7)}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                {wl.updateStatus === "UPDATING" ||
+                                updatingTenantId === wl.id ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-mono py-0 px-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 gap-1 animate-pulse"
+                                  >
+                                    <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                                    Updating...
+                                  </Badge>
+                                ) : wl.updateStatus === "UPDATE_FAILED" ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-mono py-0 px-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 gap-1"
+                                    title={wl.updateError || "Last update failed"}
+                                  >
+                                    <AlertTriangle className="h-2.5 w-2.5" />
+                                    Failed
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-mono py-0 px-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                                  >
+                                    <CheckCircle2 className="h-2.5 w-2.5" />
+                                    Up to Date
+                                  </Badge>
+                                )}
+
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={
+                                    updatingTenantId === wl.id ||
+                                    wl.updateStatus === "UPDATING"
+                                  }
+                                  onClick={(e) => handleTriggerUpdate(e, wl)}
+                                  className="h-6 px-1.5 text-[10px] text-primary hover:text-primary hover:bg-primary/10 gap-1 font-semibold"
+                                  title="Push immediate update to customer EC2"
+                                >
+                                  <RefreshCw
+                                    className={`h-2.5 w-2.5 ${
+                                      updatingTenantId === wl.id
+                                        ? "animate-spin"
+                                        : ""
+                                    }`}
+                                  />
+                                  Rollout
+                                </Button>
+                              </div>
+
+                              {wl.lastUpdatedAt && (
+                                <p className="text-[9px] text-muted-foreground">
+                                  Updated {formatDate(wl.lastUpdatedAt)}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono py-0 px-1.5 bg-muted/60 text-muted-foreground border-border/60"
+                              >
+                                Cloudflare Proxy
+                              </Badge>
+                              <p className="text-[9px] text-muted-foreground italic">
+                                No dedicated EC2
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 

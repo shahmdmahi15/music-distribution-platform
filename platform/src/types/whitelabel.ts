@@ -279,6 +279,15 @@ export interface WhiteLabel {
   revShareTenantPercentage?: number | string | null;
   revSharePlatformPercentage?: number | string | null;
 
+  // Fleet Version & Auto-Update Telemetry
+  installedVersion?: string | null;
+  installedCommitHash?: string | null;
+  lastUpdateCheckedAt?: string | null;
+  lastUpdatedAt?: string | null;
+  updateStatus?: string | null;
+  updateError?: string | null;
+  autoUpdateEnabled?: boolean;
+
   artists?: WhiteLabelTopArtist[];
   documents?: WhiteLabelDocument[];
   createdAt: string;

@@ -567,6 +567,15 @@ model WhiteLabel {
   approvedAt            DateTime?
   reviewedAt            DateTime?
 
+  // Fleet Version & Auto-Update Telemetry
+  installedVersion    String?   @default("1.0.0")
+  installedCommitHash String?
+  lastUpdateCheckedAt DateTime?
+  lastUpdatedAt       DateTime?
+  updateStatus        String?   @default("UP_TO_DATE")
+  updateError         String?
+  autoUpdateEnabled   Boolean   @default(true)
+
   // Commercial Terms & Custom Revenue Share (e.g. 100/0, 90/10, 85/15, 80/20)
   revShareTenantPercentage   Decimal @default(85.00) @db.Decimal(5, 2)
   revSharePlatformPercentage Decimal @default(15.00) @db.Decimal(5, 2)

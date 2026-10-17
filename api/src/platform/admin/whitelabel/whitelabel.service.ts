@@ -32,6 +32,8 @@ import {
   WhiteLabelSignupModel,
   ReferrerStatus,
 } from 'src/generated/prisma/client';
+import { WhitelabelProvisioningService } from 'src/platform/client/whitelabel/provisioning/whitelabel-provisioning.service';
+import { WhitelabelBundleService } from 'src/platform/client/whitelabel/bundle/whitelabel-bundle.service';
 
 @Injectable()
 export class AdminWhitelabelService {
@@ -40,6 +42,8 @@ export class AdminWhitelabelService {
     private readonly storageService: StorageService,
     private readonly cloudflareDnsService: CloudflareDnsService,
     private readonly redisService: RedisService,
+    private readonly provisioningService: WhitelabelProvisioningService,
+    private readonly bundleService: WhitelabelBundleService,
   ) {}
 
   async getWhiteLabels(query: AdminWhiteLabelQueryDto) {
@@ -1520,5 +1524,70 @@ export class AdminWhitelabelService {
       message: `Deal status updated to ${dto.status}.`,
       deal: updated,
     };
+  }
+
+  /**
+   * Retrieves fleet version telemetry across all active WhiteLabels.
+   */
+  async getFleetVersions() {
+    const latestRelease = this.bundleService.getVersionManifest();
+
+    const whiteLabels = await this.prismaService.whiteLabel.findMany({
+      where: {
+        status: {
+          in: [
+            WhiteLabelStatus.ACTIVE,
+            WhiteLabelStatus.CONTRACTED,
+            WhiteLabelStatus.PAID,
+            WhiteLabelStatus.UNDER_REVIEW,
+            WhiteLabelStatus.SUSPENDED,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        subdomain: true,
+        customDomain: true,
+        status: true,
+        awsElasticIp: true,
+        installedVersion: true,
+        installedCommitHash: true,
+        lastUpdateCheckedAt: true,
+        lastUpdatedAt: true,
+        updateStatus: true,
+        updateError: true,
+        autoUpdateEnabled: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const fleet = whiteLabels.map((wl) => {
+      const isUpToDate =
+        Boolean(wl.installedVersion) &&
+        wl.installedVersion === latestRelease.version &&
+        (latestRelease.commitHash === 'unknown' ||
+          !wl.installedCommitHash ||
+          wl.installedCommitHash === latestRelease.commitHash);
+
+      return {
+        ...wl,
+        isUpToDate,
+        hasDedicatedEc2: Boolean(wl.awsElasticIp),
+      };
+    });
+
+    return {
+      latestRelease,
+      fleet,
+    };
+  }
+
+  /**
+   * Triggers an on-demand update rollout to a tenant's dedicated EC2 instance.
+   */
+  async triggerTenantUpdate(whiteLabelId: string) {
+    return await this.provisioningService.triggerTenantUpdate(whiteLabelId);
   }
 }

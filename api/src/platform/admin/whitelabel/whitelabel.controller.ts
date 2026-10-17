@@ -46,6 +46,18 @@ export class AdminWhitelabelController {
     return await this.adminWhitelabelService.getActiveReferrers();
   }
 
+  @Get('fleet-versions')
+  @Roles(...ADMIN_ROLES)
+  async getFleetVersions() {
+    return await this.adminWhitelabelService.getFleetVersions();
+  }
+
+  @Post(':id/trigger-update')
+  @Roles(...OWNER_ADMIN_ROLES)
+  async triggerTenantUpdate(@Param('id') id: string) {
+    return await this.adminWhitelabelService.triggerTenantUpdate(id);
+  }
+
   @Get(':id')
   @Roles(...ADMIN_ROLES)
   async getWhiteLabelById(@Param('id') id: string) {

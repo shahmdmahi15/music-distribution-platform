@@ -41,6 +41,20 @@ rsync -av \
   --exclude="pnpm-workspace.yaml" \
   "${WHITELABEL_DIR}/" "${STAGE_DIR}/"
 
+# Extract application version and git commit
+APP_VERSION="$(node -p 'require("./whitelabel/package.json").version' 2>/dev/null || echo '1.0.0')"
+COMMIT_HASH="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+# Guarantee version metadata exists in distribution bundle
+cat << EOF > "${STAGE_DIR}/version.json"
+{
+  "version": "${APP_VERSION}",
+  "commitHash": "${COMMIT_HASH}",
+  "buildTime": "${BUILD_TIME}"
+}
+EOF
+
 # Guarantee .env.example exists in the distribution package
 if [ -f "${WHITELABEL_DIR}/.env.example" ]; then
   cp -f "${WHITELABEL_DIR}/.env.example" "${STAGE_DIR}/.env.example"
@@ -73,11 +87,26 @@ echo "[+] Computing SHA-256 integrity digest..."
 sha256sum "${BUNDLE_ZIP}" | cut -d ' ' -f 1 > "${CHECKSUM_FILE}"
 
 BUNDLE_SIZE="$(du -h "${BUNDLE_ZIP}" | cut -f1)"
+BUNDLE_SIZE_BYTES="$(stat -c %s "${BUNDLE_ZIP}" 2>/dev/null || stat -f %z "${BUNDLE_ZIP}" 2>/dev/null || wc -c < "${BUNDLE_ZIP}")"
 SHA256="$(cat "${CHECKSUM_FILE}")"
+
+# Output version manifest to bundles directory
+cat << EOF > "${OUTPUT_DIR}/version.json"
+{
+  "version": "${APP_VERSION}",
+  "commitHash": "${COMMIT_HASH}",
+  "buildTime": "${BUILD_TIME}",
+  "sha256": "${SHA256}",
+  "bundleSize": "${BUNDLE_SIZE}",
+  "bundleSizeBytes": ${BUNDLE_SIZE_BYTES}
+}
+EOF
 
 echo "=========================================================="
 echo " [SUCCESS] WhiteLabel Distribution Bundle Ready"
+echo " Version:  ${APP_VERSION} (${COMMIT_HASH:0:7})"
 echo " Path:     ${BUNDLE_ZIP}"
-echo " Size:     ${BUNDLE_SIZE}"
+echo " Size:     ${BUNDLE_SIZE} (${BUNDLE_SIZE_BYTES} bytes)"
 echo " SHA-256:  ${SHA256}"
+echo " Manifest: ${OUTPUT_DIR}/version.json"
 echo "=========================================================="

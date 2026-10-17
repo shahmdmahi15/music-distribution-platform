@@ -57,6 +57,8 @@ import * as crypto from 'crypto';
 import { promisify } from 'util';
 import { Client as SshClient } from 'ssh2';
 import * as forge from 'node-forge';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const generateKeyPairAsync = promisify(crypto.generateKeyPair);
 
@@ -1624,6 +1626,10 @@ server {
           'Building WhiteLabel Next.js application & starting PM2 runtime',
         );
 
+        const updaterB64 = Buffer.from(this.getUpdaterScriptContent()).toString('base64');
+        const serviceB64 = Buffer.from(this.getUpdaterServiceContent()).toString('base64');
+        const timerB64 = Buffer.from(this.getUpdaterTimerContent()).toString('base64');
+
         const deployScriptContent = `#!/bin/bash
 set -euo pipefail
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -1679,115 +1685,43 @@ if [ ! -f /swapfile ]; then
   echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 fi
 
-echo "=== [3/6] Fetching WhiteLabel standalone distribution bundle ==="
-# Clean up any legacy or duplicate cloned directories AND stale deployment artifacts
+echo "=== [3/6] Setting up WhiteLabel atomic directories & auto-updater ==="
 rm -rf /var/www/music-distribution-platform 2>/dev/null || true
-rm -rf /var/www/whitelabel 2>/dev/null || true
-mkdir -p /var/www/whitelabel
+mkdir -p /var/www/whitelabel/shared /var/www/whitelabel/releases /var/www/whitelabel/shared/logs
 chown -R ubuntu:ubuntu /var/www/whitelabel
 
-echo "Downloading secure application bundle from Central API..."
-curl -fSL "${apiBaseUrl}/platform/client/whitelabel/bundle/download?token=${bundleToken}" -o /tmp/whitelabel.zip
-
-echo "Extracting bundle to /var/www/whitelabel..."
-if command -v unzip >/dev/null 2>&1; then
-  unzip -q -o /tmp/whitelabel.zip -d /var/www/whitelabel
-elif command -v python3 >/dev/null 2>&1; then
-  python3 -m zipfile -e /tmp/whitelabel.zip /var/www/whitelabel
-fi
-rm -f /tmp/whitelabel.zip
-rm -f /var/www/whitelabel/pnpm-workspace.yaml 2>/dev/null || true
-chown -R ubuntu:ubuntu /var/www/whitelabel
-
-echo "=== [4/6] Configuring production environment and ecosystem ==="
-cd /var/www/whitelabel
-
-cat << 'ENV_EOF' > .env
+cat << 'ENV_EOF' > /var/www/whitelabel/shared/.env
 API_BASE_URL="${apiBaseUrl}"
 API_KEY="${rawApiKey}"
 PORT=3000
 NODE_ENV=production
 ENV_EOF
+chown ubuntu:ubuntu /var/www/whitelabel/shared/.env
 
-cp -f .env .env.production
-cp -f .env .env.local
+echo "Writing /usr/local/bin/rmit-whitelabel-updater.sh..."
+echo "${updaterB64}" | base64 -d > /usr/local/bin/rmit-whitelabel-updater.sh
+chmod 755 /usr/local/bin/rmit-whitelabel-updater.sh
 
-mkdir -p /var/www/whitelabel/logs
+echo "Configuring autonomous systemd updater timer..."
+echo "${serviceB64}" | base64 -d > /etc/systemd/system/rmit-whitelabel-updater.service
+echo "${timerB64}" | base64 -d > /etc/systemd/system/rmit-whitelabel-updater.timer
+systemctl daemon-reload
+systemctl enable --now rmit-whitelabel-updater.timer
 
-cat << 'ECOSYSTEM_EOF' > ecosystem.config.js
-module.exports = {
-  apps: [
-    {
-      name: "whitelabel-portal",
-      cwd: "/var/www/whitelabel",
-      script: "node_modules/next/dist/bin/next",
-      args: "start -p 3000",
-      instances: 1,
-      exec_mode: "fork",
-      autorestart: true,
-      watch: false,
-      max_memory_restart: "1G",
-      kill_timeout: 5000,
-      listen_timeout: 10000,
-      restart_delay: 1000,
-      exp_backoff_restart_delay: 100,
-      max_restarts: 15,
-      error_file: "/var/www/whitelabel/logs/whitelabel-portal-error.log",
-      out_file: "/var/www/whitelabel/logs/whitelabel-portal-out.log",
-      merge_logs: true,
-      time: true,
-      node_args: "--max-old-space-size=1024",
-      env: {
-        NODE_ENV: "production",
-        PORT: 3000,
-      },
-    },
-  ],
-};
-ECOSYSTEM_EOF
+echo "=== [4/6] Executing autonomous build & zero-downtime atomic deployment ==="
+/usr/local/bin/rmit-whitelabel-updater.sh --force
 
-chown -R ubuntu:ubuntu /var/www/whitelabel
-
-echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
-cd /var/www/whitelabel
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm install --frozen-lockfile || sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm install
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm run build
-
-echo "=== [6/6] Starting PM2 process on Port 3000 ==="
-# Force kill anything occupying port 3000 to guarantee clean bind
-fuser -k 3000/tcp 2>/dev/null || true
-pm2 delete all 2>/dev/null || true
-pm2 kill 2>/dev/null || true
-systemctl stop pm2-root 2>/dev/null || true
-systemctl disable pm2-root 2>/dev/null || true
-systemctl stop whitelabel-bootstrap 2>/dev/null || true
-systemctl disable whitelabel-bootstrap 2>/dev/null || true
-rm -f /etc/systemd/system/whitelabel-bootstrap.service /etc/systemd/system/pm2-root.service 2>/dev/null || true
-rm -rf /var/www/whitelabel-holding 2>/dev/null || true
-systemctl daemon-reload 2>/dev/null || true
-
-# Clean ubuntu PM2 state
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 delete all 2>/dev/null || true
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 kill 2>/dev/null || true
-
-# Wait 2 seconds for port release
-sleep 2
-
-# Start Next.js via ecosystem
-cd /var/www/whitelabel
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 start ecosystem.config.js
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
+echo "=== [5/6] Finalizing PM2 process and reverse proxy ==="
 env PATH="/usr/local/bin:/usr/bin:/bin:$PATH" pm2 startup systemd -u ubuntu --hp /home/ubuntu 2>/dev/null || true
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 save
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 install pm2-logrotate 2>/dev/null || true
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
 sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 set pm2-logrotate:retain 5 2>/dev/null || true
 
-# Ensure Nginx is enabled and restarted
 systemctl enable nginx
 systemctl restart nginx
 
-echo "Verifying local service health on Port 3000..."
+echo "=== [6/6] Verifying local service health on Port 3000 ==="
 for i in {1..35}; do
   STATUS_RAW=$(sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pm2 jlist 2>/dev/null || echo "[]")
   if echo "$STATUS_RAW" | grep -q '"status":"online"'; then
@@ -2677,5 +2611,241 @@ exit 1
         }
       }
     } catch {}
+  }
+
+  /**
+   * Reads the production WhiteLabel self-updater daemon script.
+   */
+  getUpdaterScriptContent(): string {
+    const candidates = [
+      path.resolve(process.cwd(), 'scripts/rmit-whitelabel-updater.sh'),
+      path.resolve(process.cwd(), '../scripts/rmit-whitelabel-updater.sh'),
+      path.resolve(__dirname, '../../../../../../scripts/rmit-whitelabel-updater.sh'),
+      '/var/www/music-distribution-platform/scripts/rmit-whitelabel-updater.sh',
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        return fs.readFileSync(p, 'utf-8');
+      }
+    }
+    throw new Error(
+      `WhiteLabel updater script not found. Searched candidates: ${candidates.join(', ')}`,
+    );
+  }
+
+  /**
+   * Systemd service definition for WhiteLabel self-updater daemon.
+   */
+  getUpdaterServiceContent(): string {
+    return `[Unit]
+Description=RoyalMotionIT WhiteLabel Self-Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/rmit-whitelabel-updater.sh
+StandardOutput=journal+console
+StandardError=journal+console
+`;
+  }
+
+  /**
+   * Systemd timer definition for automated scheduled self-updates.
+   */
+  getUpdaterTimerContent(): string {
+    return `[Unit]
+Description=Run RoyalMotionIT WhiteLabel Self-Updater Daily
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+`;
+  }
+
+  /**
+   * Triggers an immediate autonomous update on a tenant's dedicated EC2 instance.
+   * Connects via SSH and executes /usr/local/bin/rmit-whitelabel-updater.sh --force.
+   */
+  async triggerTenantUpdate(whiteLabelId: string): Promise<{
+    success: boolean;
+    output: string;
+    error?: string;
+  }> {
+    const wl = await this.prismaService.whiteLabel.findUnique({
+      where: { id: whiteLabelId },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        awsElasticIp: true,
+        awsKeyPairPrivateKey: true,
+        subdomain: true,
+        customDomain: true,
+      },
+    });
+
+    if (!wl) {
+      throw new NotFoundException(`WhiteLabel ${whiteLabelId} not found.`);
+    }
+
+    if (!wl.awsElasticIp || !wl.awsKeyPairPrivateKey) {
+      throw new BadRequestException(
+        `WhiteLabel "${wl.name}" does not have an active dedicated EC2 instance (missing Elastic IP or SSH Key).`,
+      );
+    }
+
+    await this.appendLog(
+      whiteLabelId,
+      'UPDATE',
+      `Manual update triggered from Central Platform Console. Initiating update cycle...`,
+      'INFO',
+    );
+
+    await this.prismaService.whiteLabel.update({
+      where: { id: whiteLabelId },
+      data: {
+        updateStatus: 'UPDATING',
+        lastUpdateCheckedAt: new Date(),
+        updateError: null,
+      },
+    });
+
+    let ssh: SshClient | null = null;
+    try {
+      this.logger.log(
+        `Connecting via SSH to tenant EC2 at ${wl.awsElasticIp} to trigger update...`,
+      );
+      ssh = await this.connectSsh(
+        wl.awsElasticIp,
+        wl.awsKeyPairPrivateKey,
+        'ubuntu',
+        60000,
+      );
+
+      // Verify that updater script and systemd timer exist or install them
+      const checkScript = await this.execSsh(
+        ssh,
+        `test -f /usr/local/bin/rmit-whitelabel-updater.sh && echo "EXISTS" || echo "MISSING"`,
+      );
+
+      if (!checkScript.stdout.includes('EXISTS')) {
+        this.logger.log(
+          `Updater script missing on instance ${wl.awsElasticIp}. Installing updater daemon & timer...`,
+        );
+        const updaterB64 = Buffer.from(this.getUpdaterScriptContent()).toString(
+          'base64',
+        );
+        const serviceB64 = Buffer.from(this.getUpdaterServiceContent()).toString(
+          'base64',
+        );
+        const timerB64 = Buffer.from(this.getUpdaterTimerContent()).toString(
+          'base64',
+        );
+
+        await this.execSsh(
+          ssh,
+          `echo "${updaterB64}" | base64 -d | sudo tee /usr/local/bin/rmit-whitelabel-updater.sh > /dev/null && ` +
+            `sudo chmod 755 /usr/local/bin/rmit-whitelabel-updater.sh && ` +
+            `echo "${serviceB64}" | base64 -d | sudo tee /etc/systemd/system/rmit-whitelabel-updater.service > /dev/null && ` +
+            `echo "${timerB64}" | base64 -d | sudo tee /etc/systemd/system/rmit-whitelabel-updater.timer > /dev/null && ` +
+            `sudo systemctl daemon-reload && sudo systemctl enable --now rmit-whitelabel-updater.timer`,
+        );
+      }
+
+      await this.appendLog(
+        whiteLabelId,
+        'UPDATE',
+        `Executing /usr/local/bin/rmit-whitelabel-updater.sh --force on instance...`,
+        'INFO',
+      );
+
+      const execRes = await this.execSsh(
+        ssh,
+        `sudo /usr/local/bin/rmit-whitelabel-updater.sh --force`,
+        (line) => {
+          this.logger.log(`[Update-${wl.code}] ${line}`);
+        },
+        900000, // 15 mins for pnpm install + build
+      );
+
+      if (execRes.code !== 0) {
+        const errMsg =
+          execRes.stderr || execRes.stdout || 'Update exited with non-zero exit code';
+        await this.appendLog(
+          whiteLabelId,
+          'UPDATE',
+          `Update failed: ${errMsg.slice(0, 300)}`,
+          'ERROR',
+        );
+        await this.prismaService.whiteLabel.update({
+          where: { id: whiteLabelId },
+          data: {
+            updateStatus: 'UPDATE_FAILED',
+            updateError: errMsg.slice(0, 1000),
+          },
+        });
+        return {
+          success: false,
+          output: execRes.stdout,
+          error: errMsg,
+        };
+      }
+
+      await this.appendLog(
+        whiteLabelId,
+        'UPDATE',
+        `Autonomous update succeeded! Portal is online and operational.`,
+        'SUCCESS',
+      );
+
+      await this.prismaService.whiteLabel.update({
+        where: { id: whiteLabelId },
+        data: {
+          updateStatus: 'UPDATE_SUCCESS',
+          lastUpdatedAt: new Date(),
+          updateError: null,
+        },
+      });
+
+      return {
+        success: true,
+        output: execRes.stdout,
+      };
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to trigger update on ${wl.awsElasticIp}: ${err.message}`,
+        err.stack,
+      );
+      await this.appendLog(
+        whiteLabelId,
+        'UPDATE',
+        `Update error: ${err.message}`,
+        'ERROR',
+      );
+      await this.prismaService.whiteLabel.update({
+        where: { id: whiteLabelId },
+        data: {
+          updateStatus: 'UPDATE_FAILED',
+          updateError: err.message,
+        },
+      });
+      return {
+        success: false,
+        output: '',
+        error: err.message,
+      };
+    } finally {
+      if (ssh) {
+        try {
+          ssh.end();
+        } catch {}
+      }
+    }
   }
 }

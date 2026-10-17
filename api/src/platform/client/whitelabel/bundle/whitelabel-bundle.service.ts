@@ -133,4 +133,41 @@ export class WhitelabelBundleService {
       return null;
     }
   }
+
+  /**
+   * Retrieves the version manifest of the distribution bundle.
+   */
+  getVersionManifest(): {
+    version: string;
+    commitHash: string;
+    buildTime: string;
+    sha256: string;
+    bundleSize: string;
+    bundleSizeBytes: number;
+  } {
+    const bundlePath = this.getBundleFilePath();
+    const manifestPath = path.resolve(path.dirname(bundlePath), 'version.json');
+    if (fs.existsSync(manifestPath)) {
+      try {
+        return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      } catch (err) {
+        this.logger.warn(
+          'Failed to parse version.json, calculating fallback:',
+          err,
+        );
+      }
+    }
+
+    const sha256 = this.getBundleChecksum() || '';
+    const stat = fs.statSync(bundlePath);
+    return {
+      version: '1.0.0',
+      commitHash: 'unknown',
+      buildTime: new Date(stat.mtime).toISOString(),
+      sha256,
+      bundleSize: `${Math.round(stat.size / 1024)}K`,
+      bundleSizeBytes: stat.size,
+    };
+  }
 }
+

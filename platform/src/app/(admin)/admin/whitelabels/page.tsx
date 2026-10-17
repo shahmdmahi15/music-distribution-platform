@@ -1,4 +1,5 @@
 import { adminGetWhiteLabelsAction } from "@/actions/admin/whitelabel/admin-get-whitelabels.action";
+import { adminGetFleetVersionsAction } from "@/actions/admin/whitelabel/admin-get-fleet-versions.action";
 import { AdminWhiteLabelsTable } from "@/components/admin/whitelabel/admin-whitelabels-table";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -7,10 +8,14 @@ import {
   ShieldCheck,
   Sparkles,
   FileCheck2,
+  Cpu,
 } from "lucide-react";
 
 export default async function AdminWhiteLabelsPage() {
-  const data = await adminGetWhiteLabelsAction({ limit: 100 });
+  const [data, fleetVersions] = await Promise.all([
+    adminGetWhiteLabelsAction({ limit: 100 }),
+    adminGetFleetVersionsAction(),
+  ]);
 
   return (
     <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
@@ -31,6 +36,13 @@ export default async function AdminWhiteLabelsPage() {
             >
               <Globe className="h-3 w-3" />
               Cloudflare Auto-DNS Engine
+            </Badge>
+            <Badge
+              variant="outline"
+              className="px-2.5 py-0.5 text-[10px] font-mono border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 gap-1"
+            >
+              <Cpu className="h-3 w-3" />
+              Fleet Release: v{fleetVersions.latestRelease?.version || "1.0.0"} ({fleetVersions.latestRelease?.commitHash?.slice(0, 7) || "latest"})
             </Badge>
             <Badge
               variant="outline"
@@ -55,13 +67,14 @@ export default async function AdminWhiteLabelsPage() {
             End-to-end enterprise governance for Record Labels, Distributors,
             Music Publishers, and Talent Agencies—featuring KYB compliance
             scoring, full dossier editing, S3 contract management, subscription
-            billing ledgers, and automated Cloudflare DNS tenant provisioning.
+            billing ledgers, automated Cloudflare DNS tenant provisioning, and
+            autonomous EC2 self-update orchestration.
           </p>
         </div>
       </div>
 
       {/* Main Interactive Management System */}
-      <AdminWhiteLabelsTable initialData={data} />
+      <AdminWhiteLabelsTable initialData={data} fleetVersions={fleetVersions} />
     </div>
   );
 }
