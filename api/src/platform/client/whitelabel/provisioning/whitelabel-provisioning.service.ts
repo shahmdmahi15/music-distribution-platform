@@ -1628,6 +1628,10 @@ server {
 set -euo pipefail
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
+# Disable corepack entirely — it hijacks pnpm and causes 401 registry errors
+export COREPACK_ENABLE_STRICT=0
+export COREPACK_ENABLE_AUTO_PIN=0
+
 echo "=== [1/6] Waiting for system package manager locks ==="
 while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
   echo "Waiting for apt package lock to release..."
@@ -1644,10 +1648,12 @@ if ! command -v node >/dev/null 2>&1 || [ $(node -v | cut -d'.' -f1 | tr -d 'v')
   DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 fi
 
-# Clean up any potential broken or circular symlinks
+# Explicitly disable corepack so it does NOT intercept pnpm/pm2 binaries
+corepack disable 2>/dev/null || true
+
+# Clean up any potential broken or circular symlinks left by corepack
 rm -f /usr/bin/pnpm /usr/local/bin/pnpm /usr/bin/pm2 /usr/local/bin/pm2
-npm install -g pnpm@latest pm2@latest
-corepack enable 2>/dev/null || true
+npm install -g pnpm@9 pm2@latest
 
 # Securely ensure binaries exist in /usr/bin without circular links
 NPM_PREFIX="$(npm config get prefix 2>/dev/null || echo /usr)"
@@ -1742,8 +1748,8 @@ chown -R ubuntu:ubuntu /var/www/whitelabel
 
 echo "=== [5/6] Installing dependencies and building Next.js 16 ==="
 cd /var/www/whitelabel
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install --frozen-lockfile || sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm install
-sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" pnpm run build
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm install --frozen-lockfile || sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm install
+sudo -u ubuntu env "PATH=/usr/local/bin:/usr/bin:/bin:$PATH" "COREPACK_ENABLE_STRICT=0" "COREPACK_ENABLE_AUTO_PIN=0" pnpm run build
 
 echo "=== [6/6] Starting PM2 process on Port 3000 ==="
 # Force kill anything occupying port 3000 to guarantee clean bind
