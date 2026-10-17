@@ -126,6 +126,7 @@ export interface InfrastructureOverview {
   };
   mailing: {
     provider: string;
+    identityDomain?: string;
     senderEmail: string;
     region: string;
     mailFromDomain: string;
@@ -356,12 +357,14 @@ export class AdminInfrastructureService {
       },
       mailing: {
         provider: 'AWS Simple Email Service (SESv2)',
+        identityDomain: 'platform.royalmotionit.com',
         senderEmail:
           this.configService.get('SENDER_EMAIL', { infer: true }) ||
-          'noreply@royalmotionit.com',
+          'noreply@mail.platform.royalmotionit.com',
         region:
           this.configService.get('AWS_REGION', { infer: true }) || 'ap-southeast-1',
-        mailFromDomain: 'mail.backstage.royalmusic.io',
+        mailFromDomain:
+          process.env.MAIL_FROM_DOMAIN || 'mail.platform.royalmotionit.com',
         status: 'ACTIVE',
         dailyQuotaSent: 24,
         dailyQuotaLimit: 50000,

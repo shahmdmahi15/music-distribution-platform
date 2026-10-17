@@ -111,6 +111,7 @@ export interface InfrastructureOverviewData {
   };
   mailing: {
     provider: string;
+    identityDomain?: string;
     senderEmail: string;
     region: string;
     mailFromDomain: string;

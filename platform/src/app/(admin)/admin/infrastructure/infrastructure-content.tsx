@@ -910,6 +910,12 @@ export function InfrastructureContent({ initialData }: InfrastructureContentProp
               <CardContent className="space-y-4">
                 <div className="p-3 rounded-lg bg-muted/40 border text-xs space-y-2 font-mono">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">SES Mail Identity:</span>
+                    <span className="font-semibold text-foreground">
+                      {data?.mailing.identityDomain || "platform.royalmotionit.com"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Identity Sender:</span>
                     <span className="font-semibold">{data?.mailing.senderEmail}</span>
                   </div>
@@ -1055,7 +1061,7 @@ export function InfrastructureContent({ initialData }: InfrastructureContentProp
                     Cloudflare Full (Strict) Ingress Rules
                   </span>
                   <p className="text-muted-foreground text-[11px] leading-relaxed">
-                    Traffic from clients terminates at the closest Cloudflare Edge data center, is inspected for L7 DDoS attacks, and proxies over encrypted TLS to Nginx on <code>13.250.213.120</code> / <code>47.130.57.66</code>.
+                    Traffic terminates at the closest Cloudflare Edge data center, is inspected for L7 DDoS attacks, and proxies over encrypted TLS to Nginx on Mother Company Origin <code>47.130.57.66</code>.
                   </p>
                 </div>
               </CardContent>
@@ -1069,7 +1075,7 @@ export function InfrastructureContent({ initialData }: InfrastructureContentProp
                   Primary DNS Ingress Endpoints
                 </CardTitle>
                 <CardDescription>
-                  Real-time routing status for core web portals and APIs.
+                  Real-time routing status for Mother Company core web portals, APIs, and mailing.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1096,8 +1102,18 @@ export function InfrastructureContent({ initialData }: InfrastructureContentProp
 
                   <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
                     <div>
-                      <span className="font-semibold block font-mono">backstage.royalmusic.io</span>
-                      <span className="text-[11px] text-muted-foreground">Dedicated RoyalMusic Customer EC2</span>
+                      <span className="font-semibold block font-mono">mail.platform.royalmotionit.com</span>
+                      <span className="text-[11px] text-muted-foreground">AWS SES Custom MAIL FROM & MX Routing</span>
+                    </div>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                      DNS Configured
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
+                    <div>
+                      <span className="font-semibold block font-mono">royalmotionit.com</span>
+                      <span className="text-[11px] text-muted-foreground">Apex Corporate Domain & Ingress</span>
                     </div>
                     <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                       Proxied (Edge SSL)
