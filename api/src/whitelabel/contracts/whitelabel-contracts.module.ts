@@ -8,7 +8,7 @@ import { WhitelabelSessionModule } from '../session/whitelabel-session.module';
 
 @Module({
   imports: [PrismaModule, WhitelabelSessionModule],
-  controllers: [WhitelabelContractsController, WhitelabelPayeesController],
+  controllers: [WhitelabelPayeesController, WhitelabelContractsController],
   providers: [WhitelabelContractsService, WhitelabelPayeesService],
   exports: [WhitelabelContractsService, WhitelabelPayeesService],
 })

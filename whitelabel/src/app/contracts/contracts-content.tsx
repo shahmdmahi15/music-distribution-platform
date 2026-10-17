@@ -90,18 +90,33 @@ export function ContractsContent() {
   const fetchData = () => {
     startTransition(async () => {
       setLoading(true);
-      const [contractsRes, payeesRes] = await Promise.all([
-        wlGetContractsAction(),
-        wlGetPayeesAction(),
-      ]);
+      try {
+        const [contractsRes, payeesRes] = await Promise.all([
+          wlGetContractsAction(),
+          wlGetPayeesAction(),
+        ]);
 
-      if (contractsRes.success) {
-        setContracts(contractsRes.data);
+        if (contractsRes.success && Array.isArray(contractsRes.data)) {
+          setContracts(contractsRes.data);
+        } else {
+          setContracts([]);
+          if (!contractsRes.success && contractsRes.message && contractsRes.message !== "Failed to retrieve contracts.") {
+            toast.error(contractsRes.message);
+          }
+        }
+
+        if (payeesRes.success && Array.isArray(payeesRes.data)) {
+          setPayees(payeesRes.data);
+        } else {
+          setPayees([]);
+        }
+      } catch (err: any) {
+        console.error("Failed to load contracts or payees:", err);
+        setContracts([]);
+        setPayees([]);
+      } finally {
+        setLoading(false);
       }
-      if (payeesRes.success) {
-        setPayees(payeesRes.data);
-      }
-      setLoading(false);
     });
   };
 
@@ -442,7 +457,7 @@ export function ContractsContent() {
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
-          <span>Split Agreements ({contracts.length})</span>
+          <span>Split Agreements ({contracts?.length || 0})</span>
         </button>
         <button
           onClick={() => setActiveTab("payees")}
@@ -453,7 +468,7 @@ export function ContractsContent() {
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Payee Directory ({payees.length})</span>
+          <span>Payee Directory ({payees?.length || 0})</span>
         </button>
       </div>
 
@@ -481,14 +496,14 @@ export function ContractsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contracts.length === 0 ? (
+                {!contracts || contracts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
                       No contracts configured yet. Click &quot;New Split Deal&quot; to define your first revenue share.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  contracts.map((c) => (
+                  (contracts || []).map((c) => (
                     <TableRow key={c.id || c.code} className="border-border/50 text-xs">
                       <TableCell className="font-mono text-xs font-semibold text-foreground">
                         {c.code}
@@ -534,7 +549,7 @@ export function ContractsContent() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleDateString()}
+                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}
                       </TableCell>
                     </TableRow>
                   ))
@@ -569,15 +584,15 @@ export function ContractsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payees.length === 0 ? (
+                {!payees || payees.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
                       No payees registered yet. Click &quot;Register Payee&quot; to onboard your signed artists.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  payees.map((p) => {
-                    const linkedCount = contracts.filter((c) =>
+                  (payees || []).map((p) => {
+                    const linkedCount = (contracts || []).filter((c) =>
                       c.contractPayees?.some((cp) => cp.payeeId === p.id),
                     ).length;
 
@@ -769,7 +784,7 @@ export function ContractsContent() {
                       className="w-full h-8 rounded-md border border-input bg-card px-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">Select Payee...</option>
-                      {payees.map((p) => (
+                      {(payees || []).map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} ({p.role} - {p.email})
                         </option>

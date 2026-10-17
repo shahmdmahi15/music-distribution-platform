@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -64,6 +65,9 @@ export class WhitelabelContractsController {
     @CurrentWhiteLabel() whiteLabel: WhiteLabel,
     @Param('code') code: string,
   ) {
+    if (code === 'payees' || code === 'effective-split') {
+      throw new NotFoundException(`Resource not found for ${code}`);
+    }
     return await this.contractsService.getContract(whiteLabel.id, code);
   }
 }

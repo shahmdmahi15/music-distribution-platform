@@ -40,11 +40,24 @@ export async function wlGetContractsAction(params?: {
       headers,
       params,
     });
+
+    if (res.status >= 400 || res.data?.error || (res.data?.statusCode && res.data.statusCode >= 400)) {
+      return {
+        success: false,
+        message: res.data?.message || "Failed to retrieve contracts.",
+        data: [],
+        meta: { total: 0, page: 1, limit: 20, totalPages: 1 },
+      };
+    }
+
+    const rawData = res.data?.data ?? res.data;
+    const contractsList = Array.isArray(rawData) ? rawData : [];
+
     return {
       success: true,
       message: "Contracts retrieved successfully.",
-      data: res.data.data || res.data || [],
-      meta: res.data.meta || { total: 0, page: 1, limit: 20, totalPages: 1 },
+      data: contractsList,
+      meta: res.data?.meta || { total: contractsList.length, page: 1, limit: 20, totalPages: 1 },
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -74,6 +87,14 @@ export async function wlCreateContractAction(input: CreateContractInput): Promis
     const res = await api.post("/whitelabel/contracts", input, {
       headers,
     });
+
+    if (res.status >= 400 || res.data?.error || (res.data?.statusCode && res.data.statusCode >= 400)) {
+      return {
+        success: false,
+        message: res.data?.message || "Failed to create split contract.",
+      };
+    }
+
     revalidatePath("/contracts");
     return {
       success: true,
@@ -112,11 +133,24 @@ export async function wlGetPayeesAction(params?: {
       headers,
       params,
     });
+
+    if (res.status >= 400 || res.data?.error || (res.data?.statusCode && res.data.statusCode >= 400)) {
+      return {
+        success: false,
+        message: res.data?.message || "Failed to retrieve payees.",
+        data: [],
+        meta: { total: 0, page: 1, limit: 50, totalPages: 1 },
+      };
+    }
+
+    const rawData = res.data?.data ?? res.data;
+    const payeesList = Array.isArray(rawData) ? rawData : [];
+
     return {
       success: true,
       message: "Payees retrieved successfully.",
-      data: res.data.data || res.data || [],
-      meta: res.data.meta || { total: 0, page: 1, limit: 50, totalPages: 1 },
+      data: payeesList,
+      meta: res.data?.meta || { total: payeesList.length, page: 1, limit: 50, totalPages: 1 },
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -146,6 +180,14 @@ export async function wlCreatePayeeAction(input: CreatePayeeInput): Promise<{
     const res = await api.post("/whitelabel/contracts/payees", input, {
       headers,
     });
+
+    if (res.status >= 400 || res.data?.error || (res.data?.statusCode && res.data.statusCode >= 400)) {
+      return {
+        success: false,
+        message: res.data?.message || "Failed to register payee profile.",
+      };
+    }
+
     revalidatePath("/contracts");
     return {
       success: true,
@@ -178,6 +220,14 @@ export async function wlGetEffectiveSplitAction(params: {
       headers,
       params,
     });
+
+    if (res.status >= 400 || res.data?.error || (res.data?.statusCode && res.data.statusCode >= 400)) {
+      return {
+        success: false,
+        message: res.data?.message || "Failed to resolve effective split.",
+      };
+    }
+
     return {
       success: true,
       message: "Effective split hierarchy resolved.",
