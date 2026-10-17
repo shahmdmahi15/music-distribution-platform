@@ -17,6 +17,9 @@ import { ClientReferrerModule } from './referrer/referrer.module';
 })
 export class ClientModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(ClientMiddleware).forRoutes('platform/client/*path');
+    consumer
+      .apply(ClientMiddleware)
+      .exclude('platform/client/whitelabel/bundle/download')
+      .forRoutes('platform/client/*path');
   }
 }
