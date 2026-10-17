@@ -31,6 +31,7 @@ import {
   UserPen,
   ShieldPlus,
   Tv,
+  Server,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -54,6 +55,12 @@ const navigations = [
         title: "WhiteLabels",
         url: "/admin/whitelabels",
         icon: Disc3,
+        items: [],
+      },
+      {
+        title: "Infrastructure",
+        url: "/admin/infrastructure",
+        icon: Server,
         items: [],
       },
       {

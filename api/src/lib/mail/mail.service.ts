@@ -363,4 +363,55 @@ export class MailService implements OnModuleInit {
       html: htmlContent,
     });
   }
+
+  /**
+   * Sends an infrastructure diagnostic verification email from the central platform SES
+   */
+  async sendSystemDiagnosticEmail(
+    email: string,
+    details: {
+      serverTime: string;
+      hostname: string;
+      ipAddress: string;
+      sesRegion: string;
+      operatorEmail: string;
+    },
+  ): Promise<SESTransport.SentMessageInfo> {
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Infrastructure Diagnostic Test</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #f3f4f6; margin: 0; padding: 32px;">
+  <div style="max-width: 580px; margin: 0 auto; background-color: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);">
+    <div style="display: flex; align-items: center; margin-bottom: 24px;">
+      <h2 style="color: #10b981; margin: 0; font-size: 20px;">✓ AWS SES Mail Deliverability Test</h2>
+    </div>
+    <p style="color: #9ca3af; font-size: 14px; line-height: 1.6;">
+      This diagnostic message confirms that the RoyalMotionIT Mother Company AWS SES outbound pipeline, SPF alignment, and DKIM cryptographic signing keys are active and delivering messages correctly.
+    </p>
+    <div style="background-color: #1f2937; border-radius: 8px; padding: 16px; margin: 20px 0; font-family: monospace; font-size: 13px;">
+      <div style="color: #d1d5db; margin-bottom: 8px;"><strong>Timestamp:</strong> ${details.serverTime}</div>
+      <div style="color: #d1d5db; margin-bottom: 8px;"><strong>Host Node:</strong> ${details.hostname} (${details.ipAddress})</div>
+      <div style="color: #d1d5db; margin-bottom: 8px;"><strong>SES Region:</strong> ${details.sesRegion}</div>
+      <div style="color: #d1d5db; margin-bottom: 8px;"><strong>Sender Domain:</strong> ${this.senderEmail}</div>
+      <div style="color: #d1d5db;"><strong>Triggered By:</strong> ${details.operatorEmail}</div>
+    </div>
+    <p style="color: #6b7280; font-size: 12px; margin-top: 24px; text-align: center;">
+      RoyalMotionIT Platform Engine • Automated Telemetry & Diagnostics
+    </p>
+  </div>
+</body>
+</html>
+    `;
+
+    return this.transporter.sendMail({
+      from: `RoyalMotionIT Infrastructure <${this.senderEmail}>`,
+      to: email,
+      subject: `[DIAGNOSTIC] AWS SES Deliverability Verification — ${details.serverTime}`,
+      html: htmlContent,
+    });
+  }
 }

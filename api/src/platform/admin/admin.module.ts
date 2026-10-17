@@ -7,6 +7,7 @@ import { AdminWhitelabelModule } from './whitelabel/whitelabel.module';
 import { AdminReferrerModule } from './referrer/referrer.module';
 import { AdminDistributionModule } from './distribution/admin-distribution.module';
 import { AdminReportsModule } from './reports/admin-reports.module';
+import { AdminInfrastructureModule } from './infrastructure/admin-infrastructure.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AdminReportsModule } from './reports/admin-reports.module';
     AdminReferrerModule,
     AdminDistributionModule,
     AdminReportsModule,
+    AdminInfrastructureModule,
   ],
 })
 export class AdminModule implements NestModule {
