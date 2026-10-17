@@ -7,6 +7,7 @@ import { getTenantAction } from "@/actions/tenant/get-tenant.action";
 import { meAction } from "@/actions/auth/me.action";
 import { UnconfiguredPortalView } from "@/components/unconfigured-portal-view";
 import { getGoogleFontUrl, getFontFamilyCss } from "@/lib/fonts";
+import { getWCAGContrastForeground } from "@/lib/contrast";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenantRes = await getTenantAction();
@@ -50,24 +51,6 @@ function sanitizeRadius(val: string | undefined | null, fallback = "0.5rem"): st
   return isValid ? trimmed : fallback;
 }
 
-function getContrastForeground(color: string): string {
-  const cleanHex = color.replace('#', '').trim();
-  if (cleanHex.length === 3) {
-    const r = parseInt(cleanHex[0] + cleanHex[0], 16);
-    const g = parseInt(cleanHex[1] + cleanHex[1], 16);
-    const b = parseInt(cleanHex[2] + cleanHex[2], 16);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 150 ? '#000000' : '#ffffff';
-  } else if (cleanHex.length === 6) {
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 150 ? '#000000' : '#ffffff';
-  }
-  return '#ffffff';
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -97,7 +80,7 @@ export default async function RootLayout({
   );
   const fontCss = getFontFamilyCss(fontFamily);
   const googleFontUrl = getGoogleFontUrl(fontFamily);
-  const primaryForeground = getContrastForeground(primaryColor);
+  const primaryForeground = getWCAGContrastForeground(primaryColor);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -113,7 +96,7 @@ export default async function RootLayout({
           id="whitelabel-theme-root-vars"
           dangerouslySetInnerHTML={{
             __html: `
-              :root, .dark {
+              :root {
                 --font-sans: ${fontCss};
                 --font-heading: ${fontCss};
                 --tenant-primary: ${primaryColor};
@@ -123,6 +106,23 @@ export default async function RootLayout({
                 --primary-foreground: ${primaryForeground};
                 --ring: ${primaryColor};
                 --radius: ${radius};
+                --sidebar-primary: ${primaryColor};
+                --sidebar-primary-foreground: ${primaryForeground};
+                --sidebar-ring: ${primaryColor};
+              }
+              .dark {
+                --font-sans: ${fontCss};
+                --font-heading: ${fontCss};
+                --tenant-primary: ${primaryColor};
+                --tenant-accent: ${accentColor};
+                --tenant-radius: ${radius};
+                --primary: ${primaryColor};
+                --primary-foreground: ${primaryForeground};
+                --ring: ${primaryColor};
+                --radius: ${radius};
+                --sidebar-primary: ${primaryColor};
+                --sidebar-primary-foreground: ${primaryForeground};
+                --sidebar-ring: ${primaryColor};
               }
               html, body {
                 font-family: ${fontCss} !important;

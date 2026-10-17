@@ -2,17 +2,25 @@
 
 import { api } from "@/lib/api";
 import axios from "axios";
+import { resendVerificationSchema, ResendVerificationInput } from "@/schemas/auth.schema";
 
-export async function resendVerificationAction(email: string): Promise<{
+export async function resendVerificationAction(
+  input: string | ResendVerificationInput
+): Promise<{
   success: boolean;
   message: string;
 }> {
-  if (!email || !email.trim()) {
+  const rawEmail = typeof input === "string" ? input : input?.email;
+  const validation = resendVerificationSchema.safeParse({ email: rawEmail });
+
+  if (!validation.success) {
     return {
       success: false,
-      message: "Email address is required.",
+      message: validation.error.issues[0]?.message || "A valid email address is required.",
     };
   }
+
+  const email = validation.data.email.trim().toLowerCase();
 
   try {
     const res = await api.post("/whitelabel/auth/resend-verification", {
@@ -43,7 +51,7 @@ export async function resendVerificationAction(email: string): Promise<{
     }
     return {
       success: false,
-      message: "An unexpected error occurred.",
+      message: "An unexpected error occurred while sending verification email.",
     };
   }
 }

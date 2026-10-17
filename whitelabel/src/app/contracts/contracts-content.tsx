@@ -46,6 +46,11 @@ import {
   Layers,
   ArrowRight,
   TrendingUp,
+  CreditCard,
+  Building2,
+  Smartphone,
+  Globe,
+  Info,
 } from "lucide-react";
 
 export function ContractsContent() {
@@ -181,7 +186,7 @@ export function ContractsContent() {
 
     if (!isSplitBalanced) {
       toast.error(
-        `Payee splits must sum to exactly 100.00% (currently ${totalSplitPercentage}%).`,
+        `Payee splits must sum to exactly 100.00% (currently ${totalSplitPercentage.toFixed(2)}%).`,
       );
       return;
     }
@@ -269,39 +274,73 @@ export function ContractsContent() {
     switch (level) {
       case "TRACK":
         return (
-          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[11px]">
+          <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[11px] font-mono">
             Track Level (P1)
           </Badge>
         );
       case "RELEASE":
         return (
-          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[11px]">
+          <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[11px] font-mono">
             Release Level (P2)
           </Badge>
         );
       case "ARTIST":
         return (
-          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px]">
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] font-mono">
             Artist Level (P3)
           </Badge>
         );
       case "LABEL":
         return (
-          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px]">
+          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px] font-mono">
             Label Level (P4)
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20 text-[11px]">
+          <Badge className="bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20 text-[11px] font-mono">
             Account Default (P5)
           </Badge>
         );
     }
   };
 
+  const getPaymentMethodIcon = (method: string) => {
+    const m = (method || "").toUpperCase();
+    if (m.includes("BKASH")) {
+      return (
+        <span className="inline-flex items-center gap-1 text-pink-600 dark:text-pink-400 font-semibold text-xs">
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>bKash Remittance</span>
+        </span>
+      );
+    }
+    if (m.includes("WISE") || m.includes("PAYPAL")) {
+      return (
+        <span className="inline-flex items-center gap-1 text-blue-500 font-semibold text-xs">
+          <Globe className="w-3.5 h-3.5" />
+          <span>{method}</span>
+        </span>
+      );
+    }
+    if (m.includes("STRIPE")) {
+      return (
+        <span className="inline-flex items-center gap-1 text-indigo-500 font-semibold text-xs">
+          <CreditCard className="w-3.5 h-3.5" />
+          <span>Stripe Connect</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground font-semibold text-xs">
+        <Building2 className="w-3.5 h-3.5" />
+        <span>Bank Wire / Transfer</span>
+      </span>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/50 pb-5">
         <div className="space-y-1">
@@ -310,11 +349,11 @@ export function ContractsContent() {
               <Scale className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Rights & Split Contracts
+              Rights &amp; Split Contracts
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Configure custom revenue share percentages for your artists, sub-labels, and producers with Revelator precedence logic.
+            Configure automated royalty share percentages with Revelator-grade 5-tier precedence resolution.
           </p>
         </div>
 
@@ -338,7 +377,7 @@ export function ContractsContent() {
               }
               setShowContractModal(true);
             }}
-            className="gap-1.5 text-xs shadow-xs"
+            className="gap-1.5 text-xs shadow-xs font-semibold"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Split Deal</span>
@@ -346,59 +385,49 @@ export function ContractsContent() {
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Active Contracts</span>
-            <FileText className="w-4 h-4 text-primary" />
+      {/* 5-Tier Precedence Hierarchy Visualization Diagram */}
+      <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-r from-card via-card/80 to-card shadow-xs space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <Layers className="w-4 h-4 text-primary" />
+            <span>5-Tier Precedence Hierarchy Engine (Revelator-Compliant)</span>
           </div>
-          <div className="text-2xl font-bold text-foreground">
-            {contracts.length}
-          </div>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-            Enforced in automated royalty runs
-          </p>
+          <span className="text-[11px] text-muted-foreground">
+            Leftmost rule takes absolute precedence during royalty runs
+          </span>
         </div>
 
-        <div className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Registered Payees</span>
-            <Users className="w-4 h-4 text-blue-500" />
+        {/* Stepper / Hierarchy Diagram */}
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
+          <div className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 flex flex-col items-center text-center space-y-1">
+            <Badge className="bg-purple-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P1 (Highest)</Badge>
+            <span className="text-xs font-bold text-foreground">Track Level</span>
+            <span className="text-[10px] text-muted-foreground">ISRC override</span>
           </div>
-          <div className="text-2xl font-bold text-foreground">
-            {payees.length}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Artists, producers & label entities
-          </p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Precedence Engine</span>
-            <Layers className="w-4 h-4 text-purple-500" />
+          <div className="p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex flex-col items-center text-center space-y-1">
+            <Badge className="bg-blue-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P2</Badge>
+            <span className="text-xs font-bold text-foreground">Release Level</span>
+            <span className="text-[10px] text-muted-foreground">UPC album split</span>
           </div>
-          <div className="text-xs font-semibold text-foreground font-mono">
-            Track &gt; Release &gt; Artist &gt; Account
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Revelator-compliant resolution
-          </p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Split Balancing</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <div className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col items-center text-center space-y-1">
+            <Badge className="bg-emerald-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P3</Badge>
+            <span className="text-xs font-bold text-foreground">Artist Level</span>
+            <span className="text-[10px] text-muted-foreground">Roster default</span>
           </div>
-          <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-            Strict 100.00% Net Guarantee
+
+          <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col items-center text-center space-y-1">
+            <Badge className="bg-amber-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P4</Badge>
+            <span className="text-xs font-bold text-foreground">Label Level</span>
+            <span className="text-[10px] text-muted-foreground">Sub-label rate</span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Zero financial rounding drift
-          </p>
+
+          <div className="p-2.5 rounded-xl border border-zinc-500/30 bg-zinc-500/10 flex flex-col items-center text-center space-y-1">
+            <Badge className="bg-zinc-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P5 (Fallback)</Badge>
+            <span className="text-xs font-bold text-foreground">Account Default</span>
+            <span className="text-[10px] text-muted-foreground">Tenant baseline</span>
+          </div>
         </div>
       </div>
 
@@ -406,49 +435,45 @@ export function ContractsContent() {
       <div className="flex items-center gap-2 border-b border-border/50 pb-2">
         <button
           onClick={() => setActiveTab("contracts")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === "contracts"
               ? "bg-primary text-primary-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
-          <span>Split Contracts ({contracts.length})</span>
+          <span>Split Agreements ({contracts.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("payees")}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === "payees"
               ? "bg-primary text-primary-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Payees Directory ({payees.length})</span>
+          <span>Payee Directory ({payees.length})</span>
         </button>
       </div>
 
-      {/* Tab Content: Split Contracts */}
+      {/* Tab Content: Contracts Table */}
       {activeTab === "contracts" && (
-        <div className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs overflow-hidden">
+        <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-xs">
           <div className="p-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Active Royalty Split Agreements
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Net revenues apportioned to each payee when DSP sales are processed.
-              </p>
+              <h3 className="text-sm font-semibold text-foreground">Active Split Deals</h3>
+              <p className="text-xs text-muted-foreground">Automated percentage apportionments applied to incoming DSP royalties.</p>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="border-border/60">
                   <TableHead className="text-xs">Contract Code</TableHead>
-                  <TableHead className="text-xs">Title / Description</TableHead>
-                  <TableHead className="text-xs">Level</TableHead>
+                  <TableHead className="text-xs">Deal Title</TableHead>
+                  <TableHead className="text-xs">Precedence Tier</TableHead>
                   <TableHead className="text-xs">Target Asset</TableHead>
                   <TableHead className="text-xs">Payee Revenue Splits</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
@@ -458,20 +483,17 @@ export function ContractsContent() {
               <TableBody>
                 {contracts.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="h-32 text-center text-xs text-muted-foreground"
-                    >
-                      No contracts configured yet. Click &quot;New Split Deal&quot; to define your first artist revenue split.
+                    <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
+                      No contracts configured yet. Click &quot;New Split Deal&quot; to define your first revenue share.
                     </TableCell>
                   </TableRow>
                 ) : (
                   contracts.map((c) => (
-                    <TableRow key={c.id}>
+                    <TableRow key={c.id || c.code} className="border-border/50 text-xs">
                       <TableCell className="font-mono text-xs font-semibold text-foreground">
                         {c.code}
                       </TableCell>
-                      <TableCell className="text-xs font-medium">
+                      <TableCell className="text-xs font-medium text-foreground">
                         {c.title}
                       </TableCell>
                       <TableCell>{getLevelBadge(c.level)}</TableCell>
@@ -487,7 +509,7 @@ export function ContractsContent() {
                             <Badge
                               key={cp.id}
                               variant="outline"
-                              className="text-[10px] gap-1 font-mono bg-muted/30"
+                              className="text-[10px] gap-1 font-mono bg-muted/40"
                             >
                               <span className="font-semibold text-foreground">
                                 {cp.payee?.name || cp.role}:
@@ -523,81 +545,84 @@ export function ContractsContent() {
         </div>
       )}
 
-      {/* Tab Content: Payees Directory */}
+      {/* Tab Content: Payees Directory Table */}
       {activeTab === "payees" && (
-        <div className="rounded-xl border border-border/60 bg-card/60 backdrop-blur-xs overflow-hidden">
+        <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-xs">
           <div className="p-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Registered Payees & Beneficiaries
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Beneficiaries eligible to receive automated royalty disbursements and statements.
-              </p>
+              <h3 className="text-sm font-semibold text-foreground">Verified Payees &amp; Beneficiaries</h3>
+              <p className="text-xs text-muted-foreground">Roster artists, producers, and label partners with tax validation and payout routing.</p>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="border-border/60">
                   <TableHead className="text-xs">Payee Code</TableHead>
-                  <TableHead className="text-xs">Artist / Entity Name</TableHead>
+                  <TableHead className="text-xs">Beneficiary / Legal Name</TableHead>
                   <TableHead className="text-xs">Email</TableHead>
                   <TableHead className="text-xs">Role</TableHead>
-                  <TableHead className="text-xs">Payment Method</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs">Joined</TableHead>
+                  <TableHead className="text-xs">Tax ID / TIN</TableHead>
+                  <TableHead className="text-xs">Disbursement Method</TableHead>
+                  <TableHead className="text-xs">Linked Deals</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payees.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="h-32 text-center text-xs text-muted-foreground"
-                    >
-                      No payees registered yet. Click &quot;Register Payee&quot; to add your signed artists or producers.
+                    <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
+                      No payees registered yet. Click &quot;Register Payee&quot; to onboard your signed artists.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  payees.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs font-semibold text-foreground">
-                        {p.code}
-                      </TableCell>
-                      <TableCell className="text-xs font-medium">
-                        <div>{p.name}</div>
-                        {p.legalName && (
-                          <div className="text-[10px] text-muted-foreground">
-                            Legal: {p.legalName}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono text-muted-foreground">
-                        {p.email}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">
-                          {p.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.paymentMethod}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px]"
-                        >
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(p.createdAt).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  payees.map((p) => {
+                    const linkedCount = contracts.filter((c) =>
+                      c.contractPayees?.some((cp) => cp.payeeId === p.id),
+                    ).length;
+
+                    return (
+                      <TableRow key={p.id || p.code} className="border-border/50 text-xs">
+                        <TableCell className="font-mono text-xs font-semibold text-foreground">
+                          {p.code}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium">
+                          <div className="font-semibold text-foreground">{p.name}</div>
+                          {p.legalName && (
+                            <div className="text-[10px] text-muted-foreground">
+                              Legal: {p.legalName}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">
+                          {p.email}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {p.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {p.taxId ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-mono">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              <span>{p.taxId}</span>
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">
+                              Missing W-8BEN/W-9
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{getPaymentMethodIcon(p.paymentMethod)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] font-mono font-bold">
+                            {linkedCount} {linkedCount === 1 ? "Deal" : "Deals"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -605,19 +630,19 @@ export function ContractsContent() {
         </div>
       )}
 
-      {/* Modal: New Split Contract */}
+      {/* Modal: New Split Contract with Interactive Deal Presets & Balancing Bar */}
       <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <Scale className="w-4 h-4 text-primary" />
-              <span>Create Rights & Split Contract</span>
+              <span>Create Rights &amp; Split Contract</span>
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreateContract} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Contract Title / Deal Description</Label>
+              <Label className="text-xs font-semibold">Contract Title / Deal Description *</Label>
               <Input
                 value={contractForm.name}
                 onChange={(e) =>
@@ -631,7 +656,7 @@ export function ContractsContent() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Contract Level (Precedence)</Label>
+                <Label className="text-xs font-semibold">Contract Precedence Tier *</Label>
                 <select
                   value={contractForm.level}
                   onChange={(e) =>
@@ -640,7 +665,7 @@ export function ContractsContent() {
                       level: e.target.value as ContractLevel,
                     }))
                   }
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="RELEASE">Release Level (P2)</option>
                   <option value="TRACK">Track Level (P1 - Highest)</option>
@@ -651,9 +676,7 @@ export function ContractsContent() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">
-                  Target Asset (Release UPC / Track ISRC)
-                </Label>
+                <Label className="text-xs font-semibold">Target Asset ID (UPC / ISRC)</Label>
                 <Input
                   value={contractForm.targetId}
                   onChange={(e) =>
@@ -668,47 +691,47 @@ export function ContractsContent() {
               </div>
             </div>
 
-            {/* Quick Deal Presets */}
+            {/* Interactive Deal Presets */}
             <div className="space-y-1.5 pt-1">
-              <Label className="text-xs text-muted-foreground">
-                Quick Deal Presets:
+              <Label className="text-xs text-muted-foreground font-semibold">
+                Interactive Deal Presets:
               </Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => applyPresetDeal("SOLO_100")}
-                  className="h-7 text-[11px] gap-1"
+                  className="h-7 text-xs gap-1 font-medium hover:border-primary"
                 >
-                  100% Artist
+                  [100% Artist]
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => applyPresetDeal("SPLIT_70_30")}
-                  className="h-7 text-[11px] gap-1"
+                  className="h-7 text-xs gap-1 font-medium hover:border-primary"
                 >
-                  70% Artist / 30% Label
+                  [70/30 Artist/Label]
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => applyPresetDeal("SPLIT_80_20")}
-                  className="h-7 text-[11px] gap-1"
+                  className="h-7 text-xs gap-1 font-medium hover:border-primary"
                 >
-                  80% Artist / 20% Label
+                  [80/20 Master Deal]
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => applyPresetDeal("COLLAB_50_50")}
-                  className="h-7 text-[11px] gap-1"
+                  className="h-7 text-xs gap-1 font-medium hover:border-primary"
                 >
-                  50% / 50% Collab
+                  [50/50 Equal Collaboration]
                 </Button>
               </div>
             </div>
@@ -716,18 +739,16 @@ export function ContractsContent() {
             {/* Dynamic Payee Split Rows */}
             <div className="space-y-2.5 pt-2 border-t border-border/50">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">
-                  Beneficiary Splits:
-                </Label>
+                <Label className="text-xs font-semibold">Beneficiary Share Allocation:</Label>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={handleAddSplitRow}
-                  className="h-6 text-[11px] gap-1 text-primary"
+                  className="h-6 text-xs gap-1 text-primary font-semibold"
                 >
-                  <Plus className="w-3 h-3" />
-                  <span>Add Payee</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Payee Line</span>
                 </Button>
               </div>
 
@@ -742,13 +763,10 @@ export function ContractsContent() {
                       onChange={(e) => {
                         const newSplits = [...contractForm.splits];
                         newSplits[idx].payeeId = e.target.value;
-                        setContractForm((prev) => ({
-                          ...prev,
-                          splits: newSplits,
-                        }));
+                        setContractForm((prev) => ({ ...prev, splits: newSplits }));
                       }}
                       required
-                      className="w-full h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full h-8 rounded-md border border-input bg-card px-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="">Select Payee...</option>
                       {payees.map((p) => (
@@ -765,12 +783,9 @@ export function ContractsContent() {
                       onChange={(e) => {
                         const newSplits = [...contractForm.splits];
                         newSplits[idx].role = e.target.value as PayeeRole;
-                        setContractForm((prev) => ({
-                          ...prev,
-                          splits: newSplits,
-                        }));
+                        setContractForm((prev) => ({ ...prev, splits: newSplits }));
                       }}
-                      className="w-full h-8 rounded-md border border-input bg-transparent px-1.5 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full h-8 rounded-md border border-input bg-card px-1.5 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <option value="ARTIST">Artist</option>
                       <option value="LABEL">Label</option>
@@ -791,10 +806,7 @@ export function ContractsContent() {
                       onChange={(e) => {
                         const newSplits = [...contractForm.splits];
                         newSplits[idx].percentage = parseFloat(e.target.value) || 0;
-                        setContractForm((prev) => ({
-                          ...prev,
-                          splits: newSplits,
-                        }));
+                        setContractForm((prev) => ({ ...prev, splits: newSplits }));
                       }}
                       required
                       className="h-8 text-xs font-mono pr-6"
@@ -817,26 +829,52 @@ export function ContractsContent() {
               ))}
             </div>
 
-            {/* Split Total Indicator */}
-            <div className="p-3 rounded-xl border flex items-center justify-between text-xs font-mono">
-              <span className="text-muted-foreground font-sans">
-                Total Allocated Share:
-              </span>
-              <div className="flex items-center gap-1.5">
-                {isSplitBalanced ? (
-                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1 font-mono">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>{totalSplitPercentage.toFixed(2)}% (Balanced ✓)</span>
-                  </Badge>
-                ) : (
-                  <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 text-xs gap-1 font-mono">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>
-                      {totalSplitPercentage.toFixed(2)}% (Must equal 100%)
+            {/* Strict 100.00% Split Balancing Bar */}
+            <div className="p-3.5 rounded-xl border border-border/60 bg-card space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-muted-foreground font-sans font-semibold">
+                  Split Balancing Guarantee:
+                </span>
+                <div className="flex items-center gap-1.5 font-bold">
+                  {isSplitBalanced ? (
+                    <span className="text-emerald-500 flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>100.00% (Balanced ✓)</span>
                     </span>
-                  </Badge>
-                )}
+                  ) : totalSplitPercentage < 100 ? (
+                    <span className="text-amber-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{totalSplitPercentage.toFixed(2)}% (Deficit: {(100 - totalSplitPercentage).toFixed(2)}%)</span>
+                    </span>
+                  ) : (
+                    <span className="text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{totalSplitPercentage.toFixed(2)}% (Exceeds by {(totalSplitPercentage - 100).toFixed(2)}%)</span>
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Dynamic colored progress bar */}
+              <div className="h-2.5 w-full bg-muted/60 rounded-full overflow-hidden shadow-inner">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    isSplitBalanced
+                      ? "bg-emerald-500"
+                      : totalSplitPercentage < 100
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${Math.min(100, totalSplitPercentage)}%` }}
+                />
+              </div>
+
+              {!isSplitBalanced && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Info className="w-3 h-3 text-amber-500" />
+                  <span>Deals can only be saved when total allocations equal exactly 100.00%.</span>
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
@@ -852,7 +890,7 @@ export function ContractsContent() {
                 type="submit"
                 size="sm"
                 disabled={contractSubmitting || !isSplitBalanced}
-                className="gap-1.5"
+                className="gap-1.5 font-semibold"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>
@@ -876,7 +914,7 @@ export function ContractsContent() {
 
           <form onSubmit={handleCreatePayee} className="space-y-3.5 pt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Artist / Entity Name</Label>
+              <Label className="text-xs font-semibold">Artist / Entity Name *</Label>
               <Input
                 value={payeeForm.name}
                 onChange={(e) =>
@@ -889,7 +927,7 @@ export function ContractsContent() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Email Address (for statements)</Label>
+              <Label className="text-xs font-semibold">Email Address (for statements) *</Label>
               <Input
                 type="email"
                 value={payeeForm.email}
@@ -919,7 +957,7 @@ export function ContractsContent() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Tax ID / National ID</Label>
+                <Label className="text-xs">Tax ID / TIN / NID</Label>
                 <Input
                   value={payeeForm.taxId}
                   onChange={(e) =>
@@ -936,7 +974,7 @@ export function ContractsContent() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Primary Role</Label>
+                <Label className="text-xs font-semibold">Primary Role</Label>
                 <select
                   value={payeeForm.role}
                   onChange={(e) =>
@@ -945,7 +983,7 @@ export function ContractsContent() {
                       role: e.target.value as PayeeRole,
                     }))
                   }
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="ARTIST">Artist</option>
                   <option value="LABEL">Sub-Label</option>
@@ -957,7 +995,7 @@ export function ContractsContent() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Disbursement Method</Label>
+                <Label className="text-xs font-semibold">Disbursement Method</Label>
                 <select
                   value={payeeForm.paymentMethod}
                   onChange={(e) =>
@@ -966,7 +1004,7 @@ export function ContractsContent() {
                       paymentMethod: e.target.value,
                     }))
                   }
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="BANK_TRANSFER">Bank Wire / Transfer</option>
                   <option value="BKASH">bKash Remittance</option>
@@ -989,7 +1027,7 @@ export function ContractsContent() {
                 type="submit"
                 size="sm"
                 disabled={payeeSubmitting}
-                className="gap-1.5"
+                className="gap-1.5 font-semibold"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>

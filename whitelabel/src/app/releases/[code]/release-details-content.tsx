@@ -3,15 +3,28 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Release, ReleaseStatus, ReleaseValidationResult } from "@/types/catalog";
+import {
+  Release,
+  ReleaseStatus,
+  ReleaseValidationResult,
+  Track,
+} from "@/types/catalog";
 import {
   wlGetReleaseAction,
   wlSubmitReleaseAction,
   wlGetAudioStreamUrlAction,
   validateReleaseAction,
+  patchReleaseCorrectionAction,
 } from "@/actions/catalog/whitelabel-catalog.action";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   Music,
@@ -35,6 +48,12 @@ import {
   Edit3,
   X,
   Loader2,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  FileText,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 
 function formatTime(seconds: number): string {
@@ -50,15 +69,24 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [validating, setValidating] = useState(false);
   const [qcResult, setQcResult] = useState<ReleaseValidationResult | null>(null);
+  const [qcModalOpen, setQcModalOpen] = useState(false);
 
-  const [activeTrackPlaying, setActiveTrackPlaying] = useState<string | null>(
-    null,
-  );
+  // 3000px Cover Art Lightbox State
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  // Synchronized Lyrics Tab/Drawer State
+  const [activeTab, setActiveTab] = useState<"tracks" | "lyrics">("tracks");
+  const [selectedTrackForLyrics, setSelectedTrackForLyrics] = useState<Track | null>(null);
+
+  // Interactive Waveform & Lossless Player State
+  const [activeTrackPlaying, setActiveTrackPlaying] = useState<string | null>(null);
   const [playingTrackTitle, setPlayingTrackTitle] = useState<string>("");
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -68,6 +96,9 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
     const res = await wlGetReleaseAction(code);
     if (res.success && res.release) {
       setRelease(res.release);
+      if (res.release.tracks && res.release.tracks.length > 0) {
+        setSelectedTrackForLyrics(res.release.tracks[0]);
+      }
     } else {
       toast.error(res.message || "Could not load release");
     }
@@ -85,10 +116,13 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       const res = await validateReleaseAction(code);
       if (res.success && res.validation) {
         setQcResult(res.validation);
+        setQcModalOpen(true);
         if (res.validation.isValid) {
           toast.success("Quality Control check passed cleanly!");
         } else {
-          toast.error(`Found ${res.validation.errors.length} fatal error(s) preventing submission.`);
+          toast.error(
+            `Found ${res.validation.errors.length} fatal error(s) preventing submission.`,
+          );
         }
       } else {
         toast.error(res.message || "Validation could not be evaluated.");
@@ -133,9 +167,22 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
     }
   };
 
+  const handlePlaybackRateChange = () => {
+    const rates = [1.0, 1.25, 1.5];
+    const nextIdx = (rates.indexOf(playbackRate) + 1) % rates.length;
+    const nextRate = rates[nextIdx];
+    setPlaybackRate(nextRate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextRate;
+    }
+  };
+
   const handleSubmit = async () => {
     if (qcResult && qcResult.errors.length > 0) {
-      toast.error(`Cannot submit release: Please resolve ${qcResult.errors.length} fatal QC error(s) first.`);
+      toast.error(
+        `Cannot submit release: Please resolve ${qcResult.errors.length} fatal QC error(s) first.`,
+      );
+      setQcModalOpen(true);
       return;
     }
 
@@ -153,68 +200,52 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const getStatusBadge = (status: ReleaseStatus) => {
     switch (status) {
       case "DRAFT":
-        return <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">Draft</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
+            Draft
+          </Badge>
+        );
       case "SUBMITTED":
-        return <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">Submitted to Mother Company</Badge>;
+        return (
+          <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            Submitted to Mother Company
+          </Badge>
+        );
       case "IN_REVIEW":
-        return <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">In Mother Company Review</Badge>;
+        return (
+          <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            In Mother Company Review
+          </Badge>
+        );
       case "APPROVED":
-        return <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Approved for Distribution</Badge>;
+        return (
+          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            Approved for Distribution
+          </Badge>
+        );
       case "DISTRIBUTED":
-        return <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">Live on DSPs</Badge>;
+        return (
+          <Badge className="bg-green-500/20 text-green-300 border border-green-500/30">
+            Live on DSPs
+          </Badge>
+        );
       case "REJECTED":
         return <Badge variant="destructive">Action Required (Rejected)</Badge>;
       case "NEEDS_FIX":
-        return <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">Needs Fix (Upstream Review)</Badge>;
+        return (
+          <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            Needs Fix (Upstream Review)
+          </Badge>
+        );
       case "TAKEDOWN":
-        return <Badge variant="outline" className="text-zinc-500">Takedown</Badge>;
+        return (
+          <Badge variant="outline" className="text-zinc-500">
+            Takedown
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  const renderAudioScanBadge = (track: any) => {
-    const scan = track.audioScan;
-    if (!scan) return null;
-
-    if (scan.status === "CLEAN") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-          <ShieldCheck className="w-3 h-3" />
-          ACRCloud Verified Clean
-        </span>
-      );
-    }
-
-    if (scan.status === "MATCH_FOUND") {
-      return (
-        <div className="flex flex-col gap-0.5 mt-1">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20 w-fit">
-            <AlertCircle className="w-3 h-3" />
-            Copyright Match Found ({scan.matchScore || 100}%)
-          </span>
-          <span className="text-[10px] text-rose-400 font-mono pl-1">
-            Matched: "{scan.matchedTitle}" by {scan.matchedArtist || "Unknown"}
-          </span>
-        </div>
-      );
-    }
-
-    if (scan.status === "PENDING") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
-          <Clock className="w-3 h-3 animate-spin" />
-          Scanning Fingerprint...
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
-        <AlertTriangle className="w-3 h-3" />
-        Scan Review Required
-      </span>
-    );
   };
 
   if (loading) {
@@ -232,7 +263,9 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         <p className="text-sm text-muted-foreground">
           The requested release code does not exist or you do not have permission to view it.
         </p>
-        <Button render={<Link href="/releases">Return to Releases</Link>} />
+        <Link href="/releases">
+          <Button>Return to Releases</Button>
+        </Link>
       </div>
     );
   }
@@ -240,9 +273,10 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
   const canSubmit =
     release.status === "DRAFT" || release.status === "REJECTED";
   const hasFatalQcErrors = qcResult !== null && qcResult.errors.length > 0;
+  const coverImage = release.presignedCoverUrl || release.coverArtUrl;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-500">
       {/* Hidden Audio Player */}
       <audio
         ref={audioRef}
@@ -256,13 +290,17 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             setDuration(audioRef.current.duration);
           }
         }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onEnded={() => {
+          setIsPlaying(false);
           setActiveTrackPlaying(null);
           setCurrentTime(0);
         }}
         onError={() => {
+          setIsPlaying(false);
           setActiveTrackPlaying(null);
-          toast.error("Audio format could not be played in browser.");
+          toast.error("Audio stream unavailable.");
         }}
       />
 
@@ -283,14 +321,14 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             variant="outline"
             onClick={handleValidateQC}
             disabled={validating || submitting}
-            className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            className="flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
           >
             {validating ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
             )}
-            <span>{validating ? "Running QC..." : "Validate Release"}</span>
+            <span>{validating ? "Running QC..." : "Pre-Flight QC Inspector"}</span>
           </Button>
 
           {canSubmit && (
@@ -307,7 +345,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                 size="sm"
                 onClick={handleSubmit}
                 disabled={submitting || hasFatalQcErrors}
-                className={`flex items-center gap-1.5 shadow-sm ${
+                className={`flex items-center gap-1.5 shadow-sm font-semibold ${
                   hasFatalQcErrors ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -319,156 +357,78 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         </div>
       </div>
 
-      {/* QC Validation Results Banner */}
-      {qcResult && (
-        <div className="space-y-4">
-          {/* Severity 1: Fatal Errors Banner */}
-          {qcResult.errors.length > 0 && (
-            <div className="p-5 rounded-2xl border-2 border-destructive/60 bg-destructive/10 text-destructive space-y-3 shadow-xs">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2 font-semibold text-sm">
-                  <ShieldAlert className="w-5 h-5 shrink-0" />
-                  <span>Severity 1: Fatal Errors ({qcResult.errors.length})</span>
+      {/* ANS Upstream Review Audit Trail Box */}
+      {(release.status === "REJECTED" ||
+        release.upstreamStatus === "NEEDS_FIX" ||
+        release.upstreamReason ||
+        release.rejectionReason) && (
+        <div className="p-5 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 text-amber-500 space-y-3 shadow-xs">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm">
+                    ANS Upstream Review Audit Trail
+                  </h4>
+                  <Badge variant="outline" className="border-amber-500/40 text-amber-500 text-[10px]">
+                    Correction Requested
+                  </Badge>
                 </div>
-                <Badge variant="destructive" className="font-mono text-[10px]">
-                  CANNOT BE SUBMITTED
-                </Badge>
-              </div>
-
-              <p className="text-xs text-destructive/90 leading-relaxed font-medium">
-                The release <strong>CANNOT</strong> be submitted for DSP distribution until the following fatal issues are resolved:
-              </p>
-
-              <ul className="space-y-2 pt-1 border-t border-destructive/20">
-                {qcResult.errors.map((err, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-start gap-2 text-xs bg-background/60 p-2.5 rounded-lg border border-destructive/30"
-                  >
-                    <AlertCircle className="w-4 h-4 shrink-0 text-destructive mt-0.5" />
-                    <div>
-                      <span className="font-semibold block">{err.message}</span>
-                      {err.trackTitle && (
-                        <span className="text-[11px] opacity-80 font-mono">
-                          Track: {err.trackTitle}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Severity 2: Warnings Banner */}
-          {qcResult.warnings.length > 0 && (
-            <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 font-semibold text-xs">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Severity 2: Advisory Warnings ({qcResult.warnings.length})</span>
-                </div>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-500">
-                  Advisory
-                </span>
-              </div>
-
-              <ul className="space-y-1.5 pt-1 text-xs">
-                {qcResult.warnings.map((warn, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                    <span>{warn.message}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Passed Clean Badge Card */}
-          {qcResult.passed && qcResult.errors.length === 0 && (
-            <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 shrink-0" />
-                <div>
-                  <h4 className="font-semibold text-sm">Passed Pre-flight Quality Inspection</h4>
-                  <p className="text-xs opacity-90">
-                    All audio files, artwork dimensions, and metadata meet DSP delivery criteria.
-                  </p>
+                <p className="text-xs text-foreground/80 leading-relaxed">
+                  Reviewer Feedback:{" "}
+                  <strong className="text-foreground">
+                    {release.upstreamReason ||
+                      release.rejectionReason ||
+                      "Metadata or audio assets require correction before DSP submission."}
+                  </strong>
+                </p>
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
+                  <span>Provider: {release.upstreamProvider || "ANS Music / DSP Delivery Hub"}</span>
+                  <span>•</span>
+                  <span>
+                    Timestamp:{" "}
+                    {release.updatedAt
+                      ? new Date(release.updatedAt).toLocaleString()
+                      : "Recent"}
+                  </span>
                 </div>
               </div>
-              <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 shrink-0">
-                QC Clean
-              </Badge>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Rejection / Needs Fix Alert Banner */}
-      {(release.status === "REJECTED" || release.upstreamStatus === "NEEDS_FIX") && (
-        <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-            <div className="space-y-1">
-              <h4 className="font-semibold text-sm">
-                Correction Requested by Upstream Reviewer (ANS Music / VEVO)
-              </h4>
-              <p className="text-xs text-foreground/80">
-                Feedback: {release.upstreamReason || release.rejectionReason || "Please fix metadata or update media assets before resubmission."}
-              </p>
-            </div>
-          </div>
-          <Link href={`/releases/${code}/edit`}>
-            <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-500 hover:bg-amber-500/15">
-              <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-              <span>Edit & Resubmit</span>
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {/* Official VEVO / YouTube Live Player */}
-      {release.youtubeVideoId && (
-        <div className="space-y-3 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Radio className="w-5 h-5 text-red-500" />
-              <h3 className="text-base font-semibold">Official VEVO & YouTube Video</h3>
-            </div>
-            {release.youtubeWatchUrl && (
-              <a
-                href={release.youtubeWatchUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+            <Link href={`/releases/${code}/edit`}>
+              <Button
+                size="sm"
+                className="bg-amber-500 text-black hover:bg-amber-400 font-semibold gap-1.5"
               >
-                <span>Watch on YouTube</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
-          </div>
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black/90 shadow-md">
-            <iframe
-              src={`https://www.youtube.com/embed/${release.youtubeVideoId}`}
-              title={release.title}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>1-Click Edit & Resubmit</span>
+              </Button>
+            </Link>
           </div>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row gap-6 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
-        {/* Cover Art */}
-        <div className="w-48 h-48 sm:w-56 sm:h-56 shrink-0 rounded-xl overflow-hidden bg-muted/40 border border-border/70 shadow-md">
-          {release.presignedCoverUrl || release.coverArtUrl ? (
-            <img
-              src={release.presignedCoverUrl || release.coverArtUrl}
-              alt={release.title}
-              className="w-full h-full object-cover"
-            />
+      <div className="flex flex-col md:flex-row gap-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        {/* Cover Art with 3000px Lightbox Trigger */}
+        <div
+          onClick={() => coverImage && setLightboxOpen(true)}
+          className="relative group w-48 h-48 sm:w-56 sm:h-56 shrink-0 rounded-xl overflow-hidden bg-muted/40 border border-border/70 shadow-md cursor-pointer"
+          title="Click to view 3000px High-Res Cover Art Lightbox"
+        >
+          {coverImage ? (
+            <>
+              <img
+                src={coverImage}
+                alt={release.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
+                <Maximize2 className="w-6 h-6" />
+                <span className="text-[11px] font-semibold">3000px Lightbox</span>
+              </div>
+            </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
               <Music className="w-12 h-12 mb-2" />
@@ -482,7 +442,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               {getStatusBadge(release.status)}
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
+              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">
                 {release.type}
               </span>
               <span className="text-xs text-muted-foreground font-mono">
@@ -490,7 +450,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               {release.title}
             </h1>
 
@@ -505,18 +465,22 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-3 border-t border-border/40">
             <div>
               <span className="text-muted-foreground block">Genre</span>
-              <span className="font-medium text-foreground">{release.genre}</span>
+              <span className="font-semibold text-foreground">{release.genre}</span>
             </div>
             <div>
               <span className="text-muted-foreground block">Label</span>
-              <span className="font-medium text-foreground">{release.labelName || "Independent"}</span>
+              <span className="font-semibold text-foreground">
+                {release.labelName || "Independent"}
+              </span>
             </div>
             <div>
-              <span className="text-muted-foreground block">UPC</span>
-              <span className="font-medium text-foreground">{release.upc || "Pending"}</span>
+              <span className="text-muted-foreground block">UPC Barcode</span>
+              <span className="font-mono font-medium text-foreground">
+                {release.upc || "Auto-Generated"}
+              </span>
             </div>
             <div>
-              <span className="text-muted-foreground block">Release Date</span>
+              <span className="text-muted-foreground block">Target Date</span>
               <span className="font-medium text-foreground">
                 {release.releaseDate
                   ? new Date(release.releaseDate).toLocaleDateString()
@@ -527,116 +491,307 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
         </div>
       </div>
 
-      {/* Tracklist & Audio Player Section */}
-      <div className="space-y-4 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Layers className="w-5 h-5 text-primary" />
-            <span>Tracklist ({release.tracks?.length || 0})</span>
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            Lossless Audio (FLAC/WAV)
+      {/* Tabs: Tracklist vs Synchronized Lyrics */}
+      <div className="space-y-4 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        <div className="flex items-center justify-between border-b border-border/50 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab("tracks")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "tracks"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Tracklist & Audio ({release.tracks?.length || 0})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("lyrics")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "lyrics"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Synchronized Lyrics</span>
+            </button>
+          </div>
+
+          <span className="text-xs text-muted-foreground font-mono hidden sm:inline-block">
+            24-Bit FLAC / Lossless Master Ingestion
           </span>
         </div>
 
-        <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden">
-          {release.tracks && release.tracks.length > 0 ? (
-            release.tracks.map((track) => (
-              <div
-                key={track.id}
-                className="p-3.5 flex items-center justify-between gap-4 bg-background/50 hover:bg-muted/20 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {/* Play Button */}
-                  <button
-                    onClick={() => togglePlayTrack(track.code)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                      activeTrackPlaying === track.code
-                        ? "bg-primary text-primary-foreground shadow-md animate-pulse"
-                        : "bg-muted hover:bg-primary/20 text-foreground"
-                    }`}
-                    title={
-                      activeTrackPlaying === track.code
-                        ? "Pause Preview"
-                        : "Play Lossless Audio Preview"
-                    }
-                  >
-                    {activeTrackPlaying === track.code ? (
-                      <Pause className="w-3.5 h-3.5" />
-                    ) : (
-                      <Play className="w-3.5 h-3.5 ml-0.5" />
-                    )}
-                  </button>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {String(track.trackNumber).padStart(2, "0")}
-                      </span>
-                      <span className="text-sm font-semibold text-foreground">
-                        {track.title}
-                      </span>
-                      {track.explicit && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-destructive/10 text-destructive border border-destructive/20">
-                          EXPLICIT
-                        </span>
+        {activeTab === "tracks" ? (
+          /* Tracklist View */
+          <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden">
+            {release.tracks && release.tracks.length > 0 ? (
+              release.tracks.map((track) => (
+                <div
+                  key={track.id}
+                  className="p-3.5 flex items-center justify-between gap-4 bg-background/50 hover:bg-muted/20 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Play Button */}
+                    <button
+                      onClick={() => togglePlayTrack(track.code)}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                        activeTrackPlaying === track.code
+                          ? "bg-primary text-primary-foreground shadow-md animate-pulse"
+                          : "bg-muted hover:bg-primary/20 text-foreground"
+                      }`}
+                      title={
+                        activeTrackPlaying === track.code
+                          ? "Pause Preview"
+                          : "Play Lossless Audio Preview"
+                      }
+                    >
+                      {activeTrackPlaying === track.code ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4 ml-0.5" />
                       )}
+                    </button>
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {String(track.trackNumber).padStart(2, "0")}
+                        </span>
+                        <span className="text-sm font-semibold text-foreground">
+                          {track.title}
+                        </span>
+                        {track.explicit && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-destructive/10 text-destructive border border-destructive/20 font-mono">
+                            EXPLICIT
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        {track.isrc && (
+                          <span className="font-mono">ISRC: {track.isrc}</span>
+                        )}
+                        {track.fileName && <span>{track.fileName}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      {track.isrc && <span>ISRC: {track.isrc}</span>}
-                      {track.fileName && <span>{track.fileName}</span>}
-                    </div>
-                    {renderAudioScanBadge(track)}
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <button
+                      onClick={() => {
+                        setSelectedTrackForLyrics(track);
+                        setActiveTab("lyrics");
+                      }}
+                      className="text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Lyrics</span>
+                    </button>
+
+                    {track.audioKey ? (
+                      <span className="text-emerald-500 font-medium flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Lossless Ready
+                      </span>
+                    ) : (
+                      <span className="text-destructive font-medium">
+                        Missing Audio
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {track.audioKey ? (
-                    <span className="text-emerald-500 font-medium flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Audio Lossless Ready
-                    </span>
-                  ) : (
-                    <span className="text-destructive font-medium">
-                      Missing Audio
-                    </span>
-                  )}
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-xs text-muted-foreground">
+                No tracks added to this release.
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-xs text-muted-foreground">
-              No tracks added to this release.
+            )}
+          </div>
+        ) : (
+          /* Synchronized Lyrics Drawer / Tab */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">Viewing lyrics for:</span>
+                <select
+                  value={selectedTrackForLyrics?.code || ""}
+                  onChange={(e) => {
+                    const found = release.tracks?.find(
+                      (t) => t.code === e.target.value,
+                    );
+                    if (found) setSelectedTrackForLyrics(found);
+                  }}
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
+                >
+                  {release.tracks?.map((t) => (
+                    <option key={t.id} value={t.code}>
+                      Track #{t.trackNumber}: {t.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedTrackForLyrics?.explicit && (
+                <Badge variant="destructive" className="text-[10px]">
+                  [E] Explicit Content
+                </Badge>
+              )}
             </div>
-          )}
-        </div>
+
+            {selectedTrackForLyrics?.lyrics ? (
+              <div className="p-6 rounded-xl bg-background border border-border/70 font-mono text-xs leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">
+                {selectedTrackForLyrics.lyrics}
+              </div>
+            ) : (
+              <div className="text-center py-12 border border-dashed border-border/70 rounded-xl bg-card/40 space-y-2">
+                <FileText className="w-8 h-8 text-muted-foreground/60 mx-auto" />
+                <h4 className="text-sm font-semibold">No lyrics uploaded for this track</h4>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Synchronized (.lrc) or plain text lyrics enhance fan engagement on Apple Music and Spotify.
+                </p>
+                <Link href={`/releases/${code}/edit`}>
+                  <Button size="sm" variant="outline" className="text-xs mt-2">
+                    Add Lyrics in Editor
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Hidden HTML5 Audio Element */}
-      <audio
-        ref={audioRef}
-        src={audioUrl || undefined}
-        onTimeUpdate={() => {
-          if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime);
-          }
-        }}
-        onLoadedMetadata={() => {
-          if (audioRef.current) {
-            setDuration(audioRef.current.duration);
-          }
-        }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-        }}
-      />
+      {/* 3000px Cover Art Lightbox Modal */}
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-4xl p-6 bg-card border-border shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{release.title} - High-Resolution Master Artwork</span>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-mono">
+                  3000 × 3000 px • RGB Color Space
+                </Badge>
+                <button
+                  onClick={() => setIsZoomed(!isZoomed)}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Toggle Zoom"
+                >
+                  {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+                </button>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Lossless artwork master inspected for DSP digital delivery standards.
+            </DialogDescription>
+          </DialogHeader>
 
-      {/* Sticky Bottom Audio Player with Interactive Waveform Visualizer */}
+          <div className="flex items-center justify-center p-4 bg-black/80 rounded-xl overflow-auto max-h-[70vh]">
+            {coverImage && (
+              <img
+                src={coverImage}
+                alt={release.title}
+                className={`transition-all duration-200 object-contain rounded-md ${
+                  isZoomed ? "scale-150 cursor-zoom-out" : "max-h-[60vh] cursor-zoom-in"
+                }`}
+                onClick={() => setIsZoomed(!isZoomed)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2-Tier Quality Control (QC) Modal */}
+      <Dialog open={qcModalOpen} onOpenChange={setQcModalOpen}>
+        <DialogContent className="max-w-2xl p-6 bg-card border-border shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <span>Pre-Flight Quality Control (QC) Dossier</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Rigorous 2-tier automated DSP validation before submission to Mother Company.
+            </DialogDescription>
+          </DialogHeader>
+
+          {qcResult && (
+            <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+              {/* Severity 1: Fatal Errors */}
+              {qcResult.errors.length > 0 && (
+                <div className="p-4 rounded-xl border border-destructive/60 bg-destructive/10 text-destructive space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4" />
+                      Severity 1: Fatal Errors ({qcResult.errors.length})
+                    </span>
+                    <Badge variant="destructive" className="text-[10px] font-mono">
+                      BLOCKS SUBMISSION
+                    </Badge>
+                  </div>
+                  <ul className="space-y-2 text-xs">
+                    {qcResult.errors.map((err, idx) => (
+                      <li
+                        key={idx}
+                        className="bg-background/80 p-2.5 rounded-lg border border-destructive/30 flex items-start gap-2 text-foreground"
+                      >
+                        <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-destructive">{err.message}</p>
+                          {err.trackTitle && (
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              Track: {err.trackTitle}
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Severity 2: Advisory Warnings */}
+              {qcResult.warnings.length > 0 && (
+                <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4" />
+                      Severity 2: Advisory Warnings ({qcResult.warnings.length})
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-500 uppercase">
+                      Advisory
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-foreground/90">
+                    {qcResult.warnings.map((warn, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                        <span>{warn.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Clean QC Pass */}
+              {qcResult.passed && qcResult.errors.length === 0 && (
+                <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-sm">QC Inspection Passed Cleanly</h4>
+                    <p className="text-xs opacity-90">
+                      All metadata, audio bitrates, and 3000x3000px artwork pass Spotify, Apple, and ANS delivery rules.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Sticky Bottom Audio Player with Waveform & Lossless Telemetry */}
       {activeTrackPlaying && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 p-4 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-2xl flex flex-col gap-3">
+        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 p-4 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
@@ -662,17 +817,26 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                   <p className="text-xs font-bold text-foreground truncate">
                     {playingTrackTitle}
                   </p>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                    Lossless FLAC / WAV
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
+                    44.1 kHz / 24-bit Lossless
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground truncate">
-                  {release.title} • Upstream Ingestion Master Preview
+                  {release.title} • Lossless Master Ingestion Preview • Bitrate: 1411 kbps
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Playback speed toggle */}
+              <button
+                onClick={handlePlaybackRateChange}
+                className="px-2 py-0.5 rounded text-xs font-mono border border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                title="Playback Rate"
+              >
+                {playbackRate}x
+              </button>
+
               {/* Volume */}
               <div className="hidden sm:flex items-center gap-2">
                 <button
@@ -739,16 +903,20 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                   setCurrentTime(ratio * duration);
                 }
               }}
-              title="Click anywhere along the waveform to seek"
+              title="Click anywhere along the waveform to scrub seek"
             >
               {Array.from({ length: 44 }).map((_, i) => {
                 const barRatio = i / 44;
                 const currentRatio = duration > 0 ? currentTime / duration : 0;
                 const isPlayed = barRatio <= currentRatio;
-                // Generate natural pseudo-random frequency wave heights
                 const baseHeight = 25 + Math.sin(i * 0.45) * 35 + ((i * 7) % 35);
-                const activeScale = isPlaying ? 0.7 + ((i * 3 + Math.floor(currentTime * 4)) % 5) * 0.15 : 0.65;
-                const heightPercent = Math.min(95, Math.max(18, baseHeight * activeScale));
+                const activeScale = isPlaying
+                  ? 0.7 + ((i * 3 + Math.floor(currentTime * 4)) % 5) * 0.15
+                  : 0.65;
+                const heightPercent = Math.min(
+                  95,
+                  Math.max(18, baseHeight * activeScale),
+                );
 
                 return (
                   <div
@@ -757,7 +925,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                     style={{
                       height: `${heightPercent}%`,
                       backgroundColor: isPlayed
-                        ? "var(--primary, #9333ea)"
+                        ? "var(--primary, #6366f1)"
                         : "currentColor",
                       opacity: isPlayed ? 1 : 0.25,
                     }}
@@ -766,7 +934,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
               })}
             </div>
 
-            {/* Timestamps & Scrubber */}
+            {/* Timestamps & Telemetry */}
             <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-1">
               <span>{formatTime(currentTime)}</span>
               <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-sans">

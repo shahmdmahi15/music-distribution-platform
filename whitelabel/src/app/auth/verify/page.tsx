@@ -95,7 +95,16 @@ function VerifyContent() {
       <CardContent className="px-4 sm:px-5 py-2 space-y-4">
         {errorMessage && (
           <Alert variant="destructive" className="py-2 px-3 text-xs">
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertDescription className="flex items-center justify-between gap-2 flex-wrap">
+              <span>{errorMessage}</span>
+              <Link
+                href="/auth/resend-verification"
+                className="underline font-semibold hover:text-foreground inline-flex items-center gap-1"
+              >
+                <span>Request fresh link</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </AlertDescription>
           </Alert>
         )}
 

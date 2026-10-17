@@ -122,7 +122,18 @@ function LoginForm() {
       <CardContent className="px-4 sm:px-5 py-2 space-y-4">
         {errorMessage && (
           <Alert variant="destructive" className="py-2 px-3 text-xs">
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertDescription className="flex items-center justify-between gap-2 flex-wrap">
+              <span>{errorMessage}</span>
+              {errorMessage.toLowerCase().includes("verif") && (
+                <Link
+                  href={`/auth/resend-verification?email=${encodeURIComponent(email)}`}
+                  className="underline font-semibold hover:text-foreground inline-flex items-center gap-1"
+                >
+                  <span>Resend link</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -150,12 +161,20 @@ function LoginForm() {
                 <Label className="text-xs font-semibold text-foreground">
                   Password
                 </Label>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Forgot password?
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/auth/resend-verification${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                    className="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Resend verification?
+                  </Link>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
               <div className="relative">
                 <Lock className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
@@ -257,13 +276,21 @@ function LoginForm() {
       </CardContent>
 
       <CardFooter className="px-4 sm:px-5 py-3 border-t border-border/50 flex flex-col items-center gap-2 bg-muted/20">
-        <div className="text-xs text-muted-foreground">
-          Don&apos;t have an account?{" "}
+        <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
+          <span>
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="font-semibold text-foreground hover:underline"
+            >
+              Create an account
+            </Link>
+          </span>
           <Link
-            href="/auth/register"
-            className="font-semibold text-foreground hover:underline"
+            href="/auth/resend-verification"
+            className="text-[11px] text-muted-foreground hover:text-primary transition-colors"
           >
-            Create an account
+            Resend activation email
           </Link>
         </div>
       </CardFooter>

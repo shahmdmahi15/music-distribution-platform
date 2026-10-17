@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PortalLayoutWrapper } from "@/components/portal-layout-wrapper";
 import { ReportsContent } from "./reports-content";
 
 export const metadata = {
@@ -6,16 +7,18 @@ export const metadata = {
   description: "View and download monthly royalty distribution statements and stream metrics.",
 };
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      }
-    >
-      <ReportsContent />
-    </Suspense>
+    <PortalLayoutWrapper>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        }
+      >
+        <ReportsContent />
+      </Suspense>
+    </PortalLayoutWrapper>
   );
 }

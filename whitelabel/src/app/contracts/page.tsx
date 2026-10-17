@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { PortalLayoutWrapper } from "@/components/portal-layout-wrapper";
 import { ContractsContent } from "./contracts-content";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function ContractsPage() {
-  return <ContractsContent />;
+  return (
+    <PortalLayoutWrapper>
+      <ContractsContent />
+    </PortalLayoutWrapper>
+  );
 }

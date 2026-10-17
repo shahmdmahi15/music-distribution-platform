@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PortalLayoutWrapper } from "@/components/portal-layout-wrapper";
 import { ReleasesContent } from "./releases-content";
 
 export const metadata = {
@@ -8,14 +9,16 @@ export const metadata = {
 
 export default function ReleasesPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      }
-    >
-      <ReleasesContent />
-    </Suspense>
+    <PortalLayoutWrapper>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        }
+      >
+        <ReleasesContent />
+      </Suspense>
+    </PortalLayoutWrapper>
   );
 }

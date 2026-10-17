@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect } from "react";
 import { WhiteLabelTenant, WhiteLabelUser } from "@/types/user";
 import { getGoogleFontUrl, getFontFamilyCss } from "@/lib/fonts";
+import { getWCAGContrastForeground } from "@/lib/contrast";
 
 interface TenantContextValue {
   tenant: WhiteLabelTenant | null;
@@ -36,7 +37,9 @@ export function TenantProvider({
   const navbarStyle =
     tenant?.theme?.navbarStyle || tenant?.navbarStyle || "glass";
 
-  // Dynamically synchronize Google Font and root CSS variables on the client
+  // Compute WCAG 2.1 optimal contrast foreground color dynamically
+  const primaryForeground = getWCAGContrastForeground(primaryColor);
+
   useEffect(() => {
     if (typeof document !== "undefined" && fontFamily) {
       // 1. Maintain Google Font <link> in document.head
@@ -53,7 +56,7 @@ export function TenantProvider({
         link.href = expectedHref;
       }
 
-      // 2. Synchronize :root CSS variables so all Radix portals & elements inherit
+      // 2. Synchronize :root CSS variables so all Radix/Base UI portals & elements inherit
       const root = document.documentElement;
       const fontCss = getFontFamilyCss(fontFamily);
       root.style.setProperty("--font-sans", fontCss);
@@ -62,13 +65,18 @@ export function TenantProvider({
       root.style.setProperty("--tenant-accent", accentColor);
       root.style.setProperty("--tenant-radius", radius);
       root.style.setProperty("--primary", primaryColor);
-      root.style.setProperty("--primary-foreground", "#ffffff");
+      root.style.setProperty("--primary-foreground", primaryForeground);
       root.style.setProperty("--ring", primaryColor);
       root.style.setProperty("--radius", radius);
 
+      // Inject dynamic sidebar tokens
+      root.style.setProperty("--sidebar-primary", primaryColor);
+      root.style.setProperty("--sidebar-primary-foreground", primaryForeground);
+      root.style.setProperty("--sidebar-ring", primaryColor);
+
       document.body.style.fontFamily = fontCss;
     }
-  }, [fontFamily, primaryColor, accentColor, radius]);
+  }, [fontFamily, primaryColor, accentColor, radius, primaryForeground]);
 
   const fontCss = getFontFamilyCss(fontFamily);
   const styleVars = {
@@ -76,11 +84,14 @@ export function TenantProvider({
     "--tenant-accent": accentColor,
     "--tenant-radius": radius,
     "--primary": primaryColor,
-    "--primary-foreground": "#ffffff",
+    "--primary-foreground": primaryForeground,
     "--ring": primaryColor,
     "--radius": radius,
     "--font-sans": fontCss,
     "--font-heading": fontCss,
+    "--sidebar-primary": primaryColor,
+    "--sidebar-primary-foreground": primaryForeground,
+    "--sidebar-ring": primaryColor,
     fontFamily: fontCss,
   } as React.CSSProperties;
 

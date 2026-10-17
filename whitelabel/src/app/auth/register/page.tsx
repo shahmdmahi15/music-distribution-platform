@@ -174,7 +174,7 @@ function RegisterForm() {
                 </>
               )}
             </p>
-            <div className="pt-3">
+            <div className="pt-3 space-y-2">
               <Button
                 render={<Link href="/auth/login" />}
                 className="w-full h-9 text-xs font-semibold gap-1.5"
@@ -183,6 +183,18 @@ function RegisterForm() {
                 <span>Return to Sign In</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
+
+              {!isAdminApproval && (
+                <div className="text-center text-xs text-muted-foreground pt-1">
+                  Didn&apos;t receive the email?{" "}
+                  <Link
+                    href={`/auth/resend-verification?email=${encodeURIComponent(email)}`}
+                    className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Resend verification</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         ) : (

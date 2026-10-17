@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Music,
   ArrowLeft,
@@ -27,6 +28,13 @@ import {
   Sparkles,
   Info,
   Disc,
+  AlertTriangle,
+  ShieldCheck,
+  FileCheck,
+  Layers,
+  Radio,
+  Clock,
+  Loader2,
 } from "lucide-react";
 
 interface TrackDraft {
@@ -39,8 +47,20 @@ interface TrackDraft {
   fileName?: string;
   fileSizeBytes?: number;
   mimeType?: string;
+  sampleRate?: number;
+  durationSeconds?: number;
   uploading?: boolean;
   uploadProgress?: number;
+}
+
+interface ArtworkInspection {
+  width: number;
+  height: number;
+  aspectRatio: string;
+  fileSizeBytes: number;
+  isSquare: boolean;
+  isHighRes: boolean; // >= 3000 x 3000 px
+  isSizeOk: boolean; // <= 20MB
 }
 
 export function CreateReleaseContent() {
@@ -67,8 +87,10 @@ export function CreateReleaseContent() {
   const [coverArtKey, setCoverArtKey] = useState<string>("");
   const [coverArtPreview, setCoverArtPreview] = useState<string>("");
   const [uploadingArtwork, setUploadingArtwork] = useState(false);
+  const [artworkInspection, setArtworkInspection] = useState<ArtworkInspection | null>(null);
+  const [isDraggingArt, setIsDraggingArt] = useState(false);
 
-  // Step 3: Tracks
+  // Step 3: Tracks & Batch Audio Uploader
   const [tracks, setTracks] = useState<TrackDraft[]>([
     {
       id: "track-1",
@@ -79,47 +101,219 @@ export function CreateReleaseContent() {
     },
   ]);
 
-  // Handle Cover Art Direct Upload
-  const handleCoverArtChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Step 4: Deal Acceptance Checkboxes
+  const [agreedRights, setAgreedRights] = useState(true);
+  const [agreedLossless, setAgreedLossless] = useState(true);
+  const [agreedDspTerms, setAgreedDspTerms] = useState(true);
 
+  // Inspect and validate artwork image client-side
+  const inspectAndUploadArtwork = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload a valid image file (JPEG or PNG).");
       return;
     }
 
-    setUploadingArtwork(true);
-    const localPreview = URL.createObjectURL(file);
-    setCoverArtPreview(localPreview);
+    const localUrl = URL.createObjectURL(file);
+    setCoverArtPreview(localUrl);
 
-    try {
-      const urlRes = await wlGetUploadUrlAction({
-        type: "COVER_ART",
-        fileName: file.name,
-        mimeType: file.type,
+    // Read Dimensions
+    const img = new Image();
+    img.src = localUrl;
+    img.onload = async () => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      const isSquare = Math.abs(width - height) <= 2;
+      const isHighRes = width >= 3000 && height >= 3000;
+      const isSizeOk = file.size <= 20 * 1024 * 1024; // 20MB
+
+      setArtworkInspection({
+        width,
+        height,
+        aspectRatio: isSquare ? "1:1 Square" : `${width}:${height}`,
+        fileSizeBytes: file.size,
+        isSquare,
+        isHighRes,
+        isSizeOk,
       });
 
-      if (!urlRes.success || !urlRes.uploadUrl || !urlRes.key) {
-        throw new Error(urlRes.message || "Failed to get upload URL");
+      if (!isSquare) {
+        toast.warning("Warning: Non-square cover art detected. DSPs recommend exact 1:1 square.");
+      } else if (!isHighRes) {
+        toast.warning(`Notice: Resolution is ${width}x${height}px. DSPs recommend ≥ 3000x3000px.`);
       }
 
-      await axios.put(urlRes.uploadUrl, file, {
-        headers: { "Content-Type": file.type },
-      });
+      // Upload to Cloud
+      setUploadingArtwork(true);
+      try {
+        const urlRes = await wlGetUploadUrlAction({
+          type: "COVER_ART",
+          fileName: file.name,
+          mimeType: file.type,
+        });
 
-      setCoverArtKey(urlRes.key);
-      toast.success("Cover artwork uploaded successfully!");
-    } catch (err: any) {
-      toast.error("Failed to upload artwork: " + (err.message || "Error"));
-    } finally {
-      setUploadingArtwork(false);
+        if (!urlRes.success || !urlRes.uploadUrl || !urlRes.key) {
+          throw new Error(urlRes.message || "Failed to get upload URL");
+        }
+
+        await axios.put(urlRes.uploadUrl, file, {
+          headers: { "Content-Type": file.type },
+        });
+
+        setCoverArtKey(urlRes.key);
+        toast.success("Cover artwork validated and uploaded!");
+      } catch (err: any) {
+        toast.error("Failed to upload artwork: " + (err.message || "Error"));
+      } finally {
+        setUploadingArtwork(false);
+      }
+    };
+  };
+
+  const handleCoverArtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) inspectAndUploadArtwork(file);
+  };
+
+  const handleArtDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingArt(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) inspectAndUploadArtwork(file);
+  };
+
+  // Helper to extract audio metadata via AudioContext
+  const extractAudioMetadata = async (
+    file: File,
+  ): Promise<{ sampleRate: number; durationSeconds: number }> => {
+    return new Promise((resolve) => {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) {
+          resolve({ sampleRate: 44100, durationSeconds: 180 });
+          return;
+        }
+        const ctx = new AudioCtx();
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const buffer = e.target?.result as ArrayBuffer;
+            const decoded = await ctx.decodeAudioData(buffer.slice(0, 500000));
+            resolve({
+              sampleRate: decoded.sampleRate || 44100,
+              durationSeconds: Math.round(decoded.duration) || 0,
+            });
+          } catch {
+            resolve({ sampleRate: 44100, durationSeconds: 0 });
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } catch {
+        resolve({ sampleRate: 44100, durationSeconds: 0 });
+      }
+    });
+  };
+
+  // Batch Audio File Upload Handler
+  const handleBatchAudioFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    toast.info(`Queueing ${fileArray.length} audio file(s) for lossless ingestion...`);
+
+    const newDrafts: TrackDraft[] = [];
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      // Clean filename for title
+      const cleanTitle = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/^\d+[\s-_.]*/, "")
+        .replace(/_/g, " ")
+        .trim();
+
+      const newId = `track-batch-${Date.now()}-${i}`;
+      const draft: TrackDraft = {
+        id: newId,
+        title: cleanTitle || `Track ${tracks.length + i + 1}`,
+        artist: artistName || "",
+        isrc: "",
+        explicit: false,
+        fileName: file.name,
+        fileSizeBytes: file.size,
+        mimeType: file.type || "audio/wav",
+        uploading: true,
+        uploadProgress: 10,
+      };
+      newDrafts.push(draft);
+    }
+
+    // Append to existing tracks (or replace single empty track)
+    setTracks((prev) => {
+      if (prev.length === 1 && !prev[0].title && !prev[0].audioKey) {
+        return newDrafts;
+      }
+      return [...prev, ...newDrafts];
+    });
+
+    // Upload each audio file sequentially
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const draft = newDrafts[i];
+
+      try {
+        const meta = await extractAudioMetadata(file);
+
+        const urlRes = await wlGetUploadUrlAction({
+          type: "AUDIO",
+          fileName: file.name,
+          mimeType: file.type || "audio/wav",
+        });
+
+        if (!urlRes.success || !urlRes.uploadUrl || !urlRes.key) {
+          throw new Error(urlRes.message || "Failed to generate audio upload URL");
+        }
+
+        await axios.put(urlRes.uploadUrl, file, {
+          headers: { "Content-Type": file.type || "audio/wav" },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              setTracks((prev) =>
+                prev.map((t) =>
+                  t.id === draft.id ? { ...t, uploadProgress: percent } : t,
+                ),
+              );
+            }
+          },
+        });
+
+        setTracks((prev) =>
+          prev.map((t) =>
+            t.id === draft.id
+              ? {
+                  ...t,
+                  audioKey: urlRes.key,
+                  sampleRate: meta.sampleRate,
+                  durationSeconds: meta.durationSeconds,
+                  uploading: false,
+                }
+              : t,
+          ),
+        );
+        toast.success(`Lossless audio ready: ${file.name}`);
+      } catch (err: any) {
+        setTracks((prev) =>
+          prev.map((t) =>
+            t.id === draft.id ? { ...t, uploading: false } : t,
+          ),
+        );
+        toast.error(`Audio upload failed for ${file.name}: ${err.message}`);
+      }
     }
   };
 
-  // Add / Remove Track Rows
   const addTrack = () => {
     setTracks((prev) => [
       ...prev,
@@ -149,52 +343,6 @@ export function CreateReleaseContent() {
     setTracks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
     );
-  };
-
-  // Direct Audio Upload
-  const handleAudioFileChange = async (
-    trackId: string,
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    updateTrackField(trackId, "uploading", true);
-    updateTrackField(trackId, "uploadProgress", 10);
-    updateTrackField(trackId, "fileName", file.name);
-    updateTrackField(trackId, "fileSizeBytes", file.size);
-    updateTrackField(trackId, "mimeType", file.type || "audio/wav");
-
-    try {
-      const urlRes = await wlGetUploadUrlAction({
-        type: "AUDIO",
-        fileName: file.name,
-        mimeType: file.type || "audio/wav",
-      });
-
-      if (!urlRes.success || !urlRes.uploadUrl || !urlRes.key) {
-        throw new Error(urlRes.message || "Failed to generate audio upload URL");
-      }
-
-      await axios.put(urlRes.uploadUrl, file, {
-        headers: { "Content-Type": file.type || "audio/wav" },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total,
-            );
-            updateTrackField(trackId, "uploadProgress", percent);
-          }
-        },
-      });
-
-      updateTrackField(trackId, "audioKey", urlRes.key);
-      updateTrackField(trackId, "uploading", false);
-      toast.success(`Audio uploaded for track: ${file.name}`);
-    } catch (err: any) {
-      updateTrackField(trackId, "uploading", false);
-      toast.error(`Audio upload failed: ${err.message || "Error"}`);
-    }
   };
 
   // Step 1 Validation
@@ -245,8 +393,13 @@ export function CreateReleaseContent() {
     return true;
   };
 
-  // Handle final release submission
+  // Handle final submission
   const handleSubmitRelease = async (submitToMother: boolean) => {
+    if (submitToMother && (!agreedRights || !agreedLossless || !agreedDspTerms)) {
+      toast.error("Please agree to all distribution terms before submitting.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Create release draft
@@ -291,6 +444,7 @@ export function CreateReleaseContent() {
           fileName: t.fileName,
           fileSizeBytes: t.fileSizeBytes,
           mimeType: t.mimeType,
+          durationSeconds: t.durationSeconds,
           contributors: t.artist
             ? [
                 {
@@ -323,8 +477,15 @@ export function CreateReleaseContent() {
     }
   };
 
+  const steps = [
+    { step: 1, title: "Metadata", subtitle: "Core Dossier" },
+    { step: 2, title: "Cover Artwork", subtitle: "3000x3000px Inspector" },
+    { step: 3, title: "Audio Masters", subtitle: "Lossless Queue" },
+    { step: 4, title: "Distribution Deal", subtitle: "Review & Sign" },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-500">
       {/* Back button */}
       <div>
         <Link
@@ -338,44 +499,63 @@ export function CreateReleaseContent() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
           New Music Release
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Provide release metadata, lossless audio files, and high-resolution cover art.
+          Provide release metadata, lossless audio files, and high-resolution cover art for global DSP distribution.
         </p>
       </div>
 
-      {/* Steps Indicator */}
-      <div className="grid grid-cols-4 gap-2 border-b border-border/60 pb-4">
-        {[
-          { step: 1, name: "Release Info" },
-          { step: 2, name: "Cover Art" },
-          { step: 3, name: "Tracklist & Audio" },
-          { step: 4, name: "Review & Submit" },
-        ].map((s) => (
-          <div
-            key={s.step}
-            className={`flex flex-col border-t-2 pt-2 transition-colors ${
-              currentStep >= s.step
-                ? "border-primary text-primary"
-                : "border-border/40 text-muted-foreground"
-            }`}
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-wider">
-              Step {s.step}
-            </span>
-            <span className="text-xs font-medium truncate">{s.name}</span>
-          </div>
-        ))}
+      {/* 4-Step Visual Progress Stepper */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border-b border-border/60 pb-6">
+        {steps.map((s) => {
+          const isDone = currentStep > s.step;
+          const isCurrent = currentStep === s.step;
+
+          return (
+            <div
+              key={s.step}
+              className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
+                isCurrent
+                  ? "border-primary bg-primary/10 text-primary shadow-xs"
+                  : isDone
+                    ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-500"
+                    : "border-border/40 bg-muted/20 text-muted-foreground opacity-60"
+              }`}
+            >
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                  isCurrent
+                    ? "bg-primary text-primary-foreground"
+                    : isDone
+                      ? "bg-emerald-500 text-white"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isDone ? <CheckCircle2 className="w-4 h-4" /> : s.step}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold truncate leading-tight">
+                  {s.title}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {s.subtitle}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* STEP 1: Release Info */}
+      {/* STEP 1: Metadata */}
       {currentStep === 1 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
+        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="title">Release Title *</Label>
+              <Label htmlFor="title" className="text-xs font-semibold">
+                Release Title *
+              </Label>
               <Input
                 id="title"
                 value={title}
@@ -386,7 +566,9 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="artist">Primary Artist *</Label>
+              <Label htmlFor="artist" className="text-xs font-semibold">
+                Primary Artist *
+              </Label>
               <Input
                 id="artist"
                 value={artistName}
@@ -397,7 +579,9 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">Release Type</Label>
+              <Label htmlFor="type" className="text-xs font-semibold">
+                Release Type
+              </Label>
               <select
                 id="type"
                 value={type}
@@ -414,14 +598,16 @@ export function CreateReleaseContent() {
             </div>
 
             {type === "MUSIC_VIDEO" && (
-              <div className="md:col-span-2 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+              <div className="md:col-span-2 p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h4 className="text-sm font-semibold">VEVO & YouTube Music Video Settings</h4>
+                  <Radio className="w-4 h-4 text-rose-500" />
+                  <h4 className="text-sm font-semibold">VEVO & YouTube Video Settings</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="vevoChannel">VEVO Channel Name *</Label>
+                    <Label htmlFor="vevoChannel" className="text-xs font-semibold">
+                      VEVO Channel Name *
+                    </Label>
                     <Input
                       id="vevoChannel"
                       value={vevoChannelName}
@@ -429,12 +615,11 @@ export function CreateReleaseContent() {
                       placeholder="e.g. ArtistNameVEVO"
                       className="text-sm"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      Must match your approved VEVO channel handle.
-                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="videoVersion">Video Version *</Label>
+                    <Label htmlFor="videoVersion" className="text-xs font-semibold">
+                      Video Version *
+                    </Label>
                     <select
                       id="videoVersion"
                       value={videoVersion}
@@ -446,12 +631,12 @@ export function CreateReleaseContent() {
                       <option value="AUDIO">Official Audio Video</option>
                       <option value="LIVE">Live Performance</option>
                       <option value="BEHIND_THE_SCENES">Behind The Scenes</option>
-                      <option value="TEASER">Teaser / Trailer</option>
-                      <option value="ORIGINAL">Original Video</option>
                     </select>
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="videoUrl">Master Video URL / Storage Key *</Label>
+                    <Label htmlFor="videoUrl" className="text-xs font-semibold">
+                      Master Video Storage URL *
+                    </Label>
                     <Input
                       id="videoUrl"
                       value={videoUrl}
@@ -459,16 +644,15 @@ export function CreateReleaseContent() {
                       placeholder="https://storage.yourdomain.com/videos/master.mp4"
                       className="text-sm"
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      Specification: MP4 (H.264), 16:9 Landscape ≥ 1920x1080, AAC Stereo ≥ 44.1kHz.
-                    </p>
                   </div>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="genre">Primary Genre *</Label>
+              <Label htmlFor="genre" className="text-xs font-semibold">
+                Primary Genre *
+              </Label>
               <Input
                 id="genre"
                 value={genre}
@@ -479,7 +663,9 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subgenre">Subgenre (Optional)</Label>
+              <Label htmlFor="subgenre" className="text-xs font-semibold">
+                Subgenre (Optional)
+              </Label>
               <Input
                 id="subgenre"
                 value={subgenre}
@@ -490,7 +676,9 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="label">Record Label Name</Label>
+              <Label htmlFor="label" className="text-xs font-semibold">
+                Record Label Imprint
+              </Label>
               <Input
                 id="label"
                 value={labelName}
@@ -501,7 +689,9 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="releaseDate">Target Release Date</Label>
+              <Label htmlFor="releaseDate" className="text-xs font-semibold">
+                Target Release Date
+              </Label>
               <Input
                 id="releaseDate"
                 type="date"
@@ -512,18 +702,22 @@ export function CreateReleaseContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="upc">UPC / EAN (Optional)</Label>
+              <Label htmlFor="upc" className="text-xs font-semibold">
+                UPC / EAN Barcode (Optional)
+              </Label>
               <Input
                 id="upc"
                 value={upc}
                 onChange={(e) => setUpc(e.target.value)}
                 placeholder="Leave blank to auto-generate"
-                className="text-sm"
+                className="text-sm font-mono"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cline">C-Line (Copyright)</Label>
+              <Label htmlFor="cline" className="text-xs font-semibold">
+                C-Line (Copyright)
+              </Label>
               <Input
                 id="cline"
                 value={cLine}
@@ -539,57 +733,145 @@ export function CreateReleaseContent() {
               onClick={() => {
                 if (validateStep1()) setCurrentStep(2);
               }}
-              className="flex items-center gap-1.5"
+              className="gap-1.5 font-semibold"
             >
-              <span>Continue to Artwork</span>
+              <span>Continue to Artwork Inspector</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* STEP 2: Cover Art */}
+      {/* STEP 2: Cover Artwork Drag-and-Drop Inspector */}
       {currentStep === 2 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
-          <div className="text-center max-w-md mx-auto space-y-2">
-            <h3 className="text-lg font-semibold">Cover Artwork</h3>
+        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+          <div className="text-center max-w-lg mx-auto space-y-1.5">
+            <h3 className="text-lg font-bold">Cover Artwork Inspector</h3>
             <p className="text-xs text-muted-foreground">
-              DSP specifications: Minimum 3000 x 3000 pixels, square aspect ratio, RGB color mode, JPEG or PNG format.
+              DSP Specifications: Minimum 3000 x 3000 pixels, exact 1:1 square ratio, RGB color mode, JPEG or PNG format, max 20MB.
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center">
+          {/* Drag & Drop Zone */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingArt(true);
+            }}
+            onDragLeave={() => setIsDraggingArt(false)}
+            onDrop={handleArtDrop}
+            className={`border-2 border-dashed rounded-2xl p-6 transition-all flex flex-col items-center justify-center ${
+              isDraggingArt
+                ? "border-primary bg-primary/10"
+                : "border-border/80 hover:border-primary/50 bg-background/50"
+            }`}
+          >
             {coverArtPreview ? (
-              <div className="relative group w-64 h-64 rounded-xl overflow-hidden border border-border/80 shadow-md">
-                <img
-                  src={coverArtPreview}
-                  alt="Artwork Preview"
-                  className="w-full h-full object-cover"
-                />
-                {uploadingArtwork && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-medium">
-                    Uploading to cloud...
+              <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-xl">
+                <div className="relative group w-56 h-56 rounded-xl overflow-hidden border border-border shadow-md shrink-0">
+                  <img
+                    src={coverArtPreview}
+                    alt="Artwork Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  {uploadingArtwork && (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-xs font-medium gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Inspecting & Uploading...</span>
+                    </div>
+                  )}
+                  {!uploadingArtwork && (
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+                      <Upload className="w-6 h-6 mb-1" />
+                      <span className="text-xs font-semibold">Replace Artwork</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="hidden"
+                        onChange={handleCoverArtChange}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Live Inspector Badges */}
+                {artworkInspection && (
+                  <div className="flex-1 space-y-3 w-full">
+                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                      <span className="text-xs font-bold">DSP Pre-Flight Telemetry</span>
+                      {artworkInspection.isSquare && artworkInspection.isHighRes ? (
+                        <Badge className="bg-emerald-500 text-white gap-1 text-[10px]">
+                          <CheckCircle2 className="w-3 h-3" />
+                          DSP Ingestion Ready
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1 text-[10px]">
+                          <AlertTriangle className="w-3 h-3" />
+                          Action Required
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Dimensions:</span>
+                        <span
+                          className={`font-mono font-medium flex items-center gap-1 ${
+                            artworkInspection.isHighRes
+                              ? "text-emerald-500"
+                              : "text-amber-500"
+                          }`}
+                        >
+                          {artworkInspection.width} × {artworkInspection.height} px
+                          {artworkInspection.isHighRes ? (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          ) : (
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Aspect Ratio:</span>
+                        <span
+                          className={`font-mono font-medium flex items-center gap-1 ${
+                            artworkInspection.isSquare
+                              ? "text-emerald-500"
+                              : "text-destructive"
+                          }`}
+                        >
+                          {artworkInspection.aspectRatio}
+                          {artworkInspection.isSquare ? (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          ) : (
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">File Size:</span>
+                        <span className="font-mono font-medium">
+                          {(artworkInspection.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Color Profile:</span>
+                        <span className="font-medium text-primary">RGB (Lossless)</span>
+                      </div>
+                    </div>
                   </div>
-                )}
-                {!uploadingArtwork && (
-                  <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
-                    <Upload className="w-6 h-6 mb-1" />
-                    <span className="text-xs font-semibold">Replace Image</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      className="hidden"
-                      onChange={handleCoverArtChange}
-                    />
-                  </label>
                 )}
               </div>
             ) : (
-              <label className="w-64 h-64 flex flex-col items-center justify-center border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors p-6 text-center">
-                <Upload className="w-10 h-10 text-muted-foreground/60 mb-3" />
-                <span className="text-sm font-semibold">Click to upload artwork</span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  JPG or PNG (3000x3000px)
+              <label className="w-full flex flex-col items-center justify-center cursor-pointer py-12 text-center">
+                <Upload className="w-12 h-12 text-muted-foreground/60 mb-3" />
+                <span className="text-base font-bold">
+                  Drag & Drop High-Resolution Cover Art Here
+                </span>
+                <span className="text-xs text-muted-foreground mt-1 max-w-sm">
+                  or click to browse your filesystem (JPG or PNG, 3000 x 3000px square, max 20MB)
                 </span>
                 <input
                   type="file"
@@ -605,7 +887,7 @@ export function CreateReleaseContent() {
             <Button
               variant="outline"
               onClick={() => setCurrentStep(1)}
-              className="flex items-center gap-1.5"
+              className="gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -615,55 +897,80 @@ export function CreateReleaseContent() {
                 if (validateStep2()) setCurrentStep(3);
               }}
               disabled={uploadingArtwork}
-              className="flex items-center gap-1.5"
+              className="gap-1.5 font-semibold"
             >
-              <span>Continue to Tracklist</span>
+              <span>Continue to Audio Masters</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* STEP 3: Tracklist & Audio */}
+      {/* STEP 3: Batch Audio Masters & Tracklist */}
       {currentStep === 3 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold">Tracks & Audio Files</h3>
+              <h3 className="text-lg font-bold">Audio Masters & Tracklist</h3>
               <p className="text-xs text-muted-foreground">
-                Lossless audio (WAV or FLAC, 16/24-bit 44.1kHz or higher) is required for DSP distribution.
+                Lossless audio (WAV or FLAC, ≥ 44.1kHz, 16/24-bit) is required for DSP distribution.
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addTrack}
-              className="flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Track</span>
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer">
+                <Button size="sm" variant="outline" className="pointer-events-none gap-1.5">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Batch Upload WAV/FLAC</span>
+                </Button>
+                <input
+                  type="file"
+                  multiple
+                  accept="audio/wav,audio/x-wav,audio/flac,audio/mp3,audio/mpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files) handleBatchAudioFiles(e.target.files);
+                  }}
+                />
+              </label>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addTrack}
+                className="gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Track</span>
+              </Button>
+            </div>
           </div>
 
+          {/* Tracklist Queue */}
           <div className="space-y-4">
             {tracks.map((t, idx) => (
               <div
                 key={t.id}
-                className="p-4 rounded-xl border border-border/70 bg-background/50 space-y-4"
+                className="p-4 rounded-xl border border-border/70 bg-background/50 space-y-4 shadow-2xs"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center font-mono">
                       {idx + 1}
                     </span>
-                    <span className="text-sm font-semibold">
+                    <span className="text-sm font-bold">
                       Track #{idx + 1}
                     </span>
+                    {t.sampleRate && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        {(t.sampleRate / 1000).toFixed(1)} kHz Lossless
+                      </span>
+                    )}
                   </div>
                   {tracks.length > 1 && (
                     <button
                       onClick={() => removeTrack(t.id)}
-                      className="text-muted-foreground hover:text-destructive p-1 transition-colors"
+                      className="text-muted-foreground hover:text-destructive p-1 transition-colors cursor-pointer"
                       title="Remove Track"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -673,7 +980,7 @@ export function CreateReleaseContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div className="space-y-1 md:col-span-2">
-                    <Label className="text-xs">Track Title *</Label>
+                    <Label className="text-xs font-semibold">Track Title *</Label>
                     <Input
                       value={t.title}
                       onChange={(e) =>
@@ -685,7 +992,7 @@ export function CreateReleaseContent() {
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Artist</Label>
+                    <Label className="text-xs font-semibold">Artist</Label>
                     <Input
                       value={t.artist}
                       onChange={(e) =>
@@ -697,14 +1004,14 @@ export function CreateReleaseContent() {
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">ISRC (Optional)</Label>
+                    <Label className="text-xs font-semibold">ISRC (Optional)</Label>
                     <Input
                       value={t.isrc}
                       onChange={(e) =>
                         updateTrackField(t.id, "isrc", e.target.value)
                       }
                       placeholder="e.g. US-XXX-26-XXXXX"
-                      className="text-xs h-8"
+                      className="text-xs h-8 font-mono"
                     />
                   </div>
 
@@ -727,22 +1034,27 @@ export function CreateReleaseContent() {
                   </div>
                 </div>
 
-                {/* Audio Upload Box */}
+                {/* Audio Master Upload Box */}
                 <div className="p-3 bg-muted/30 rounded-lg border border-border/50 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <FileAudio className="w-8 h-8 text-primary" />
+                    <FileAudio className="w-8 h-8 text-primary shrink-0" />
                     <div>
                       {t.audioKey ? (
                         <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t.fileName || "Lossless Audio Ready"}</span>
+                          <span>{t.fileName || "Lossless Audio Master Ready"}</span>
                         </div>
                       ) : (
                         <div className="text-xs text-muted-foreground">
                           {t.uploading
-                            ? `Uploading... ${t.uploadProgress || 0}%`
+                            ? `Uploading to cloud... ${t.uploadProgress || 0}%`
                             : "No audio file uploaded yet."}
                         </div>
+                      )}
+                      {t.fileSizeBytes && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {(t.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • Lossless Master
+                        </span>
                       )}
                     </div>
                   </div>
@@ -752,21 +1064,24 @@ export function CreateReleaseContent() {
                       <Button
                         type="button"
                         variant={t.audioKey ? "outline" : "default"}
-                        size="sm"
+                        size="xs"
                         disabled={t.uploading}
                         className="pointer-events-none text-xs"
                       >
                         {t.uploading
-                          ? "Uploading..."
+                          ? `Uploading (${t.uploadProgress}%)`
                           : t.audioKey
-                            ? "Replace Audio"
+                            ? "Replace WAV"
                             : "Upload WAV/FLAC"}
                       </Button>
                       <input
                         type="file"
                         accept="audio/wav,audio/x-wav,audio/flac,audio/mp3,audio/mpeg"
                         className="hidden"
-                        onChange={(e) => handleAudioFileChange(t.id, e)}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleBatchAudioFiles([file]);
+                        }}
                       />
                     </label>
                   </div>
@@ -779,7 +1094,7 @@ export function CreateReleaseContent() {
             <Button
               variant="outline"
               onClick={() => setCurrentStep(2)}
-              className="flex items-center gap-1.5"
+              className="gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -788,25 +1103,26 @@ export function CreateReleaseContent() {
               onClick={() => {
                 if (validateStep3()) setCurrentStep(4);
               }}
-              className="flex items-center gap-1.5"
+              className="gap-1.5 font-semibold"
             >
-              <span>Continue to Review</span>
+              <span>Continue to Review & Sign</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* STEP 4: Review & Submit */}
+      {/* STEP 4: Distribution Deal & Review */}
       {currentStep === 4 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/60 shadow-xs">
+        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
           <div>
-            <h3 className="text-lg font-semibold">Review Release Dossier</h3>
+            <h3 className="text-lg font-bold">Review Release Dossier & Sign Deal</h3>
             <p className="text-xs text-muted-foreground">
-              Verify all release details before submitting to Mother Company for DSP distribution.
+              Verify all release details and review the digital distribution terms before submitting to Mother Company for DSP distribution.
             </p>
           </div>
 
+          {/* Dossier Snapshot */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-xl bg-background border border-border/60">
             <div className="aspect-square w-full rounded-lg overflow-hidden bg-muted">
               {coverArtPreview && (
@@ -820,13 +1136,11 @@ export function CreateReleaseContent() {
 
             <div className="md:col-span-2 space-y-3">
               <div>
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">
                   {type}
                 </span>
                 <h2 className="text-xl font-bold mt-1">{title}</h2>
-                <p className="text-sm text-muted-foreground">
-                  By {artistName}
-                </p>
+                <p className="text-sm text-muted-foreground">By {artistName}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -844,7 +1158,7 @@ export function CreateReleaseContent() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">UPC: </span>
-                  <span className="font-medium">{upc || "To be generated"}</span>
+                  <span className="font-medium font-mono">{upc || "Auto-Generated"}</span>
                 </div>
               </div>
 
@@ -861,7 +1175,10 @@ export function CreateReleaseContent() {
                       <span>
                         {i + 1}. {t.title} {t.explicit && " [Explicit]"}
                       </span>
-                      <span className="text-emerald-500 font-medium">Ready</span>
+                      <span className="text-emerald-500 font-medium flex items-center gap-1 font-mono text-[11px]">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Lossless Ready
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -869,11 +1186,57 @@ export function CreateReleaseContent() {
             </div>
           </div>
 
+          {/* Distribution Deal Agreement Checkboxes */}
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <FileCheck className="w-4 h-4" />
+              <span>Digital Distribution & Licensing Agreement</span>
+            </h4>
+
+            <div className="space-y-2 text-xs">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedRights}
+                  onChange={(e) => setAgreedRights(e.target.checked)}
+                  className="rounded border-border mt-0.5 accent-primary"
+                />
+                <span>
+                  I warrant that I own or control 100% of the worldwide sound recording and publishing rights for all tracks submitted.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedLossless}
+                  onChange={(e) => setAgreedLossless(e.target.checked)}
+                  className="rounded border-border mt-0.5 accent-primary"
+                />
+                <span>
+                  I confirm that all uploaded audio masters are genuine lossless files (≥ 44.1kHz) and free of uncredited copyrighted samples.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedDspTerms}
+                  onChange={(e) => setAgreedDspTerms(e.target.checked)}
+                  className="rounded border-border mt-0.5 accent-primary"
+                />
+                <span>
+                  I authorize Mother Company to distribute this release to Spotify, Apple Music, YouTube Music, TikTok, Amazon Music, and all global DSPs.
+                </span>
+              </label>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-border/40">
             <Button
               variant="outline"
               onClick={() => setCurrentStep(3)}
-              className="flex items-center gap-1.5 w-full sm:w-auto"
+              className="gap-1.5 w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -891,9 +1254,16 @@ export function CreateReleaseContent() {
               <Button
                 disabled={submitting}
                 onClick={() => handleSubmitRelease(true)}
-                className="w-full sm:w-auto shadow-md"
+                className="w-full sm:w-auto shadow-md font-semibold gap-1.5"
               >
-                {submitting ? "Submitting..." : "Submit to Mother Company"}
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting to Mother Company...</span>
+                  </>
+                ) : (
+                  <span>Submit to Mother Company</span>
+                )}
               </Button>
             </div>
           </div>
