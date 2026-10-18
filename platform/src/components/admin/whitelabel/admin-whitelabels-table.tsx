@@ -402,8 +402,7 @@ export function AdminWhiteLabelsTable({
       "Business Type",
       "Country",
       "Incorporated",
-      "Subdomain",
-      "Custom Domain",
+      "Custom Backstage Domain",
       "Elastic IPv4",
       "Contact Name",
       "Contact Email",
@@ -429,8 +428,11 @@ export function AdminWhiteLabelsTable({
         wl.businessType,
         `"${wl.country || ""}"`,
         wl.isIncorporated ? "Yes" : "No",
-        wl.subdomain ? `${wl.subdomain}.platform.royalmotionit.com` : "",
-        wl.customDomain || "",
+        wl.customDomain
+          ? wl.customDomain.startsWith("backstage.")
+            ? wl.customDomain
+            : `backstage.${wl.customDomain}`
+          : "",
         wl.elasticIpv4 || "",
         `"${wl.contactFirstName} ${wl.contactLastName}"`,
         wl.contactEmail,
@@ -1234,16 +1236,18 @@ export function AdminWhiteLabelsTable({
                       {/* 2. Domain & Cloud Routing */}
                       <TableCell>
                         <div className="space-y-1 min-w-[170px]">
-                          {wl.subdomain ? (
+                          {wl.customDomain ? (
                             <div className="flex items-center gap-1">
                               <Globe className="h-3 w-3 text-primary shrink-0" />
                               <span className="font-mono text-[11px] font-semibold text-foreground truncate">
-                                {wl.subdomain}.platform.royalmotionit.com
+                                {wl.customDomain.startsWith("backstage.")
+                                  ? wl.customDomain
+                                  : `backstage.${wl.customDomain}`}
                               </span>
                             </div>
                           ) : (
                             <span className="text-[11px] text-muted-foreground italic">
-                              No subdomain set
+                              Custom domain pending
                             </span>
                           )}
 
@@ -1559,9 +1563,9 @@ export function AdminWhiteLabelsTable({
                           )}
 
                           {wl.status === WhiteLabelStatus.ACTIVE &&
-                            wl.subdomain && (
+                            wl.customDomain && (
                               <a
-                                href={`https://${wl.customDomain || `${wl.subdomain}.platform.royalmotionit.com`}`}
+                                href={`https://${wl.customDomain.startsWith("backstage.") ? wl.customDomain : `backstage.${wl.customDomain}`}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Open Live WhiteLabel Tenant Portal"

@@ -479,20 +479,32 @@ export function WhiteLabelApplicationStatusView({
                     <Copy className="h-4 w-4" />
                   )}
                 </button>
-                {whiteLabel.subdomain && (
+                {whiteLabel.customDomain ? (
                   <Badge
                     variant="secondary"
                     onClick={() =>
                       copyToClipboard(
-                        `${whiteLabel.subdomain}.platform.royalmotionit.com`,
-                        "Subdomain URL",
+                        whiteLabel.customDomain!.startsWith("backstage.")
+                          ? whiteLabel.customDomain!
+                          : `backstage.${whiteLabel.customDomain}`,
+                        "Custom Domain",
                       )
                     }
                     className="font-mono text-[11px] px-2.5 py-0.5 cursor-pointer hover:bg-muted gap-1.5"
-                    title="Click to copy reserved subdomain"
+                    title="Click to copy custom domain"
                   >
                     <Globe className="h-3 w-3 text-primary" />
-                    {whiteLabel.subdomain}.platform.royalmotionit.com
+                    {whiteLabel.customDomain.startsWith("backstage.")
+                      ? whiteLabel.customDomain
+                      : `backstage.${whiteLabel.customDomain}`}
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-[11px] px-2.5 py-0.5 gap-1.5 text-muted-foreground border-border/60"
+                  >
+                    <Globe className="h-3 w-3 text-muted-foreground" />
+                    Custom Domain Pending Setup
                   </Badge>
                 )}
               </div>
@@ -743,10 +755,10 @@ export function WhiteLabelApplicationStatusView({
                   ? "Your WhiteLabel instance is fully configured, provisioned, and live for your clients."
                   : "Your WhiteLabel license is activated! Complete the Guided Setup Wizard to configure your Brand Identity, API Keys, and Automated AWS + Cloudflare Deployment to unlock your full console."}
               </p>
-              {whiteLabel.subdomain && (
+              {whiteLabel.customDomain && (
                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
                   <Globe className="h-3.5 w-3.5 text-primary" />
-                  https://{whiteLabel.subdomain}.platform.royalmotionit.com
+                  https://{whiteLabel.customDomain.startsWith("backstage.") ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`}
                 </p>
               )}
             </div>
@@ -756,9 +768,9 @@ export function WhiteLabelApplicationStatusView({
               (whiteLabel as { isSetupCompleted?: boolean })
                 .isSetupCompleted ? (
                 <>
-                  {whiteLabel.subdomain && (
+                  {whiteLabel.customDomain ? (
                     <a
-                      href={`https://${whiteLabel.customDomain || `${whiteLabel.subdomain}.platform.royalmotionit.com`}`}
+                      href={`https://${whiteLabel.customDomain.startsWith("backstage.") ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted hover:text-foreground text-xs font-medium gap-1.5 h-9 px-3 transition-colors"
@@ -766,6 +778,16 @@ export function WhiteLabelApplicationStatusView({
                       <ExternalLink className="h-3.5 w-3.5" />
                       Visit Live Portal
                     </a>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push("/whitelabel/domain")}
+                      className="gap-1.5 text-xs h-9"
+                    >
+                      <Globe className="h-3.5 w-3.5 text-primary" />
+                      Setup Custom Domain
+                    </Button>
                   )}
                   <Button
                     size="sm"
@@ -1140,12 +1162,14 @@ export function WhiteLabelApplicationStatusView({
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">
                 <span className="text-muted-foreground block">
-                  Reserved Subdomain
+                  Custom Backstage Domain
                 </span>
                 <span className="font-bold text-foreground font-mono text-[10.5px] truncate block pt-0.5">
-                  {whiteLabel.subdomain
-                    ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                    : "Pending Allocation"}
+                  {whiteLabel.customDomain
+                    ? (whiteLabel.customDomain.startsWith("backstage.")
+                        ? whiteLabel.customDomain
+                        : `backstage.${whiteLabel.customDomain}`)
+                    : "Pending Custom Domain Setup"}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg border border-border/50 bg-muted/20">

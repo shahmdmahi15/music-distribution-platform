@@ -153,13 +153,9 @@ export class WhitelabelTenantService {
         },
         domain: {
           subdomain: whiteLabel.subdomain,
-          platformSubdomainFqdn: whiteLabel.subdomain
-            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-            : null,
+          platformSubdomainFqdn: null,
           customDomain: whiteLabel.customDomain,
-          cnameTarget: whiteLabel.subdomain
-            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-            : 'platform.royalmotionit.com',
+          cnameTarget: null,
           verified:
             whiteLabel.domainVerified || domainStatus?.verified || false,
           sslStatus:
@@ -295,10 +291,10 @@ export class WhitelabelTenantService {
     const cleanSubdomain = (subdomain || '').trim().toLowerCase();
     const cleanCustomDomain = (customDomain || '').trim().toLowerCase();
 
-    if (!cleanSubdomain && !cleanCustomDomain) {
+    if (!cleanCustomDomain) {
       return {
         found: false,
-        message: 'Subdomain or customDomain parameter is required.',
+        message: 'Platform subdomains are disabled. WhiteLabels use dedicated custom domains exclusively.',
       };
     }
 

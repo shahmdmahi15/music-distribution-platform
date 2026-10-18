@@ -138,16 +138,12 @@ export class WhitelabelMiddleware implements NestMiddleware {
             });
           } else if (typeof domainHeader === 'string' && domainHeader.trim()) {
             const dom = domainHeader.trim().toLowerCase();
-            const subFromDom = dom.endsWith('.platform.royalmotionit.com')
-              ? dom.replace('.platform.royalmotionit.com', '')
-              : dom.split('.')[0];
             whiteLabel = await this.prismaService.whiteLabel.findFirst({
               where: {
                 OR: [
                   { customDomain: dom },
                   { customDomain: `backstage.${dom}` },
-                  { subdomain: dom },
-                  { subdomain: subFromDom },
+                  { customDomain: dom.replace(/^backstage\./, '') },
                 ],
               },
             });
@@ -157,7 +153,12 @@ export class WhitelabelMiddleware implements NestMiddleware {
             subdomainHeader.trim().toLowerCase() !== 'backstage'
           ) {
             whiteLabel = await this.prismaService.whiteLabel.findFirst({
-              where: { subdomain: subdomainHeader.trim().toLowerCase() },
+              where: {
+                OR: [
+                  { customDomain: subdomainHeader.trim().toLowerCase() },
+                  { customDomain: `backstage.${subdomainHeader.trim().toLowerCase()}` },
+                ],
+              },
             });
           } else {
             // Resolve from host or first approved
@@ -174,7 +175,8 @@ export class WhitelabelMiddleware implements NestMiddleware {
                 where: {
                   OR: [
                     { customDomain: cleanHost },
-                    { subdomain: cleanHost.split('.')[0] },
+                    { customDomain: `backstage.${cleanHost}` },
+                    { customDomain: cleanHost.replace(/^backstage\./, '') },
                   ],
                 },
               });

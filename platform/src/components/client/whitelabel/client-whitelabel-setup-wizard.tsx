@@ -480,10 +480,8 @@ export function ClientWhiteLabelSetupWizard({
   const isBusinessTypeLocked = Boolean(branding.businessType);
 
   const portalHost = branding.customDomain
-    ? `https://${branding.customDomain}`
-    : branding.subdomain
-      ? `https://${branding.subdomain}.platform.royalmotionit.com`
-      : "https://platform.royalmotionit.com";
+    ? `https://${branding.customDomain.startsWith("backstage.") ? branding.customDomain : `backstage.${branding.customDomain}`}`
+    : "https://backstage.yourdomain.com";
 
   const displayApiKey =
     generatedRawApiKey ||
@@ -980,7 +978,7 @@ NODE_ENV=production`;
         : `https://${activeCustomDomain}`
       : baseDomain
       ? `https://backstage.${baseDomain}`
-      : "https://backstage.platform.royalmotionit.com";
+      : "https://backstage.yourdomain.com";
 
     const mailDomain = baseDomain
       ? `mail.${baseDomain}`
@@ -3426,12 +3424,7 @@ NODE_ENV=production`;
                   <strong>AWS Console</strong> and{" "}
                   <strong>Cloudflare Dashboard</strong> to automatically launch
                   your dedicated EC2 server, S3 Audio Vault, SES Email DKIM, and
-                  Cloudflare SSL routing—or deploy using your pre-active managed
-                  subdomain{" "}
-                  <code className="text-primary font-mono">
-                    https://{branding.subdomain}.platform.royalmotionit.com
-                  </code>
-                  .
+                  Cloudflare SSL routing pointing directly to your dedicated cloud instance.
                 </p>
               </div>
 
@@ -3552,16 +3545,9 @@ NODE_ENV=production`;
 
                   <ol className="text-[11px] text-muted-foreground space-y-2 list-decimal list-inside leading-relaxed">
                     <li>
-                      Your managed subdomain{" "}
-                      <code className="text-primary font-semibold">
-                        {branding.subdomain}.platform.royalmotionit.com
-                      </code>{" "}
-                      is <strong>already active</strong> on RoyalMotionIT DNS!
-                    </li>
-                    <li>
-                      For your custom domain (e.g.{" "}
+                      WhiteLabels run on a dedicated custom backstage domain (e.g.{" "}
                       <code className="text-foreground">backstage.yourdomain.com</code>):
-                      select your domain in <strong>Cloudflare Dashboard</strong>.
+                      select your base domain in your <strong>Cloudflare Dashboard</strong>.
                     </li>
                     <li>
                       On the domain <strong>Overview</strong> page (bottom-right <strong>API</strong> section), copy your <strong>32-character Zone ID</strong>.
@@ -3630,17 +3616,15 @@ NODE_ENV=production`;
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xs text-foreground">
                       <Server className="w-4 h-4 text-blue-500" />
-                      Managed Subdomain (`{branding.subdomain}.platform.royalmotionit.com`) / Self-Host
+                      Self-Hosted Server Deployment
                     </div>
                     <Badge variant="outline" className="text-[10px]">
-                      Instant Ready
+                      Docker / Node.js
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                    Use your pre-provisioned{" "}
-                    <code>{branding.subdomain}.platform.royalmotionit.com</code>{" "}
-                    routing immediately or deploy via the 3-variable `.env`
-                    bundle on any server.
+                    Deploy your dedicated WhiteLabel portal using the 3-variable `.env`
+                    bundle on your own server or container cluster.
                   </p>
                 </button>
               </div>
@@ -4222,7 +4206,7 @@ NODE_ENV=production`;
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                       <KeyRound className="w-4 h-4 text-primary" />
-                      WhiteLabel Hosting Environment (`.env` for `{branding.subdomain}.platform.royalmotionit.com`)
+                      WhiteLabel Hosting Environment (.env Bundle)
                     </div>
                     <Button
                       variant="outline"
@@ -4251,12 +4235,11 @@ NODE_ENV=production`;
                   </div>
 
                   <div className="text-[11px] text-muted-foreground leading-normal">
-                    Your subdomain{" "}
+                    WhiteLabels operate exclusively on your dedicated custom domain (e.g.{" "}
                     <code className="text-primary font-mono">
-                      https://{branding.subdomain}.platform.royalmotionit.com
-                    </code>{" "}
-                    is pre-routed. You can also configure custom AWS/Cloudflare
-                    resources at any time after unlocking your console.
+                      backstage.{cloudflareBaseDomain || "yourdomain.com"}
+                    </code>
+                    ). You can configure your Cloudflare and AWS resources at any time.
                   </div>
                 </div>
               )}
@@ -4366,15 +4349,15 @@ NODE_ENV=production`;
                     <div className="font-semibold text-foreground mt-0.5">
                       {deploymentMode === "automated"
                         ? "AWS + Cloudflare"
-                        : "Managed Subdomain"}
+                        : "Self-Hosted / Custom Server"}
                     </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">
-                      Managed Subdomain:
+                      Custom Backstage Domain:
                     </span>
                     <div className="font-mono font-semibold text-primary mt-0.5 truncate">
-                      {branding.subdomain}.platform.royalmotionit.com
+                      {cloudflareBaseDomain ? `backstage.${cloudflareBaseDomain}` : (branding.customDomain || "backstage.<customdomain>")}
                     </div>
                   </div>
                 </div>

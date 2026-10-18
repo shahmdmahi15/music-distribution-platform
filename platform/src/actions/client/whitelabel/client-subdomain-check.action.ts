@@ -41,7 +41,7 @@ export async function clientCheckSubdomainAction(
       available: Boolean(res.data?.available),
       subdomain: res.data?.subdomain || subdomain,
       reason: res.data?.reason,
-      fqdn: res.data?.fqdn || `${subdomain}.platform.royalmotionit.com`,
+      fqdn: res.data?.fqdn || subdomain,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {

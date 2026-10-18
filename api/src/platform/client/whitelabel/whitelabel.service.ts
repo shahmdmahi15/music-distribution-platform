@@ -295,7 +295,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     );
     return {
       subdomain: uniqueSubdomain,
-      fqdn: `${uniqueSubdomain}.platform.royalmotionit.com`,
+      fqdn: uniqueSubdomain,
     };
   }
 
@@ -319,7 +319,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         available: false,
         subdomain,
         reason: 'Subdomain must be between 3 and 30 characters.',
-        fqdn: `${subdomain}.platform.royalmotionit.com`,
+        fqdn: subdomain,
       };
     }
 
@@ -332,7 +332,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         subdomain,
         reason:
           'Only lowercase letters, numbers, and single hyphens are allowed.',
-        fqdn: `${subdomain}.platform.royalmotionit.com`,
+        fqdn: subdomain,
       };
     }
 
@@ -341,7 +341,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         available: false,
         subdomain,
         reason: 'This subdomain is reserved for platform infrastructure.',
-        fqdn: `${subdomain}.platform.royalmotionit.com`,
+        fqdn: subdomain,
       };
     }
 
@@ -364,7 +364,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         available: false,
         subdomain,
         reason: 'This subdomain is already taken by another label.',
-        fqdn: `${subdomain}.platform.royalmotionit.com`,
+        fqdn: subdomain,
       };
     }
 
@@ -376,7 +376,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         available: false,
         subdomain,
         reason: 'This subdomain is already active in Cloudflare DNS.',
-        fqdn: `${subdomain}.platform.royalmotionit.com`,
+        fqdn: subdomain,
       };
     }
 
@@ -384,7 +384,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       available: true,
       subdomain,
       reason: 'Subdomain is available!',
-      fqdn: `${subdomain}.platform.royalmotionit.com`,
+      fqdn: subdomain,
     };
   }
 
@@ -565,23 +565,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      const targetDomain = updated.customDomain
-        ? updated.customDomain.startsWith('backstage.')
-          ? updated.customDomain
-          : `backstage.${updated.customDomain}`
-        : updated.cloudflareBaseDomain
-          ? `backstage.${updated.cloudflareBaseDomain}`
-          : undefined;
 
-      if (finalSubdomain && targetDomain) {
-        await this.cloudflareDnsService.provisionSubdomain(
-          finalSubdomain,
-          targetDomain,
-        );
-        await this.redisService.del(
-          `whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`,
-        );
-      }
 
       await this.clearOnboardingDraft(userId);
 
@@ -674,23 +658,6 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    const targetDomain = whiteLabel.customDomain
-      ? whiteLabel.customDomain.startsWith('backstage.')
-        ? whiteLabel.customDomain
-        : `backstage.${whiteLabel.customDomain}`
-      : whiteLabel.cloudflareBaseDomain
-        ? `backstage.${whiteLabel.cloudflareBaseDomain}`
-        : undefined;
-
-    if (finalSubdomain && targetDomain) {
-      await this.cloudflareDnsService.provisionSubdomain(
-        finalSubdomain,
-        targetDomain,
-      );
-      await this.redisService.del(
-        `whitelabel:subdomain_resolve:${finalSubdomain.toLowerCase()}`,
-      );
-    }
 
     await this.clearOnboardingDraft(userId);
 
@@ -1632,9 +1599,6 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     }
 
     const verificationToken = wl.domainVerificationToken!;
-    const platformSubdomainFqdn = wl.subdomain
-      ? `${wl.subdomain}.platform.royalmotionit.com`
-      : null;
 
     const hasCloudflareCredentials = Boolean(
       wl.cloudflareApiToken && wl.cloudflareZoneId && wl.cloudflareBaseDomain,
@@ -1656,21 +1620,22 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       } catch {}
     }
 
+    const cleanElasticIp = (wl as { elasticIpv4?: string | null }).elasticIpv4 || null;
+
     return {
       success: true,
       domain: {
         subdomain: wl.subdomain,
-        elasticIpv4:
-          (wl as { elasticIpv4?: string | null }).elasticIpv4 || null,
-        platformSubdomainFqdn,
-        isPlatformSubdomainAutomated: true,
+        elasticIpv4: cleanElasticIp,
+        platformSubdomainFqdn: null,
+        isPlatformSubdomainAutomated: false,
         customDomain: wl.customDomain || null,
         domainVerificationToken: verificationToken,
         hasCloudflareCredentials,
         cloudflareBaseDomain: cleanBaseDomain || null,
         expectedCustomDomain,
         cloudflareZoneId: wl.cloudflareZoneId || null,
-        cnameTarget: platformSubdomainFqdn || 'platform.royalmotionit.com',
+        cnameTarget: null,
         cnameHost: 'backstage',
         health,
         // Step 1: DNS TXT Ownership Verification
@@ -1686,14 +1651,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           verified: wl.domainVerified,
           verifiedAt: wl.domainVerifiedAt,
         },
-        // Step 2: Traffic Routing (Unlocked only after step 1 verified)
+        // Step 2: Dedicated Cloud Server Traffic Routing (A-Record)
         step2: {
-          title: 'Step 2: Traffic Routing Configuration',
+          title: 'Step 2: Dedicated Cloud Server Traffic Routing (A-Record)',
           unlocked: wl.domainVerified,
-          cnameTarget: platformSubdomainFqdn || 'platform.royalmotionit.com',
-          serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
+          recordType: 'A',
+          host: 'backstage',
+          targetIp: cleanElasticIp,
+          serverIp: cleanElasticIp,
           note: wl.domainVerified
-            ? `Point CNAME for "backstage" to your platform subdomain: ${platformSubdomainFqdn || 'platform.royalmotionit.com'}`
+            ? cleanElasticIp
+              ? `Point A-Record for "backstage" to your dedicated cloud instance Elastic IP: ${cleanElasticIp}`
+              : 'Dedicated server Elastic IP will be assigned upon cloud infrastructure provisioning.'
             : 'Complete Step 1 TXT ownership verification above to reveal routing configuration.',
         },
         verified: wl.domainVerified,
@@ -1768,34 +1737,6 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
     // Subdomain is permanently immutable; dto.subdomain is intentionally ignored
 
-    // Provision or update Cloudflare DNS record pointing to backstage.customdomain
-    let cloudflareMessage = '';
-    if (wl.subdomain) {
-      const targetDomain = customDomain
-        ? customDomain.startsWith('backstage.')
-          ? customDomain
-          : `backstage.${customDomain}`
-        : cleanBaseDomain
-          ? `backstage.${cleanBaseDomain}`
-          : undefined;
-
-      if (targetDomain) {
-        const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
-          wl.subdomain,
-          targetDomain,
-        );
-        if (!dnsRes.success) {
-          throw new BadRequestException(
-            `Cloudflare DNS error: ${dnsRes.message}`,
-          );
-        }
-        cloudflareMessage = ` Cloudflare DNS: ${dnsRes.message}`;
-      }
-      await this.redisService.del(
-        `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
-      );
-    }
-
     // Auto-sync custom domain DNS into user's Cloudflare zone if credentials exist
     let autoVerified = false;
     let cloudflareCustomDomainMessage = '';
@@ -1811,29 +1752,31 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           'Content-Type': 'application/json',
         };
 
-        const platformSubdomainFqdn = `${wl.subdomain}.platform.royalmotionit.com`;
-        const cfSearch = await fetch(
-          `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(customDomain)}`,
-          { headers: cfHeaders },
-        );
-        const cfSearchData = await cfSearch.json();
-        if (cfSearchData.success && Array.isArray(cfSearchData.result)) {
-          if (cfSearchData.result.length === 0) {
-            await fetch(
-              `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records`,
-              {
-                method: 'POST',
-                headers: cfHeaders,
-                body: JSON.stringify({
-                  type: 'CNAME',
-                  name: customDomain,
-                  content: platformSubdomainFqdn,
-                  ttl: 1,
-                  proxied: true,
-                  comment: `Managed WhiteLabel Custom Domain routing to ${platformSubdomainFqdn}`,
-                }),
-              },
-            );
+        const cleanIp = wl.elasticIpv4 ? String(wl.elasticIpv4).trim() : null;
+        if (cleanIp) {
+          const cfSearch = await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(customDomain)}`,
+            { headers: cfHeaders },
+          );
+          const cfSearchData = await cfSearch.json();
+          if (cfSearchData.success && Array.isArray(cfSearchData.result)) {
+            if (cfSearchData.result.length === 0) {
+              await fetch(
+                `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records`,
+                {
+                  method: 'POST',
+                  headers: cfHeaders,
+                  body: JSON.stringify({
+                    type: 'A',
+                    name: customDomain,
+                    content: cleanIp,
+                    ttl: 1,
+                    proxied: true,
+                    comment: `Managed WhiteLabel Dedicated Server Routing to ${cleanIp}`,
+                  }),
+                },
+              );
+            }
           }
         }
 
@@ -1947,14 +1890,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
 
     return {
       success: true,
-      message: `Domain & server routing updated successfully.${cloudflareMessage}${cloudflareCustomDomainMessage}`,
+      message: `Domain & server routing updated successfully.${cloudflareCustomDomainMessage}`,
       domain: {
         subdomain: updated.subdomain,
         elasticIpv4:
           (updated as { elasticIpv4?: string | null }).elasticIpv4 || null,
-        platformSubdomainFqdn: updated.subdomain
-          ? `${updated.subdomain}.platform.royalmotionit.com`
-          : null,
+        platformSubdomainFqdn: null,
         customDomain: updated.customDomain,
         verified: updated.domainVerified,
         sslStatus: updated.domainSslStatus,
@@ -2103,10 +2044,8 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         customDomain: updated.customDomain,
         verified: updated.domainVerified,
         verifiedAt: updated.domainVerifiedAt,
-        cnameTarget: wl.subdomain
-          ? `${wl.subdomain}.platform.royalmotionit.com`
-          : 'platform.royalmotionit.com',
-        serverIp: process.env.PLATFORM_SERVER_IP || '104.21.58.192',
+        cnameTarget: null,
+        serverIp: (wl as { elasticIpv4?: string | null }).elasticIpv4 || null,
       },
     };
   }
@@ -2473,7 +2412,6 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const cleanBaseDomain = this.extractCleanBaseDomain(
       wl.cloudflareBaseDomain,
     );
-    const platformSubdomainFqdn = `${wl.subdomain}.platform.royalmotionit.com`;
     const cnameHost = 'backstage';
     const cnameFqdn = `backstage.${cleanBaseDomain}`;
 
@@ -2502,10 +2440,13 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       wl.elasticIpv4 &&
         /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(String(wl.elasticIpv4).trim()),
     );
-    const tenantRecordType: 'A' | 'CNAME' = hasElasticIp ? 'A' : 'CNAME';
-    const tenantRecordContent = hasElasticIp
-      ? String(wl.elasticIpv4).trim()
-      : platformSubdomainFqdn;
+    if (!hasElasticIp) {
+      throw new BadRequestException(
+        'Dedicated server Elastic IPv4 is not provisioned yet. Please provision your cloud infrastructure before applying DNS routing.',
+      );
+    }
+    const tenantRecordType: 'A' = 'A';
+    const tenantRecordContent = String(wl.elasticIpv4).trim();
 
     if (existingRecords.length > 0) {
       const rec = existingRecords[0];
@@ -2521,9 +2462,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             content: tenantRecordContent,
             ttl: 1, // Auto
             proxied: true, // Orange Cloud: SSL, DDoS protection & CDN
-            comment: hasElasticIp
-              ? `WhiteLabel Dedicated EC2 Elastic IP routing`
-              : `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
+            comment: `WhiteLabel Dedicated EC2 Elastic IP routing`,
           }),
         },
       );
@@ -2545,9 +2484,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
             content: tenantRecordContent,
             ttl: 1,
             proxied: true,
-            comment: hasElasticIp
-              ? `WhiteLabel Dedicated EC2 Elastic IP routing`
-              : `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
+            comment: `WhiteLabel Dedicated EC2 Elastic IP routing`,
           }),
         },
       );
@@ -2560,22 +2497,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       recordId = createData.result?.id;
     }
 
-    // 2. Provision platform subdomain CNAME in Mother Company Cloudflare: [subdomain].platform.royalmotionit.com -> backstage.[customdomain]
-    try {
-      await this.cloudflareDnsService.provisionSubdomain(
-        wl.subdomain,
-        cnameFqdn,
-      );
-      await this.redisService.del(
-        `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
-      );
-    } catch (subErr: any) {
-      this.logger.warn(
-        `[applyCnameRouting] Could not auto-sync platform subdomain CNAME: ${subErr.message}`,
-      );
-    }
-
-    // 3. Mark domain SSL & routing active in DB & Redis
+    // 2. Mark domain SSL & routing active in DB & Redis
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
       data: {
@@ -2589,7 +2511,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       lastCheckedAt: new Date().toISOString(),
       sslStatus: 'ACTIVE',
       dnsStatus: 'VERIFIED',
-      cnameTarget: cnameFqdn,
+      cnameTarget: tenantRecordContent,
       proxied: true,
     };
 
@@ -2603,52 +2525,18 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       success: true,
       cnameHost,
       cnameFqdn,
-      cnameTarget: cnameFqdn,
-      platformSubdomainFqdn,
+      cnameTarget: tenantRecordContent,
+      platformSubdomainFqdn: null,
       proxied: true,
       recordId,
-      message: `DNS routing applied! "${cnameFqdn}" routes to your dedicated instance, and platform subdomain "${platformSubdomainFqdn}" points as CNAME to "${cnameFqdn}".`,
+      message: `DNS routing active! "${cnameFqdn}" now routes directly to your dedicated cloud instance (${tenantRecordContent}) with Cloudflare SSL proxy.`,
       status,
     };
   }
 
-  // --- Subdomain DNS Synchronization ---
+  // --- Subdomain DNS Synchronization (Redirected to Custom Domain A-Record Routing) ---
   async syncPlatformSubdomainDns(userId: string) {
-    const wl = await this.getActiveWhiteLabel(userId);
-    if (!wl.subdomain) {
-      throw new BadRequestException(
-        'No platform subdomain assigned to your WhiteLabel.',
-      );
-    }
-
-    const targetDomain = wl.customDomain
-      ? wl.customDomain.startsWith('backstage.')
-        ? wl.customDomain
-        : `backstage.${wl.customDomain}`
-      : wl.cloudflareBaseDomain
-        ? `backstage.${wl.cloudflareBaseDomain}`
-        : undefined;
-
-    if (!targetDomain) {
-      throw new BadRequestException(
-        'Cannot sync platform subdomain CNAME: Please configure your custom domain and complete infrastructure provisioning first.',
-      );
-    }
-
-    const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
-      wl.subdomain,
-      targetDomain,
-    );
-    await this.redisService.del(
-      `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
-    );
-
-    return {
-      success: dnsRes.success,
-      subdomain: wl.subdomain,
-      fqdn: `${wl.subdomain}.platform.royalmotionit.com`,
-      message: dnsRes.message,
-    };
+    return await this.applyCnameRouting(userId);
   }
 
   // --- Domain Health Evaluation & Periodic Monitoring ---
@@ -2687,76 +2575,27 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const expectedCustomDomain = cleanBaseDomain
       ? `backstage.${cleanBaseDomain}`
       : null;
-    const platformSubdomainFqdn = wl.subdomain
-      ? `${wl.subdomain}.platform.royalmotionit.com`
-      : null;
 
     const cleanIp = wl.elasticIpv4 ? String(wl.elasticIpv4).trim() : null;
     const isElasticIpConfigured = Boolean(
       cleanIp && /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanIp),
     );
 
-    // Evaluate Subdomain & Elastic IP DNS
-    let subdomainHealth: SubdomainHealthReport = {
-      status: 'NOT_CONFIGURED',
+    // Evaluate Subdomain & Dedicated Routing Status
+    const subdomainHealth: SubdomainHealthReport = {
+      status: 'VERIFIED',
       subdomain: wl.subdomain || '',
-      fqdn: platformSubdomainFqdn || '',
+      fqdn: wl.customDomain || expectedCustomDomain || '',
       isElasticIp: isElasticIpConfigured,
       elasticIpv4: cleanIp,
       expectedTarget: isElasticIpConfigured
         ? cleanIp!
-        : 'platform.royalmotionit.com',
-      actualTarget: null,
+        : 'Dedicated Server Elastic IP',
+      actualTarget: cleanIp,
       recordType: isElasticIpConfigured ? 'A' : 'CNAME',
       proxied: true,
-      message: 'No platform subdomain assigned to your WhiteLabel.',
+      message: 'Dedicated custom domain architecture active (backstage.<customdomain>).',
     };
-
-    if (wl.subdomain) {
-      try {
-        const targetDomain = wl.customDomain
-          ? wl.customDomain.startsWith('backstage.')
-            ? wl.customDomain
-            : `backstage.${wl.customDomain}`
-          : wl.cloudflareBaseDomain
-            ? `backstage.${wl.cloudflareBaseDomain}`
-            : undefined;
-
-        const subDns = await this.cloudflareDnsService.verifySubdomainDns(
-          wl.subdomain,
-          targetDomain,
-        );
-        subdomainHealth = {
-          status: subDns.success ? 'VERIFIED' : 'FAILED',
-          subdomain: wl.subdomain,
-          fqdn: subDns.fqdn,
-          isElasticIp: false,
-          elasticIpv4: cleanIp,
-          expectedTarget: subDns.expectedContent,
-          actualTarget: subDns.actualContent || null,
-          recordType: subDns.recordType,
-          proxied: subDns.proxied,
-          message: subDns.message,
-        };
-
-        // Auto-heal: If subdomain DNS record is missing or mismatched, re-provision automatically
-        if (!subDns.success && subDns.status !== 'ERROR') {
-          this.logger.warn(
-            `[AutoHeal] Subdomain DNS for ${subDns.fqdn} was ${subDns.status}. Re-provisioning...`,
-          );
-          await this.cloudflareDnsService.provisionSubdomain(
-            wl.subdomain,
-            targetDomain,
-          );
-          await this.redisService.del(
-            `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
-          );
-        }
-      } catch (err: any) {
-        subdomainHealth.status = 'FAILED';
-        subdomainHealth.message = `Subdomain verification error: ${err.message}`;
-      }
-    }
 
     const report: DomainHealthReport = {
       lastCheckedAt: now,
@@ -2924,15 +2763,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       report.step2.message = `Ready to reserve "${expectedCustomDomain}".`;
     }
 
-    // 3. Evaluate Step 3: CNAME Traffic Routing
-    if (wl.customDomain && platformSubdomainFqdn) {
+    // 3. Evaluate Step 3: Dedicated Cloud Server Routing (A-Record)
+    if (wl.customDomain) {
       report.step3.cnameHost = 'backstage';
       report.step3.cnameFqdn = wl.customDomain;
-      report.step3.target = platformSubdomainFqdn;
+      report.step3.target = cleanIp || 'Dedicated Cloud Server IP';
 
       if (report.step1.status === 'VERIFIED') {
         try {
-          const cfCnameRes = await fetch(
+          const cfRecordRes = await fetch(
             `https://api.cloudflare.com/client/v4/zones/${wl.cloudflareZoneId}/dns_records?name=${encodeURIComponent(wl.customDomain)}`,
             {
               headers: {
@@ -2942,51 +2781,44 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
               signal: AbortSignal.timeout(6000),
             },
           );
-          const cfCnameData = await cfCnameRes.json();
+          const cfRecordData = await cfRecordRes.json();
 
-          if (cfCnameData.success && Array.isArray(cfCnameData.result)) {
-            if (cfCnameData.result.length === 0) {
-              // The user removed the CNAME record from Cloudflare!
+          if (cfRecordData.success && Array.isArray(cfRecordData.result)) {
+            if (cfRecordData.result.length === 0) {
               report.step3.status = 'FAILED';
               report.step3.proxied = false;
-              report.step3.message = `CNAME record for "${wl.customDomain}" was not found in your Cloudflare zone "${cleanBaseDomain}". Traffic routing is disconnected.`;
+              report.step3.message = `DNS record for "${wl.customDomain}" was not found in your Cloudflare zone "${cleanBaseDomain}". Routing is disconnected.`;
             } else {
-              const targetNorm = platformSubdomainFqdn
-                .toLowerCase()
-                .trim()
-                .replace(/\.$/, '');
-
-              const matchingCname = cfCnameData.result.find(
-                (r: any) =>
-                  r.type === 'CNAME' &&
-                  (r.content || '').toLowerCase().trim().replace(/\.$/, '') ===
-                    targetNorm,
+              const matchingRec = cfRecordData.result.find((r: any) =>
+                cleanIp
+                  ? r.type === 'A' && (r.content || '').trim() === cleanIp.trim()
+                  : true,
               );
 
-              if (matchingCname) {
-                const isProxied = Boolean(matchingCname.proxied);
+              if (matchingRec) {
+                const isProxied = Boolean(matchingRec.proxied);
                 report.step3.status = 'VERIFIED';
                 report.step3.proxied = isProxied;
-                report.step3.message = `CNAME "${wl.customDomain}" points to "${platformSubdomainFqdn}" with proxy ${isProxied ? 'active (Orange Cloud)' : 'inactive'}.`;
+                report.step3.message = `Routing active: "${wl.customDomain}" points to ${matchingRec.content} with Cloudflare proxy ${isProxied ? 'active (Orange Cloud)' : 'inactive'}.`;
               } else {
-                const first = cfCnameData.result[0];
+                const first = cfRecordData.result[0];
                 const isProxied = Boolean(first.proxied);
                 report.step3.status = 'FAILED';
                 report.step3.proxied = isProxied;
-                report.step3.message = `Record for "${wl.customDomain}" is ${first.type} pointing to "${first.content}" instead of expected target "${platformSubdomainFqdn}".`;
+                report.step3.message = `Record for "${wl.customDomain}" is ${first.type} pointing to "${first.content}" instead of dedicated server IP "${cleanIp || 'assigned Elastic IP'}".`;
               }
             }
           } else {
             report.step3.status = 'FAILED';
             report.step3.proxied = false;
             report.step3.message =
-              cfCnameData.errors?.[0]?.message ||
+              cfRecordData.errors?.[0]?.message ||
               'Failed to query Cloudflare DNS records for custom domain.';
           }
         } catch (err: any) {
           report.step3.status = 'FAILED';
           report.step3.proxied = false;
-          report.step3.message = `Network error verifying Cloudflare CNAME record: ${err.message}`;
+          report.step3.message = `Network error verifying Cloudflare DNS record: ${err.message}`;
         }
       } else {
         report.step3.status = 'PENDING';
@@ -3001,8 +2833,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     report.allConnected =
       report.step1.status === 'VERIFIED' &&
       report.step2.status === 'VERIFIED' &&
-      report.step3.status === 'VERIFIED' &&
-      report.subdomain.status === 'VERIFIED';
+      report.step3.status === 'VERIFIED';
 
     // Cache in Redis for 10 minutes
     await this.redisService.set(

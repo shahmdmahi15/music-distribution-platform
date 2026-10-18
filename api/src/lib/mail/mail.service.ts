@@ -166,16 +166,17 @@ export class MailService implements OnModuleInit {
    * portal domain, and brand styling context.
    */
   private resolveWhiteLabelContext(whiteLabel: WhiteLabel) {
-    // 1. Resolve portal URL (prefer custom domain, fallback to platform subdomain or platform URL)
+    // 1. Resolve portal URL (strictly custom backstage domain)
     let portalUrl = this.platformUrl;
     if (whiteLabel.customDomain && whiteLabel.customDomain.trim() !== '') {
       const cleanDomain = whiteLabel.customDomain
         .trim()
         .replace(/^https?:\/\//i, '')
         .replace(/\/+$/, '');
-      portalUrl = `https://${cleanDomain}`;
-    } else if (whiteLabel.subdomain && whiteLabel.subdomain.trim() !== '') {
-      portalUrl = `https://${whiteLabel.subdomain.trim()}.platform.royalmotionit.com`;
+      const fqdn = cleanDomain.startsWith('backstage.')
+        ? cleanDomain
+        : `backstage.${cleanDomain}`;
+      portalUrl = `https://${fqdn}`;
     }
 
     // 2. Resolve sender address

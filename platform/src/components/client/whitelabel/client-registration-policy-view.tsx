@@ -159,10 +159,8 @@ export function ClientRegistrationPolicyView({
   const [newNote, setNewNote] = useState("");
 
   const portalDomain = branding.customDomain
-    ? `https://${branding.customDomain}`
-    : branding.subdomain
-      ? `https://${branding.subdomain}.platform.royalmotionit.com`
-      : "https://platform.royalmotionit.com";
+    ? `https://${branding.customDomain.startsWith("backstage.") ? branding.customDomain : `backstage.${branding.customDomain}`}`
+    : "https://backstage.yourdomain.com";
 
   // Generate random invite code
   const generateRandomCode = () => {

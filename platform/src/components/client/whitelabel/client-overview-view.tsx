@@ -68,10 +68,8 @@ export function ClientOverviewView({
   const [showUpdateConfirmModal, setShowUpdateConfirmModal] = useState(false);
 
   const portalUrl = branding.customDomain
-    ? `https://${branding.customDomain}`
-    : branding.subdomain
-      ? `https://${branding.subdomain}.platform.royalmotionit.com`
-      : "https://platform.royalmotionit.com";
+    ? `https://${branding.customDomain.startsWith("backstage.") ? branding.customDomain : `backstage.${branding.customDomain}`}`
+    : null;
 
   const envSnippet = `# WhiteLabel Hosting Bundle (.env)
 # Only 3 environment variables required. All branding, themes & SEO load from database via Setup Wizard.
@@ -550,15 +548,16 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </span>
               </div>
               <div className="font-mono font-bold text-sm text-foreground truncate">
-                {branding.customDomain ||
-                  (branding.subdomain
-                    ? `${branding.subdomain}.platform.royalmotionit.com`
-                    : "Not Configured")}
+                {branding.customDomain
+                  ? (branding.customDomain.startsWith("backstage.")
+                      ? branding.customDomain
+                      : `backstage.${branding.customDomain}`)
+                  : "Not Configured"}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                {isDomainConfigured
-                  ? "Cloudflare Auto-DNS Subdomain Active"
-                  : "Assign subdomain in Domain & DNS"}
+                {branding.customDomain
+                  ? "Custom Backstage Domain Active"
+                  : "Assign custom domain in Domain & DNS"}
               </div>
             </div>
           </div>
@@ -860,8 +859,8 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                   Domain Routing &amp; DNS Ownership
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Assign platform subdomain (*.platform.royalmotionit.com) or verify
-                  custom domain with DNS TXT record.
+                  Verify dedicated custom domain (backstage.&lt;domain&gt;) with direct
+                  A-Record routing to your cloud instance.
                 </div>
               </div>
             </div>
@@ -924,16 +923,29 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
                 </div>
               </div>
             </div>
-            <a href={portalUrl} target="_blank" rel="noreferrer">
-              <Button
-                variant={isPortalDeployed ? "default" : "outline"}
-                size="sm"
-                className="text-xs h-8 gap-1"
-              >
-                <span>Preview Portal</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
-            </a>
+            {portalUrl ? (
+              <a href={portalUrl} target="_blank" rel="noreferrer">
+                <Button
+                  variant={isPortalDeployed ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-8 gap-1"
+                >
+                  <span>Preview Portal</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </a>
+            ) : (
+              <Link href="/whitelabel/domain">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8 gap-1"
+                >
+                  <span>Configure Domain</span>
+                  <Globe className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>

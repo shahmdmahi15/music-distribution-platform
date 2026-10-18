@@ -364,8 +364,7 @@ export class AdminWhitelabelService {
       }
     }
 
-    // Guard: Advancing to ACTIVE provisions Cloudflare DNS
-    let cloudflareMessage = '';
+    // Guard: Advancing to ACTIVE requires payment
     if (targetStatus === 'ACTIVE') {
       const hasPayment =
         existing.subscription?.payments &&
@@ -373,25 +372,6 @@ export class AdminWhitelabelService {
       if (!hasPayment) {
         throw new BadRequestException(
           'Cannot activate WhiteLabel before payment is recorded and verified.',
-        );
-      }
-
-      if (existing.subdomain) {
-        const targetDomain = existing.customDomain
-          ? existing.customDomain.startsWith('backstage.')
-            ? existing.customDomain
-            : `backstage.${existing.customDomain}`
-          : existing.cloudflareBaseDomain
-            ? `backstage.${existing.cloudflareBaseDomain}`
-            : undefined;
-
-        const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
-          existing.subdomain,
-          targetDomain,
-        );
-        cloudflareMessage = ` (${dnsResult.message})`;
-        await this.redisService.del(
-          `whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`,
         );
       }
     }
@@ -416,7 +396,7 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: `WhiteLabel status transitioned to ${dto.status}.${cloudflareMessage}`,
+      message: `WhiteLabel status transitioned to ${dto.status}.`,
       whiteLabel: updated,
     };
   }
@@ -702,26 +682,7 @@ export class AdminWhitelabelService {
       );
     }
 
-    // Automate Cloudflare DNS provisioning for platform subdomain
-    let cloudflareMessage = '';
-    if (whiteLabel.subdomain) {
-      const targetDomain = whiteLabel.customDomain
-        ? whiteLabel.customDomain.startsWith('backstage.')
-          ? whiteLabel.customDomain
-          : `backstage.${whiteLabel.customDomain}`
-        : whiteLabel.cloudflareBaseDomain
-          ? `backstage.${whiteLabel.cloudflareBaseDomain}`
-          : undefined;
 
-      const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
-        whiteLabel.subdomain,
-        targetDomain,
-      );
-      cloudflareMessage = ` (${dnsRes.message})`;
-      await this.redisService.del(
-        `whitelabel:subdomain_resolve:${whiteLabel.subdomain.toLowerCase()}`,
-      );
-    }
 
     const updated = await this.prismaService.whiteLabel.update({
       where: { id },
@@ -741,7 +702,7 @@ export class AdminWhitelabelService {
 
     return {
       success: true,
-      message: `WhiteLabel ${updated.name} activated successfully!${cloudflareMessage} Full console menus and portal access unlocked.`,
+      message: `WhiteLabel ${updated.name} activated successfully! Full console menus and portal access unlocked.`,
       whiteLabel: updated,
     };
   }
@@ -1303,40 +1264,85 @@ export class AdminWhitelabelService {
       throw new NotFoundException('WhiteLabel not found.');
     }
 
-    if (!existing.subdomain) {
-      throw new BadRequestException(
-        'No subdomain is configured for this WhiteLabel instance. Configure a subdomain first before syncing DNS.',
-      );
-    }
-
+    const cleanBaseDomain = existing.cloudflareBaseDomain
+      ? existing.cloudflareBaseDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+      : null;
     const targetDomain = existing.customDomain
       ? existing.customDomain.startsWith('backstage.')
         ? existing.customDomain
         : `backstage.${existing.customDomain}`
-      : existing.cloudflareBaseDomain
-        ? `backstage.${existing.cloudflareBaseDomain}`
-        : undefined;
+      : cleanBaseDomain
+        ? `backstage.${cleanBaseDomain}`
+        : null;
 
     if (!targetDomain) {
       throw new BadRequestException(
-        'Cannot sync platform subdomain CNAME: Please configure the custom domain and complete infrastructure provisioning first.',
+        'Cannot sync DNS: Please configure the custom domain and complete infrastructure provisioning first.',
       );
     }
 
-    const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
-      existing.subdomain,
-      targetDomain,
-    );
-    await this.redisService.del(
-      `whitelabel:subdomain_resolve:${existing.subdomain.toLowerCase()}`,
-    );
+    // Sync A-record in tenant Cloudflare zone if credentials exist
+    let synced = false;
+    if (
+      existing.cloudflareApiToken &&
+      existing.cloudflareZoneId &&
+      existing.elasticIpv4
+    ) {
+      const cfHeaders = {
+        Authorization: `Bearer ${existing.cloudflareApiToken}`,
+        'Content-Type': 'application/json',
+      };
+      const cleanIp = String(existing.elasticIpv4).trim();
+      const cfSearch = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${existing.cloudflareZoneId}/dns_records?name=${encodeURIComponent(targetDomain)}`,
+        { headers: cfHeaders },
+      );
+      const cfSearchData = await cfSearch.json();
+      if (cfSearchData.success && Array.isArray(cfSearchData.result)) {
+        if (cfSearchData.result.length > 0) {
+          const rec = cfSearchData.result[0];
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${existing.cloudflareZoneId}/dns_records/${rec.id}`,
+            {
+              method: 'PUT',
+              headers: cfHeaders,
+              body: JSON.stringify({
+                type: 'A',
+                name: 'backstage',
+                content: cleanIp,
+                ttl: 1,
+                proxied: true,
+                comment: 'WhiteLabel Dedicated EC2 Elastic IP routing',
+              }),
+            },
+          );
+        } else {
+          await fetch(
+            `https://api.cloudflare.com/client/v4/zones/${existing.cloudflareZoneId}/dns_records`,
+            {
+              method: 'POST',
+              headers: cfHeaders,
+              body: JSON.stringify({
+                type: 'A',
+                name: 'backstage',
+                content: cleanIp,
+                ttl: 1,
+                proxied: true,
+                comment: 'WhiteLabel Dedicated EC2 Elastic IP routing',
+              }),
+            },
+          );
+        }
+        synced = true;
+      }
+    }
 
     return {
       success: true,
-      message: `Cloudflare DNS synced for "${existing.subdomain}.platform.royalmotionit.com": ${dnsResult.message}`,
-      subdomain: existing.subdomain,
-      fqdn: `${existing.subdomain}.platform.royalmotionit.com`,
-      dnsResult,
+      message: synced
+        ? `Cloudflare A-record synced for "${targetDomain}" -> ${existing.elasticIpv4}`
+        : `Custom domain "${targetDomain}" verified. (Tenant manual DNS mode)`,
+      customDomain: targetDomain,
     };
   }
 

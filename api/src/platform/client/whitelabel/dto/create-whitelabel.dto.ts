@@ -75,7 +75,7 @@ export class CreateWhiteLabelDto {
   })
   businessType!: WhiteLabelBusinessType;
 
-  // Desired Subdomain (e.g. brand.platform.royalmotionit.com)
+  // Desired Subdomain / Slug Handle (e.g. brand)
   @IsOptional()
   @IsString({ message: 'Subdomain must be a string.' })
   @MaxLength(63, { message: 'Subdomain must not exceed 63 characters.' })

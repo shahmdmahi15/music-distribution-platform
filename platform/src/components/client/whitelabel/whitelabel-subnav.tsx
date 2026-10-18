@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -18,10 +19,8 @@ export function WhiteLabelSubNav({
   customDomain,
 }: WhiteLabelSubNavProps) {
   const portalUrl = customDomain
-    ? `https://${customDomain}`
-    : subdomain
-      ? `https://${subdomain}.platform.royalmotionit.com`
-      : "https://platform.royalmotionit.com";
+    ? `https://${customDomain.startsWith("backstage.") ? customDomain : `backstage.${customDomain}`}`
+    : "/whitelabel/domain";
 
   return (
     <div className="mb-6">
@@ -52,15 +51,27 @@ export function WhiteLabelSubNav({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center">
-          <Button
-            render={<a href={portalUrl} target="_blank" rel="noreferrer" />}
-            variant="outline"
-            size="sm"
-            className="text-xs font-semibold gap-1.5 h-9 bg-background hover:bg-muted border-border/80 text-foreground shadow-xs"
-          >
-            <span>Open Portal</span>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
+          {customDomain ? (
+            <Button
+              render={<a href={portalUrl} target="_blank" rel="noreferrer" />}
+              variant="outline"
+              size="sm"
+              className="text-xs font-semibold gap-1.5 h-9 bg-background hover:bg-muted border-border/80 text-foreground shadow-xs"
+            >
+              <span>Open Portal</span>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          ) : (
+            <Button
+              render={<Link href="/whitelabel/domain" />}
+              variant="outline"
+              size="sm"
+              className="text-xs font-semibold gap-1.5 h-9 bg-background hover:bg-muted border-border/80 text-foreground shadow-xs"
+            >
+              <span>Setup Custom Domain</span>
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

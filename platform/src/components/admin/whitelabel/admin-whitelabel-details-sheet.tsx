@@ -840,11 +840,13 @@ export function AdminWhiteLabelDetailsDialog({
       detail: `${whiteLabel.artists?.length || 0} Roster • ${whiteLabel.catalogTrackCount.toLocaleString()} Tracks`,
     },
     {
-      label: "Subdomain & Routing Architecture",
-      passed: Boolean(whiteLabel.subdomain),
-      detail: whiteLabel.subdomain
-        ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-        : "Missing Subdomain",
+      label: "Custom Domain Architecture",
+      passed: Boolean(whiteLabel.customDomain),
+      detail: whiteLabel.customDomain
+        ? (whiteLabel.customDomain.startsWith("backstage.")
+            ? whiteLabel.customDomain
+            : `backstage.${whiteLabel.customDomain}`)
+        : "Pending Custom Domain Setup",
     },
     {
       label: "Executed Legal Contract PDF",
@@ -1450,9 +1452,9 @@ export function AdminWhiteLabelDetailsDialog({
                       {whiteLabel.businessType.replace(/_/g, " ")}
                     </span>
                     {whiteLabel.country && <span>• {whiteLabel.country}</span>}
-                    {whiteLabel.subdomain && (
+                    {whiteLabel.customDomain && (
                       <span className="font-mono text-primary">
-                        • {whiteLabel.subdomain}.platform.royalmotionit.com
+                        • {whiteLabel.customDomain.startsWith("backstage.") ? whiteLabel.customDomain : `backstage.${whiteLabel.customDomain}`}
                       </span>
                     )}
                     <span>• Applied {formatDate(whiteLabel.createdAt)}</span>
@@ -2058,12 +2060,14 @@ export function AdminWhiteLabelDetailsDialog({
                       </div>
                       <div>
                         <span className="text-muted-foreground text-[10px] block">
-                          Managed Subdomain
+                          Custom Backstage Domain
                         </span>
                         <p className="font-mono font-bold text-primary truncate">
-                          {whiteLabel.subdomain
-                            ? `${whiteLabel.subdomain}.platform.royalmotionit.com`
-                            : "Not Set"}
+                          {whiteLabel.customDomain
+                            ? (whiteLabel.customDomain.startsWith("backstage.")
+                                ? whiteLabel.customDomain
+                                : `backstage.${whiteLabel.customDomain}`)
+                            : "Pending Configuration"}
                         </p>
                       </div>
                       <div>
@@ -3947,9 +3951,9 @@ export function AdminWhiteLabelDetailsDialog({
                   <div className="flex items-center justify-between">
                     <h5 className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
                       <Globe className="h-3.5 w-3.5 text-primary" />
-                      Infrastructure Routing &amp; Domains
+                      Infrastructure Routing &amp; Dedicated Domain
                     </h5>
-                    {whiteLabel.subdomain && (
+                    {whiteLabel.customDomain && whiteLabel.elasticIpv4 && (
                       <Button
                         type="button"
                         variant="outline"
@@ -3959,43 +3963,19 @@ export function AdminWhiteLabelDetailsDialog({
                         className="h-7 text-[11px] font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
                       >
                         <RefreshCw className={`h-3 w-3 ${dnsSyncLoading ? "animate-spin" : ""}`} />
-                        <span>{dnsSyncLoading ? "Syncing..." : "Sync Subdomain CNAME"}</span>
+                        <span>{dnsSyncLoading ? "Syncing..." : "Sync Tenant Cloudflare DNS"}</span>
                       </Button>
                     )}
                   </div>
 
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    The platform subdomain (<code className="font-mono text-primary font-semibold">{brandingForm.subdomain || "brand"}.platform.royalmotionit.com</code>) points as a <strong>CNAME</strong> directly to the client&apos;s custom backstage domain (<code className="font-mono text-foreground font-semibold">{brandingForm.customDomain ? (brandingForm.customDomain.startsWith("backstage.") ? brandingForm.customDomain : `backstage.${brandingForm.customDomain}`) : "backstage.<customdomain>"}</code>).
+                    WhiteLabels operate exclusively on their dedicated custom backstage domain (<code className="font-mono text-foreground font-semibold">{brandingForm.customDomain ? (brandingForm.customDomain.startsWith("backstage.") ? brandingForm.customDomain : `backstage.${brandingForm.customDomain}`) : "backstage.<customdomain>"}</code>) pointing directly via an A-Record to their cloud instance Elastic IP (<code className="font-mono text-primary font-semibold">{whiteLabel.elasticIpv4 || "Pending Elastic IP"}</code>). Mother company assigns no platform subdomains.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-semibold">
-                        Platform Subdomain (CNAME)
-                      </Label>
-                      <div className="flex items-center">
-                        <Input
-                          placeholder="labelhandle"
-                          value={brandingForm.subdomain}
-                          onChange={(e) =>
-                            setBrandingForm((prev) => ({
-                              ...prev,
-                              subdomain: e.target.value
-                                .toLowerCase()
-                                .replace(/[^a-z0-9-]/g, ""),
-                            }))
-                          }
-                          className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
-                        />
-                        <span className="h-8 px-2 bg-muted/80 border border-l-0 rounded-r-md text-[11px] font-mono flex items-center text-muted-foreground shrink-0 select-none">
-                          .platform.royalmotionit.com
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold">
-                        Primary Custom Domain (A-Record)
+                        Primary Custom Domain (backstage.&lt;domain&gt;)
                       </Label>
                       <Input
                         placeholder="backstage.royalmusic.io"
@@ -4008,6 +3988,18 @@ export function AdminWhiteLabelDetailsDialog({
                         }
                         className="h-8 text-xs font-mono"
                       />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">
+                        Dedicated Server Elastic IPv4
+                      </Label>
+                      <div className="h-8 px-2.5 bg-muted/50 border rounded-md text-xs font-mono flex items-center justify-between text-foreground">
+                        <span>{whiteLabel.elasticIpv4 || "Pending Provisioning"}</span>
+                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                          Dedicated A-Record
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>

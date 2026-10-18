@@ -79,7 +79,9 @@ export async function proxy(request: NextRequest) {
     host.endsWith(`.${PLATFORM_DOMAIN}`) && host !== PLATFORM_DOMAIN;
 
   // =========================================================================
-  // 1. WhiteLabel Subdomain Gateway (*.platform.royalmotionit.com)
+  // 1. Host Validation (Mother Company Platform Console)
+  // WhiteLabels exclusively use their own custom domain (backstage.<customdomain>).
+  // Any third-party or unknown subdomain on *.platform.royalmotionit.com is rejected.
   // =========================================================================
   if (isSubdomainRequest) {
     const subdomain = host.slice(0, -(PLATFORM_DOMAIN.length + 1)).trim();
@@ -89,55 +91,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Allow internal rewrite targets to render
-    if (isInternalSubdomainRoute) {
-      return NextResponse.next();
-    }
-
-    // Reject reserved infrastructure subdomains that are not whitelabels
-    if (RESERVED_SUBDOMAINS.has(subdomain)) {
-      const notFoundUrl = new URL("/subdomain-not-found", request.url);
-      notFoundUrl.searchParams.set("subdomain", subdomain);
-      return NextResponse.rewrite(notFoundUrl, { status: 404 });
-    }
-
-    // Query Central API for tenant resolution
-    const apiBase = process.env.API_BASE_URL || "https://api.royalmotionit.com";
-    try {
-      const res = await fetch(
-        `${apiBase}/whitelabel/tenant/resolve-subdomain?subdomain=${encodeURIComponent(subdomain)}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: AbortSignal.timeout(4000),
-          next: { revalidate: 60 },
-        },
-      );
-
-      if (res.ok) {
-        const data: SubdomainResolutionResult = await res.json();
-
-        if (data.found) {
-          // If WhiteLabel has its backstage custom domain live, redirect directly
-          if (data.backstageDomain) {
-            const redirectUrl = `https://${data.backstageDomain}${pathname}${request.nextUrl.search}`;
-            return NextResponse.redirect(redirectUrl, 308);
-          }
-
-          // If WhiteLabel is registered/in progress but hasn't finalized custom domain, render holding page
-          const holdingUrl = new URL("/subdomain-holding", request.url);
-          if (data.name) holdingUrl.searchParams.set("name", data.name);
-          holdingUrl.searchParams.set("subdomain", subdomain);
-          if (data.primaryColor) holdingUrl.searchParams.set("color", data.primaryColor);
-          return NextResponse.rewrite(holdingUrl);
-        }
-      }
-    } catch (err) {
-      console.error(`[SubdomainProxy] Error resolving subdomain ${subdomain}:`, err);
-    }
-
-    // Subdomain is not registered or not permitted -> strictly return 404
+    // WhiteLabel subdomains are not served under platform.royalmotionit.com
     const notFoundUrl = new URL("/subdomain-not-found", request.url);
     notFoundUrl.searchParams.set("subdomain", subdomain);
     return NextResponse.rewrite(notFoundUrl, { status: 404 });

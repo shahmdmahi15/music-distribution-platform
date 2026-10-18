@@ -447,11 +447,6 @@ export class WhitelabelProvisioningService {
     const zoneId = wl.cloudflareZoneId!;
     const cfToken = wl.cloudflareApiToken!;
     const customDomain = wl.customDomain || `backstage.${baseDomain}`;
-    const tenantSubdomain =
-      wl.subdomain && wl.subdomain !== 'backstage' ? wl.subdomain : null;
-    const platformSubdomainFqdn = tenantSubdomain
-      ? `${tenantSubdomain}.platform.royalmotionit.com`
-      : '';
 
     try {
       // =========================================================================
@@ -507,11 +502,8 @@ export class WhitelabelProvisioningService {
                   '*',
                   `https://${customDomain}`,
                   `https://${baseDomain}`,
-                  ...(wl.subdomain
-                    ? [`https://${wl.subdomain}.platform.royalmotionit.com`]
-                    : []),
+                  `https://*.${baseDomain}`,
                   'https://platform.royalmotionit.com',
-                  'https://*.platform.royalmotionit.com',
                   'https://api.royalmotionit.com',
                 ],
                 ExposeHeaders: ['ETag', 'x-amz-server-side-encryption'],
@@ -1087,7 +1079,7 @@ if [ ! -f /etc/ssl/certs/whitelabel_origin.crt ]; then
     -keyout /etc/ssl/private/whitelabel_origin.key \\
     -out /etc/ssl/certs/whitelabel_origin.crt \\
     -subj "/C=US/ST=Cloud/L=Origin/O=${escapedWlName}/CN=${customDomain}" \\
-    -addext "subjectAltName = DNS:${customDomain},DNS:*.${baseDomain},DNS:${baseDomain}${platformSubdomainFqdn ? `,DNS:${platformSubdomainFqdn}` : ''}"
+    -addext "subjectAltName = DNS:${customDomain},DNS:*.${baseDomain},DNS:${baseDomain}"
 fi
 `;
 
@@ -1388,53 +1380,7 @@ chmod 755 /var/www
         'SUCCESS',
       );
 
-      // Point the platform subdomain provided as a CNAME to backstage.customdomain
-      // so both backstage.customdomain and [subdomain].platform.royalmotionit.com can access the WhiteLabel portal
-      const tenantRecord = await this.prismaService.whiteLabel.findUnique({
-        where: { id: whiteLabelId },
-        select: { subdomain: true },
-      });
-      const tenantSubdomain =
-        tenantRecord?.subdomain && tenantRecord.subdomain !== 'backstage'
-          ? tenantRecord.subdomain
-          : wl.subdomain && wl.subdomain !== 'backstage'
-            ? wl.subdomain
-            : null;
 
-      if (tenantSubdomain) {
-        await this.appendLog(
-          whiteLabelId,
-          'DNS',
-          `Configuring CNAME for platform subdomain: "${tenantSubdomain}.platform.royalmotionit.com" -> "${customDomain}"...`,
-          'INFO',
-        );
-
-        try {
-          const cnameResult =
-            await this.cloudflareDnsService.provisionSubdomain(
-              tenantSubdomain,
-              customDomain,
-            );
-          if (cnameResult.success) {
-            await this.appendLog(
-              whiteLabelId,
-              'DNS',
-              `CNAME active: "${cnameResult.fqdn}" now points to "${customDomain}". Both "${customDomain}" and "${cnameResult.fqdn}" can be used to access the WhiteLabel portal!`,
-              'SUCCESS',
-            );
-          }
-        } catch (cnameErr: any) {
-          this.logger.warn(
-            `Could not point platform subdomain CNAME to ${customDomain}: ${cnameErr.message}`,
-          );
-          await this.appendLog(
-            whiteLabelId,
-            'DNS',
-            `Notice: Platform subdomain CNAME could not be automatically set: ${cnameErr.message}. Primary custom domain "${customDomain}" is fully active.`,
-            'WARN',
-          );
-        }
-      }
 
       // =========================================================================
       // STAGE 6: SECURE SSH DEPLOYMENT & PORT 3000 RUNTIME ORCHESTRATION
@@ -1556,7 +1502,6 @@ chmod 755 /var/www
 
         const serverNames = [
           customDomain,
-          platformSubdomainFqdn,
           baseDomain,
           `*.${baseDomain}`,
         ]

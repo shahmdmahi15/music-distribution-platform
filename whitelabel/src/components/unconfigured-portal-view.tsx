@@ -128,14 +128,14 @@ export function UnconfiguredPortalView({
       category: "Routing & DNS",
       title: "Authoritative Domain Routing",
       status: isDomainConfigured,
-      value:
-        tenant?.customDomain ||
-        (tenant?.subdomain
-          ? `${tenant.subdomain}.platform.royalmotionit.com`
-          : "None Assigned"),
+      value: tenant?.customDomain
+        ? (tenant.customDomain.startsWith("backstage.")
+            ? tenant.customDomain
+            : `backstage.${tenant.customDomain}`)
+        : "Pending Setup",
       description: isDomainConfigured
-        ? "Subdomain or verified custom domain assigned to tenant."
-        : "Domain routing not yet assigned. Configure in Platform Console Domain settings.",
+        ? "Verified custom domain assigned to tenant."
+        : "Dedicated custom domain not yet assigned. Configure in Platform Console Domain settings.",
       icon: Globe,
     },
     {

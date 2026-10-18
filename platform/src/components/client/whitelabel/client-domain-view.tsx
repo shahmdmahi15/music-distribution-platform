@@ -49,7 +49,6 @@ import {
   clientVerifyCloudflareInterconnectionAction,
   clientHoldAndVerifyDomainAction,
   clientApplyCnameAction,
-  clientSyncPlatformSubdomainDnsAction,
   clientGetDomainHealthAction,
 } from "@/actions/client/whitelabel/client-domain.action";
 import { WhiteLabelSubNav } from "./whitelabel-subnav";
@@ -68,11 +67,6 @@ export function ClientDomainView({
     initialConfig.elasticIpv4 || branding.elasticIpv4 || "",
   );
   const [savingElasticIpv4, setSavingElasticIpv4] = useState(false);
-  const [syncingSubdomain, setSyncingSubdomain] = useState(false);
-  const [subdomainSyncResult, setSubdomainSyncResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
 
   const rawBaseDomain =
     config.cloudflareBaseDomain || branding.cloudflareBaseDomain || "";
@@ -101,12 +95,6 @@ export function ClientDomainView({
       Boolean(branding.cloudflareZoneId && branding.cloudflareBaseDomain)),
   );
 
-  const platformSubdomainFqdn = config.subdomain
-    ? `${config.subdomain}.platform.royalmotionit.com`
-    : "";
-  const platformSubdomainUrl = platformSubdomainFqdn
-    ? `https://${platformSubdomainFqdn}`
-    : null;
 
   // Periodic Health State
   const [domainHealth, setDomainHealth] = useState<DomainHealthReport | null>(
@@ -168,11 +156,11 @@ export function ClientDomainView({
       ? {
           success: true,
           cnameFqdn: initialConfig.customDomain || expectedCustomDomain,
-          cnameTarget: platformSubdomainFqdn,
+          cnameTarget: initialConfig.elasticIpv4 || config.elasticIpv4 || "Dedicated Cloud Instance",
           proxied: true,
           message:
             initialConfig.health?.step3.message ||
-            `CNAME routing active and pointed to "${platformSubdomainFqdn}" with proxy active.`,
+            `A-Record routing active and pointed directly to dedicated cloud instance.`,
         }
       : null,
   );
@@ -421,34 +409,6 @@ export function ClientDomainView({
     }
   };
 
-  // --- Option A: Sync & Verify Subdomain DNS ---
-  const handleSyncPlatformSubdomain = async () => {
-    setSyncingSubdomain(true);
-    setSubdomainSyncResult(null);
-    try {
-      const res = await clientSyncPlatformSubdomainDnsAction();
-      setSubdomainSyncResult({
-        success: res.success,
-        message: res.message,
-      });
-      if (res.success) {
-        toast.success(
-          res.message || "Platform subdomain DNS is healthy & synchronized.",
-        );
-        handleLiveHealthCheck(true, false);
-      } else {
-        toast.error(
-          res.message || "Platform subdomain DNS synchronization failed.",
-        );
-      }
-    } catch {
-      const msg = "An error occurred while syncing platform subdomain DNS.";
-      setSubdomainSyncResult({ success: false, message: msg });
-      toast.error(msg);
-    } finally {
-      setSyncingSubdomain(false);
-    }
-  };
 
   // --- Step 1: Verify 3-Way Cloudflare Interconnection ---
   const handleVerifyCloudflare = async () => {
@@ -598,15 +558,15 @@ export function ClientDomainView({
       }
       toast.success(`Step 2 Passed: Domain held and ownership verified!`);
 
-      // Step 3: Apply CNAME
+      // Step 3: Apply A-Record Routing
       setFullFlowStep(3);
       toast.info(
-        `Step 3/3: Applying CNAME record pointing to ${platformSubdomainFqdn}...`,
+        `Step 3/3: Applying A-Record routing pointing backstage to ${config.elasticIpv4 || "dedicated cloud instance"}...`,
       );
       const cnameRes = await clientApplyCnameAction();
       setCnameResult(cnameRes);
       if (!cnameRes.success) {
-        toast.error(cnameRes.message || "Failed to apply CNAME routing.");
+        toast.error(cnameRes.message || "Failed to apply DNS routing.");
         setIsRunningFullFlow(false);
         setFullFlowStep(0);
         return;
@@ -718,7 +678,7 @@ export function ClientDomainView({
 
       {/* Overview Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Card 1: Platform Subdomain & Elastic IP Status */}
+        {/* Card 1: Custom Backstage Domain & Dedicated Server Status */}
         <Card className="border-border/70 shadow-sm bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
@@ -726,7 +686,7 @@ export function ClientDomainView({
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
-                <span>Platform Subdomain</span>
+                <span>Custom Backstage Domain</span>
                 {domainHealth?.subdomain && (
                   <span className="text-[10px] text-muted-foreground font-mono">
                     {domainHealth.subdomain.recordType} Record
@@ -734,27 +694,25 @@ export function ClientDomainView({
                 )}
               </div>
               <div className="text-sm font-bold truncate mt-0.5 text-foreground font-mono">
-                {platformSubdomainFqdn || "Not configured"}
+                {config.customDomain || expectedCustomDomain || "Not configured"}
               </div>
               <Badge
                 variant="outline"
                 className={`mt-1 text-[10px] font-semibold ${
-                  domainHealth?.subdomain.status === "VERIFIED"
+                  isCustomDomainActive
                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                    : domainHealth?.subdomain.status === "FAILED"
+                    : isStep3Failed
                       ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
                       : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
                 }`}
               >
-                {domainHealth?.subdomain.status === "VERIFIED"
-                  ? domainHealth.subdomain.isElasticIp
-                    ? `Elastic IP Verified (${domainHealth.subdomain.elasticIpv4})`
-                    : "DNS & Routing Verified"
-                  : domainHealth?.subdomain.status === "FAILED"
-                    ? "DNS Attention Needed"
-                    : isSubdomainVerified
-                      ? "Authoritative DNS Active"
-                      : "DNS Pending"}
+                {isCustomDomainActive
+                  ? config.elasticIpv4
+                    ? `A-Record Active (${config.elasticIpv4})`
+                    : "Custom Domain Active"
+                  : isStep3Failed
+                    ? "Routing Attention Needed"
+                    : "Routing Pending Setup"}
               </Badge>
             </div>
           </CardContent>
@@ -855,69 +813,40 @@ export function ClientDomainView({
 
       {/* Main Two-Column Routing & Infrastructure Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Option A: Platform Subdomain & Hosted Server Infrastructure */}
+        {/* Dedicated Cloud Instance & Network Infrastructure */}
         <Card className="border-border/70 shadow-sm flex flex-col justify-between">
           <div>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                    <Globe className="h-4 w-4" />
+                    <Server className="h-4 w-4" />
                   </div>
                   <div>
                     <CardTitle className="text-base font-semibold">
-                      Option A: Platform Subdomain &amp; Server Routing
+                      Dedicated Cloud Instance &amp; Server Network
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Authoritative platform routing pointing to your hosted
-                      server
+                      Dedicated cloud server Elastic IPv4 and direct custom domain routing
                     </CardDescription>
                   </div>
                 </div>
                 <Badge
                   variant="outline"
                   className={`text-[10px] ${
-                    domainHealth?.subdomain.status === "VERIFIED"
+                    config.elasticIpv4
                       ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-semibold"
                       : "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
                   }`}
                 >
-                  {domainHealth?.subdomain.status === "VERIFIED"
-                    ? "Subdomain Verified"
-                    : "Subdomain Provisioned"}
+                  {config.elasticIpv4
+                    ? "Elastic IP Assigned"
+                    : "Provisioning Pending"}
                 </Badge>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {/* Permanent Platform Subdomain */}
-              <div className="space-y-1.5 p-3 rounded-lg border border-border/80 bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                    Platform Subdomain
-                  </Label>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] bg-muted text-muted-foreground font-mono"
-                  >
-                    Permanent • Immutable
-                  </Badge>
-                </div>
-                <div className="flex items-center rounded-md border border-border bg-background px-3 py-2 text-xs font-mono text-foreground select-all">
-                  <span>
-                    {config.subdomain || branding.subdomain || "your-brand"}
-                  </span>
-                  <span className="text-muted-foreground">
-                    .platform.royalmotionit.com
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Provided by RoyalMotion IT as a dedicated platform CNAME alias
-                  pointing directly to your backstage custom domain.
-                </p>
-              </div>
-
               {/* Elastic IPv4 Input */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1041,101 +970,20 @@ export function ClientDomainView({
                 </div>
               )}
 
-              {/* Subdomain URL Display & DNS Sync Button */}
-              {platformSubdomainUrl && (
-                <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20 text-xs space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-[11px] font-medium">
-                      Platform Subdomain URL:
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          copyToClipboard(platformSubdomainUrl, "subdomain-url")
-                        }
-                        className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-mono cursor-pointer"
-                      >
-                        {copiedKey === "subdomain-url" ? (
-                          <Check className="h-3 w-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                        Copy
-                      </button>
-                      <a
-                        href={platformSubdomainUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-mono"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Visit
-                      </a>
-                    </div>
-                  </div>
-                  <div className="font-mono text-foreground break-all text-xs font-semibold bg-background/60 p-2 rounded border border-border/60">
-                    {platformSubdomainUrl}
-                  </div>
-
-                  {/* Re-sync Subdomain DNS Button */}
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-muted-foreground">
-                      Subdomain DNS status:
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSyncPlatformSubdomain}
-                      disabled={syncingSubdomain}
-                      className="text-[11px] h-7 px-2.5 gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
-                    >
-                      <RefreshCw
-                        className={`h-3 w-3 ${
-                          syncingSubdomain ? "animate-spin" : ""
-                        }`}
-                      />
-                      <span>
-                        {syncingSubdomain
-                          ? "Syncing DNS..."
-                          : "Sync & Verify Subdomain DNS"}
-                      </span>
-                    </Button>
-                  </div>
-
-                  {subdomainSyncResult && (
-                    <div
-                      className={`text-[11px] p-2 rounded border flex items-center gap-1.5 ${
-                        subdomainSyncResult.success
-                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                          : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                      }`}
-                    >
-                      {subdomainSyncResult.success ? (
-                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                      ) : (
-                        <XCircle className="h-3.5 w-3.5 shrink-0" />
-                      )}
-                      <span>{subdomainSyncResult.message}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </CardContent>
           </div>
 
           <CardContent className="pt-2 border-t border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Primary platform gateway</span>
+              <span>Dedicated Instance Architecture</span>
               <span className="font-mono text-[11px] text-foreground font-semibold">
-                royalmotionit.com
+                Direct A-Record Routing
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Option B: Custom Domain Header & Pre-requisite Check */}
+        {/* Dedicated Custom Domain Header & Pre-requisite Check */}
         <Card className="border-border/70 shadow-sm flex flex-col justify-between">
           <div>
             <CardHeader className="pb-3">
@@ -1380,9 +1228,9 @@ export function ClientDomainView({
 
           <CardContent className="pt-2 border-t border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Automated CNAME Target:</span>
+              <span>Target Dedicated Instance:</span>
               <span className="font-mono text-[11px] text-foreground font-semibold">
-                {platformSubdomainFqdn || "platform.royalmotionit.com"}
+                {config.elasticIpv4 || "Assigned Elastic IP"}
               </span>
             </div>
           </CardContent>
@@ -1744,7 +1592,7 @@ export function ClientDomainView({
               )}
             </div>
 
-            {/* STEP 3: Route Custom Domain & Sync Platform Subdomain CNAME */}
+            {/* STEP 3: Route Custom Domain to Dedicated Cloud Instance (A-Record) */}
             <div className="p-4 sm:p-5 space-y-3 bg-card hover:bg-muted/10 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
@@ -1753,10 +1601,10 @@ export function ClientDomainView({
                   </span>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <span>Route Custom Domain &amp; Provision Platform Subdomain (CNAME)</span>
+                      <span>Route Custom Domain to Dedicated Cloud Instance (A-Record)</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Routes <code className="font-mono text-primary">backstage.{cleanBaseDomain}</code> directly to your dedicated cloud instance, and points your platform subdomain (<code className="font-mono text-primary">{platformSubdomainFqdn}</code>) as a CNAME to backstage.
+                      Routes <code className="font-mono text-primary">backstage.{cleanBaseDomain}</code> directly to your dedicated cloud instance (<code className="font-mono text-primary">{config.elasticIpv4 || "assigned Elastic IP"}</code>) with Cloudflare SSL &amp; DDoS protection.
                     </p>
                   </div>
                 </div>
@@ -1773,7 +1621,7 @@ export function ClientDomainView({
                     }`}
                   >
                     {isStep3Verified
-                      ? "ROUTING & PROXY ACTIVE"
+                      ? "A-RECORD & PROXY ACTIVE"
                       : isStep3Failed
                         ? "DNS RECORD MISSING (FAILED)"
                         : "PENDING DNS"}
@@ -1810,25 +1658,27 @@ export function ClientDomainView({
 
                   <div className="bg-background p-2 rounded border border-border/60">
                     <span className="text-muted-foreground block text-[10px]">
-                      Platform Subdomain (CNAME)
+                      Dedicated Server Elastic IP (A-Record)
                     </span>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary truncate mr-1" title={platformSubdomainFqdn}>
-                        {platformSubdomainFqdn}
+                      <span className="font-bold text-primary truncate mr-1" title={config.elasticIpv4 || "Pending Provisioning"}>
+                        {config.elasticIpv4 || "Pending Provisioning"}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          copyToClipboard(platformSubdomainFqdn, "cname-target")
-                        }
-                        className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
-                      >
-                        {copiedKey === "cname-target" ? (
-                          <Check className="h-3 w-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
+                      {config.elasticIpv4 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            copyToClipboard(config.elasticIpv4!, "elastic-ip")
+                          }
+                          className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                        >
+                          {copiedKey === "elastic-ip" ? (
+                            <Check className="h-3 w-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
 

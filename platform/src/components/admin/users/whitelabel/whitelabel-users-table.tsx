@@ -267,16 +267,22 @@ export function WhiteLabelUsersTable({
                             {u.whiteLabel.code}
                           </Badge>
                         </div>
-                        {u.whiteLabel.subdomain && (
+                        {u.whiteLabel.customDomain ? (
                           <a
-                            href={`https://${u.whiteLabel.subdomain}.platform.royalmotionit.com`}
+                            href={`https://${u.whiteLabel.customDomain.startsWith("backstage.") ? u.whiteLabel.customDomain : `backstage.${u.whiteLabel.customDomain}`}`}
                             target="_blank"
                             rel="noreferrer"
                             className="text-[10.5px] font-mono text-primary hover:underline inline-flex items-center gap-1"
                           >
-                            {u.whiteLabel.subdomain}.platform.royalmotionit.com
+                            {u.whiteLabel.customDomain.startsWith("backstage.")
+                              ? u.whiteLabel.customDomain
+                              : `backstage.${u.whiteLabel.customDomain}`}
                             <ExternalLink className="h-2.5 w-2.5" />
                           </a>
+                        ) : (
+                          <span className="text-[10.5px] font-mono text-muted-foreground italic">
+                            Domain pending
+                          </span>
                         )}
                       </div>
                     </TableCell>

@@ -116,9 +116,11 @@ export function ClientSsoView({ initialSso, branding }: ClientSsoViewProps) {
     Record<string, { success: boolean; message: string } | null>
   >({});
 
-  const portalHost =
-    branding.customDomain ||
-    `${branding.subdomain || "brand"}.platform.royalmotionit.com`;
+  const portalHost = branding.customDomain
+    ? (branding.customDomain.startsWith("backstage.")
+        ? branding.customDomain
+        : `backstage.${branding.customDomain}`)
+    : "backstage.yourdomain.com";
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

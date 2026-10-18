@@ -285,19 +285,15 @@ async function resolveTenant(
     return cached;
   }
 
-  // 2. Extract subdomain if on *.platform.royalmotionit.com
+  // 2. WhiteLabels never use platform subdomains (*.platform.royalmotionit.com)
   const baseDomain = (env.PLATFORM_BASE_DOMAIN || 'platform.royalmotionit.com').toLowerCase();
-  let subdomain = '';
-
-  if (cleanHost.endsWith(`.${baseDomain}`)) {
-    subdomain = cleanHost.replace(`.${baseDomain}`, '');
+  if (cleanHost.endsWith(`.${baseDomain}`) && cleanHost !== `api.${baseDomain}` && cleanHost !== baseDomain) {
+    return { found: false };
   }
 
-  // 3. Fallback to API resolver
+  // 3. Fallback to API resolver strictly via customDomain
   const apiOrigin = env.API_ORIGIN_URL || 'https://api.platform.royalmotionit.com';
-  const queryParam = subdomain
-    ? `subdomain=${encodeURIComponent(subdomain)}`
-    : `customDomain=${encodeURIComponent(cleanHost)}`;
+  const queryParam = `customDomain=${encodeURIComponent(cleanHost)}`;
 
   try {
     const res = await fetch(
