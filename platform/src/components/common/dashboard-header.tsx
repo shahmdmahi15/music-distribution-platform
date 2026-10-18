@@ -22,19 +22,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Kbd } from "@/components/ui/kbd";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
+import { QuickSearchDialog } from "@/components/common/quick-search-dialog";
 import {
   Search,
   UserPen,
   ShieldPlus,
   LogOut,
   ChevronDown,
-  LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { logoutAction } from "@/actions/auth/logout.action";
 import { toast } from "sonner";
 import {
@@ -58,6 +59,12 @@ const ROUTE_LABELS: Record<string, string> = {
   profile: "Profile & Settings",
   branding: "Brand Customizer",
   whitelabel: "WhiteLabel",
+  distribution: "Distribution Pipeline",
+  channels: "VEVO Channels",
+  reports: "Distribution Statements",
+  infrastructure: "Cloud Infrastructure",
+  catalog: "Catalog Submissions",
+  setup: "Setup Wizard",
 };
 
 export function DashboardHeader({
@@ -70,6 +77,19 @@ export function DashboardHeader({
   const pathname = usePathname();
   const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global ⌘K / Ctrl+K keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Generate breadcrumbs from pathname
   const segments = pathname.split("/").filter(Boolean);
@@ -120,7 +140,6 @@ export function DashboardHeader({
             </BreadcrumbItem>
 
             {segments.map((segment, index) => {
-              // Skip root segment if it matches admin
               if (isAdmin && index === 0 && segment === "admin") return null;
 
               const isLast = index === segments.length - 1;
@@ -155,19 +174,16 @@ export function DashboardHeader({
 
       {/* Right side: Search shortcut, Status pill, Theme toggle, and User Menu */}
       <div className="flex items-center gap-2">
-        {/* Quick Search Trigger */}
+        {/* Universal Command Palette Trigger */}
         <button
           type="button"
-          onClick={() => {
-            toast.info("Global resource search palette initialized.");
-          }}
-          className="hidden md:flex items-center gap-2 px-2.5 py-1 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-md transition-all cursor-pointer"
+          onClick={() => setSearchOpen(true)}
+          className="hidden md:flex items-center gap-2 px-2.5 py-1 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-md transition-all cursor-pointer select-none"
+          title="Open Global Command Palette (⌘K)"
         >
-          <Search className="h-3.5 w-3.5" />
+          <Search className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs">Quick search...</span>
-          <kbd className="text-[9px] font-mono bg-background border border-border/80 px-1 py-0.2 rounded shadow-2xs text-muted-foreground">
-            ⌘K
-          </kbd>
+          <Kbd className="text-[10px] h-4.5 px-1.5 font-mono shadow-xs">⌘K</Kbd>
         </button>
 
         {/* System Ecosystem Pill */}
@@ -282,6 +298,13 @@ export function DashboardHeader({
           </DropdownMenu>
         )}
       </div>
+
+      {/* Global Quick Search Command Dialog */}
+      <QuickSearchDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        isAdmin={isAdmin}
+      />
 
       {/* Logout Alert Dialog */}
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>

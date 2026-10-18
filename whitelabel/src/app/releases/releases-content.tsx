@@ -19,6 +19,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Music,
   Plus,
   Search,
@@ -43,6 +51,13 @@ export function ReleasesContent() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 8;
+  const totalPages = Math.max(1, Math.ceil(releases.length / pageSize));
+  const paginatedReleases = releases.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
   const [isPending, startTransition] = useTransition();
 
   // Inline Audio Preview Player State
@@ -87,6 +102,7 @@ export function ReleasesContent() {
       });
       if (res.success) {
         setReleases(res.data);
+        setCurrentPage(1);
         if (selectedStatus === "ALL" && !search) {
           setAllReleasesCache(res.data);
         }
@@ -360,7 +376,7 @@ export function ReleasesContent() {
       ) : viewMode === "grid" ? (
         /* VISUAL GRID CARDS VIEW */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {releases.map((rel) => {
+          {paginatedReleases.map((rel) => {
             const isThisPlaying =
               activeTrackPlaying === (rel.tracks?.[0]?.code || rel.code) &&
               isPlaying;
@@ -464,7 +480,7 @@ export function ReleasesContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {releases.map((rel) => {
+              {paginatedReleases.map((rel) => {
                 const isThisPlaying =
                   activeTrackPlaying === (rel.tracks?.[0]?.code || rel.code) &&
                   isPlaying;
@@ -544,6 +560,47 @@ export function ReleasesContent() {
               })}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="pt-4 flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <PaginationItem key={idx}>
+                  <PaginationLink
+                    isActive={currentPage === idx + 1}
+                    onClick={() => setCurrentPage(idx + 1)}
+                    className="cursor-pointer"
+                  >
+                    {idx + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

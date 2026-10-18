@@ -1,15 +1,28 @@
 {
+  "id": "/?source=pwa",
   "name": "RoyalMotionIT Music Platform",
   "short_name": "RMIT Music",
   "description": "Enterprise Music Distribution, Royalty Accounting & WhiteLabel Portal Engine",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "background_color": "#030712",
   "theme_color": "#4f46e5",
   "orientation": "any",
+  "lang": "en-US",
+  "dir": "ltr",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "categories": ["music", "entertainment", "business", "productivity"],
   "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
     {
       "src": "/favicon-32x32.png",
       "sizes": "32x32",
@@ -35,7 +48,8 @@
     {
       "src": "/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -47,10 +61,24 @@
       "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
     },
     {
-      "name": "WhiteLabel Setup",
-      "short_name": "Setup",
-      "description": "WhiteLabel Setup Wizard",
-      "url": "/whitelabel/setup",
+      "name": "Distribution",
+      "short_name": "Distribution",
+      "description": "Music Distribution Management",
+      "url": "/admin/distribution",
+      "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "WhiteLabels",
+      "short_name": "WhiteLabels",
+      "description": "WhiteLabel Tenants Management",
+      "url": "/admin/whitelabels",
+      "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Reports",
+      "short_name": "Reports",
+      "description": "Platform Royalty and Financial Reports",
+      "url": "/admin/reports",
       "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
     }
   ]

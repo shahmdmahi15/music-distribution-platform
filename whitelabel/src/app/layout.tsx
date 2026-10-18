@@ -19,12 +19,14 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  userScalable: true,
   viewportFit: "cover",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenantRes = await getTenantAction();
   const tenant = tenantRes.tenant;
+  const appTitle = tenant?.name || "Backstage";
 
   if (!tenant || !tenant.isConfigured) {
     return {
@@ -32,6 +34,30 @@ export async function generateMetadata(): Promise<Metadata> {
       description:
         "This WhiteLabel portal installation is awaiting onboarding setup and initial configuration.",
       manifest: "/manifest.json",
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "black-translucent",
+        title: "Backstage",
+      },
+      formatDetection: {
+        telephone: false,
+      },
+      other: {
+        "mobile-web-app-capable": "yes",
+        "msapplication-TileColor": "#030712",
+        "msapplication-tap-highlight": "no",
+      },
+      icons: {
+        icon: [
+          { url: "/favicon.ico" },
+          { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+          { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+          { url: "/icon.svg", type: "image/svg+xml" },
+        ],
+        apple: [
+          { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+        ],
+      },
     };
   }
 
@@ -47,11 +73,30 @@ export async function generateMetadata(): Promise<Metadata> {
     appleWebApp: {
       capable: true,
       statusBarStyle: "black-translucent",
-      title: tenant.name || "Backstage",
+      title: appTitle,
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
+      "msapplication-TileColor": "#030712",
+      "msapplication-tap-highlight": "no",
     },
     icons: tenant.faviconUrl
-      ? [{ url: tenant.faviconUrl }]
-      : [{ url: "/icon.svg" }],
+      ? [
+          { url: tenant.faviconUrl },
+          { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+          { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+          { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+        ]
+      : [
+          { url: "/favicon.ico" },
+          { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+          { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+          { url: "/icon.svg", type: "image/svg+xml" },
+          { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+        ],
   };
 }
 
@@ -107,6 +152,29 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="Backstage" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-TileColor" content="#030712" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

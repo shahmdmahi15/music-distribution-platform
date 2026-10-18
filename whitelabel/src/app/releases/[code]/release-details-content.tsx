@@ -26,6 +26,41 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/components/ui/hover-card";
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer";
+import {
   ArrowLeft,
   Music,
   Play,
@@ -54,6 +89,7 @@ import {
   FileText,
   RotateCcw,
   Sparkles,
+  Copy,
 } from "lucide-react";
 
 function formatTime(seconds: number): string {
@@ -520,30 +556,53 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row gap-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
-        {/* Cover Art with 3000px Lightbox Trigger */}
-        <div
-          onClick={() => coverImage && setLightboxOpen(true)}
-          className="relative group w-48 h-48 sm:w-56 sm:h-56 shrink-0 rounded-xl overflow-hidden bg-muted/40 border border-border/70 shadow-md cursor-pointer"
-          title="Click to view 3000px High-Res Cover Art Lightbox"
-        >
-          {coverImage ? (
-            <>
-              <img
-                src={coverImage}
-                alt={release.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
-                <Maximize2 className="w-6 h-6" />
-                <span className="text-[11px] font-semibold">3000px Lightbox</span>
-              </div>
-            </>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-              <Music className="w-12 h-12 mb-2" />
-              <span className="text-xs">No Artwork</span>
-            </div>
-          )}
+        {/* Cover Art Carousel with 3000px Lightbox Trigger & DSP Dossier */}
+        <div className="w-48 sm:w-56 shrink-0">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {/* Slide 1: Primary Cover Art */}
+              <CarouselItem>
+                <div
+                  onClick={() => coverImage && setLightboxOpen(true)}
+                  className="relative group aspect-square rounded-xl overflow-hidden bg-muted/40 border border-border/70 shadow-md cursor-pointer"
+                  title="Click to view 3000px High-Res Cover Art Lightbox"
+                >
+                  {coverImage ? (
+                    <>
+                      <img
+                        src={coverImage}
+                        alt={release.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity gap-1">
+                        <Maximize2 className="w-6 h-6" />
+                        <span className="text-[11px] font-semibold">3000px Lightbox</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                      <Music className="w-12 h-12 mb-2" />
+                      <span className="text-xs">No Artwork</span>
+                    </div>
+                  )}
+                </div>
+              </CarouselItem>
+              {/* Slide 2: Alternate Art / Visualizer Card */}
+              <CarouselItem>
+                <div className="aspect-square rounded-xl bg-gradient-to-br from-primary/20 via-background to-secondary/30 border border-border/70 p-4 flex flex-col justify-between">
+                  <Badge className="w-fit text-[10px]">DSP Ingestion Dossier</Badge>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-foreground truncate">{release.title}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground">UPC: {release.upc || "Auto-Assign"}</p>
+                    <p className="text-[10px] text-muted-foreground">{release.tracks?.length || 1} Master Audio Tracks</p>
+                  </div>
+                  <span className="text-[9px] font-mono text-emerald-500">DDEX ERN 4.3 Lossless</span>
+                </div>
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselPrevious className="left-1 bg-background/80" />
+            <CarouselNext className="right-1 bg-background/80" />
+          </Carousel>
         </div>
 
         {/* Release Metadata */}
@@ -563,11 +622,28 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
               {release.title}
             </h1>
 
-            <p className="text-sm font-medium text-muted-foreground">
-              {release.contributors && release.contributors.length > 0
-                ? release.contributors.map((c) => c.name).join(", ")
-                : release.labelName || "Unknown Artist"}
-            </p>
+            {release.contributors && release.contributors.length > 0 ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {release.contributors.map((c, i) => (
+                  <HoverCard key={i}>
+                    <HoverCardTrigger className="cursor-help underline decoration-dotted underline-offset-2 text-foreground font-medium text-xs">
+                      {c.name}
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 space-y-1.5 p-3 text-xs">
+                      <div className="font-bold text-foreground">{c.name}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">Role: {c.role}</div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Official royalty payee and credited contributor registered with global mechanical rights organizations.
+                      </p>
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-medium text-muted-foreground">
+                {release.labelName || "Unknown Artist"}
+              </p>
+            )}
           </div>
 
           {/* Details Grid */}
@@ -638,79 +714,121 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
           <div className="divide-y divide-border/40 rounded-xl border border-border/50 overflow-hidden">
             {release.tracks && release.tracks.length > 0 ? (
               release.tracks.map((track) => (
-                <div
-                  key={track.id}
-                  className="p-3.5 flex items-center justify-between gap-4 bg-background/50 hover:bg-muted/20 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Play Button */}
-                    <button
-                      onClick={() => togglePlayTrack(track.code)}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                        activeTrackPlaying === track.code
-                          ? "bg-primary text-primary-foreground shadow-md animate-pulse"
-                          : "bg-muted hover:bg-primary/20 text-foreground"
-                      }`}
-                      title={
-                        activeTrackPlaying === track.code
-                          ? "Pause Preview"
-                          : "Play Lossless Audio Preview"
-                      }
-                    >
-                      {activeTrackPlaying === track.code ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 ml-0.5" />
-                      )}
-                    </button>
+                <ContextMenu key={track.id}>
+                  <ContextMenuTrigger>
+                    <div className="p-3.5 flex items-center justify-between gap-4 bg-background/50 hover:bg-muted/20 transition-colors cursor-context-menu">
+                      <div className="flex items-center gap-3">
+                        {/* Play Button */}
+                        <button
+                          onClick={() => togglePlayTrack(track.code)}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                            activeTrackPlaying === track.code
+                              ? "bg-primary text-primary-foreground shadow-md animate-pulse"
+                              : "bg-muted hover:bg-primary/20 text-foreground"
+                          }`}
+                          title={
+                            activeTrackPlaying === track.code
+                              ? "Pause Preview"
+                              : "Play Lossless Audio Preview"
+                          }
+                        >
+                          {activeTrackPlaying === track.code ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </button>
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {String(track.trackNumber).padStart(2, "0")}
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {track.title}
-                        </span>
-                        {track.explicit && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-destructive/10 text-destructive border border-destructive/20 font-mono">
-                            EXPLICIT
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {String(track.trackNumber).padStart(2, "0")}
+                            </span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {track.title}
+                            </span>
+                            {track.explicit && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-destructive/10 text-destructive border border-destructive/20 font-mono">
+                                EXPLICIT
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            {track.isrc && (
+                              <span className="font-mono">ISRC: {track.isrc}</span>
+                            )}
+                            {track.fileName && <span>{track.fileName}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <button
+                          onClick={() => {
+                            setSelectedTrackForLyrics(track);
+                            setActiveTab("lyrics");
+                          }}
+                          className="text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Lyrics</span>
+                        </button>
+
+                        {track.audioKey ? (
+                          <span className="text-emerald-500 font-medium flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Lossless Ready
+                          </span>
+                        ) : (
+                          <span className="text-destructive font-medium">
+                            Missing Audio
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        {track.isrc && (
-                          <span className="font-mono">ISRC: {track.isrc}</span>
-                        )}
-                        {track.fileName && <span>{track.fileName}</span>}
-                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <button
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-56 text-xs">
+                    <ContextMenuItem
+                      onClick={() => togglePlayTrack(track.code)}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 text-primary" /> Play Lossless Preview
+                    </ContextMenuItem>
+                    {track.isrc && (
+                      <ContextMenuItem
+                        onClick={() => {
+                          navigator.clipboard.writeText(track.isrc!);
+                          toast.success(`Copied ISRC: ${track.isrc}`);
+                        }}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" /> Copy ISRC ({track.isrc})
+                      </ContextMenuItem>
+                    )}
+                    <ContextMenuItem
+                      onClick={() => {
+                        if (track.audioKey) {
+                          toast.info(`Preparing lossless master WAV stream for ${track.title}...`);
+                        } else {
+                          toast.error("No lossless master audio uploaded.");
+                        }
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <FileAudio className="w-3.5 h-3.5" /> Download Master WAV
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
                       onClick={() => {
                         setSelectedTrackForLyrics(track);
                         setActiveTab("lyrics");
                       }}
-                      className="text-primary hover:underline text-xs flex items-center gap-1 cursor-pointer"
+                      className="gap-2 cursor-pointer"
                     >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Lyrics</span>
-                    </button>
-
-                    {track.audioKey ? (
-                      <span className="text-emerald-500 font-medium flex items-center gap-1">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Lossless Ready
-                      </span>
-                    ) : (
-                      <span className="text-destructive font-medium">
-                        Missing Audio
-                      </span>
-                    )}
-                  </div>
-                </div>
+                      <FileText className="w-3.5 h-3.5" /> View Synchronized Lyrics
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))
             ) : (
               <div className="text-center py-8 text-xs text-muted-foreground">
@@ -769,6 +887,93 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Pre-Flight Quality Control & DDEX Specifications Accordion */}
+      <Accordion defaultValue={["qc-specs"]} className="w-full rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+        <AccordionItem value="qc-specs" className="border-b-0">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+            <div className="flex items-center gap-2 text-foreground">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <span>Pre-Flight Quality Control & DDEX Specifications</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-3 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-1.5">
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <FileAudio className="w-3.5 h-3.5 text-primary" /> Audio Requirements
+                </span>
+                <ul className="text-muted-foreground space-y-1 text-[11px]">
+                  <li>• Format: Lossless WAV or FLAC (24-bit preferred)</li>
+                  <li>• Sample Rate: 44.1 kHz, 48 kHz, or 96 kHz stereo</li>
+                  <li>• Loudness: -14 LUFS integrated target, peak &lt; -0.1 dBTP</li>
+                  <li>• Zero digital clipping, buzz, or premature cutoffs</li>
+                </ul>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-1.5">
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <Music className="w-3.5 h-3.5 text-primary" /> Cover Art Rules
+                </span>
+                <ul className="text-muted-foreground space-y-1 text-[11px]">
+                  <li>• Resolution: Exact 3000 × 3000 px, 1:1 square ratio</li>
+                  <li>• Color Space: RGB (sRGB / Display P3), JPEG or PNG</li>
+                  <li>• Disallowed: URLs, social handles, barcodes, cutoffs</li>
+                  <li>• Text match: Title & artists must match metadata verbatim</li>
+                </ul>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-1.5">
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" /> Rights &amp; ISRC Guidelines
+                </span>
+                <ul className="text-muted-foreground space-y-1 text-[11px]">
+                  <li>• Format: Valid standard 12-char ISRC code</li>
+                  <li>• Metadata: Primary artists, producers, writers assigned</li>
+                  <li>• Explicit flags: Explicit audio marked accurately [E]</li>
+                  <li>• Clearance: DDEX ERN 4.3 compliant distribution package</li>
+                </ul>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      {/* Mobile Drawer for Audio Waveform & QC Check (<640px) */}
+      <div className="sm:hidden w-full">
+        <Drawer>
+          <DrawerTrigger render={
+            <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs font-semibold">
+              <Volume2 className="w-3.5 h-3.5 text-primary" />
+              <span>Open Mobile Waveform &amp; QC Sheet</span>
+            </Button>
+          } />
+          <DrawerContent className="p-4 space-y-3">
+            <DrawerHeader>
+              <DrawerTitle className="text-base font-bold">Audio &amp; QC Telemetry</DrawerTitle>
+              <DrawerDescription className="text-xs">
+                Lossless audio inspection and DDEX pre-flight checks.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-3 py-2">
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/60 space-y-1">
+                <span className="text-xs font-bold text-foreground">Active Track:</span>
+                <p className="text-xs font-mono text-muted-foreground">{playingTrackTitle || "Lead Master"}</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleValidateQC}
+                disabled={validating}
+                className="w-full gap-1.5 font-semibold"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>{validating ? "Validating..." : "Run Pre-Flight QC"}</span>
+              </Button>
+            </div>
+            <DrawerFooter>
+              <DrawerClose render={<Button variant="outline" size="sm" className="w-full">Close Sheet</Button>} />
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
 
       {/* 3000px Cover Art Lightbox Modal */}

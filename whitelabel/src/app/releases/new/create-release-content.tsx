@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Progress } from "@/components/ui/progress";
 import {
   Music,
   ArrowLeft,
@@ -768,30 +770,32 @@ export function CreateReleaseContent() {
           >
             {coverArtPreview ? (
               <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-xl">
-                <div className="relative group w-56 h-56 rounded-xl overflow-hidden border border-border shadow-md shrink-0">
-                  <img
-                    src={coverArtPreview}
-                    alt="Artwork Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  {uploadingArtwork && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-xs font-medium gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Inspecting & Uploading...</span>
-                    </div>
-                  )}
-                  {!uploadingArtwork && (
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
-                      <Upload className="w-6 h-6 mb-1" />
-                      <span className="text-xs font-semibold">Replace Artwork</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png"
-                        className="hidden"
-                        onChange={handleCoverArtChange}
-                      />
-                    </label>
-                  )}
+                <div className="w-56 shrink-0">
+                  <AspectRatio ratio={1} className="relative group rounded-xl overflow-hidden border border-border shadow-md">
+                    <img
+                      src={coverArtPreview}
+                      alt="Artwork Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    {uploadingArtwork && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-xs font-medium gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Inspecting & Uploading...</span>
+                      </div>
+                    )}
+                    {!uploadingArtwork && (
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+                        <Upload className="w-6 h-6 mb-1" />
+                        <span className="text-xs font-semibold">Replace Artwork</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          className="hidden"
+                          onChange={handleCoverArtChange}
+                        />
+                      </label>
+                    )}
+                  </AspectRatio>
                 </div>
 
                 {/* Live Inspector Badges */}
@@ -1034,57 +1038,69 @@ export function CreateReleaseContent() {
                   </div>
                 </div>
 
-                {/* Audio Master Upload Box */}
-                <div className="p-3 bg-muted/30 rounded-lg border border-border/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <FileAudio className="w-8 h-8 text-primary shrink-0" />
+                {/* Audio Master Upload Box with Progress */}
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50 flex flex-col gap-2.5">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <FileAudio className="w-8 h-8 text-primary shrink-0" />
+                      <div>
+                        {t.audioKey ? (
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{t.fileName || "Lossless Audio Master Ready"}</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">
+                            {t.uploading
+                              ? `Uploading to cloud... ${t.uploadProgress || 0}%`
+                              : "No audio file uploaded yet."}
+                          </div>
+                        )}
+                        {t.fileSizeBytes && (
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {(t.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • Lossless Master
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
-                      {t.audioKey ? (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t.fileName || "Lossless Audio Master Ready"}</span>
-                        </div>
-                      ) : (
-                        <div className="text-xs text-muted-foreground">
+                      <label className="cursor-pointer">
+                        <Button
+                          type="button"
+                          variant={t.audioKey ? "outline" : "default"}
+                          size="xs"
+                          disabled={t.uploading}
+                          className="pointer-events-none text-xs"
+                        >
                           {t.uploading
-                            ? `Uploading to cloud... ${t.uploadProgress || 0}%`
-                            : "No audio file uploaded yet."}
-                        </div>
-                      )}
-                      {t.fileSizeBytes && (
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {(t.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • Lossless Master
-                        </span>
-                      )}
+                            ? `Uploading (${t.uploadProgress}%)`
+                            : t.audioKey
+                              ? "Replace WAV"
+                              : "Upload WAV/FLAC"}
+                        </Button>
+                        <input
+                          type="file"
+                          accept="audio/wav,audio/x-wav,audio/flac,audio/mp3,audio/mpeg"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleBatchAudioFiles([file]);
+                          }}
+                        />
+                      </label>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="cursor-pointer">
-                      <Button
-                        type="button"
-                        variant={t.audioKey ? "outline" : "default"}
-                        size="xs"
-                        disabled={t.uploading}
-                        className="pointer-events-none text-xs"
-                      >
-                        {t.uploading
-                          ? `Uploading (${t.uploadProgress}%)`
-                          : t.audioKey
-                            ? "Replace WAV"
-                            : "Upload WAV/FLAC"}
-                      </Button>
-                      <input
-                        type="file"
-                        accept="audio/wav,audio/x-wav,audio/flac,audio/mp3,audio/mpeg"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleBatchAudioFiles([file]);
-                        }}
-                      />
-                    </label>
-                  </div>
+                  {t.uploading && (
+                    <div className="space-y-1">
+                      <Progress value={t.uploadProgress || 0} className="w-full [&_[data-slot=progress-track]]:h-2" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                        <span>Uploading lossless master...</span>
+                        <span>{t.uploadProgress || 0}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

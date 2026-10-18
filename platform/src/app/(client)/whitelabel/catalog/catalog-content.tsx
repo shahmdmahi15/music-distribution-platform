@@ -34,6 +34,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/components/ui/hover-card";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import {
   Disc3,
   Search,
@@ -48,6 +61,8 @@ import {
   Table as TableIcon,
   LayoutGrid,
   FileAudio,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 
 export function ClientCatalogContent() {
@@ -222,7 +237,7 @@ export function ClientCatalogContent() {
           <div className="inline-flex rounded-lg border border-border bg-card p-1">
             <button
               onClick={() => setViewMode("table")}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "table"
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -233,7 +248,7 @@ export function ClientCatalogContent() {
             </button>
             <button
               onClick={() => setViewMode("grid")}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "grid"
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
@@ -251,7 +266,7 @@ export function ClientCatalogContent() {
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
           <button
             onClick={() => setSelectedStatus("ALL")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "ALL"
                 ? "bg-primary text-primary-foreground font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -265,7 +280,7 @@ export function ClientCatalogContent() {
 
           <button
             onClick={() => setSelectedStatus("SUBMITTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "SUBMITTED"
                 ? "bg-amber-500 text-black font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -279,7 +294,7 @@ export function ClientCatalogContent() {
 
           <button
             onClick={() => setSelectedStatus("APPROVED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "APPROVED"
                 ? "bg-emerald-600 text-white font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -293,7 +308,7 @@ export function ClientCatalogContent() {
 
           <button
             onClick={() => setSelectedStatus("DISTRIBUTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "DISTRIBUTED"
                 ? "bg-blue-600 text-white font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -307,7 +322,7 @@ export function ClientCatalogContent() {
 
           <button
             onClick={() => setSelectedStatus("NEEDS_FIX")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "NEEDS_FIX"
                 ? "bg-orange-600 text-white font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -321,7 +336,7 @@ export function ClientCatalogContent() {
 
           <button
             onClick={() => setSelectedStatus("REJECTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               selectedStatus === "REJECTED"
                 ? "bg-rose-600 text-white font-semibold"
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -389,100 +404,176 @@ export function ClientCatalogContent() {
                   "Signed Artist";
 
                 return (
-                  <TableRow key={rel.id}>
-                    <TableCell>
-                      <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden border border-border/50">
-                        {cover ? (
-                          <img
-                            src={cover}
-                            alt={rel.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <Music className="w-5 h-5" />
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div>
-                        <span className="font-semibold text-sm text-foreground">
-                          {rel.title}
-                        </span>
-                        <div className="text-[11px] font-mono text-muted-foreground">
-                          {rel.code} {rel.upc && `• UPC: ${rel.upc}`}
+                  <ContextMenu key={rel.id}>
+                    <ContextMenuTrigger
+                      render={
+                        <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors" />
+                      }
+                    >
+                      <TableCell>
+                        <div className="w-12 h-12 shrink-0">
+                          <AspectRatio
+                            ratio={1}
+                            className="w-full h-full rounded-lg bg-muted overflow-hidden border border-border/50"
+                          >
+                            {cover ? (
+                              <img
+                                src={cover}
+                                alt={rel.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <Music className="w-5 h-5" />
+                              </div>
+                            )}
+                          </AspectRatio>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    <TableCell className="text-xs font-medium">
-                      {primaryArtist}
-                    </TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="font-semibold text-sm text-foreground">
+                            {rel.title}
+                          </span>
+                          <div className="text-[11px] font-mono text-muted-foreground">
+                            {rel.code} {rel.upc && `• UPC: ${rel.upc}`}
+                          </div>
+                        </div>
+                      </TableCell>
 
-                    <TableCell>
-                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono">
-                        {rel.type}
-                      </span>
-                    </TableCell>
+                      <TableCell className="text-xs font-medium">
+                        <HoverCard>
+                          <HoverCardTrigger className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer hover:underline">
+                            {primaryArtist}
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-72 p-3 space-y-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                {primaryArtist.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs truncate text-foreground">{primaryArtist}</p>
+                                <span className="text-[10px] text-muted-foreground">Roster Artist • {rel.genre || "Multi-Genre"}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-border/50">
+                              <span className="text-muted-foreground">Associated Releases:</span>
+                              <span className="font-semibold text-foreground">1 Active Release</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-muted-foreground">Pre-Flight QC:</span>
+                              <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3" /> Clean Master
+                              </span>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      </TableCell>
 
-                    <TableCell className="text-xs">
-                      {rel.trackCount || rel.tracks?.length || 0} tracks
-                    </TableCell>
+                      <TableCell>
+                        <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                          {rel.type}
+                        </span>
+                      </TableCell>
 
-                    <TableCell className="text-xs text-muted-foreground">
-                      {rel.submittedAt
-                        ? new Date(rel.submittedAt).toLocaleDateString()
-                        : "Draft"}
-                    </TableCell>
+                      <TableCell className="text-xs">
+                        {rel.trackCount || rel.tracks?.length || 0} tracks
+                      </TableCell>
 
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>QC Passed</span>
-                      </span>
-                    </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {rel.submittedAt
+                          ? new Date(rel.submittedAt).toLocaleDateString()
+                          : "Draft"}
+                      </TableCell>
 
-                    <TableCell>
-                      {rel.status === "SUBMITTED" ? (
-                        <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse text-[10px]">
-                          Pending Review
-                        </Badge>
-                      ) : rel.status === "CLIENT_APPROVED" || rel.status === "APPROVED" ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">
-                          Label Approved
-                        </Badge>
-                      ) : rel.status === "DISTRIBUTED" ? (
-                        <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px]">
-                          Distributed / Live
-                        </Badge>
-                      ) : rel.status === "NEEDS_FIX" ? (
-                        <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px]">
-                          Needs Fix
-                        </Badge>
-                      ) : rel.status === "REJECTED" ? (
-                        <Badge variant="destructive" className="text-[10px]">
-                          Rejected
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {rel.status}
-                        </Badge>
-                      )}
-                    </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>QC Passed</span>
+                        </span>
+                      </TableCell>
 
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
+                      <TableCell>
+                        {rel.status === "SUBMITTED" ? (
+                          <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse text-[10px]">
+                            Pending Review
+                          </Badge>
+                        ) : rel.status === "CLIENT_APPROVED" || rel.status === "APPROVED" ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">
+                            Label Approved
+                          </Badge>
+                        ) : rel.status === "DISTRIBUTED" ? (
+                          <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px]">
+                            Distributed / Live
+                          </Badge>
+                        ) : rel.status === "NEEDS_FIX" ? (
+                          <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px]">
+                            Needs Fix
+                          </Badge>
+                        ) : rel.status === "REJECTED" ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Rejected
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {rel.status}
+                          </Badge>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleInspect(rel.code)}
+                          className="text-xs h-8 border-primary/40 text-primary hover:bg-primary/10"
+                        >
+                          Review Dossier
+                        </Button>
+                      </TableCell>
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="w-52">
+                      <ContextMenuItem
                         onClick={() => handleInspect(rel.code)}
-                        className="text-xs h-8 border-primary/40 text-primary hover:bg-primary/10"
+                        className="gap-2 text-xs cursor-pointer"
                       >
-                        Review Dossier
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                        <Disc3 className="w-3.5 h-3.5 text-primary" />
+                        <span>Review Dossier</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => {
+                          navigator.clipboard.writeText(rel.code);
+                          toast.success(`Copied release code ${rel.code}`);
+                        }}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Code ({rel.code})</span>
+                      </ContextMenuItem>
+                      {rel.tracks?.[0]?.isrc && (
+                        <ContextMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(rel.tracks![0].isrc!);
+                            toast.success(`Copied ISRC ${rel.tracks![0].isrc}`);
+                          }}
+                          className="gap-2 text-xs cursor-pointer"
+                        >
+                          <Music className="w-3.5 h-3.5" />
+                          <span>Copy Lead ISRC</span>
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        onClick={() => handleInspect(rel.code)}
+                        className="gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Approve for Platform</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </TableBody>
@@ -499,57 +590,86 @@ export function ClientCatalogContent() {
               rel.contributors?.[0]?.name || rel.labelName || "Signed Artist";
 
             return (
-              <div
-                key={rel.id}
-                className="group rounded-2xl border border-border/70 bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-all shadow-xs"
-              >
-                <div>
-                  <div className="aspect-square rounded-xl bg-muted overflow-hidden relative border border-border/50 mb-3">
-                    {cover ? (
-                      <img
-                        src={cover}
-                        alt={rel.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <Music className="w-10 h-10" />
-                      </div>
-                    )}
-                    <span className="absolute top-2 right-2 text-[10px] font-mono uppercase bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-md font-semibold">
-                      {rel.type}
-                    </span>
+              <ContextMenu key={rel.id}>
+                <ContextMenuTrigger
+                  render={
+                    <div className="group rounded-2xl border border-border/70 bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-all shadow-xs cursor-pointer" />
+                  }
+                >
+                  <div>
+                    <AspectRatio
+                      ratio={1}
+                      className="w-full rounded-xl bg-muted overflow-hidden relative border border-border/50 mb-3"
+                    >
+                      {cover ? (
+                        <img
+                          src={cover}
+                          alt={rel.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <Music className="w-10 h-10" />
+                        </div>
+                      )}
+                      <span className="absolute top-2 right-2 text-[10px] font-mono uppercase bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-md font-semibold">
+                        {rel.type}
+                      </span>
+                    </AspectRatio>
+
+                    <h3 className="font-semibold text-sm line-clamp-1 text-foreground">
+                      {rel.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {primaryArtist}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-2">
+                      <span>{rel.trackCount || rel.tracks?.length || 0} tracks</span>
+                      <span>•</span>
+                      <span className="text-emerald-500 font-medium flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> QC Passed
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className="font-semibold text-sm line-clamp-1 text-foreground">
-                    {rel.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-1">
-                    {primaryArtist}
-                  </p>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-2">
-                    <span>{rel.trackCount || rel.tracks?.length || 0} tracks</span>
-                    <span>•</span>
-                    <span className="text-emerald-500 font-medium flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" /> QC Passed
-                    </span>
+                  <div className="pt-4 border-t border-border/50 mt-3 flex items-center justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {rel.status}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInspect(rel.code);
+                      }}
+                      className="text-xs h-7 border-primary/40 text-primary hover:bg-primary/10"
+                    >
+                      Inspect
+                    </Button>
                   </div>
-                </div>
+                </ContextMenuTrigger>
 
-                <div className="pt-4 border-t border-border/50 mt-3 flex items-center justify-between gap-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {rel.status}
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                <ContextMenuContent className="w-52">
+                  <ContextMenuItem
                     onClick={() => handleInspect(rel.code)}
-                    className="text-xs h-7 border-primary/40 text-primary hover:bg-primary/10"
+                    className="gap-2 text-xs cursor-pointer"
                   >
-                    Inspect
-                  </Button>
-                </div>
-              </div>
+                    <Disc3 className="w-3.5 h-3.5 text-primary" />
+                    <span>Review Dossier</span>
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    onClick={() => {
+                      navigator.clipboard.writeText(rel.code);
+                      toast.success(`Copied release code ${rel.code}`);
+                    }}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Code ({rel.code})</span>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })}
         </div>
@@ -584,22 +704,24 @@ export function ClientCatalogContent() {
                   className="group relative w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-background border border-border/70 cursor-pointer shadow-xs"
                   title="Click to zoom cover artwork"
                 >
-                  {coverUrl ? (
-                    <>
-                      <img
-                        src={coverUrl}
-                        alt={inspectRelease.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                        <Maximize2 className="w-5 h-5" />
+                  <AspectRatio ratio={1} className="w-full h-full">
+                    {coverUrl ? (
+                      <>
+                        <img
+                          src={coverUrl}
+                          alt={inspectRelease.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                          <Maximize2 className="w-5 h-5" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Music className="w-8 h-8" />
                       </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      <Music className="w-8 h-8" />
-                    </div>
-                  )}
+                    )}
+                  </AspectRatio>
                 </div>
 
                 <div className="flex flex-col justify-between flex-1">
@@ -666,7 +788,7 @@ export function ClientCatalogContent() {
                   <div className="flex items-center gap-3 bg-background p-3 rounded-lg border border-border/50">
                     <button
                       onClick={toggleLeadAudioPlay}
-                      className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+                      className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:scale-105 transition-transform cursor-pointer"
                     >
                       {isPlayingAudio ? (
                         <Pause className="w-4 h-4" />
@@ -787,7 +909,6 @@ export function ClientCatalogContent() {
                 </h4>
 
                 <div className="space-y-2 text-xs">
-                  {/* Severity 1 Fatal Errors Checklist */}
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-bold uppercase text-muted-foreground">
                       Severity 1 Requirements (Blocking):
@@ -818,7 +939,6 @@ export function ClientCatalogContent() {
                     </div>
                   </div>
 
-                  {/* Severity 2 Advisory Warnings */}
                   <div className="space-y-1.5 pt-2">
                     <span className="text-[10px] font-bold uppercase text-muted-foreground">
                       Severity 2 Advisories (Non-Blocking):
@@ -843,12 +963,12 @@ export function ClientCatalogContent() {
                 </div>
               </div>
 
-              {/* Two Prominent Action Buttons */}
+              {/* Action Buttons */}
               <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row items-center justify-end gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setShowFixModal(true)}
-                  className="w-full sm:w-auto text-xs h-10 px-4 bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20 font-semibold gap-1.5"
+                  className="w-full sm:w-auto text-xs h-10 px-4 bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20 font-semibold gap-1.5 cursor-pointer"
                 >
                   <AlertCircle className="w-4 h-4" />
                   <span>Request Fix / Send Back</span>
@@ -857,7 +977,7 @@ export function ClientCatalogContent() {
                 <Button
                   onClick={handleApprove}
                   disabled={approving}
-                  className="w-full sm:w-auto text-xs h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm"
+                  className="w-full sm:w-auto text-xs h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
@@ -881,14 +1001,16 @@ export function ClientCatalogContent() {
               </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted border border-border/50">
-            {coverUrl && (
-              <img
-                src={coverUrl}
-                alt="High-resolution artwork"
-                className="w-full h-full object-contain"
-              />
-            )}
+          <div className="w-full rounded-xl overflow-hidden bg-muted border border-border/50">
+            <AspectRatio ratio={1} className="w-full">
+              {coverUrl && (
+                <img
+                  src={coverUrl}
+                  alt="High-resolution artwork"
+                  className="w-full h-full object-contain"
+                />
+              )}
+            </AspectRatio>
           </div>
         </DialogContent>
       </Dialog>
@@ -922,14 +1044,14 @@ export function ClientCatalogContent() {
             <Button
               variant="ghost"
               onClick={() => setShowFixModal(false)}
-              className="text-xs h-9"
+              className="text-xs h-9 cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSendBackForFix}
               disabled={submittingFix || !fixNote.trim()}
-              className="text-xs h-9 bg-amber-500 hover:bg-amber-600 text-black font-semibold gap-1.5"
+              className="text-xs h-9 bg-amber-500 hover:bg-amber-600 text-black font-semibold gap-1.5 cursor-pointer"
             >
               <AlertCircle className="w-3.5 h-3.5" />
               <span>{submittingFix ? "Sending..." : "Send Revision Request"}</span>

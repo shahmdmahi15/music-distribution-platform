@@ -17,6 +17,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText,
@@ -47,6 +55,8 @@ export function ReportsContent() {
   // Historical Period Selector State
   const [selectedYear, setSelectedYear] = useState<string>("ALL");
   const [selectedMonth, setSelectedMonth] = useState<string>("ALL");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 6;
 
   const EXCHANGE_RATE_BDT_PER_USD = 120.0;
 
@@ -78,6 +88,14 @@ export function ReportsContent() {
       return true;
     });
   }, [statements, selectedYear, selectedMonth]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStatements.length / pageSize));
+  const paginatedStatements = useMemo(() => {
+    return filteredStatements.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }, [filteredStatements, currentPage, pageSize]);
 
   // Aggregate consumption volumes for stream vs download ratio
   const consumptionStats = useMemo(() => {
@@ -524,7 +542,7 @@ export function ReportsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStatements.map((stm) => (
+                {paginatedStatements.map((stm) => (
                   <TableRow key={stm.id || stm.code} className="border-border/50 text-xs">
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs font-semibold">
@@ -576,6 +594,47 @@ export function ReportsContent() {
                 ))}
               </TableBody>
             </Table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pt-4 flex justify-center border-t border-border/50">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50 cursor-not-allowed"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }).map((_, idx) => (
+                      <PaginationItem key={idx}>
+                        <PaginationLink
+                          isActive={currentPage === idx + 1}
+                          onClick={() => setCurrentPage(idx + 1)}
+                          className="cursor-pointer"
+                        >
+                          {idx + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50 cursor-not-allowed"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         )}
       </div>

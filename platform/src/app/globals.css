@@ -187,4 +187,33 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+
+  /* PWA Window Controls Overlay (macOS, Windows, Linux Desktop PWA) */
+  @supports (padding-top: env(titlebar-area-height)) {
+    .pwa-window-titlebar {
+      app-region: drag;
+      -webkit-app-region: drag;
+      height: env(titlebar-area-height, 0px);
+    }
+    .pwa-window-no-drag {
+      app-region: no-drag;
+      -webkit-app-region: no-drag;
+    }
+  }
+
+  /* Ensure interactive controls inside titlebars/headers are never drag targets */
+  .pwa-window-titlebar button,
+  .pwa-window-titlebar a,
+  .pwa-window-titlebar input,
+  .pwa-window-titlebar select,
+  .pwa-window-titlebar [role="button"],
+  header button,
+  header a,
+  header input,
+  header select,
+  header [role="button"] {
+    app-region: no-drag;
+    -webkit-app-region: no-drag;
+  }
 }
+

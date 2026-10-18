@@ -31,6 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -400,51 +407,57 @@ export function ContractsContent() {
         </div>
       </div>
 
-      {/* 5-Tier Precedence Hierarchy Visualization Diagram */}
-      <div className="p-5 rounded-2xl border border-border/60 bg-gradient-to-r from-card via-card/80 to-card shadow-xs space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-            <Layers className="w-4 h-4 text-primary" />
-            <span>5-Tier Precedence Hierarchy Engine (Revelator-Compliant)</span>
-          </div>
-          <span className="text-[11px] text-muted-foreground">
-            Leftmost rule takes absolute precedence during royalty runs
-          </span>
-        </div>
-
-        {/* Stepper / Hierarchy Diagram */}
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
-          <div className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 flex flex-col items-center text-center space-y-1">
-            <Badge className="bg-purple-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P1 (Highest)</Badge>
-            <span className="text-xs font-bold text-foreground">Track Level</span>
-            <span className="text-[10px] text-muted-foreground">ISRC override</span>
-          </div>
-
-          <div className="p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex flex-col items-center text-center space-y-1">
-            <Badge className="bg-blue-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P2</Badge>
-            <span className="text-xs font-bold text-foreground">Release Level</span>
-            <span className="text-[10px] text-muted-foreground">UPC album split</span>
-          </div>
-
-          <div className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col items-center text-center space-y-1">
-            <Badge className="bg-emerald-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P3</Badge>
-            <span className="text-xs font-bold text-foreground">Artist Level</span>
-            <span className="text-[10px] text-muted-foreground">Roster default</span>
-          </div>
-
-          <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col items-center text-center space-y-1">
-            <Badge className="bg-amber-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P4</Badge>
-            <span className="text-xs font-bold text-foreground">Label Level</span>
-            <span className="text-[10px] text-muted-foreground">Sub-label rate</span>
-          </div>
-
-          <div className="p-2.5 rounded-xl border border-zinc-500/30 bg-zinc-500/10 flex flex-col items-center text-center space-y-1">
-            <Badge className="bg-zinc-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P5 (Fallback)</Badge>
-            <span className="text-xs font-bold text-foreground">Account Default</span>
-            <span className="text-[10px] text-muted-foreground">Tenant baseline</span>
-          </div>
-        </div>
-      </div>
+      {/* Split Precedence Hierarchy Accordion (Revelator-Compliant) */}
+      <Accordion defaultValue={["hierarchy"]} className="w-full rounded-2xl border border-border/60 bg-card p-4 shadow-xs">
+        <AccordionItem value="hierarchy" className="border-b-0">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+            <div className="flex items-center gap-2 text-foreground">
+              <Layers className="w-4 h-4 text-primary" />
+              <span>Split Precedence Hierarchy & Legal Terms (Revelator-Compliant)</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-3 space-y-4">
+            {/* Visual Tier Diagram */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-1">
+              <div className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 flex flex-col items-center text-center space-y-1">
+                <Badge className="bg-purple-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P1 (Highest)</Badge>
+                <span className="text-xs font-bold text-foreground">Track Level</span>
+                <span className="text-[10px] text-muted-foreground">ISRC direct override</span>
+              </div>
+              <div className="p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex flex-col items-center text-center space-y-1">
+                <Badge className="bg-blue-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P2</Badge>
+                <span className="text-xs font-bold text-foreground">Release Level</span>
+                <span className="text-[10px] text-muted-foreground">UPC album split</span>
+              </div>
+              <div className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col items-center text-center space-y-1">
+                <Badge className="bg-emerald-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P3</Badge>
+                <span className="text-xs font-bold text-foreground">Artist Level</span>
+                <span className="text-[10px] text-muted-foreground">Roster default</span>
+              </div>
+              <div className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col items-center text-center space-y-1">
+                <Badge className="bg-amber-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P4</Badge>
+                <span className="text-xs font-bold text-foreground">Label Level</span>
+                <span className="text-[10px] text-muted-foreground">Sub-label rate</span>
+              </div>
+              <div className="p-2.5 rounded-xl border border-zinc-500/30 bg-zinc-500/10 flex flex-col items-center text-center space-y-1">
+                <Badge className="bg-zinc-600 text-white font-mono text-[10px] py-0 px-1.5 font-bold">P5 (Fallback)</Badge>
+                <span className="text-xs font-bold text-foreground">Account Default</span>
+                <span className="text-[10px] text-muted-foreground">Tenant baseline</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs text-muted-foreground">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                <span className="font-semibold text-foreground block mb-1">Strict Balancing & Recoupment</span>
+                Revenue allocations require exact 100.00% balance across registered payees. Recoupable studio advances and master delivery fees are deducted prior to net disbursement.
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                <span className="font-semibold text-foreground block mb-1">Tax Withholding & Auditability</span>
+                Cross-border distributions enforce statutory IRS W-8BEN/W-9 tax withholding. Every royalty calculation execution generates an immutable audit record.
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Tab Switcher */}
       <div className="flex items-center gap-2 border-b border-border/50 pb-2">
@@ -870,19 +883,17 @@ export function ContractsContent() {
                 </div>
               </div>
 
-              {/* Dynamic colored progress bar */}
-              <div className="h-2.5 w-full bg-muted/60 rounded-full overflow-hidden shadow-inner">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    isSplitBalanced
-                      ? "bg-emerald-500"
-                      : totalSplitPercentage < 100
-                      ? "bg-amber-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{ width: `${Math.min(100, totalSplitPercentage)}%` }}
-                />
-              </div>
+              {/* Shadcn Progress Component with Dynamic State Colors */}
+              <Progress
+                value={Math.min(100, totalSplitPercentage)}
+                className={`w-full [&_[data-slot=progress-track]]:h-2.5 ${
+                  isSplitBalanced
+                    ? "[&_[data-slot=progress-indicator]]:bg-emerald-500"
+                    : totalSplitPercentage < 100
+                    ? "[&_[data-slot=progress-indicator]]:bg-amber-500"
+                    : "[&_[data-slot=progress-indicator]]:bg-red-500"
+                }`}
+              />
 
               {!isSplitBalanced && (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">

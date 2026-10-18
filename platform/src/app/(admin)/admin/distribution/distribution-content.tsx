@@ -32,6 +32,33 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/components/ui/hover-card";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
+import {
   Music,
   Search,
   Download,
@@ -40,7 +67,6 @@ import {
   XCircle,
   AlertCircle,
   Clock,
-  Layers,
   Disc3,
   ExternalLink,
   ShieldCheck,
@@ -51,11 +77,10 @@ import {
   Copy,
   Check,
   Send,
-  Tv,
-  Video,
   Play,
   RefreshCw,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 
 export function AdminDistributionContent() {
@@ -63,7 +88,11 @@ export function AdminDistributionContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+
+  // Table pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // Dossier modal state
   const [inspectCode, setInspectCode] = useState<string | null>(null);
@@ -96,11 +125,12 @@ export function AdminDistributionContent() {
           selectedStatus === "ALL"
             ? undefined
             : (selectedStatus as ReleaseStatus),
-        limit: 50,
+        limit: 100,
       });
 
       if (res.success) {
         setReleases(res.data);
+        setCurrentPage(1);
       } else {
         toast.error(res.message);
       }
@@ -116,6 +146,13 @@ export function AdminDistributionContent() {
     e.preventDefault();
     fetchReleases();
   };
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(releases.length / pageSize));
+  const paginatedReleases = releases.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   // Inspect Release Dossier
   const handleInspect = async (code: string) => {
@@ -450,6 +487,94 @@ export function AdminDistributionContent() {
         </p>
       </div>
 
+      {/* Accordion: System Guidelines & Specifications */}
+      <div className="p-4 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-sm space-y-2">
+        <div className="flex items-center gap-2 pb-1 text-xs font-bold text-foreground">
+          <BookOpen className="w-4 h-4 text-primary" />
+          <span>Upstream DSP Ingestion Specifications & Compliance Guidelines</span>
+        </div>
+        <Accordion multiple defaultValue={["ans-specs"]}>
+          <AccordionItem value="ans-specs">
+            <AccordionTrigger className="text-xs font-semibold py-2">
+              ANS Music Upstream Delivery Specifications
+            </AccordionTrigger>
+            <AccordionContent className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
+              <p>
+                Releases dispatched to <strong>ANS Music</strong> are automatically validated against European and North American digital distribution agreements. Releases must include valid DPID headers, SoundRecording details per territory, and pre-cleared mechanical rights.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
+                <div className="p-2 rounded bg-muted/50 border border-border/50">
+                  <span className="font-bold text-foreground block">SLA Ingestion:</span>
+                  <span>4h Fast-Track to 48h Global</span>
+                </div>
+                <div className="p-2 rounded bg-muted/50 border border-border/50">
+                  <span className="font-bold text-foreground block">DSP Endpoints:</span>
+                  <span>Spotify, Apple, YouTube, Amazon, TIDAL</span>
+                </div>
+                <div className="p-2 rounded bg-muted/50 border border-border/50">
+                  <span className="font-bold text-foreground block">Security Fingerprint:</span>
+                  <span>ACRCloud Broadcast Clean certified</span>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="audio-matrix">
+            <AccordionTrigger className="text-xs font-semibold py-2">
+              Audio Format Matrix (FLAC/WAV 24-bit 44.1kHz - 96kHz)
+            </AccordionTrigger>
+            <AccordionContent className="text-xs text-muted-foreground space-y-2 leading-relaxed">
+              <p>
+                Strict lossless standard required. Compressed audio masters (MP3, AAC, OGG) or upsampled low-bitrate rips are automatically rejected by pre-flight quality checks.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] font-mono border border-border/60 rounded">
+                  <thead className="bg-muted text-foreground">
+                    <tr>
+                      <th className="p-1.5 text-left">Format</th>
+                      <th className="p-1.5 text-left">Bit Depth</th>
+                      <th className="p-1.5 text-left">Sampling Frequency</th>
+                      <th className="p-1.5 text-left">Ceiling Peak</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    <tr>
+                      <td className="p-1.5 text-foreground font-semibold">FLAC Lossless</td>
+                      <td className="p-1.5">16-bit or 24-bit</td>
+                      <td className="p-1.5">44.1kHz, 48kHz, 96kHz</td>
+                      <td className="p-1.5">-0.1 dBFS True Peak</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1.5 text-foreground font-semibold">WAV Linear PCM</td>
+                      <td className="p-1.5">24-bit studio master</td>
+                      <td className="p-1.5">44.1kHz up to 96kHz</td>
+                      <td className="p-1.5">-0.1 dBFS True Peak</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="metadata-compliance">
+            <AccordionTrigger className="text-xs font-semibold py-2">
+              Metadata Compliance Rules (DDEX ERN 4.3)
+            </AccordionTrigger>
+            <AccordionContent className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
+              <p>
+                All track and album metadata must strictly comply with DDEX ERN 4.3 standards:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li>Titles must use standardized Title Case according to Chicago Manual of Style.</li>
+                <li>Artwork must be perfectly square 1:1 RGB at least 3000 x 3000 px, without store logos or URLs.</li>
+                <li>ISRC codes must strictly follow the international format: <code className="text-foreground">CC-XXX-YY-NNNNN</code>.</li>
+                <li>UPC/EAN-13 barcodes must include a valid Modulo-10 checksum.</li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl border border-border/60 shadow-xs">
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
@@ -457,7 +582,7 @@ export function AdminDistributionContent() {
             <button
               key={tab.value}
               onClick={() => setSelectedStatus(tab.value)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
                 selectedStatus === tab.value
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -512,79 +637,218 @@ export function AdminDistributionContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {releases.map((rel) => (
-                  <TableRow key={rel.id}>
-                    <TableCell>
-                      <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden border border-border/50">
-                        {rel.presignedCoverUrl || rel.coverArtUrl ? (
-                          <img
-                            src={rel.presignedCoverUrl || rel.coverArtUrl}
-                            alt={rel.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <Music className="w-5 h-5" />
+                {paginatedReleases.map((rel) => (
+                  <ContextMenu key={rel.id}>
+                    <ContextMenuTrigger
+                      render={
+                        <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors" />
+                      }
+                    >
+                      <TableCell>
+                        <div className="w-12 h-12 shrink-0">
+                          <AspectRatio
+                            ratio={1}
+                            className="w-full h-full rounded-lg bg-muted overflow-hidden border border-border/50"
+                          >
+                            {rel.presignedCoverUrl || rel.coverArtUrl ? (
+                              <img
+                                src={rel.presignedCoverUrl || rel.coverArtUrl}
+                                alt={rel.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <Music className="w-5 h-5" />
+                              </div>
+                            )}
+                          </AspectRatio>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div>
+                          <div className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                            <span>{rel.title}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              ({rel.code})
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div>
-                        <div className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                          <span>{rel.title}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground">
-                            ({rel.code})
-                          </span>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <HoverCard>
+                              <HoverCardTrigger className="flex items-center gap-1 text-primary font-medium hover:underline cursor-pointer">
+                                <Building2 className="w-3 h-3" />
+                                <span>{rel.whiteLabel?.name || "WhiteLabel Tenant"}</span>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-72 p-3 space-y-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20">
+                                    {(rel.whiteLabel?.name || "W").charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-xs truncate text-foreground">
+                                      {rel.whiteLabel?.name || "WhiteLabel Tenant"}
+                                    </p>
+                                    <span className="font-mono text-[10px] text-muted-foreground">
+                                      {rel.whiteLabel?.code || rel.whiteLabelId || "WL-TENANT"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-border/50">
+                                  <span className="text-muted-foreground">Partner Status:</span>
+                                  <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+                                    Active Partner
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="text-muted-foreground">Ingestion Protocol:</span>
+                                  <span className="font-mono text-[10px] font-semibold text-foreground">DDEX ERN 4.3</span>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                            <span>•</span>
+                            <span>{rel.genre}</span>
+                            {rel.upc && <span>• UPC: {rel.upc}</span>}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-1 text-primary font-medium">
-                            <Building2 className="w-3 h-3" />
-                            {rel.whiteLabel?.name || "WhiteLabel Tenant"}
-                          </span>
-                          <span>•</span>
-                          <span>{rel.genre}</span>
-                          {rel.upc && <span>• UPC: {rel.upc}</span>}
+                      </TableCell>
+
+                      <TableCell>
+                        <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                          {rel.type}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-xs font-medium">
+                        {rel.trackCount || 0} tracks
+                      </TableCell>
+
+                      <TableCell className="text-xs text-muted-foreground">
+                        {rel.submittedAt
+                          ? new Date(rel.submittedAt).toLocaleDateString()
+                          : "Draft"}
+                      </TableCell>
+
+                      <TableCell>{getStatusBadge(rel.status)}</TableCell>
+                      <TableCell>{getUpstreamStatusBadge(rel.upstreamStatus)}</TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleInspect(rel.code)}
+                            className="text-xs h-8"
+                          >
+                            Inspect & Download
+                          </Button>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
+                    </ContextMenuTrigger>
 
-                    <TableCell>
-                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                        {rel.type}
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="text-xs font-medium">
-                      {rel.trackCount || 0} tracks
-                    </TableCell>
-
-                    <TableCell className="text-xs text-muted-foreground">
-                      {rel.submittedAt
-                        ? new Date(rel.submittedAt).toLocaleDateString()
-                        : "Draft"}
-                    </TableCell>
-
-                    <TableCell>{getStatusBadge(rel.status)}</TableCell>
-                    <TableCell>{getUpstreamStatusBadge(rel.upstreamStatus)}</TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleInspect(rel.code)}
-                          className="text-xs h-8"
+                    <ContextMenuContent className="w-52">
+                      <ContextMenuItem
+                        onClick={() => handleInspect(rel.code)}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Disc3 className="w-3.5 h-3.5 text-primary" />
+                        <span>Inspect Dossier</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => {
+                          navigator.clipboard.writeText(rel.code);
+                          toast.success(`Copied release code ${rel.code}`);
+                        }}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Code ({rel.code})</span>
+                      </ContextMenuItem>
+                      {rel.upc && (
+                        <ContextMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(rel.upc!);
+                            toast.success(`Copied UPC ${rel.upc}`);
+                          }}
+                          className="gap-2 text-xs cursor-pointer"
                         >
-                          Inspect & Download
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          <Code2 className="w-3.5 h-3.5" />
+                          <span>Copy UPC ({rel.upc})</span>
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        onClick={() => handleGenerateDdex(rel.code)}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Code2 className="w-3.5 h-3.5 text-primary" />
+                        <span>Generate DDEX 4.3 XML</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => handleExport(rel.code)}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <FileJson className="w-3.5 h-3.5" />
+                        <span>Export DSP Manifest</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Table Pagination */}
+        {releases.length > pageSize && (
+          <div className="p-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-xs text-muted-foreground">
+              Showing{" "}
+              <strong>{(currentPage - 1) * pageSize + 1}</strong> to{" "}
+              <strong>{Math.min(currentPage * pageSize, releases.length)}</strong>{" "}
+              of <strong>{releases.length}</strong> releases
+            </span>
+
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                    }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === currentPage}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(page);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    }}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>
@@ -615,22 +879,27 @@ export function AdminDistributionContent() {
             <div className="space-y-6 pt-2">
               {/* Release Overview Banner */}
               <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-muted/40 border border-border/60">
-                <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-background border border-border/70">
-                  {inspectRelease.coverArtDownloadUrl ||
-                  inspectRelease.coverArtUrl ? (
-                    <img
-                      src={
-                        inspectRelease.coverArtDownloadUrl ||
-                        inspectRelease.coverArtUrl
-                      }
-                      alt={inspectRelease.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      <Music className="w-8 h-8" />
-                    </div>
-                  )}
+                <div className="w-32 h-32 shrink-0">
+                  <AspectRatio
+                    ratio={1}
+                    className="w-full h-full rounded-lg overflow-hidden bg-background border border-border/70"
+                  >
+                    {inspectRelease.coverArtDownloadUrl ||
+                    inspectRelease.coverArtUrl ? (
+                      <img
+                        src={
+                          inspectRelease.coverArtDownloadUrl ||
+                          inspectRelease.coverArtUrl
+                        }
+                        alt={inspectRelease.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Music className="w-8 h-8" />
+                      </div>
+                    )}
+                  </AspectRatio>
                 </div>
 
                 <div className="flex flex-col justify-between flex-1">
@@ -676,7 +945,6 @@ export function AdminDistributionContent() {
                       </Button>
                     )}
 
-                    {/* Generate DDEX ERN 4.3 XML Action Button */}
                     <Button
                       size="sm"
                       variant="outline"
@@ -882,7 +1150,7 @@ export function AdminDistributionContent() {
                 </div>
               </div>
 
-              {/* Rejection Input (Conditional) */}
+              {/* Rejection Input */}
               {showRejectInput && (
                 <div className="p-4 rounded-xl border border-destructive/40 bg-destructive/5 space-y-2">
                   <span className="text-xs font-semibold text-destructive">
@@ -951,7 +1219,7 @@ export function AdminDistributionContent() {
         </DialogContent>
       </Dialog>
 
-      {/* DDEX ERN 4.3 XML Inspection & Export Modal */}
+      {/* DDEX ERN 4.3 XML Modal */}
       <Dialog open={showDdexModal} onOpenChange={setShowDdexModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
@@ -999,7 +1267,6 @@ export function AdminDistributionContent() {
               </div>
             </div>
 
-            {/* XML Display Container */}
             <div className="flex-1 overflow-auto rounded-xl bg-zinc-950 p-4 border border-zinc-800 font-mono text-xs text-zinc-300 leading-relaxed max-h-[55vh]">
               <pre className="whitespace-pre">{ddexXml}</pre>
             </div>
@@ -1007,7 +1274,7 @@ export function AdminDistributionContent() {
         </DialogContent>
       </Dialog>
 
-      {/* ANS Music Sandbox Status Simulator Dialog */}
+      {/* ANS Music Sandbox Simulator Dialog */}
       <Dialog open={showSimulateModal} onOpenChange={setShowSimulateModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -35,11 +35,11 @@ export async function PortalLayoutWrapper({
       <WhiteLabelSidebar />
       <SidebarInset>
         <WhiteLabelDashboardHeader />
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-20 sm:pb-8">
+        <main className="flex-1 w-full max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] mx-auto px-3 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
           {children}
         </main>
         <footer className="border-t border-border/40 py-6 text-xs text-muted-foreground bg-card/30 mt-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2400px] mx-auto px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
               <span>
                 {tenant?.copyrightText ||

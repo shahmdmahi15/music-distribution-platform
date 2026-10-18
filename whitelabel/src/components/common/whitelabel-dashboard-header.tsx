@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { ThemeToggle } from "./theme-toggle";
 import { WhiteLabelQuickSearch } from "./whitelabel-quick-search";
 import { useTenant } from "@/components/tenant-theme-provider";
@@ -97,9 +98,10 @@ export function WhiteLabelDashboardHeader() {
           >
             <Search className="size-3.5" />
             <span className="hidden md:inline-block">Quick Search...</span>
-            <kbd className="pointer-events-none hidden h-4.5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex">
-              <span className="text-xs">⌘</span>K
-            </kbd>
+            <KbdGroup className="hidden sm:inline-flex">
+              <Kbd>⌘K</Kbd>
+              <Kbd>Esc</Kbd>
+            </KbdGroup>
           </Button>
 
           {/* Tenant Status Badge */}
