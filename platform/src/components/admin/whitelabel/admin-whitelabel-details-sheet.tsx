@@ -3944,50 +3944,71 @@ export function AdminWhiteLabelDetailsDialog({
 
                 {/* Subdomain & Custom Domain */}
                 <div className="p-4 rounded-xl border border-border/60 bg-card space-y-3.5">
-                  <h5 className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <Globe className="h-3.5 w-3.5 text-primary" />
-                    Network & Custom Domains
-                  </h5>
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5 text-primary" />
+                      Infrastructure Routing &amp; Domains
+                    </h5>
+                    {whiteLabel.subdomain && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSyncCloudflareDns}
+                        disabled={dnsSyncLoading}
+                        className="h-7 text-[11px] font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${dnsSyncLoading ? "animate-spin" : ""}`} />
+                        <span>{dnsSyncLoading ? "Syncing..." : "Sync Subdomain CNAME"}</span>
+                      </Button>
+                    )}
+                  </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Managed Subdomain
-                    </Label>
-                    <div className="flex items-center">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    The platform subdomain (<code className="font-mono text-primary font-semibold">{brandingForm.subdomain || "brand"}.platform.royalmotionit.com</code>) points as a <strong>CNAME</strong> directly to the client&apos;s custom backstage domain (<code className="font-mono text-foreground font-semibold">{brandingForm.customDomain ? (brandingForm.customDomain.startsWith("backstage.") ? brandingForm.customDomain : `backstage.${brandingForm.customDomain}`) : "backstage.<customdomain>"}</code>).
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">
+                        Platform Subdomain (CNAME)
+                      </Label>
+                      <div className="flex items-center">
+                        <Input
+                          placeholder="labelhandle"
+                          value={brandingForm.subdomain}
+                          onChange={(e) =>
+                            setBrandingForm((prev) => ({
+                              ...prev,
+                              subdomain: e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9-]/g, ""),
+                            }))
+                          }
+                          className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
+                        />
+                        <span className="h-8 px-2 bg-muted/80 border border-l-0 rounded-r-md text-[11px] font-mono flex items-center text-muted-foreground shrink-0 select-none">
+                          .platform.royalmotionit.com
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">
+                        Primary Custom Domain (A-Record)
+                      </Label>
                       <Input
-                        placeholder="labelhandle"
-                        value={brandingForm.subdomain}
+                        placeholder="backstage.royalmusic.io"
+                        value={brandingForm.customDomain}
                         onChange={(e) =>
                           setBrandingForm((prev) => ({
                             ...prev,
-                            subdomain: e.target.value
-                              .toLowerCase()
-                              .replace(/[^a-z0-9-]/g, ""),
+                            customDomain: e.target.value.toLowerCase().trim(),
                           }))
                         }
-                        className="h-8 text-xs font-mono rounded-r-none border-r-0 min-w-0"
+                        className="h-8 text-xs font-mono"
                       />
-                      <span className="h-8 px-2 bg-muted/80 border border-l-0 rounded-r-md text-[11px] font-mono flex items-center text-muted-foreground shrink-0 select-none">
-                        .platform.royalmotionit.com
-                      </span>
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      Custom FQDN Domain
-                    </Label>
-                    <Input
-                      placeholder="music.mylabel.com"
-                      value={brandingForm.customDomain}
-                      onChange={(e) =>
-                        setBrandingForm((prev) => ({
-                          ...prev,
-                          customDomain: e.target.value.toLowerCase().trim(),
-                        }))
-                      }
-                      className="h-8 text-xs font-mono"
-                    />
                   </div>
                 </div>
 

@@ -565,15 +565,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      if (finalSubdomain) {
-        const targetDomain = updated.customDomain
-          ? updated.customDomain.startsWith('backstage.')
-            ? updated.customDomain
-            : `backstage.${updated.customDomain}`
-          : updated.cloudflareBaseDomain
-            ? `backstage.${updated.cloudflareBaseDomain}`
-            : undefined;
+      const targetDomain = updated.customDomain
+        ? updated.customDomain.startsWith('backstage.')
+          ? updated.customDomain
+          : `backstage.${updated.customDomain}`
+        : updated.cloudflareBaseDomain
+          ? `backstage.${updated.cloudflareBaseDomain}`
+          : undefined;
 
+      if (finalSubdomain && targetDomain) {
         await this.cloudflareDnsService.provisionSubdomain(
           finalSubdomain,
           targetDomain,
@@ -674,15 +674,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    if (finalSubdomain) {
-      const targetDomain = whiteLabel.customDomain
-        ? whiteLabel.customDomain.startsWith('backstage.')
-          ? whiteLabel.customDomain
-          : `backstage.${whiteLabel.customDomain}`
-        : whiteLabel.cloudflareBaseDomain
-          ? `backstage.${whiteLabel.cloudflareBaseDomain}`
-          : undefined;
+    const targetDomain = whiteLabel.customDomain
+      ? whiteLabel.customDomain.startsWith('backstage.')
+        ? whiteLabel.customDomain
+        : `backstage.${whiteLabel.customDomain}`
+      : whiteLabel.cloudflareBaseDomain
+        ? `backstage.${whiteLabel.cloudflareBaseDomain}`
+        : undefined;
 
+    if (finalSubdomain && targetDomain) {
       await this.cloudflareDnsService.provisionSubdomain(
         finalSubdomain,
         targetDomain,
@@ -2498,6 +2498,15 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
     const existingRecords = searchData.result || [];
     let recordId: string | undefined;
 
+    const hasElasticIp = Boolean(
+      wl.elasticIpv4 &&
+        /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(String(wl.elasticIpv4).trim()),
+    );
+    const tenantRecordType: 'A' | 'CNAME' = hasElasticIp ? 'A' : 'CNAME';
+    const tenantRecordContent = hasElasticIp
+      ? String(wl.elasticIpv4).trim()
+      : platformSubdomainFqdn;
+
     if (existingRecords.length > 0) {
       const rec = existingRecords[0];
       recordId = rec.id;
@@ -2507,19 +2516,21 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           method: 'PUT',
           headers: cfHeaders,
           body: JSON.stringify({
-            type: 'CNAME',
+            type: tenantRecordType,
             name: cnameHost,
-            content: platformSubdomainFqdn,
+            content: tenantRecordContent,
             ttl: 1, // Auto
             proxied: true, // Orange Cloud: SSL, DDoS protection & CDN
-            comment: `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
+            comment: hasElasticIp
+              ? `WhiteLabel Dedicated EC2 Elastic IP routing`
+              : `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
           }),
         },
       );
       const updateData = await updateRes.json();
       if (!updateData.success) {
         throw new BadRequestException(
-          `Failed to update Cloudflare CNAME record: ${updateData.errors?.[0]?.message || 'Unknown error'}`,
+          `Failed to update Cloudflare ${tenantRecordType} record: ${updateData.errors?.[0]?.message || 'Unknown error'}`,
         );
       }
     } else {
@@ -2529,25 +2540,42 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
           method: 'POST',
           headers: cfHeaders,
           body: JSON.stringify({
-            type: 'CNAME',
+            type: tenantRecordType,
             name: cnameHost,
-            content: platformSubdomainFqdn,
+            content: tenantRecordContent,
             ttl: 1,
             proxied: true,
-            comment: `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
+            comment: hasElasticIp
+              ? `WhiteLabel Dedicated EC2 Elastic IP routing`
+              : `WhiteLabel Custom Domain routing to platform subdomain ${platformSubdomainFqdn}`,
           }),
         },
       );
       const createData = await createRes.json();
       if (!createData.success) {
         throw new BadRequestException(
-          `Failed to create Cloudflare CNAME record: ${createData.errors?.[0]?.message || 'Unknown error'}`,
+          `Failed to create Cloudflare ${tenantRecordType} record: ${createData.errors?.[0]?.message || 'Unknown error'}`,
         );
       }
       recordId = createData.result?.id;
     }
 
-    // 2. Mark domain SSL & routing active in DB & Redis
+    // 2. Provision platform subdomain CNAME in Mother Company Cloudflare: [subdomain].platform.royalmotionit.com -> backstage.[customdomain]
+    try {
+      await this.cloudflareDnsService.provisionSubdomain(
+        wl.subdomain,
+        cnameFqdn,
+      );
+      await this.redisService.del(
+        `whitelabel:subdomain_resolve:${wl.subdomain.toLowerCase()}`,
+      );
+    } catch (subErr: any) {
+      this.logger.warn(
+        `[applyCnameRouting] Could not auto-sync platform subdomain CNAME: ${subErr.message}`,
+      );
+    }
+
+    // 3. Mark domain SSL & routing active in DB & Redis
     const updated = await this.prismaService.whiteLabel.update({
       where: { id: wl.id },
       data: {
@@ -2561,7 +2589,7 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       lastCheckedAt: new Date().toISOString(),
       sslStatus: 'ACTIVE',
       dnsStatus: 'VERIFIED',
-      cnameTarget: platformSubdomainFqdn,
+      cnameTarget: cnameFqdn,
       proxied: true,
     };
 
@@ -2575,10 +2603,11 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       success: true,
       cnameHost,
       cnameFqdn,
-      cnameTarget: platformSubdomainFqdn,
+      cnameTarget: cnameFqdn,
+      platformSubdomainFqdn,
       proxied: true,
       recordId,
-      message: `CNAME record applied! "${cnameFqdn}" is now live and routing to your platform subdomain "${platformSubdomainFqdn}" with SSL & DDoS protection active.`,
+      message: `DNS routing applied! "${cnameFqdn}" routes to your dedicated instance, and platform subdomain "${platformSubdomainFqdn}" points as CNAME to "${cnameFqdn}".`,
       status,
     };
   }
@@ -2599,6 +2628,12 @@ export class ClientWhitelabelService implements OnModuleInit, OnModuleDestroy {
       : wl.cloudflareBaseDomain
         ? `backstage.${wl.cloudflareBaseDomain}`
         : undefined;
+
+    if (!targetDomain) {
+      throw new BadRequestException(
+        'Cannot sync platform subdomain CNAME: Please configure your custom domain and complete infrastructure provisioning first.',
+      );
+    }
 
     const dnsRes = await this.cloudflareDnsService.provisionSubdomain(
       wl.subdomain,

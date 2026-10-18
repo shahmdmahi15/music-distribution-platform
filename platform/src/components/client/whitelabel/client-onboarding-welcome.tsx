@@ -15,6 +15,7 @@ import {
   Headphones,
   Zap,
   RotateCcw,
+  Palette,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,10 +98,10 @@ export function ClientOnboardingWelcome({
     },
     {
       num: "02",
-      title: "Branding & Custom Subdomain",
-      desc: "Claim your dedicated platform address (e.g. yourbrand.platform.royalmotionit.com) and set brand theme preferences.",
+      title: "Branding & Visual Styling",
+      desc: "Upload corporate logos, choose your brand color scheme, and configure theme styling preferences.",
       time: "2 mins",
-      icon: Globe2,
+      icon: Palette,
     },
     {
       num: "03",

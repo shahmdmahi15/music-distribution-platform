@@ -122,7 +122,7 @@ export async function proxy(request: NextRequest) {
           // If WhiteLabel has its backstage custom domain live, redirect directly
           if (data.backstageDomain) {
             const redirectUrl = `https://${data.backstageDomain}${pathname}${request.nextUrl.search}`;
-            return NextResponse.redirect(redirectUrl, 307);
+            return NextResponse.redirect(redirectUrl, 308);
           }
 
           // If WhiteLabel is registered/in progress but hasn't finalized custom domain, render holding page

@@ -797,21 +797,7 @@ export function WhiteLabelOnboardingWizard({
     } else {
       // Distributor Aggregator
       if (step === 2) {
-        if (!formData.desiredSubdomain || !formData.desiredSubdomain.trim()) {
-          toast.error("Please enter your desired platform subdomain.");
-          return false;
-        }
-        const sub = formData.desiredSubdomain.trim().toLowerCase();
-        if (sub.length < 3 || sub.length > 30) {
-          toast.error("Subdomain must be between 3 and 30 characters.");
-          return false;
-        }
-        if (subdomainStatus.available === false) {
-          toast.error(
-            subdomainStatus.reason || "This subdomain is not available.",
-          );
-          return false;
-        }
+        // Branding step: visual styling and logos; subdomain is allocated post-infrastructure provisioning
       }
       if (step === 3) {
         if (
@@ -988,7 +974,7 @@ export function WhiteLabelOnboardingWizard({
       ]
     : [
         { num: 1, title: "Entity Profile" },
-        { num: 2, title: "Branding & URL" },
+        { num: 2, title: "Branding & Styling" },
         { num: 3, title: "Key Contact" },
         { num: 4, title: "Operations" },
         { num: 5, title: "Sub-Labels" },
@@ -1294,107 +1280,34 @@ export function WhiteLabelOnboardingWizard({
         </Card>
       )}
 
-      {/* STEP 2 (Distributor Aggregator Only): Branding & Subdomain */}
+      {/* STEP 2 (Distributor Aggregator Only): Branding & Visual Styling */}
       {!isReferrer && currentStep === 2 && (
         <Card className="border-border/70 shadow-sm animate-in fade-in-50 duration-200">
           <CardHeader>
             <div className="flex items-center gap-2 text-primary font-bold text-xs mb-1">
-              <Globe className="h-4 w-4" />
-              Step 2 of 6: Identity & Subdomain
+              <Palette className="h-4 w-4" />
+              Step 2 of 6: Brand Identity & Styling
             </div>
             <CardTitle className="text-xl font-bold">
-              Platform Identity & Subdomain Claim
+              Brand Identity &amp; Visual Styling
             </CardTitle>
             <CardDescription className="text-xs">
-              Choose your dedicated WhiteLabel portal address and brand color scheme.
+              Customize your brand visual identity, logos, tagline, and theme palette. (Your custom domain and platform subdomain routing are configured post-provisioning).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-                {/* Subdomain Input with Real-time Checker (Locked & Auto-derived) */}
-                <div className="space-y-2 p-4 rounded-xl border border-border/70 bg-card">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="subdomain"
-                      className="text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>Platform Subdomain</span>
-                    </Label>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-mono text-muted-foreground"
-                    >
-                      Auto-Verified DNS
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center rounded-lg border border-border overflow-hidden bg-background focus-within:ring-2 focus-within:ring-primary/40">
-                    <input
-                      id="subdomain"
-                      type="text"
-                      placeholder="yourbrand"
-                      value={formData.desiredSubdomain}
-                      onChange={(e) => {
-                        const clean = e.target.value
-                          .toLowerCase()
-                          .replace(/[^a-z0-9-]/g, "")
-                          .slice(0, 30);
-                        setFormData((prev) => ({
-                          ...prev,
-                          desiredSubdomain: clean,
-                        }));
-                      }}
-                      className="px-3 py-2 text-xs font-mono font-bold bg-transparent outline-none flex-1 min-w-0"
-                    />
-                    <span className="px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/40 border-l border-border shrink-0 select-none">
-                      .platform.royalmotionit.com
-                    </span>
-                  </div>
-
-                  {formData.desiredSubdomain && (
-                    <div className="pt-1">
-                      {subdomainStatus.checking ? (
-                        <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                          <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
-                          Checking Cloudflare availability...
-                        </span>
-                      ) : subdomainStatus.available ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                          {subdomainStatus.reason ||
-                            "Available & unique! Reserved for your brand."}
-                        </span>
-                      ) : subdomainStatus.available === false ? (
-                        <span className="text-destructive font-semibold flex items-center gap-1 text-[11px]">
-                          <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-                          {subdomainStatus.reason || "Subdomain is unavailable."}
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground pt-1">
-                    Your subdomain is automatically slugified from your brand name
-                    and verified unique in Cloudflare DNS.
-                  </p>
-                </div>
-
-                {/* Subdomain Holding Architecture Information Banner */}
-                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-start gap-3 text-xs">
-                  <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-bold text-foreground flex items-center gap-1.5">
-                      <span>Subdomain Holding Active</span>
-                      {formData.desiredSubdomain && (
-                        <span className="font-mono text-primary font-bold">
-                          ({formData.desiredSubdomain}.platform.royalmotionit.com)
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Your platform address is held immediately upon application submission and routed to the RoyalMotionIT holding view. When your application is approved and setup is provisioned, <strong className="text-foreground">backstage.&lt;customdomain&gt;</strong> will point to your dedicated AWS Elastic IP as an A-record, and your platform subdomain will automatically point to <strong className="text-foreground">backstage.&lt;customdomain&gt;</strong> as a CNAME.
-                    </p>
-                  </div>
-                </div>
+            {/* Architecture Provisioning Callout */}
+            <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3 text-xs">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-foreground">
+                  Custom Domain &amp; Dedicated Infrastructure Routing
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Focus purely on your visual branding here. Following application approval and payment, you will configure your custom domain during dedicated cloud provisioning. RoyalMotion IT will automatically provision and point your platform subdomain as a CNAME directly to your custom domain (<strong className="text-foreground">backstage.&lt;customdomain&gt;</strong>).
+                </p>
+              </div>
+            </div>
 
                 {/* Brand Tagline & Description */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2991,21 +2904,15 @@ export function WhiteLabelOnboardingWizard({
           <CardContent className="space-y-5">
             {/* Distributor Aggregator Comprehensive Application Summary Dossier */}
             <div className="space-y-4">
-              {/* Architecture Holding Notice */}
+              {/* Architecture Provisioning Notice */}
               <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 flex items-start gap-3 text-xs">
                 <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p className="font-bold text-foreground">
-                    Subdomain Reservation &amp; Holding Active
+                    Dedicated Cloud Infrastructure &amp; Domain Routing
                   </p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Upon submission, your platform address{" "}
-                    <strong className="text-foreground font-mono">
-                      {formData.desiredSubdomain}.platform.royalmotionit.com
-                    </strong>{" "}
-                    will be held and routed to the platform holding page. During automated provisioning after approval, your custom domain{" "}
-                    <strong className="text-foreground font-mono">backstage.&lt;customdomain&gt;</strong> will point to your dedicated AWS Elastic IP (A-record), and your platform subdomain will point to{" "}
-                    <strong className="text-foreground font-mono">backstage.&lt;customdomain&gt;</strong> (CNAME).
+                    Following application approval and contract execution, you will configure your custom domain during dedicated cloud infrastructure provisioning. RoyalMotion IT will automatically provision and point your platform subdomain as a CNAME directly to your custom domain (<strong className="text-foreground font-mono">backstage.&lt;customdomain&gt;</strong>).
                   </p>
                 </div>
               </div>
@@ -3064,8 +2971,8 @@ export function WhiteLabelOnboardingWizard({
                 <div className="p-4 rounded-xl border border-border/70 bg-card space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                      <Globe className="h-3.5 w-3.5 text-primary" />
-                      2. Platform Identity &amp; Colors
+                      <Palette className="h-3.5 w-3.5 text-primary" />
+                      2. Brand Identity &amp; Colors
                     </h4>
                     <Button
                       type="button"
@@ -3080,10 +2987,10 @@ export function WhiteLabelOnboardingWizard({
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="col-span-2">
-                      <span className="text-[10px] text-muted-foreground block">Platform Address</span>
-                      <strong className="text-primary font-mono text-[11px] font-bold">
-                        {formData.desiredSubdomain}.platform.royalmotionit.com
-                      </strong>
+                      <span className="text-[10px] text-muted-foreground block">Platform Domain Routing</span>
+                      <span className="text-muted-foreground text-[11px] block">
+                        Allocated post-provisioning (CNAME &rarr; backstage.&lt;customdomain&gt;)
+                      </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground block">Brand Colors</span>

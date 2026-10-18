@@ -1317,6 +1317,12 @@ export class AdminWhitelabelService {
         ? `backstage.${existing.cloudflareBaseDomain}`
         : undefined;
 
+    if (!targetDomain) {
+      throw new BadRequestException(
+        'Cannot sync platform subdomain CNAME: Please configure the custom domain and complete infrastructure provisioning first.',
+      );
+    }
+
     const dnsResult = await this.cloudflareDnsService.provisionSubdomain(
       existing.subdomain,
       targetDomain,

@@ -913,8 +913,8 @@ export function ClientDomainView({
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Your platform subdomain is permanently tied to your registered
-                  brand code and cannot be modified.
+                  Provided by RoyalMotion IT as a dedicated platform CNAME alias
+                  pointing directly to your backstage custom domain.
                 </p>
               </div>
 
@@ -960,9 +960,7 @@ export function ClientDomainView({
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Enter your cloud server&apos;s Elastic IPv4. Cloudflare DNS
-                  will automatically create an{" "}
-                  <strong className="text-foreground">A record</strong> routing
-                  your subdomain directly to your hosted server.
+                  routes your custom backstage domain directly to your dedicated server.
                 </p>
               </div>
 
@@ -1012,19 +1010,25 @@ export function ClientDomainView({
                         Routing Type
                       </span>
                       <span className="font-semibold text-foreground">
-                        {config.elasticIpv4
-                          ? "A Record (Dedicated Elastic IP)"
-                          : "CNAME (Platform Default)"}
+                        {config.customDomain
+                          ? "CNAME -> backstage.<customdomain>"
+                          : config.elasticIpv4
+                            ? "A Record (Dedicated Elastic IP)"
+                            : "CNAME (Platform Default)"}
                       </span>
                     </div>
                     <div className="bg-background/60 p-2 rounded border border-border/60">
                       <span className="text-muted-foreground block text-[9px]">
                         Target Address
                       </span>
-                      <span className="font-semibold text-primary truncate block">
-                        {domainHealth?.subdomain.expectedTarget ||
-                          config.elasticIpv4 ||
-                          "platform.royalmotionit.com"}
+                      <span className="font-semibold text-primary truncate block" title={config.customDomain || domainHealth?.subdomain.expectedTarget || "backstage.yourdomain"}>
+                        {config.customDomain
+                          ? (config.customDomain.startsWith("backstage.")
+                              ? config.customDomain
+                              : `backstage.${config.customDomain}`)
+                          : domainHealth?.subdomain.expectedTarget ||
+                            config.elasticIpv4 ||
+                            "Configured post-provisioning"}
                       </span>
                     </div>
                   </div>
@@ -1740,7 +1744,7 @@ export function ClientDomainView({
               )}
             </div>
 
-            {/* STEP 3: Apply CNAME Routing Pointing to Platform Subdomain */}
+            {/* STEP 3: Route Custom Domain & Sync Platform Subdomain CNAME */}
             <div className="p-4 sm:p-5 space-y-3 bg-card hover:bg-muted/10 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
@@ -1749,12 +1753,10 @@ export function ClientDomainView({
                   </span>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <span>Apply CNAME Traffic Routing</span>
+                      <span>Route Custom Domain &amp; Provision Platform Subdomain (CNAME)</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Creates/updates Cloudflare CNAME record for{" "}
-                      <code className="font-mono text-primary">backstage</code>{" "}
-                      pointing to your platform subdomain.
+                      Routes <code className="font-mono text-primary">backstage.{cleanBaseDomain}</code> directly to your dedicated cloud instance, and points your platform subdomain (<code className="font-mono text-primary">{platformSubdomainFqdn}</code>) as a CNAME to backstage.
                     </p>
                   </div>
                 </div>
@@ -1773,8 +1775,8 @@ export function ClientDomainView({
                     {isStep3Verified
                       ? "ROUTING & PROXY ACTIVE"
                       : isStep3Failed
-                        ? "CNAME RECORD MISSING (FAILED)"
-                        : "PENDING CNAME"}
+                        ? "DNS RECORD MISSING (FAILED)"
+                        : "PENDING DNS"}
                   </Badge>
                   <Button
                     type="button"
@@ -1787,7 +1789,7 @@ export function ClientDomainView({
                       className={`h-3 w-3 ${isApplyingCname ? "animate-spin" : ""}`}
                     />
                     <span>
-                      {isApplyingCname ? "Applying..." : "Apply CNAME Record"}
+                      {isApplyingCname ? "Applying..." : "Apply DNS Routing"}
                     </span>
                   </Button>
                 </div>
@@ -1798,7 +1800,7 @@ export function ClientDomainView({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
                   <div className="bg-background p-2 rounded border border-border/60">
                     <span className="text-muted-foreground block text-[10px]">
-                      CNAME Record Host
+                      Primary Custom Backstage
                     </span>
                     <span className="font-bold text-foreground">backstage</span>
                     <span className="text-[10px] text-muted-foreground block">
@@ -1808,10 +1810,10 @@ export function ClientDomainView({
 
                   <div className="bg-background p-2 rounded border border-border/60">
                     <span className="text-muted-foreground block text-[10px]">
-                      Target (Our Subdomain)
+                      Platform Subdomain (CNAME)
                     </span>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary truncate mr-1">
+                      <span className="font-bold text-primary truncate mr-1" title={platformSubdomainFqdn}>
                         {platformSubdomainFqdn}
                       </span>
                       <button
