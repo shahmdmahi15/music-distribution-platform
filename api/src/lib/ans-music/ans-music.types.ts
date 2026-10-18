@@ -10,61 +10,34 @@ export interface AnsEnvelope<T = any> {
 }
 
 export interface AnsMeResponse {
-  accountId: string;
-  companyName: string;
-  email: string;
-  environment: 'test' | 'live';
+  company: string;
+  environment: 'live' | 'test';
   scopes: string[];
-  createdAt: string;
+  linkedAccount?: { id: string; name: string };
+  webhookUrl?: string;
+  accountId?: string;
+  companyName?: string;
+  email?: string;
+  createdAt?: string;
 }
 
-export interface AnsUploadSingleRequest {
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-}
-
-export interface AnsUploadSingleResponse {
-  uploadId: string;
-  signedUrl: string;
-  storageKey: string;
-  expiresAt: string;
-}
-
-export interface AnsUploadMultipartStartRequest {
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-  partCount: number;
-}
-
-export interface AnsUploadMultipartStartResponse {
-  uploadId: string;
-  storageKey: string;
-  partSize: number;
-  totalParts: number;
-}
-
-export interface AnsUploadMultipartSignPartsRequest {
-  uploadId: string;
-  partNumbers: number[];
-}
-
-export interface AnsUploadMultipartSignPartsResponse {
-  parts: Array<{
-    partNumber: number;
-    signedUrl: string;
-    expiresAt: string;
-  }>;
-}
-
-export interface AnsUploadMultipartCompleteRequest {
-  uploadId: string;
-  parts: Array<{
-    PartNumber: number;
-    ETag: string;
-  }>;
-}
+export type AnsVideoVersion =
+  | 'official'
+  | 'lyric'
+  | 'audio'
+  | 'live'
+  | 'interview'
+  | 'behind_the_scenes'
+  | 'teaser'
+  | 'original'
+  | 'OFFICIAL'
+  | 'LYRIC'
+  | 'AUDIO'
+  | 'LIVE'
+  | 'INTERVIEW'
+  | 'BEHIND_THE_SCENES'
+  | 'TEASER'
+  | 'ORIGINAL';
 
 export interface AnsContributorInput {
   name: string;
@@ -85,30 +58,43 @@ export interface AnsTrackInput {
 }
 
 export interface AnsReleaseInput {
-  externalId?: string;
+  // Nine mandatory fields per https://apidoc.ansmusic.io/
   title: string;
-  type: 'SINGLE' | 'ALBUM' | 'EP' | 'MUSIC_VIDEO';
-  genre: string;
-  subgenre?: string;
-  language?: string;
-  releaseDate: string;
-  cLine: string;
-  pLine: string;
+  primaryArtist: string[];
+  videoUrl: string;
+  imageUrl: string;
+  label: string;
+  genre: string[];
+  language: string;
+  description: string;
+  channel: string;
+
+  // Optional fields
+  externalId?: string;
+  featuringArtists?: string[];
+  releaseDate?: string;
+  releaseTimezone?: string;
+  version?: AnsVideoVersion;
   upc?: string;
-  coverArtUrl: string;
-  channel?: string;
-  videoUrl?: string;
-  videoVersion?:
-    | 'OFFICIAL'
-    | 'LYRIC'
-    | 'AUDIO'
-    | 'LIVE'
-    | 'INTERVIEW'
-    | 'BEHIND_THE_SCENES'
-    | 'TEASER'
-    | 'ORIGINAL';
-  tracks: AnsTrackInput[];
-  contributors: AnsContributorInput[];
+  isrc?: string;
+  visibility?: 'public' | 'unlisted';
+  explicit?: boolean;
+  keywords?: string[];
+  composer?: string;
+  producer?: string;
+  editor?: string;
+  musicDirector?: string;
+  copyrightYear?: string;
+
+  // Backward compatibility fields for internal DDEX packaging
+  type?: string;
+  subgenre?: string;
+  cLine?: string;
+  pLine?: string;
+  coverArtUrl?: string;
+  videoVersion?: AnsVideoVersion;
+  tracks?: AnsTrackInput[];
+  contributors?: AnsContributorInput[];
 }
 
 export type AnsReleasePatch = Partial<AnsReleaseInput>;
@@ -116,33 +102,94 @@ export type AnsReleasePatch = Partial<AnsReleaseInput>;
 export interface AnsRelease {
   id: string;
   videoId?: string;
-  externalId?: string;
+  reference?: string;
+  externalId: string | null;
   title: string;
+  isrc?: string | null;
+  isrcAssignedByAns?: boolean;
+  upc?: string | null;
+  upcAssignedByAns?: boolean;
   status:
+    | 'pending'
+    | 'needs_fix'
+    | 'approved'
+    | 'delivered'
+    | 'rejected'
+    | 'taken_down'
     | 'PENDING'
     | 'NEEDS_FIX'
     | 'APPROVED'
     | 'DELIVERED'
     | 'REJECTED'
     | 'TAKEN_DOWN';
-  reason?: string;
-  upc?: string;
-  youtubeVideoId?: string;
-  videoUrl?: string;
+  statusDetail?: string;
+  reason?: string | null;
+  primaryArtist?: string[];
+  featuringArtists?: string[];
+  label?: string | null;
+  genre?: string[];
+  releaseDate?: string | null;
+  releaseTimezone?: string | null;
+  version?: AnsVideoVersion | null;
+  channel?: string | null;
+  youtubeVideoId?: string | null;
+  videoUrl?: string | null;
+  language?: string | null;
+  description?: string | null;
+  keywords?: string[];
+  composer?: string | null;
+  producer?: string | null;
+  editor?: string | null;
+  musicDirector?: string | null;
+  copyrightYear?: string | null;
+  explicit?: boolean | null;
+  visibility?: 'public' | 'unlisted';
+  imageUrl?: string | null;
+  environment?: 'live' | 'test';
+  createdAt: string;
+  updatedAt: string;
+  warnings?: string[];
   tracks?: Array<{
     id: string;
     externalId?: string;
     isrc?: string;
   }>;
-  createdAt: string;
-  updatedAt: string;
-  isDuplicate?: boolean;
+}
+
+export interface AnsListReleasesQuery {
+  updatedSince?: string;
+  externalId?: string;
+  isrc?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AnsReleaseListResponse {
+  releases: AnsRelease[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AnsSimulateStatusRequest {
+  status:
+    | 'pending'
+    | 'needs_fix'
+    | 'approved'
+    | 'delivered'
+    | 'youtube_linked'
+    | 'rejected'
+    | 'taken_down';
+  reason?: string;
 }
 
 export interface AnsChannelRequest {
-  externalId?: string;
   channelName: string;
-  artistName: string;
+  artistName?: string;
+  description?: string;
+  keywords?: string[];
+  externalId?: string;
   artistBio?: string;
   avatarUrl?: string;
   bannerUrl?: string;
@@ -150,21 +197,132 @@ export interface AnsChannelRequest {
 
 export interface AnsChannel {
   id: string;
-  externalId?: string;
   channelName: string;
-  artistName: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  channelUrl?: string;
-  youtubeChannelId?: string;
-  createdAt?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  channelUrl: string | null;
+  youtubeChannelId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  externalId?: string;
+  artistName?: string;
   submittedAt?: string;
-  isDuplicate?: boolean;
+}
+
+export interface AnsChannelListResponse {
+  channels: AnsChannel[];
+}
+
+export interface AnsUploadStartRequest {
+  fileName: string;
+  category?: 'video' | 'image';
+  contentType?: string;
+  size?: number;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export interface AnsUploadSingleResponse {
+  mode: 'single';
+  key: string;
+  uploadUrl: string;
+  fileUrl: string;
+  uploadId?: string;
+  signedUrl?: string;
+  storageKey?: string;
+  expiresAt?: string;
+}
+
+export interface AnsUploadMultipartResponse {
+  mode: 'multipart';
+  key: string;
+  uploadId: string;
+  partSize: number;
+  fileUrl: string;
+  totalParts?: number;
+  storageKey?: string;
+}
+
+export type AnsUploadStartResponse =
+  | AnsUploadSingleResponse
+  | AnsUploadMultipartResponse;
+
+export interface AnsUploadPartsRequest {
+  key: string;
+  uploadId: string;
+  partNumbers: number[];
+}
+
+export interface AnsUploadPartsResponse {
+  urls: Array<{
+    partNumber: number;
+    uploadUrl: string;
+  }>;
+  parts?: Array<{
+    partNumber: number;
+    signedUrl: string;
+    expiresAt: string;
+  }>;
+}
+
+export interface AnsUploadCompleteRequest {
+  key: string;
+  uploadId: string;
+  parts: Array<{
+    partNumber: number;
+    eTag: string;
+  }>;
+}
+
+export interface AnsUploadCompleteResponse {
+  key: string;
+  fileUrl: string;
+  storageKey?: string;
+  location?: string;
+}
+
+export interface AnsWebhookGetResponse {
+  url: string;
+  secretSet: boolean;
+}
+
+export interface AnsWebhookSetRequest {
+  url: string;
+  rotateSecret?: boolean;
+}
+
+export interface AnsWebhookSetResponse {
+  url: string;
+  secret: string | null;
+  secretRotated: boolean;
+  note?: string;
+}
+
+export interface AnsWebhookTestResponse {
+  url: string;
+  delivered: boolean;
+  responseStatus: number | null;
+  error?: string;
+  sentBody?: any;
 }
 
 export interface AnsWebhookEvent<T = any> {
   id: string;
-  type: string;
-  environment?: 'test' | 'live';
-  timestamp: number;
+  event:
+    | 'release.created'
+    | 'release.needs_fix'
+    | 'release.approved'
+    | 'release.isrc_assigned'
+    | 'release.delivered'
+    | 'release.youtube_linked'
+    | 'release.rejected'
+    | 'release.taken_down'
+    | 'release.updated'
+    | 'channel.approved'
+    | 'channel.rejected'
+    | 'webhook.test';
+  environment: 'live' | 'test';
+  sentAt: string;
   data: T;
+  type?: string;
+  timestamp?: number;
 }

@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers/providers";
+import { PwaRegister } from "@/components/pwa/pwa-register";
+import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 
 const ampleSoft = localFont({
   src: [
@@ -40,10 +42,31 @@ const ampleSoft = localFont({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#030712" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "RoyalMotionIT – Distribute Your Music Worldwide",
   description:
     "Upload your tracks to Spotify, Apple Music, TikTok, and 150+ stores globally. Keep 100% of your earnings.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "RMIT Platform",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -57,8 +80,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${ampleSoft.variable}`}
     >
-      <body>
-        <Providers>{children}</Providers>
+      <body className="min-h-dvh antialiased">
+        <Providers>
+          {children}
+          <PwaRegister />
+          <PwaInstallBanner />
+        </Providers>
       </body>
     </html>
   );

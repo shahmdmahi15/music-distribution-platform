@@ -15,7 +15,7 @@ import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { QueryReleaseDto } from './dto/query-release.dto';
 import { RequestUploadUrlDto } from './dto/request-upload-url.dto';
-import { QcStatus, ReleaseStatus } from 'src/generated/prisma/client';
+import { QcStatus, ReleaseStatus, VevoChannelStatus } from 'src/generated/prisma/client';
 import { WhitelabelQcValidationService } from './validation/whitelabel-qc-validation.service';
 import { AnsDispatchService } from 'src/platform/admin/distribution/ans-dispatch.service';
 import { RequestVevoChannelDto } from './dto/request-vevo-channel.dto';
@@ -648,7 +648,8 @@ export class WhitelabelCatalogService {
 
     if (
       release.status !== ReleaseStatus.DRAFT &&
-      release.status !== ReleaseStatus.REJECTED
+      release.status !== ReleaseStatus.REJECTED &&
+      release.status !== ReleaseStatus.NEEDS_FIX
     ) {
       throw new BadRequestException(
         `Release is already in status ${release.status}`,
@@ -726,24 +727,13 @@ export class WhitelabelCatalogService {
       }
     }
 
-    // Zero-Touch Automation: Auto-dispatch to ANS Music upstream immediately
-    let autoDispatchResult: any = null;
-    try {
-      autoDispatchResult = await this.ansDispatchService.autoDispatchRelease(
-        release.code,
-      );
-    } catch (dispatchErr: any) {
-      this.logger.warn(
-        `Auto-dispatch for release ${release.code} queued/failed: ${dispatchErr.message}. Release remains in SUBMITTED state.`,
-      );
-    }
-
+    // Multi-Tier Approval Pipeline: Release transitions to SUBMITTED and stages for WhiteLabel Owner review
     return {
       success: true,
       message:
-        'Release submitted successfully to Mother Company for DSP distribution!',
-      release: autoDispatchResult?.release || updated,
-      dispatched: !!autoDispatchResult?.success,
+        'Release submitted successfully. It is now queued for your label owner to review and approve.',
+      release: updated,
+      dispatched: false,
     };
   }
 
@@ -848,23 +838,15 @@ export class WhitelabelCatalogService {
         channelName: dto.channelName,
         artistName: dto.artistName,
         description: dto.description,
-        status: 'PENDING',
+        status: VevoChannelStatus.REQUESTED,
         whiteLabelId,
         whiteLabelUserId,
       },
     });
 
-    // Zero-Touch Auto-Dispatch to ANS Music upstream
-    try {
-      await this.ansDispatchService.autoDispatchVevoChannel(channel.code);
-    } catch (err: any) {
-      this.logger.warn(
-        `Auto-dispatch for VEVO channel ${channel.code} queued/failed: ${err.message}`,
-      );
-    }
-
     return {
       success: true,
+      message: 'VEVO channel request submitted for label review.',
       channel,
     };
   }

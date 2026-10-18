@@ -1,13 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TenantProvider } from "@/components/tenant-theme-provider";
+import { PwaRegister } from "@/components/pwa/pwa-register";
+import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { Toaster } from "sonner";
 import { getTenantAction } from "@/actions/tenant/get-tenant.action";
 import { meAction } from "@/actions/auth/me.action";
 import { UnconfiguredPortalView } from "@/components/unconfigured-portal-view";
 import { getGoogleFontUrl, getFontFamilyCss } from "@/lib/fonts";
 import { getWCAGContrastForeground } from "@/lib/contrast";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#030712" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenantRes = await getTenantAction();
@@ -18,6 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "WhiteLabel Setup Required | RoyalMotionIT",
       description:
         "This WhiteLabel portal installation is awaiting onboarding setup and initial configuration.",
+      manifest: "/manifest.json",
     };
   }
 
@@ -29,7 +43,15 @@ export async function generateMetadata(): Promise<Metadata> {
       tenant.description ||
       tenant.tagline ||
       "WhiteLabel Music Distribution & Rights Management Platform",
-    icons: tenant.faviconUrl ? [{ url: tenant.faviconUrl }] : undefined,
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: tenant.name || "Backstage",
+    },
+    icons: tenant.faviconUrl
+      ? [{ url: tenant.faviconUrl }]
+      : [{ url: "/icon.svg" }],
   };
 }
 
@@ -131,7 +153,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body className="min-h-dvh bg-background text-foreground antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme={tenant?.theme?.mode || "dark"}
@@ -150,6 +172,8 @@ export default async function RootLayout({
           ) : (
             <TenantProvider tenant={tenant} user={user}>
               {children}
+              <PwaRegister />
+              <PwaInstallBanner />
               <Toaster richColors position="top-right" />
             </TenantProvider>
           )}

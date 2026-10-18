@@ -4,6 +4,7 @@ import { getTenantAction } from "@/actions/tenant/get-tenant.action";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { WhiteLabelSidebar } from "@/components/sidebar/whitelabel-sidebar";
 import { WhiteLabelDashboardHeader } from "@/components/common/whitelabel-dashboard-header";
+import { MobileBottomNav } from "@/components/navigation/mobile-bottom-nav";
 import { Globe, Mail, Phone } from "lucide-react";
 
 export async function PortalLayoutWrapper({
@@ -34,7 +35,7 @@ export async function PortalLayoutWrapper({
       <WhiteLabelSidebar />
       <SidebarInset>
         <WhiteLabelDashboardHeader />
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-20 sm:pb-8">
           {children}
         </main>
         <footer className="border-t border-border/40 py-6 text-xs text-muted-foreground bg-card/30 mt-auto">
@@ -102,6 +103,7 @@ export async function PortalLayoutWrapper({
             </div>
           </div>
         </footer>
+        <MobileBottomNav />
       </SidebarInset>
     </SidebarProvider>
   );

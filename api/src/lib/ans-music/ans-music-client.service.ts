@@ -12,19 +12,25 @@ import { ConfigService } from '@nestjs/config';
 import { AnsMusicConfigService } from './ans-music.config';
 import {
   AnsChannel,
+  AnsChannelListResponse,
   AnsChannelRequest,
-  AnsEnvelope,
+  AnsListReleasesQuery,
   AnsMeResponse,
   AnsRelease,
   AnsReleaseInput,
+  AnsReleaseListResponse,
   AnsReleasePatch,
-  AnsUploadMultipartCompleteRequest,
-  AnsUploadMultipartSignPartsRequest,
-  AnsUploadMultipartSignPartsResponse,
-  AnsUploadMultipartStartRequest,
-  AnsUploadMultipartStartResponse,
-  AnsUploadSingleRequest,
-  AnsUploadSingleResponse,
+  AnsSimulateStatusRequest,
+  AnsUploadCompleteRequest,
+  AnsUploadCompleteResponse,
+  AnsUploadPartsRequest,
+  AnsUploadPartsResponse,
+  AnsUploadStartRequest,
+  AnsUploadStartResponse,
+  AnsWebhookGetResponse,
+  AnsWebhookSetRequest,
+  AnsWebhookSetResponse,
+  AnsWebhookTestResponse,
 } from './ans-music.types';
 
 @Injectable()
@@ -69,7 +75,8 @@ export class AnsMusicClientService {
   ): Promise<T> {
     const baseUrl = this.getBaseUrl();
     const apiKey = this.getApiKey();
-    const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${baseUrl}${cleanEndpoint}`;
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
@@ -137,20 +144,23 @@ export class AnsMusicClientService {
       if (response.status === 401) {
         throw new UnauthorizedException(errorMessage);
       }
+      if (response.status === 403) {
+        throw new HttpException(errorMessage, HttpStatus.FORBIDDEN);
+      }
       if (response.status === 404) {
         throw new NotFoundException(errorMessage);
       }
       if (response.status === 409) {
+        if (body?.data) {
+          return body.data as T;
+        }
         if (body?.existingRelease) {
           return body.existingRelease as T;
         }
         if (body?.existingChannel) {
           return body.existingChannel as T;
         }
-        // If data is returned in standard envelope on 409
-        if (body?.data) {
-          return body.data as T;
-        }
+        return (body || {}) as T;
       }
       if (response.status === 400) {
         const errorDetail =
@@ -163,31 +173,31 @@ export class AnsMusicClientService {
       throw new HttpException(errorMessage, response.status);
     }
 
-    // Unwrap standard envelope if present: { success: true, data: ... }
-    if (
-      body &&
-      typeof body === 'object' &&
-      'data' in body &&
-      'success' in body
-    ) {
+    // Standard ANS Response envelope unwrapping: { statusCode, success, message, data }
+    if (body && typeof body === 'object' && 'data' in body) {
       return body.data as T;
     }
 
     return body as T;
   }
 
+  /**
+   * GET /me (or /partner/me)
+   */
   async getMe(): Promise<AnsMeResponse> {
     return this.request<AnsMeResponse>('/me', {
       method: 'GET',
     });
   }
 
+  /**
+   * POST /releases
+   */
   async createRelease(payload: AnsReleaseInput): Promise<AnsRelease> {
     const headers: Record<string, string> = {};
     if (payload.externalId) {
       headers['X-Idempotency-Key'] = payload.externalId;
     }
-
     return this.request<AnsRelease>('/releases', {
       method: 'POST',
       headers,
@@ -195,96 +205,153 @@ export class AnsMusicClientService {
     });
   }
 
-  async getRelease(id: string): Promise<AnsRelease> {
-    return this.request<AnsRelease>(`/releases/${id}`, {
+  /**
+   * GET /releases
+   */
+  async listReleases(
+    query?: AnsListReleasesQuery,
+  ): Promise<AnsReleaseListResponse> {
+    const params = new URLSearchParams();
+    if (query?.updatedSince) params.set('updatedSince', query.updatedSince);
+    if (query?.externalId) params.set('externalId', query.externalId);
+    if (query?.isrc) params.set('isrc', query.isrc);
+    if (query?.page) params.set('page', String(query.page));
+    if (query?.limit) params.set('limit', String(query.limit));
+
+    const qs = params.toString();
+    const endpoint = `/releases${qs ? `?${qs}` : ''}`;
+
+    return this.request<AnsReleaseListResponse>(endpoint, {
       method: 'GET',
     });
   }
 
-  async updateRelease(id: string, patch: AnsReleasePatch): Promise<AnsRelease> {
-    return this.request<AnsRelease>(`/releases/${id}`, {
+  /**
+   * GET /releases/:id
+   */
+  async getRelease(id: string): Promise<AnsRelease> {
+    return this.request<AnsRelease>(`/releases/${encodeURIComponent(id)}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * PATCH /releases/:id
+   */
+  async updateRelease(
+    id: string,
+    patch: AnsReleasePatch,
+  ): Promise<AnsRelease> {
+    return this.request<AnsRelease>(`/releases/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     });
   }
 
-  async requestChannel(payload: AnsChannelRequest): Promise<AnsChannel> {
-    const headers: Record<string, string> = {};
-    if (payload.externalId) {
-      headers['X-Idempotency-Key'] = payload.externalId;
-    }
-
-    return this.request<AnsChannel>('/channels/request', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-  }
-
-  async listChannels(): Promise<AnsChannel[]> {
-    return this.request<AnsChannel[]>('/channels', {
-      method: 'GET',
-    });
-  }
-
+  /**
+   * POST /releases/:id/simulate (Sandbox test keys only)
+   */
   async simulateStatus(
     id: string,
-    status: string,
+    status: AnsSimulateStatusRequest['status'],
     extra?: { reason?: string },
-  ): Promise<any> {
-    const payload = {
+  ): Promise<AnsRelease> {
+    const payload: AnsSimulateStatusRequest = {
       status,
       ...(extra || {}),
     };
 
-    return this.request<any>(`/sandbox/releases/${id}/simulate`, {
+    return this.request<AnsRelease>(
+      `/releases/${encodeURIComponent(id)}/simulate`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  }
+
+  /**
+   * POST /channels (Request VEVO channel)
+   */
+  async requestChannel(payload: AnsChannelRequest): Promise<AnsChannel> {
+    return this.request<AnsChannel>('/channels', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
+  /**
+   * GET /channels
+   */
+  async listChannels(): Promise<AnsChannelListResponse> {
+    return this.request<AnsChannelListResponse>('/channels', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * POST /uploads (Starts single or multipart direct S3 upload)
+   */
   async startUpload(
-    params: AnsUploadSingleRequest,
-  ): Promise<AnsUploadSingleResponse> {
-    return this.request<AnsUploadSingleResponse>('/uploads/single', {
+    params: AnsUploadStartRequest,
+  ): Promise<AnsUploadStartResponse> {
+    return this.request<AnsUploadStartResponse>('/uploads', {
       method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
-  async startMultipartUpload(
-    params: AnsUploadMultipartStartRequest,
-  ): Promise<AnsUploadMultipartStartResponse> {
-    return this.request<AnsUploadMultipartStartResponse>(
-      '/uploads/multipart/start',
-      {
-        method: 'POST',
-        body: JSON.stringify(params),
-      },
-    );
-  }
-
+  /**
+   * POST /uploads/parts (Signs up to 200 multipart parts)
+   */
   async signUploadParts(
-    params: AnsUploadMultipartSignPartsRequest,
-  ): Promise<AnsUploadMultipartSignPartsResponse> {
-    return this.request<AnsUploadMultipartSignPartsResponse>(
-      '/uploads/multipart/sign-parts',
-      {
-        method: 'POST',
-        body: JSON.stringify(params),
-      },
-    );
+    params: AnsUploadPartsRequest,
+  ): Promise<AnsUploadPartsResponse> {
+    return this.request<AnsUploadPartsResponse>('/uploads/parts', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
   }
 
+  /**
+   * POST /uploads/complete (Finalizes multipart upload)
+   */
   async completeUpload(
-    params: AnsUploadMultipartCompleteRequest,
-  ): Promise<{ storageKey: string; location: string }> {
-    return this.request<{ storageKey: string; location: string }>(
-      '/uploads/multipart/complete',
-      {
-        method: 'POST',
-        body: JSON.stringify(params),
-      },
-    );
+    params: AnsUploadCompleteRequest,
+  ): Promise<AnsUploadCompleteResponse> {
+    return this.request<AnsUploadCompleteResponse>('/uploads/complete', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * GET /webhook (Reads webhook configuration)
+   */
+  async getWebhook(): Promise<AnsWebhookGetResponse> {
+    return this.request<AnsWebhookGetResponse>('/webhook', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * PUT /webhook (Sets webhook URL and returns signing secret once)
+   */
+  async setWebhook(
+    params: AnsWebhookSetRequest,
+  ): Promise<AnsWebhookSetResponse> {
+    return this.request<AnsWebhookSetResponse>('/webhook', {
+      method: 'PUT',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * POST /webhook/test (Dispatches test event)
+   */
+  async testWebhook(): Promise<AnsWebhookTestResponse> {
+    return this.request<AnsWebhookTestResponse>('/webhook/test', {
+      method: 'POST',
+    });
   }
 }

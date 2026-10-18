@@ -1,6 +1,7 @@
 export type ReleaseStatus =
   | 'DRAFT'
   | 'SUBMITTED'
+  | 'CLIENT_APPROVED'
   | 'IN_REVIEW'
   | 'APPROVED'
   | 'DISTRIBUTED'
@@ -26,7 +27,14 @@ export interface VevoChannel {
   channelName: string;
   artistName?: string;
   description?: string;
-  status: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status:
+    | 'PENDING'
+    | 'REQUESTED'
+    | 'SUBMITTED'
+    | 'CLIENT_APPROVED'
+    | 'DISPATCHED_TO_ANS'
+    | 'APPROVED'
+    | 'REJECTED';
   channelUrl?: string;
   youtubeChannelId?: string;
   createdAt: string;

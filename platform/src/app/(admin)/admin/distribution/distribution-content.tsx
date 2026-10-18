@@ -358,6 +358,8 @@ export function AdminDistributionContent() {
         return <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">Draft</Badge>;
       case "SUBMITTED":
         return <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">Submitted</Badge>;
+      case "CLIENT_APPROVED":
+        return <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Client Approved (Ready for ANS)</Badge>;
       case "IN_REVIEW":
         return <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30">In Review</Badge>;
       case "APPROVED":
@@ -423,6 +425,7 @@ export function AdminDistributionContent() {
 
   const statusTabs = [
     { label: "All Releases", value: "ALL" },
+    { label: "Client Approved (Ready for ANS)", value: "CLIENT_APPROVED" },
     { label: "Submitted Queue", value: "SUBMITTED" },
     { label: "In Review", value: "IN_REVIEW" },
     { label: "Approved", value: "APPROVED" },

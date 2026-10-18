@@ -282,7 +282,7 @@ describe('AnsMusicClientService', () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe(`${mockApiUrl}/channels/request`);
+      expect(url).toBe(`${mockApiUrl}/channels`);
       expect(init.method).toBe('POST');
       expect(JSON.parse(init.body as string)).toEqual(channelPayload);
       expect(result).toEqual(mockChannelResponse);
@@ -337,7 +337,7 @@ describe('AnsMusicClientService', () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe(`${mockApiUrl}/sandbox/releases/${releaseId}/simulate`);
+      expect(url).toBe(`${mockApiUrl}/releases/${releaseId}/simulate`);
       expect(init.method).toBe('POST');
       expect(JSON.parse(init.body as string)).toEqual({ status: 'APPROVED' });
       expect(result).toEqual(mockTransition);

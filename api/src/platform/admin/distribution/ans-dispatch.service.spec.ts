@@ -152,7 +152,6 @@ describe('AnsDispatchService', () => {
       expect(dispatchPayload).toMatchObject({
         externalId: mockReleaseCode,
         title: mockCleanRelease.title,
-        type: mockCleanRelease.type,
         tracks: expect.arrayContaining([
           expect.objectContaining({
             trackNumber: 1,
@@ -164,7 +163,7 @@ describe('AnsDispatchService', () => {
       expect(prisma.release.update).toHaveBeenCalledWith({
         where: { id: mockReleaseId },
         data: expect.objectContaining({
-          status: ReleaseStatus.DISTRIBUTED,
+          status: ReleaseStatus.APPROVED,
           isLocked: true,
           distributedAt: expect.any(Date),
         }),
@@ -281,16 +280,15 @@ describe('AnsDispatchService', () => {
       const result = await service.autoDispatchVevoChannel(mockChannelCode);
 
       expect(ansClient.requestChannel).toHaveBeenCalledWith({
-        externalId: mockChannelCode,
         channelName: mockChannelRecord.channelName,
         artistName: mockChannelRecord.artistName,
-        artistBio: mockChannelRecord.description,
+        description: mockChannelRecord.description,
       });
 
       expect(prisma.vevoChannel.update).toHaveBeenCalledWith({
         where: { id: mockChannelId },
         data: expect.objectContaining({
-          status: 'SUBMITTED',
+          status: 'DISPATCHED_TO_ANS',
         }),
       });
 

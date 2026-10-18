@@ -29,6 +29,12 @@ export const envSchema = z.object({
   ACRCLOUD_HOST: z.string().optional(),
   ACRCLOUD_ACCESS_KEY: z.string().optional(),
   ACRCLOUD_ACCESS_SECRET: z.string().optional(),
+  ANS_API_BASE_URL: z.string().optional(),
+  ANS_MUSIC_API_URL: z.string().optional(),
+  ANS_TEST_API_KEY: z.string().optional(),
+  ANS_LIVE_API_KEY: z.string().optional(),
+  ANS_MUSIC_API_KEY: z.string().optional(),
+  ANS_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type EnvironmentVariables = z.infer<typeof envSchema>;

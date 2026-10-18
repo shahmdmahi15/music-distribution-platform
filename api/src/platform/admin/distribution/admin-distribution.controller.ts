@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -47,10 +48,17 @@ export class AdminDistributionController {
     @Body() body: { status: string; reason?: string },
   ) {
     const dossier = await this.distributionService.getReleaseDossier(code);
-    const upstreamId = dossier.upstreamReleaseId || dossier.code;
-    return await this.ansMusicClient.simulateStatus(upstreamId, body.status, {
-      reason: body.reason,
-    });
+    const upstreamId = (dossier as any).upstreamReleaseId || (dossier as any).upstreamVideoId;
+    if (!upstreamId) {
+      throw new BadRequestException(`Release ${code} does not have an upstreamId from ANS Music.`);
+    }
+    return await this.ansMusicClient.simulateStatus(
+      upstreamId,
+      body.status as any,
+      {
+        reason: body.reason,
+      },
+    );
   }
 
   @Get('channels')

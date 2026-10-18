@@ -290,7 +290,7 @@ describe('AnsWebhookService', () => {
       expect(prisma.release.update).toHaveBeenCalledWith({
         where: { code: 'REL-ROYAL-101' },
         data: {
-          status: ReleaseStatus.REJECTED,
+          status: ReleaseStatus.NEEDS_FIX,
           upstreamStatus: UpstreamStatus.NEEDS_FIX,
           isLocked: false,
           rejectionReason: upstreamReason,
@@ -336,6 +336,7 @@ describe('AnsWebhookService', () => {
       expect(prisma.release.update).toHaveBeenCalledWith({
         where: { code: 'REL-ROYAL-102' },
         data: {
+          status: ReleaseStatus.DISTRIBUTED,
           youtubeVideoId: 'dQw4w9WgXcQ',
           youtubeWatchUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         },

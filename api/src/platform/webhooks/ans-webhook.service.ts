@@ -8,7 +8,12 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from 'src/lib/prisma/prisma.service';
 import { RedisService } from 'src/lib/redis/redis.service';
-import { ReleaseStatus, UpstreamStatus } from 'src/generated/prisma/client';
+import {
+  ReleaseStatus,
+  UpstreamStatus,
+  VevoChannelStatus,
+} from 'src/generated/prisma/client';
+import { AnsWebhookEvent } from 'src/lib/ans-music/ans-music.types';
 
 export interface WebhookPayloadInput {
   signatureHeader?: string;
@@ -27,15 +32,20 @@ export class AnsWebhookService {
   ) {}
 
   private getWebhookSecret(): string {
-    const secret = this.configService.get<string>('ANS_WEBHOOK_SECRET');
+    const secret =
+      this.configService.get<string>('ANS_WEBHOOK_SECRET') ||
+      process.env.ANS_WEBHOOK_SECRET;
     if (!secret) {
       throw new InternalServerErrorException(
-        'ANS_WEBHOOK_SECRET is not configured on the central API',
+        'ANS_WEBHOOK_SECRET is not configured on the platform',
       );
     }
     return secret;
   }
 
+  /**
+   * Verifies HMAC-SHA256 signature: v1=<hmac-sha256(secret, "<x-ans-timestamp>.<rawBody>")>
+   */
   verifySignature(
     rawBody: string,
     signatureHeader?: string,
@@ -51,7 +61,6 @@ export class AnsWebhookService {
     let timestamp: number;
     let signatureHex = '';
 
-    // Check if format is "t=<timestamp>,v1=<sig>" or separate headers
     if (signatureHeader.includes('t=') && signatureHeader.includes('v1=')) {
       const parts = signatureHeader.split(',');
       const tPart = parts.find((p) => p.trim().startsWith('t='));
@@ -74,12 +83,12 @@ export class AnsWebhookService {
       throw new UnauthorizedException('Invalid or missing webhook timestamp');
     }
 
-    // Check timestamp tolerance (+/- 300 seconds)
+    // 5-minute tolerance check
     const nowSec = Math.floor(Date.now() / 1000);
     const drift = Math.abs(nowSec - timestamp);
     if (drift > 300) {
       this.logger.warn(
-        `Webhook timestamp drift exceeded: ${drift}s (limit: 300s)`,
+        `Webhook timestamp drift exceeded: ${drift}s (tolerance: 300s)`,
       );
       throw new UnauthorizedException(
         'Webhook timestamp outside allowed tolerance',
@@ -114,28 +123,28 @@ export class AnsWebhookService {
   ): Promise<{ received: boolean; deduplicated?: boolean }> {
     const { signatureHeader, timestampHeader, rawBody } = input;
 
-    // Verify cryptographic signature and timestamp
     this.verifySignature(rawBody, signatureHeader, timestampHeader);
 
-    let parsedEvent: any;
+    let parsedEvent: AnsWebhookEvent;
     try {
       parsedEvent = JSON.parse(rawBody);
     } catch {
       throw new UnauthorizedException('Invalid JSON payload');
     }
 
-    const eventId =
-      parsedEvent.id || parsedEvent.eventId || `evt_${Date.now()}`;
-    const eventType = parsedEvent.type || parsedEvent.eventType || '';
+    const eventId = parsedEvent.id || `evt_${Date.now()}`;
+    const eventType =
+      parsedEvent.event ||
+      (parsedEvent as any).type ||
+      (parsedEvent as any).eventType ||
+      '';
     const eventData = parsedEvent.data || {};
 
-    // Redis deduplication check
+    // Redis deduplication
     const dedupKey = `ans:webhook:event:${eventId}`;
     const existing = await this.redis.get(dedupKey);
     if (existing) {
-      this.logger.log(
-        `Webhook event ${eventId} already processed (deduplicated)`,
-      );
+      this.logger.log(`Webhook event ${eventId} already processed (deduplicated)`);
       return { received: true, deduplicated: true };
     }
 
@@ -149,7 +158,7 @@ export class AnsWebhookService {
           eventId,
           eventType,
           environment: parsedEvent.environment || 'live',
-          payload: parsedEvent,
+          payload: parsedEvent as any,
           status: 'PROCESSED',
         },
       });
@@ -157,29 +166,58 @@ export class AnsWebhookService {
       this.logger.warn(`Failed to log webhook event ${eventId}: ${e.message}`);
     }
 
-    // Process event lifecycle
+    // Handle all 11 ANS Music webhook events
     switch (eventType) {
+      case 'webhook.test':
+        this.logger.log(
+          `Received test webhook event from ANS Music (ID: ${eventId})`,
+        );
+        break;
+
+      case 'release.created':
+        this.logger.log(`ANS Music received release creation: ${JSON.stringify(eventData)}`);
+        break;
+
       case 'release.approved':
         await this.handleReleaseApproved(eventData);
         break;
-      case 'release.needs_fix':
-        await this.handleReleaseNeedsFix(eventData);
+
+      case 'release.isrc_assigned':
+        await this.handleReleaseIsrcAssigned(eventData);
         break;
+
       case 'release.delivered':
         await this.handleReleaseDelivered(eventData);
         break;
+
       case 'release.youtube_linked':
         await this.handleReleaseYoutubeLinked(eventData);
         break;
+
+      case 'release.needs_fix':
+        await this.handleReleaseNeedsFix(eventData);
+        break;
+
       case 'release.rejected':
         await this.handleReleaseRejected(eventData);
         break;
+
+      case 'release.updated':
+        await this.handleReleaseUpdated(eventData);
+        break;
+
+      case 'release.taken_down':
+        await this.handleReleaseTakenDown(eventData);
+        break;
+
       case 'channel.approved':
         await this.handleChannelApproved(eventData);
         break;
+
       case 'channel.rejected':
         await this.handleChannelRejected(eventData);
         break;
+
       default:
         this.logger.log(`Unhandled webhook event type: ${eventType}`);
         break;
@@ -221,6 +259,30 @@ export class AnsWebhookService {
     }
   }
 
+  private async handleReleaseIsrcAssigned(data: any) {
+    const releaseCode = data.releaseCode || data.externalId;
+    const isrc = data.isrc;
+    const trackCode = data.trackCode;
+
+    if (trackCode && isrc) {
+      await this.prisma.track.update({
+        where: { code: trackCode },
+        data: { isrc },
+      });
+    } else if (releaseCode && isrc) {
+      const firstTrack = await this.prisma.track.findFirst({
+        where: { release: { code: releaseCode } },
+        orderBy: { trackNumber: 'asc' },
+      });
+      if (firstTrack) {
+        await this.prisma.track.update({
+          where: { id: firstTrack.id },
+          data: { isrc },
+        });
+      }
+    }
+  }
+
   private async handleReleaseNeedsFix(data: any) {
     const releaseCode = data.releaseCode || data.externalId;
     const upstreamReason =
@@ -237,7 +299,7 @@ export class AnsWebhookService {
     await this.prisma.release.update({
       where: { code: releaseCode },
       data: {
-        status: ReleaseStatus.REJECTED,
+        status: ReleaseStatus.NEEDS_FIX,
         upstreamStatus: UpstreamStatus.NEEDS_FIX,
         isLocked: false,
         rejectionReason: upstreamReason,
@@ -245,6 +307,18 @@ export class AnsWebhookService {
         adminNotes: `ANS Music Reviewer: ${upstreamReason}`,
       },
     });
+
+    // Unlock tracks so artist can update and re-upload files
+    const rel = await this.prisma.release.findUnique({
+      where: { code: releaseCode },
+      select: { id: true },
+    });
+    if (rel) {
+      await this.prisma.track.updateMany({
+        where: { releaseId: rel.id },
+        data: { isLocked: false },
+      });
+    }
   }
 
   private async handleReleaseDelivered(data: any) {
@@ -276,6 +350,7 @@ export class AnsWebhookService {
       await this.prisma.release.update({
         where: { code: releaseCode },
         data: {
+          status: ReleaseStatus.DISTRIBUTED,
           youtubeVideoId,
           youtubeWatchUrl: watchUrl,
         },
@@ -310,6 +385,31 @@ export class AnsWebhookService {
     });
   }
 
+  private async handleReleaseUpdated(data: any) {
+    const releaseCode = data.releaseCode || data.externalId;
+    if (!releaseCode) return;
+
+    if (data.upc) {
+      await this.prisma.release.update({
+        where: { code: releaseCode },
+        data: { upc: data.upc },
+      });
+    }
+  }
+
+  private async handleReleaseTakenDown(data: any) {
+    const releaseCode = data.releaseCode || data.externalId;
+    if (!releaseCode) return;
+
+    await this.prisma.release.update({
+      where: { code: releaseCode },
+      data: {
+        status: ReleaseStatus.TAKEDOWN,
+        upstreamStatus: UpstreamStatus.TAKEN_DOWN,
+      },
+    });
+  }
+
   private async handleChannelApproved(data: any) {
     const channelCode = data.channelCode || data.externalId;
     const channelUrl = data.channelUrl;
@@ -324,7 +424,7 @@ export class AnsWebhookService {
     await this.prisma.vevoChannel.update({
       where: { code: channelCode },
       data: {
-        status: 'APPROVED',
+        status: VevoChannelStatus.APPROVED,
         channelUrl,
         youtubeChannelId,
       },
@@ -338,7 +438,7 @@ export class AnsWebhookService {
     await this.prisma.vevoChannel.update({
       where: { code: channelCode },
       data: {
-        status: 'REJECTED',
+        status: VevoChannelStatus.REJECTED,
       },
     });
   }

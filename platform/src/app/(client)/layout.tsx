@@ -1,6 +1,7 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/sidebar/client-sidebar";
 import { DashboardHeader } from "@/components/common/dashboard-header";
+import { MobileBottomNav } from "@/components/navigation/mobile-bottom-nav";
 import { meAction } from "@/actions/auth/me.action";
 import { clientGetCurrentSubscriptionAction } from "@/actions/client/subscription/client-get-current-subscription.action";
 import { redirect } from "next/navigation";
@@ -39,12 +40,13 @@ export default async function ClientLayout({
         />
         <SidebarInset className="flex flex-col h-svh flex-1 min-w-0 overflow-hidden">
           <DashboardHeader user={me.user} isAdmin={false} />
-          <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
+          <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative pb-16 sm:pb-0">
             {/* Subtle background ambient mesh */}
             <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none -z-10" />
             <div className="absolute bottom-10 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none -z-10" />
             {children}
           </main>
+          <MobileBottomNav />
         </SidebarInset>
       </SidebarProvider>
     </div>

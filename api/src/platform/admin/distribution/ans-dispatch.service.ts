@@ -12,17 +12,18 @@ import {
 } from 'src/lib/storage/storage.service';
 import { AnsMusicClientService } from 'src/lib/ans-music/ans-music-client.service';
 import {
+  ContributorRole,
   QcStatus,
   ReleaseStatus,
-  ReleaseType,
   UpstreamProvider,
   UpstreamStatus,
   VevoChannelStatus,
 } from 'src/generated/prisma/client';
 import {
-  AnsContributorInput,
+  AnsChannelRequest,
   AnsReleaseInput,
   AnsTrackInput,
+  AnsVideoVersion,
 } from 'src/lib/ans-music/ans-music.types';
 
 @Injectable()
@@ -35,6 +36,10 @@ export class AnsDispatchService {
     private readonly ansClient: AnsMusicClientService,
   ) {}
 
+  /**
+   * Dispatches release to ANS Music upstream.
+   * Supports releases with status CLIENT_APPROVED or SUBMITTED.
+   */
   async autoDispatchRelease(codeOrId: string) {
     const release = await this.prisma.release.findFirst({
       where: {
@@ -57,9 +62,18 @@ export class AnsDispatchService {
       throw new NotFoundException(`Release ${codeOrId} not found`);
     }
 
-    if (release.isLocked || release.status === ReleaseStatus.DISTRIBUTED) {
+    if (release.status === ReleaseStatus.DISTRIBUTED) {
       throw new ConflictException(
-        `Release ${release.code} is already locked or distributed`,
+        `Release ${release.code} is already distributed`,
+      );
+    }
+
+    if (
+      release.status !== ReleaseStatus.CLIENT_APPROVED &&
+      release.status !== ReleaseStatus.SUBMITTED
+    ) {
+      throw new BadRequestException(
+        `Release ${release.code} is in status ${release.status}. Only CLIENT_APPROVED or SUBMITTED releases can be dispatched.`,
       );
     }
 
@@ -88,7 +102,7 @@ export class AnsDispatchService {
           }
         : undefined;
 
-    // Resolve cover art URL
+    // Resolve cover art URL (Direct S3 presigned URL)
     let coverUrl = release.coverArtUrl || '';
     if (!coverUrl && release.coverArtKey) {
       coverUrl = await this.storage.getTenantPresignedUrl(
@@ -98,22 +112,63 @@ export class AnsDispatchService {
         tenantStorageConfig,
       );
     }
-
     if (!coverUrl) {
       coverUrl = 'https://storage.royalmotionit.com/defaults/cover.jpg';
     }
 
-    // Map tracks and audio URLs
+    // Resolve video URL from videoUrl field or first track audio/video key
+    let videoUrl = release.videoUrl || '';
+    if (!videoUrl && release.tracks[0]?.audioKey) {
+      videoUrl = await this.storage.getTenantPresignedUrl(
+        release.whiteLabelId,
+        release.tracks[0].audioKey,
+        3600 * 24,
+        tenantStorageConfig,
+      );
+    }
+    if (!videoUrl) {
+      videoUrl = release.tracks[0]?.audioUrl || coverUrl;
+    }
+
+    // Resolve Primary and Featuring Artists
+    const primaryArtists = (release.contributors || [])
+      .filter((c) => c.role === ContributorRole.PRIMARY_ARTIST)
+      .map((c) => c.name);
+
+    if (primaryArtists.length === 0 && release.tracks[0]?.contributors?.length) {
+      primaryArtists.push(
+        ...release.tracks[0].contributors
+          .filter((c) => c.role === ContributorRole.PRIMARY_ARTIST)
+          .map((c) => c.name),
+      );
+    }
+    if (primaryArtists.length === 0) {
+      primaryArtists.push(release.title);
+    }
+
+    const featuringArtists = (release.contributors || [])
+      .filter((c) => c.role === ContributorRole.FEATURED_ARTIST)
+      .map((c) => c.name);
+
+    const versionMapped: AnsVideoVersion = release.videoVersion
+      ? (release.videoVersion.toLowerCase() as AnsVideoVersion)
+      : 'official';
+
+    // Map tracks and audio URLs for optional tracks payload
     const mappedTracks: AnsTrackInput[] = [];
     for (const track of release.tracks) {
       let audioUrl = track.audioUrl || '';
       if (!audioUrl && track.audioKey) {
-        audioUrl = await this.storage.getTenantPresignedUrl(
-          release.whiteLabelId,
-          track.audioKey,
-          3600 * 24,
-          tenantStorageConfig,
-        );
+        try {
+          audioUrl = await this.storage.getTenantPresignedUrl(
+            release.whiteLabelId,
+            track.audioKey,
+            3600 * 24,
+            tenantStorageConfig,
+          );
+        } catch {
+          audioUrl = '';
+        }
       }
 
       mappedTracks.push({
@@ -133,55 +188,48 @@ export class AnsDispatchService {
       });
     }
 
-    const releaseContributors: AnsContributorInput[] = (
-      release.contributors || []
-    ).map((c) => ({
-      name: c.name,
-      role: c.role,
-    }));
-
-    if (
-      releaseContributors.length === 0 &&
-      release.tracks[0]?.contributors?.length
-    ) {
-      releaseContributors.push(...mappedTracks[0].contributors);
-    }
-
-    const releaseTypeMapped =
-      release.type === ReleaseType.MUSIC_VIDEO ? 'MUSIC_VIDEO' : release.type;
-
+    // Format strictly according to https://apidoc.ansmusic.io/
+    // 9 mandatory fields + externalId + releaseDate + version + videoUrl + imageUrl
     const dispatchPayload: AnsReleaseInput = {
-      externalId: release.code,
       title: release.title,
-      type: releaseTypeMapped,
-      genre: release.genre || 'Pop',
-      subgenre: release.subgenre || undefined,
+      primaryArtist: primaryArtists,
+      videoUrl,
+      imageUrl: coverUrl,
+      label:
+        release.labelName ||
+        release.whiteLabel?.name ||
+        'RoyalMotion Records',
+      genre: [release.genre || 'Pop'],
+      language: release.tracks[0]?.language || 'Bengali',
+      description:
+        release.adminNotes ||
+        `Official music video for ${release.title} by ${primaryArtists.join(', ')}.`,
+      channel: release.vevoChannelName || 'RoyalMotionVEVO',
+      externalId: release.code,
+      featuringArtists:
+        featuringArtists.length > 0 ? featuringArtists : undefined,
       releaseDate: release.releaseDate
-        ? release.releaseDate.toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0],
-      cLine: release.cLine || 'RoyalMotion IT',
-      pLine: release.pLine || 'RoyalMotion IT',
+        ? release.releaseDate.toISOString()
+        : new Date().toISOString(),
+      version: versionMapped,
       upc: release.upc || undefined,
-      coverArtUrl: coverUrl,
-      channel: release.vevoChannelName || undefined,
-      videoUrl: release.videoUrl || undefined,
-      videoVersion: (release.videoVersion as any) || undefined,
+      isrc: release.tracks[0]?.isrc || undefined,
+      visibility: 'public',
       tracks: mappedTracks,
-      contributors: releaseContributors,
     };
 
     this.logger.log(
-      `Zero-Touch Dispatch: Dispatching release ${release.code} to ANS Music upstream...`,
+      `Dispatching release ${release.code} to ANS Music API at /releases...`,
     );
 
-    // Call ANS Music API
+    // Call upstream ANS Music API
     const ansResponse = await this.ansClient.createRelease(dispatchPayload);
 
     // Update release in database
     const updatedRelease = await this.prisma.release.update({
       where: { id: release.id },
       data: {
-        status: ReleaseStatus.DISTRIBUTED,
+        status: ReleaseStatus.APPROVED,
         isLocked: true,
         distributedAt: new Date(),
         upstreamProvider: UpstreamProvider.ANS_MUSIC,
@@ -194,20 +242,15 @@ export class AnsDispatchService {
       },
     });
 
-    // Update track ISRCs if returned
-    if (ansResponse.tracks && Array.isArray(ansResponse.tracks)) {
-      for (const t of ansResponse.tracks) {
-        if (t.externalId && t.isrc) {
-          await this.prisma.track.updateMany({
-            where: { code: t.externalId, releaseId: release.id },
-            data: { isrc: t.isrc },
-          });
-        }
-      }
+    if (ansResponse.isrc && release.tracks[0] && !release.tracks[0].isrc) {
+      await this.prisma.track.update({
+        where: { id: release.tracks[0].id },
+        data: { isrc: ansResponse.isrc },
+      });
     }
 
     this.logger.log(
-      `Zero-Touch Dispatch: Successfully dispatched release ${release.code} to ANS Music (ID: ${ansResponse.id})`,
+      `Dispatched release ${release.code} to ANS Music (ID: ${ansResponse.id}, VideoID: ${ansResponse.videoId})`,
     );
 
     return {
@@ -219,6 +262,9 @@ export class AnsDispatchService {
     };
   }
 
+  /**
+   * Dispatches VEVO channel request to ANS Music: POST /channels
+   */
   async autoDispatchVevoChannel(channelCodeOrId: string) {
     const channel = await this.prisma.vevoChannel.findFirst({
       where: {
@@ -230,26 +276,25 @@ export class AnsDispatchService {
       throw new NotFoundException(`VEVO Channel ${channelCodeOrId} not found`);
     }
 
-    if (
-      channel.status === VevoChannelStatus.APPROVED ||
-      channel.status === VevoChannelStatus.SUBMITTED
-    ) {
+    if (channel.status === VevoChannelStatus.APPROVED) {
       throw new ConflictException(
-        `Channel request ${channel.code} is already approved or submitted`,
+        `Channel request ${channel.code} is already approved`,
       );
     }
 
-    const ansChan = await this.ansClient.requestChannel({
-      externalId: channel.code,
+    const payload: AnsChannelRequest = {
       channelName: channel.channelName,
       artistName: channel.artistName || channel.channelName,
-      artistBio: channel.description || undefined,
-    });
+      description: channel.description || undefined,
+      keywords: channel.keywords?.length ? channel.keywords : undefined,
+    };
 
-    await this.prisma.vevoChannel.update({
+    const ansChan = await this.ansClient.requestChannel(payload);
+
+    const updated = await this.prisma.vevoChannel.update({
       where: { id: channel.id },
       data: {
-        status: VevoChannelStatus.SUBMITTED,
+        status: VevoChannelStatus.DISPATCHED_TO_ANS,
         upstreamChannelId: ansChan.id,
       },
     });
@@ -259,6 +304,7 @@ export class AnsDispatchService {
       channelCode: channel.code,
       ansChannelId: ansChan.id,
       ansChannel: ansChan,
+      channel: updated,
     };
   }
 }

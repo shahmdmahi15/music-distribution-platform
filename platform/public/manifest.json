@@ -1,0 +1,42 @@
+{
+  "name": "RoyalMotionIT Music Platform",
+  "short_name": "RMIT Music",
+  "description": "Enterprise Music Distribution, Royalty Accounting & WhiteLabel Portal Engine",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "categories": ["music", "entertainment", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Platform Overview Dashboard",
+      "url": "/",
+      "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "WhiteLabel Setup",
+      "short_name": "Setup",
+      "description": "WhiteLabel Setup Wizard",
+      "url": "/whitelabel/setup",
+      "icons": [{ "src": "/icon.svg", "sizes": "96x96" }]
+    }
+  ]
+}

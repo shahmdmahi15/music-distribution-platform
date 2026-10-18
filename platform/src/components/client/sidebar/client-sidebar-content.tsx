@@ -23,6 +23,8 @@ import {
   Users,
   UserCheck,
   Share2,
+  Music,
+  Radio,
 } from "lucide-react";
 
 interface SimpleNavigationItem {
@@ -65,6 +67,16 @@ const activeNavigations: SimpleNavigationGroup[] = [
         title: "Registration Policy",
         url: "/whitelabel/policy",
         icon: UserCheck,
+      },
+      {
+        title: "Catalog Submissions",
+        url: "/whitelabel/catalog",
+        icon: Music,
+      },
+      {
+        title: "VEVO Channels",
+        url: "/whitelabel/channels",
+        icon: Radio,
       },
       {
         title: "Webhooks",

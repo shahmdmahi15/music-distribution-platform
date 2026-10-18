@@ -83,7 +83,15 @@ export function AdminChannelsContent() {
             Pending Review
           </Badge>
         );
+      case "CLIENT_APPROVED":
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 gap-1 text-xs">
+            <CheckCircle2 className="w-3 h-3" />
+            Client Approved (Ready for ANS)
+          </Badge>
+        );
       case "REQUESTED":
+      case "DISPATCHED_TO_ANS":
         return (
           <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/30 gap-1 text-xs">
             <RefreshCw className="w-3 h-3 animate-spin" />
@@ -168,6 +176,7 @@ export function AdminChannelsContent() {
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
           {[
             { label: "All Channels", value: "ALL" },
+            { label: "Client Approved", value: "CLIENT_APPROVED" },
             { label: "Pending", value: "PENDING" },
             { label: "Dispatched", value: "REQUESTED" },
             { label: "Approved", value: "APPROVED" },

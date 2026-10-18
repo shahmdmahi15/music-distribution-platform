@@ -17,6 +17,7 @@ import { SessionModule as ClientSessionModule } from './client/session/session.m
 import { SubscriptionModule as ClientSubscriptionModule } from './client/subscription/subscription.module';
 import { ClientWhitelabelModule } from './client/whitelabel/whitelabel.module';
 import { ClientReferrerModule } from './client/referrer/referrer.module';
+import { ClientCatalogModule } from './client/catalog/client-catalog.module';
 
 @Module({
   imports: [
@@ -90,6 +91,10 @@ import { ClientReferrerModule } from './client/referrer/referrer.module';
               {
                 path: '',
                 module: ClientReferrerModule,
+              },
+              {
+                path: '',
+                module: ClientCatalogModule,
               },
             ],
           },

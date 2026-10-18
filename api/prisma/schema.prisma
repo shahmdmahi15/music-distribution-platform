@@ -81,6 +81,7 @@ enum ReleaseType {
 enum ReleaseStatus {
   DRAFT
   SUBMITTED
+  CLIENT_APPROVED
   IN_REVIEW
   APPROVED
   DISTRIBUTED
@@ -116,8 +117,11 @@ enum VideoVersion {
 }
 
 enum VevoChannelStatus {
+  REQUESTED
   PENDING
   SUBMITTED
+  CLIENT_APPROVED
+  DISPATCHED_TO_ANS
   APPROVED
   REJECTED
 }

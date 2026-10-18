@@ -1,6 +1,7 @@
 export type ReleaseStatus =
   | 'DRAFT'
   | 'SUBMITTED'
+  | 'CLIENT_APPROVED'
   | 'IN_REVIEW'
   | 'APPROVED'
   | 'NEEDS_FIX'
@@ -23,7 +24,14 @@ export type UpstreamStatus =
   | 'TAKEN_DOWN'
   | 'FAILED';
 export type VideoVersion = 'OFFICIAL' | 'LYRIC_VIDEO' | 'VISUALIZER' | 'LIVE' | 'TEASER';
-export type VevoChannelStatus = 'PENDING' | 'REQUESTED' | 'APPROVED' | 'REJECTED';
+export type VevoChannelStatus =
+  | 'PENDING'
+  | 'REQUESTED'
+  | 'SUBMITTED'
+  | 'CLIENT_APPROVED'
+  | 'DISPATCHED_TO_ANS'
+  | 'APPROVED'
+  | 'REJECTED';
 
 export interface VevoChannel {
   id: string;
@@ -36,6 +44,7 @@ export interface VevoChannel {
   upstreamChannelId?: string;
   youtubeChannelId?: string;
   youtubeChannelUrl?: string;
+  channelUrl?: string;
   rejectionReason?: string;
   whiteLabelId: string;
   whiteLabelUserId?: string;
@@ -102,6 +111,7 @@ export interface Track {
   audioKey?: string;
   audioUrl?: string;
   audioDownloadUrl?: string;
+  presignedAudioUrl?: string;
   fileName?: string;
   fileSizeBytes?: number;
   mimeType?: string;

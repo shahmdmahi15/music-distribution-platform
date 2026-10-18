@@ -137,7 +137,21 @@ export function ChannelsContent() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="font-semibold">APPROVED (Live)</span>
+            <span className="font-semibold">APPROVED (Live on VEVO)</span>
+          </Badge>
+        );
+      case "CLIENT_APPROVED":
+        return (
+          <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 w-fit">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="font-semibold">Label Approved (At Mother Co.)</span>
+          </Badge>
+        );
+      case "DISPATCHED_TO_ANS":
+        return (
+          <Badge className="bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1.5 w-fit">
+            <Clock className="w-3.5 h-3.5 animate-spin" />
+            <span className="font-semibold">Dispatched to VEVO (ANS)</span>
           </Badge>
         );
       case "SUBMITTED":
@@ -194,6 +208,29 @@ export function ChannelsContent() {
           <Plus className="w-4 h-4" />
           <span>Request New VEVO Channel</span>
         </Button>
+      </div>
+
+      {/* 4-Stage VEVO Channel Lifecycle Stepper */}
+      <div className="bg-card p-5 rounded-2xl border border-border/70 shadow-xs space-y-3">
+        <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider block">
+          VEVO Channel Allocation Lifecycle
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { step: 1, name: "Requested", desc: "Artist Channel Application" },
+            { step: 2, name: "Label Approved", desc: "WhiteLabel Owner Sign-off" },
+            { step: 3, name: "Dispatched to VEVO", desc: "ANS Music Direct Pipeline" },
+            { step: 4, name: "Live on YouTube", desc: "Official Artist Badge & VEVO Hub" },
+          ].map((s) => (
+            <div key={s.step} className="p-3 rounded-xl border border-border/50 bg-muted/20 space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                <span>{s.step}. {s.name}</span>
+                <Radio className="w-3.5 h-3.5 text-red-500" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">{s.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Official VEVO YouTube Channel Rules & Guidelines Card */}

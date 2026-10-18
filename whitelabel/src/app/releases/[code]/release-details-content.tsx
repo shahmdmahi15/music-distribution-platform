@@ -208,7 +208,13 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       case "SUBMITTED":
         return (
           <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
-            Submitted to Mother Company
+            Submitted to Label
+          </Badge>
+        );
+      case "CLIENT_APPROVED":
+        return (
+          <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            Label Approved (At Mother Co.)
           </Badge>
         );
       case "IN_REVIEW":
@@ -354,6 +360,109 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
               </Button>
             </>
           )}
+        </div>
+      </div>
+
+      {/* 5-Stage Distribution Lifecycle Stepper */}
+      <div className="bg-card p-5 rounded-2xl border border-border/70 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">
+            Multi-Tier Distribution Pipeline
+          </span>
+          <div className="flex items-center gap-2">
+            {(release.status === "NEEDS_FIX" || release.upstreamStatus === "NEEDS_FIX") && (
+              <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 gap-1 text-[11px]">
+                <AlertTriangle className="w-3 h-3" />
+                Action Required: Fix Requested
+              </Badge>
+            )}
+            {release.status === "REJECTED" && (
+              <Badge variant="destructive" className="gap-1 text-[11px]">
+                <X className="w-3 h-3" />
+                Submission Rejected
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          {[
+            {
+              step: 1,
+              name: "Draft",
+              desc: "Artist Creation",
+              statusKey: "DRAFT",
+            },
+            {
+              step: 2,
+              name: "Submitted",
+              desc: "Label Review",
+              statusKey: "SUBMITTED",
+            },
+            {
+              step: 3,
+              name: "Label Approved",
+              desc: "Mother Company",
+              statusKey: "CLIENT_APPROVED",
+            },
+            {
+              step: 4,
+              name: "ANS Ingestion",
+              desc: "DDEX & Upstream",
+              statusKey: "APPROVED",
+            },
+            {
+              step: 5,
+              name: "Live on DSPs",
+              desc: "VEVO / YouTube",
+              statusKey: "DISTRIBUTED",
+            },
+          ].map((s, idx) => {
+            const currentIdx =
+              release.status === "DISTRIBUTED"
+                ? 4
+                : release.status === "APPROVED"
+                ? 3
+                : release.status === "CLIENT_APPROVED" || release.status === "IN_REVIEW"
+                ? 2
+                : release.status === "SUBMITTED"
+                ? 1
+                : 0;
+
+            const isCompleted = idx < currentIdx;
+            const isCurrent = idx === currentIdx;
+            const isNeedsFix =
+              (release.status === "NEEDS_FIX" || release.upstreamStatus === "NEEDS_FIX") && isCurrent;
+
+            return (
+              <div
+                key={s.step}
+                className={`p-3 rounded-xl border transition-all ${
+                  isCurrent
+                    ? isNeedsFix
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                      : "border-primary/50 bg-primary/10 text-primary shadow-xs"
+                    : isCompleted
+                    ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                    : "border-border/40 bg-muted/20 text-muted-foreground opacity-60"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold">
+                    {s.step}. {s.name}
+                  </span>
+                  {isCompleted ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : isCurrent ? (
+                    <Clock className="w-3.5 h-3.5 text-primary animate-pulse" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-border" />
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{s.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
