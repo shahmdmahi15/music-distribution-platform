@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 import {
   Building2,
   Disc3,
@@ -1009,8 +1010,8 @@ export function WhiteLabelOnboardingWizard({
             Back to Overview
           </Button>
         ) : (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Disc3 className="h-4 w-4 text-primary animate-spin-slow" />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <RoyalMotionLogo variant="icon" imageClassName="h-5 w-5" priority />
             <span className="font-semibold text-foreground">
               RoyalMotionIT Enterprise Onboarding
             </span>

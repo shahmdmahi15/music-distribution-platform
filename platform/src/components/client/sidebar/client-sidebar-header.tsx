@@ -10,6 +10,7 @@ import { Disc3, Music, Sparkles } from "lucide-react";
 import { WhiteLabel, WhiteLabelStatus } from "@/types/whitelabel";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 
 export function ClientSidebarHeader({
   whiteLabel,
@@ -37,11 +38,16 @@ export function ClientSidebarHeader({
             tooltip={statusTooltip}
             className="group/logo hover:bg-sidebar-accent/60 transition-all rounded-xl px-2 py-1.5"
           >
-            <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 group-hover/logo:scale-105 transition-transform">
-              {isApproved ? (
-                <Disc3 className="size-4 animate-[spin_8s_linear_infinite]" />
+            <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg group-hover/logo:scale-105 transition-transform overflow-hidden">
+              {whiteLabel?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={whiteLabel.logoUrl}
+                  alt={brandName}
+                  className="size-8 object-contain rounded-lg"
+                />
               ) : (
-                <Music className="size-4" />
+                <RoyalMotionLogo variant="icon" imageClassName="size-7" priority />
               )}
             </div>
 

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, PlusSquare, X } from "lucide-react";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -97,12 +98,12 @@ export function PwaInstallBanner() {
       <div className="fixed bottom-16 sm:bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="bg-card/95 backdrop-blur-md border border-primary/30 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-              <Download className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-muted/60 border border-primary/20 flex items-center justify-center shrink-0 p-1">
+              <RoyalMotionLogo variant="icon" imageClassName="w-8 h-8" priority />
             </div>
             <div>
               <p className="text-xs font-semibold text-foreground">
-                Install RMIT Platform App
+                Install RoyalMotionIT Platform App
               </p>
               <p className="text-[11px] text-muted-foreground">
                 Fast, responsive desktop & mobile experience with offline support.
@@ -138,9 +139,9 @@ export function PwaInstallBanner() {
         <div className="bg-card/95 backdrop-blur-md border border-border/80 rounded-2xl p-4 shadow-2xl space-y-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+              <RoyalMotionLogo variant="icon" imageClassName="w-5 h-5" priority />
               <p className="text-xs font-semibold text-foreground">
-                Install RMIT on iPhone / iPad
+                Install RoyalMotionIT on iPhone / iPad
               </p>
             </div>
             <button

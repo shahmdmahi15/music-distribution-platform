@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 
 export const metadata: Metadata = {
   title: "WhiteLabel Portal Routing | RoyalMotionIT Platform",
@@ -14,9 +15,7 @@ export default function SubdomainLayout({
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
       <header className="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white shadow-md shadow-indigo-500/20">
-            R
-          </div>
+          <RoyalMotionLogo variant="icon" imageClassName="w-8 h-8" priority />
           <div>
             <span className="font-semibold text-white tracking-tight">RoyalMotionIT</span>
             <span className="text-xs text-slate-400 block -mt-0.5">Platform Distribution Gateway</span>

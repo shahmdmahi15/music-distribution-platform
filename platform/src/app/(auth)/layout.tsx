@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/common/theme-toggle";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +59,8 @@ export default async function AuthLayout({
 
         {/* Brand Logo & Name */}
         <div className="relative z-10 shrink-0">
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="flex h-9 w-9 xl:h-10 xl:w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300">
-              <Disc3 className="h-5 w-5 xl:h-6 xl:w-6" />
-            </div>
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <RoyalMotionLogo variant="icon" imageClassName="h-10 w-10" priority />
             <div>
               <span className="font-heading font-bold text-lg xl:text-xl tracking-tight text-foreground block leading-none">
                 RoyalMotionIT
@@ -167,9 +166,7 @@ export default async function AuthLayout({
           {/* Small screen brand logo */}
           <div className="lg:hidden flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm group-hover:scale-105 transition-all">
-                <Disc3 className="h-4 w-4" />
-              </div>
+              <RoyalMotionLogo variant="icon" imageClassName="h-8 w-8" priority />
               <div>
                 <span className="font-heading font-bold text-sm tracking-tight text-foreground block leading-none">
                   RoyalMotionIT

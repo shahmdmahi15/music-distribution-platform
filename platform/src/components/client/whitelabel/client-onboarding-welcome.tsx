@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 import {
   Card,
   CardContent,
@@ -116,6 +117,7 @@ export function ClientOnboardingWelcome({
       <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-background to-muted/40 p-6 sm:p-10 shadow-sm">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
         <div className="relative z-10 space-y-4">
+          <RoyalMotionLogo variant="full" className="mb-2" imageClassName="h-9 w-auto" priority />
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className="bg-primary/15 text-primary border-primary/30 font-semibold text-xs gap-1.5 px-3 py-1">
               <Sparkles className="h-3.5 w-3.5" />

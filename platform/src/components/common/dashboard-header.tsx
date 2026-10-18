@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/common/theme-toggle";
+import { RoyalMotionLogo } from "@/components/brand/royalmotion-logo";
 import {
   Search,
   UserPen,
@@ -111,9 +112,9 @@ export function DashboardHeader({
             <BreadcrumbItem>
               <BreadcrumbLink
                 render={<Link href={rootHref} />}
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors font-medium"
               >
-                <LayoutDashboard className="h-3.5 w-3.5" />
+                <RoyalMotionLogo variant="icon" imageClassName="h-3.5 w-3.5" priority />
                 <span>{rootLabel}</span>
               </BreadcrumbLink>
             </BreadcrumbItem>
