@@ -2695,6 +2695,7 @@ WantedBy=timers.target
         awsKeyPairPrivateKey: true,
         subdomain: true,
         customDomain: true,
+        updateStatus: true,
       },
     });
 
@@ -2708,10 +2709,17 @@ WantedBy=timers.target
       );
     }
 
+    if (wl.updateStatus === 'UPDATING') {
+      return {
+        success: true,
+        output: `An autonomous update rollout is already in progress for "${wl.name}".`,
+      };
+    }
+
     await this.appendLog(
       whiteLabelId,
       'UPDATE',
-      `Manual update triggered from Central Platform Console. Initiating update cycle...`,
+      `Manual update triggered from Central Platform Console. Initiating background rollout cycle...`,
       'INFO',
     );
 
@@ -2723,6 +2731,34 @@ WantedBy=timers.target
         updateError: null,
       },
     });
+
+    // Execute the SSH update asynchronously in the background so the HTTP request returns immediately
+    setImmediate(() => {
+      this.executeTenantUpdate(whiteLabelId, wl).catch((err) => {
+        this.logger.error(
+          `Background update exception for ${wl.name}: ${err.message}`,
+          err.stack,
+        );
+      });
+    });
+
+    return {
+      success: true,
+      output: `Autonomous update rollout initiated for "${wl.name}". System is updating in the background.`,
+    };
+  }
+
+  private async executeTenantUpdate(
+    whiteLabelId: string,
+    wl: {
+      id: string;
+      name: string;
+      code: string;
+      awsElasticIp: string | null;
+      awsKeyPairPrivateKey: string | null;
+    },
+  ) {
+    if (!wl.awsElasticIp || !wl.awsKeyPairPrivateKey) return;
 
     let ssh: SshClient | null = null;
     try {
@@ -2798,11 +2834,7 @@ WantedBy=timers.target
             updateError: errMsg.slice(0, 1000),
           },
         });
-        return {
-          success: false,
-          output: execRes.stdout,
-          error: errMsg,
-        };
+        return;
       }
 
       await this.appendLog(
@@ -2826,11 +2858,6 @@ WantedBy=timers.target
           updateError: null,
         },
       });
-
-      return {
-        success: true,
-        output: execRes.stdout,
-      };
     } catch (err: any) {
       this.logger.error(
         `Failed to trigger update on ${wl.awsElasticIp}: ${err.message}`,
@@ -2849,11 +2876,6 @@ WantedBy=timers.target
           updateError: err.message,
         },
       });
-      return {
-        success: false,
-        output: '',
-        error: err.message,
-      };
     } finally {
       if (ssh) {
         try {

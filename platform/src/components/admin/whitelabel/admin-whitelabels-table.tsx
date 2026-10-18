@@ -155,7 +155,7 @@ export function AdminWhiteLabelsTable({
       const res = await adminTriggerWhiteLabelUpdateAction(wl.id);
       if (res.success) {
         toast.success(
-          `Autonomous update successfully deployed on ${wl.name}'s EC2!`,
+          res.message || `Autonomous update rollout initiated for ${wl.name}'s EC2!`,
         );
         router.refresh();
       } else {
@@ -164,8 +164,18 @@ export function AdminWhiteLabelsTable({
         );
       }
     } catch (err: any) {
+      const errMsg = err?.message || "";
+      if (
+        errMsg.includes("Server Reference ID") ||
+        errMsg.includes("unexpected response") ||
+        errMsg.includes("Invariant: Expected RSC")
+      ) {
+        toast.info("Console was recently updated. Syncing latest application version...");
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       toast.error(
-        `Error triggering update: ${err?.message || "Failed to connect"}`,
+        `Error triggering update: ${errMsg || "Failed to connect"}`,
       );
     } finally {
       setUpdatingTenantId(null);

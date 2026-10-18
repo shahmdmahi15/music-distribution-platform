@@ -97,7 +97,7 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
       const res = await clientTriggerWhiteLabelUpdateAction();
       if (res.success) {
         toast.success(
-          res.message || "Autonomous update successfully deployed to your server!",
+          res.message || "Autonomous update rollout successfully initiated for your server!",
         );
         router.refresh();
       } else {
@@ -106,8 +106,18 @@ INTERNAL_API_SECRET="<Configure in Credentials & SSO tab>"`;
         );
       }
     } catch (err: any) {
+      const errMsg = err?.message || "";
+      if (
+        errMsg.includes("Server Reference ID") ||
+        errMsg.includes("unexpected response") ||
+        errMsg.includes("Invariant: Expected RSC")
+      ) {
+        toast.info("Console was recently updated. Syncing latest application version...");
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       toast.error(
-        err?.message || "An unexpected error occurred while pushing update.",
+        errMsg || "An unexpected error occurred while pushing update.",
       );
     } finally {
       setIsUpdating(false);
