@@ -35,6 +35,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   HoverCard,
   HoverCardTrigger,
@@ -262,106 +270,108 @@ export function ClientCatalogContent() {
       </div>
 
       {/* Status Tabs with glowing badges */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl border border-border/60 shadow-xs">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-          <button
-            onClick={() => setSelectedStatus("ALL")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "ALL"
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>All Submissions</span>
-            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-              {totalCount}
-            </Badge>
-          </button>
+      <Card className="bg-card p-0 rounded-xl border-border/60 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+            <button
+              onClick={() => setSelectedStatus("ALL")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "ALL"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>All Submissions</span>
+              <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                {totalCount}
+              </Badge>
+            </button>
 
-          <button
-            onClick={() => setSelectedStatus("SUBMITTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "SUBMITTED"
-                ? "bg-amber-500 text-black font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>Pending Your Review</span>
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
-              {pendingReviewCount}
-            </span>
-          </button>
+            <button
+              onClick={() => setSelectedStatus("SUBMITTED")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "SUBMITTED"
+                  ? "bg-amber-500 text-black font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>Pending Your Review</span>
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
+                {pendingReviewCount}
+              </span>
+            </button>
 
-          <button
-            onClick={() => setSelectedStatus("APPROVED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "APPROVED"
-                ? "bg-emerald-600 text-white font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>Approved by You (At Mother Company)</span>
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              {approvedCount}
-            </span>
-          </button>
+            <button
+              onClick={() => setSelectedStatus("APPROVED")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "APPROVED"
+                  ? "bg-emerald-600 text-white font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>Approved by You (At Mother Company)</span>
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {approvedCount}
+              </span>
+            </button>
 
-          <button
-            onClick={() => setSelectedStatus("DISTRIBUTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "DISTRIBUTED"
-                ? "bg-blue-600 text-white font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>Distributed / Live</span>
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              {distributedCount}
-            </span>
-          </button>
+            <button
+              onClick={() => setSelectedStatus("DISTRIBUTED")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "DISTRIBUTED"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>Distributed / Live</span>
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                {distributedCount}
+              </span>
+            </button>
 
-          <button
-            onClick={() => setSelectedStatus("NEEDS_FIX")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "NEEDS_FIX"
-                ? "bg-orange-600 text-white font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>Needs Fix / Changes</span>
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              {needsFixCount}
-            </span>
-          </button>
+            <button
+              onClick={() => setSelectedStatus("NEEDS_FIX")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "NEEDS_FIX"
+                  ? "bg-orange-600 text-white font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>Needs Fix / Changes</span>
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                {needsFixCount}
+              </span>
+            </button>
 
-          <button
-            onClick={() => setSelectedStatus("REJECTED")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-              selectedStatus === "REJECTED"
-                ? "bg-rose-600 text-white font-semibold"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <span>Rejected</span>
-            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-              {rejectedCount}
-            </span>
-          </button>
-        </div>
+            <button
+              onClick={() => setSelectedStatus("REJECTED")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                selectedStatus === "REJECTED"
+                  ? "bg-rose-600 text-white font-semibold"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <span>Rejected</span>
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                {rejectedCount}
+              </span>
+            </button>
+          </div>
 
-        <form
-          onSubmit={handleSearchSubmit}
-          className="relative w-full sm:w-72 flex items-center"
-        >
-          <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search release, UPC, artist..."
-            className="pl-9 text-xs h-9"
-          />
-        </form>
-      </div>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative w-full sm:w-72 flex items-center"
+          >
+            <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search release, UPC, artist..."
+              className="pl-9 text-xs h-9"
+            />
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Catalog Listing */}
       {loading ? (
@@ -369,16 +379,21 @@ export function ClientCatalogContent() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : releases.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-card rounded-2xl border border-border/60">
-          <Music className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="text-base font-semibold">No submissions found</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-            No music releases match your current status filter or search query.
-          </p>
-        </div>
+        <Empty className="py-16 px-4 border rounded-2xl bg-card border-border/60">
+          <EmptyMedia>
+            <Music className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-base font-semibold">No submissions found</EmptyTitle>
+            <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+              No music releases match your current status filter or search query.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : viewMode === "table" ? (
-        <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-          <Table>
+        <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">Cover</TableHead>
@@ -578,7 +593,8 @@ export function ClientCatalogContent() {
               })}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {releases.map((rel) => {
@@ -593,7 +609,7 @@ export function ClientCatalogContent() {
               <ContextMenu key={rel.id}>
                 <ContextMenuTrigger
                   render={
-                    <div className="group rounded-2xl border border-border/70 bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-all shadow-xs cursor-pointer" />
+                    <Card className="group rounded-2xl border-border/70 bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-all shadow-xs cursor-pointer" />
                   }
                 >
                   <div>

@@ -18,6 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Tv,
   Search,
@@ -153,77 +161,92 @@ export function AdminChannelsContent() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-border/60 bg-card shadow-xs">
-          <span className="text-xs font-mono text-muted-foreground uppercase">Total Channels</span>
-          <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
-        </div>
-        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 shadow-xs">
-          <span className="text-xs font-mono text-emerald-500 uppercase">Live on VEVO</span>
-          <p className="text-2xl font-bold text-emerald-400 mt-1">{approvedCount}</p>
-        </div>
-        <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 shadow-xs">
-          <span className="text-xs font-mono text-blue-400 uppercase">Dispatched (Upstream)</span>
-          <p className="text-2xl font-bold text-blue-400 mt-1">{requestedCount}</p>
-        </div>
-        <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 shadow-xs">
-          <span className="text-xs font-mono text-amber-400 uppercase">Pending Review</span>
-          <p className="text-2xl font-bold text-amber-400 mt-1">{pendingCount}</p>
-        </div>
+        <Card className="rounded-xl border-border/60 bg-card shadow-xs">
+          <CardContent className="p-4">
+            <span className="text-xs font-mono text-muted-foreground uppercase">Total Channels</span>
+            <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-emerald-500/20 bg-emerald-500/5 shadow-xs">
+          <CardContent className="p-4">
+            <span className="text-xs font-mono text-emerald-500 uppercase">Live on VEVO</span>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{approvedCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-blue-500/20 bg-blue-500/5 shadow-xs">
+          <CardContent className="p-4">
+            <span className="text-xs font-mono text-blue-400 uppercase">Dispatched (Upstream)</span>
+            <p className="text-2xl font-bold text-blue-400 mt-1">{requestedCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-amber-500/20 bg-amber-500/5 shadow-xs">
+          <CardContent className="p-4">
+            <span className="text-xs font-mono text-amber-400 uppercase">Pending Review</span>
+            <p className="text-2xl font-bold text-amber-400 mt-1">{pendingCount}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl border border-border/60 shadow-xs">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-          {[
-            { label: "All Channels", value: "ALL" },
-            { label: "Client Approved", value: "CLIENT_APPROVED" },
-            { label: "Pending", value: "PENDING" },
-            { label: "Dispatched", value: "REQUESTED" },
-            { label: "Approved", value: "APPROVED" },
-            { label: "Rejected", value: "REJECTED" },
-          ].map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setSelectedStatus(tab.value)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
-                selectedStatus === tab.value
-                  ? "bg-primary text-primary-foreground font-semibold"
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <Card className="bg-card p-0 rounded-xl border-border/60 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+            {[
+              { label: "All Channels", value: "ALL" },
+              { label: "Client Approved", value: "CLIENT_APPROVED" },
+              { label: "Pending", value: "PENDING" },
+              { label: "Dispatched", value: "REQUESTED" },
+              { label: "Approved", value: "APPROVED" },
+              { label: "Rejected", value: "REJECTED" },
+            ].map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setSelectedStatus(tab.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+                  selectedStatus === tab.value
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="relative w-full sm:w-72 flex items-center">
-          <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search artist, channel, tenant..."
-            className="pl-9 text-xs h-9"
-          />
-        </div>
-      </div>
+          <div className="relative w-full sm:w-72 flex items-center">
+            <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search artist, channel, tenant..."
+              className="pl-9 text-xs h-9"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Channels Table */}
-      <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : filteredChannels.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <Tv className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-            <h3 className="text-base font-semibold">No VEVO channels found</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-              No WhiteLabel artist VEVO channels match your current search or status filter.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
+      <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : filteredChannels.length === 0 ? (
+            <Empty className="py-16 px-4 border-0">
+              <EmptyMedia>
+                <Tv className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-base font-semibold">No VEVO channels found</EmptyTitle>
+                <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  No WhiteLabel artist VEVO channels match your current search or status filter.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Artist & VEVO Channel</TableHead>
@@ -315,7 +338,8 @@ export function AdminChannelsContent() {
             </Table>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

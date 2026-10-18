@@ -8,8 +8,25 @@ import {
 } from "@/actions/catalog/whitelabel-catalog.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Table,
   TableBody,
@@ -18,6 +35,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Radio,
   Plus,
@@ -211,124 +235,139 @@ export function ChannelsContent() {
       </div>
 
       {/* 4-Stage VEVO Channel Lifecycle Stepper */}
-      <div className="bg-card p-5 rounded-2xl border border-border/70 shadow-xs space-y-3">
-        <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider block">
-          VEVO Channel Allocation Lifecycle
-        </span>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { step: 1, name: "Requested", desc: "Artist Channel Application" },
-            { step: 2, name: "Label Approved", desc: "WhiteLabel Owner Sign-off" },
-            { step: 3, name: "Dispatched to VEVO", desc: "ANS Music Direct Pipeline" },
-            { step: 4, name: "Live on YouTube", desc: "Official Artist Badge & VEVO Hub" },
-          ].map((s) => (
-            <div key={s.step} className="p-3 rounded-xl border border-border/50 bg-muted/20 space-y-1">
-              <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                <span>{s.step}. {s.name}</span>
-                <Radio className="w-3.5 h-3.5 text-red-500" />
+      <Card className="border border-border/70 shadow-xs">
+        <CardHeader className="p-4 pb-2 border-b border-border/50">
+          <CardTitle className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">
+            VEVO Channel Allocation Lifecycle
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { step: 1, name: "Requested", desc: "Artist Channel Application" },
+              { step: 2, name: "Label Approved", desc: "WhiteLabel Owner Sign-off" },
+              { step: 3, name: "Dispatched to VEVO", desc: "ANS Music Direct Pipeline" },
+              { step: 4, name: "Live on YouTube", desc: "Official Artist Badge & VEVO Hub" },
+            ].map((s) => (
+              <div key={s.step} className="p-3 rounded-xl border border-border/50 bg-muted/20 space-y-1">
+                <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                  <span>{s.step}. {s.name}</span>
+                  <Radio className="w-3.5 h-3.5 text-red-500" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">{s.desc}</p>
               </div>
-              <p className="text-[11px] text-muted-foreground">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Official VEVO YouTube Channel Rules & Guidelines Card */}
-      <div className="rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-500/5 via-card to-card p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-border/50 pb-3">
-          <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
-            <ShieldCheck className="w-5 h-5 text-red-500" />
-            <span>Official VEVO Channel Provisioning Rules &amp; Standards</span>
-          </div>
-          <Badge variant="outline" className="text-[11px] font-mono text-red-500 border-red-500/30 bg-red-500/10">
-            VEVO Operations Spec 2026
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-          {/* Rule 1 */}
-          <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">1</span>
-              <span>Naming Format</span>
+      <Card className="border border-red-500/20 bg-gradient-to-br from-red-500/5 via-card to-card shadow-xs">
+        <CardHeader className="p-5 border-b border-border/50">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
+              <ShieldCheck className="w-5 h-5 text-red-500" />
+              <CardTitle className="text-sm font-semibold">Official VEVO Channel Provisioning Rules &amp; Standards</CardTitle>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Strictly <span className="font-mono text-foreground font-semibold">[ArtistName]VEVO</span> (e.g. <code className="text-red-500">LunaEclipseVEVO</code>). No spaces, hyphens, or emojis.
-            </p>
+            <Badge variant="outline" className="text-[11px] font-mono text-red-500 border-red-500/30 bg-red-500/10">
+              VEVO Operations Spec 2026
+            </Badge>
           </div>
+        </CardHeader>
 
-          {/* Rule 2 */}
-          <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">2</span>
-              <span>Content Minimum</span>
+        <CardContent className="p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Rule 1 */}
+            <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">1</span>
+                <span>Naming Format</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Strictly <span className="font-mono text-foreground font-semibold">[ArtistName]VEVO</span> (e.g. <code className="text-red-500">LunaEclipseVEVO</code>). No spaces, hyphens, or emojis.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              At least <strong className="text-foreground">1 official master music video</strong> ready for distribution upon channel allocation.
-            </p>
-          </div>
 
-          {/* Rule 3 */}
-          <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">3</span>
-              <span>Banner Artwork</span>
+            {/* Rule 2 */}
+            <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">2</span>
+                <span>Content Minimum</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                At least <strong className="text-foreground">1 official master music video</strong> ready for distribution upon channel allocation.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              High-resolution <strong className="text-foreground">2048 x 1152 px</strong> (safe text zone <code className="text-[11px]">1232x338 px</code> centered for desktop & mobile).
-            </p>
-          </div>
 
-          {/* Rule 4 */}
-          <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">4</span>
-              <span>Avatar Icon</span>
+            {/* Rule 3 */}
+            <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">3</span>
+                <span>Banner Artwork</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                High-resolution <strong className="text-foreground">2048 x 1152 px</strong> (safe text zone <code className="text-[11px]">1232x338 px</code> centered for desktop & mobile).
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Square <strong className="text-foreground">800 x 800 px</strong> high-res artist portrait. JPG or PNG under 4MB, no text watermarks.
-            </p>
+
+            {/* Rule 4 */}
+            <div className="p-3.5 rounded-xl border border-border/60 bg-card/80 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-[11px] font-bold">4</span>
+                <span>Avatar Icon</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Square <strong className="text-foreground">800 x 800 px</strong> high-res artist portrait. JPG or PNG under 4MB, no text watermarks.
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Channels Table Card */}
-      <div className="bg-card rounded-2xl border border-border/60 overflow-hidden shadow-xs">
-        <div className="p-4 sm:p-5 border-b border-border/50 flex items-center justify-between">
+      <Card className="rounded-2xl border border-border/60 overflow-hidden shadow-xs">
+        <CardHeader className="p-4 sm:p-5 border-b border-border/50 flex flex-row items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Provisioned Artist Channels</h2>
-            <p className="text-xs text-muted-foreground">Status and YouTube link destinations for requested VEVO handles.</p>
+            <CardTitle className="text-base font-semibold text-foreground">Provisioned Artist Channels</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-0.5">Status and YouTube link destinations for requested VEVO handles.</CardDescription>
           </div>
           <Badge variant="outline" className="font-mono text-xs">
             {channels.length} {channels.length === 1 ? "Channel" : "Channels"}
           </Badge>
-        </div>
+        </CardHeader>
 
-        {loading ? (
-          <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center">
-            <Loader2 className="w-7 h-7 animate-spin text-red-500 mb-2" />
-            <span className="text-xs font-medium">Fetching VEVO channel statuses...</span>
-          </div>
-        ) : channels.length === 0 ? (
-          <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center">
-              <Youtube className="w-7 h-7" />
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center">
+              <Loader2 className="w-7 h-7 animate-spin text-red-500 mb-2" />
+              <span className="text-xs font-medium">Fetching VEVO channel statuses...</span>
             </div>
-            <h3 className="text-base font-semibold text-foreground">No VEVO Channels Requested Yet</h3>
-            <p className="text-xs max-w-sm">
-              Request an official VEVO YouTube channel for your signed roster artists to unlock official artist badges, high CPM video monetization, and VEVO network curation.
-            </p>
-            <Button
-              size="sm"
-              onClick={() => setShowModal(true)}
-              className="mt-2 bg-red-600 hover:bg-red-700 text-white gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Request First Channel</span>
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+          ) : channels.length === 0 ? (
+            <div className="p-8">
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Youtube className="w-6 h-6 text-red-500" />
+                  </EmptyMedia>
+                  <EmptyTitle>No VEVO Channels Requested Yet</EmptyTitle>
+                  <EmptyDescription>
+                    Request an official VEVO YouTube channel for your signed roster artists to unlock official artist badges, high CPM video monetization, and VEVO network curation.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Request First Channel</span>
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/60">
@@ -389,29 +428,23 @@ export function ChannelsContent() {
             </Table>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Request Channel Dialog Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl p-6 shadow-2xl relative space-y-5 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-border/50">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
-                  <Youtube className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-foreground">Request Official VEVO Channel</h3>
-                  <p className="text-xs text-muted-foreground">Submit metadata for VEVO network verification.</p>
-                </div>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-lg p-6">
+          <DialogHeader className="pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
+                <Youtube className="w-5 h-5" />
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <DialogTitle className="font-bold text-base text-foreground">Request Official VEVO Channel</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">Submit metadata for VEVO network verification.</DialogDescription>
+              </div>
             </div>
+          </DialogHeader>
 
             <form onSubmit={handleRequestChannel} className="space-y-4">
               <div className="space-y-1.5">
@@ -488,24 +521,22 @@ export function ChannelsContent() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="description" className="text-xs">Artist Video Notes &amp; Planned Release (Optional)</Label>
-                <textarea
+                <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Details regarding the upcoming music video premiere date, ISRC, and director credits..."
-                  className="w-full min-h-[70px] rounded-lg border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full min-h-[70px] text-xs shadow-xs"
                 />
               </div>
 
               {/* Terms acknowledgment checkbox */}
               <div className="flex items-start gap-2.5 pt-2 border-t border-border/50">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="agreeTerms"
                   checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 rounded border-border text-red-600 focus:ring-red-500 h-4 w-4"
-                  required
+                  onCheckedChange={(checked) => setAgreedToTerms(Boolean(checked))}
+                  className="mt-0.5"
                 />
                 <label htmlFor="agreeTerms" className="text-xs text-muted-foreground leading-snug cursor-pointer select-none">
                   I certify that I represent this artist and hold exclusive master video rights. I agree to comply with VEVO content delivery guidelines and understand provisioning takes 24–48 hours.
@@ -541,9 +572,8 @@ export function ChannelsContent() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -54,9 +54,19 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyActions,
+} from "@/components/ui/empty";
 
 const ROLE_OPTIONS = [
   { value: "OWNER", label: "Owner" },
@@ -362,9 +372,17 @@ Please log in and immediately configure Two-Factor Authentication (2FA).`;
               <Spinner className="h-6 w-6 text-primary" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-xs">
-              No members found matching your search filters.
-            </div>
+            <Empty className="py-12 px-4 border-0">
+              <EmptyMedia>
+                <Users className="h-8 w-8 text-muted-foreground/50" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-sm font-semibold">No roster members found</EmptyTitle>
+                <EmptyDescription className="text-xs text-muted-foreground">
+                  No members found matching your search filters. Try adjusting your query.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>
@@ -521,30 +539,19 @@ Please log in and immediately configure Two-Factor Authentication (2FA).`;
       </Card>
 
       {/* Add Member Modal with Temporary Credential Copy Snippet */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="w-full max-w-md shadow-2xl border-border bg-card">
-            <CardHeader className="p-4 pb-2 border-b border-border/60 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <UserPlus className="h-4 w-4 text-primary" />
-                  <span>Invite Roster Member</span>
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Generate temporary credentials for {tenant?.name || "the portal"}.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddModal(false)}
-                className="h-7 w-7 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2 border-b border-border/60">
+            <DialogTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-primary" />
+              <span>Invite Roster Member</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              Generate temporary credentials for {tenant?.name || "the portal"}.
+            </DialogDescription>
+          </DialogHeader>
 
-            <form onSubmit={handleCreateUser}>
+          <form onSubmit={handleCreateUser}>
               <CardContent className="p-4 space-y-3.5">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -670,7 +677,7 @@ Please log in and immediately configure Two-Factor Authentication (2FA).`;
                 </div>
               </CardContent>
 
-              <div className="p-4 pt-2 border-t border-border/50 flex items-center justify-end gap-2 bg-muted/20">
+              <DialogFooter className="p-4 pt-2 border-t border-border/50 flex items-center justify-end gap-2 bg-muted/20">
                 <Button
                   type="button"
                   variant="outline"
@@ -699,11 +706,10 @@ Please log in and immediately configure Two-Factor Authentication (2FA).`;
                     </>
                   )}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
-          </Card>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Account Lock/Unlock Confirmation Dialog */}
       <Dialog open={Boolean(lockTargetUser)} onOpenChange={(open) => !open && setLockTargetUser(null)}>

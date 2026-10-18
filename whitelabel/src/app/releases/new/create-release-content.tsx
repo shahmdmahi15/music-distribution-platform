@@ -19,6 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Progress } from "@/components/ui/progress";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
   Music,
   ArrowLeft,
   ArrowRight,
@@ -552,7 +561,8 @@ export function CreateReleaseContent() {
 
       {/* STEP 1: Metadata */}
       {currentStep === 1 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        <Card className="rounded-2xl border-border/70 shadow-xs">
+          <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="title" className="text-xs font-semibold">
@@ -584,19 +594,19 @@ export function CreateReleaseContent() {
               <Label htmlFor="type" className="text-xs font-semibold">
                 Release Type
               </Label>
-              <select
+              <NativeSelect
                 id="type"
                 value={type}
                 onChange={(e) =>
                   setType(e.target.value as "SINGLE" | "EP" | "ALBUM" | "MUSIC_VIDEO")
                 }
-                className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full h-9 text-sm"
               >
                 <option value="SINGLE">Single (Audio)</option>
                 <option value="EP">EP (Audio)</option>
                 <option value="ALBUM">Album (Audio)</option>
                 <option value="MUSIC_VIDEO">Music Video (VEVO / YouTube)</option>
-              </select>
+              </NativeSelect>
             </div>
 
             {type === "MUSIC_VIDEO" && (
@@ -622,18 +632,18 @@ export function CreateReleaseContent() {
                     <Label htmlFor="videoVersion" className="text-xs font-semibold">
                       Video Version *
                     </Label>
-                    <select
+                    <NativeSelect
                       id="videoVersion"
                       value={videoVersion}
                       onChange={(e) => setVideoVersion(e.target.value)}
-                      className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full h-9 text-sm"
                     >
                       <option value="OFFICIAL">Official Music Video</option>
                       <option value="LYRIC">Lyric Video</option>
                       <option value="AUDIO">Official Audio Video</option>
                       <option value="LIVE">Live Performance</option>
                       <option value="BEHIND_THE_SCENES">Behind The Scenes</option>
-                    </select>
+                    </NativeSelect>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="videoUrl" className="text-xs font-semibold">
@@ -741,12 +751,14 @@ export function CreateReleaseContent() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* STEP 2: Cover Artwork Drag-and-Drop Inspector */}
       {currentStep === 2 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        <Card className="rounded-2xl border-border/70 shadow-xs">
+          <CardContent className="p-6 space-y-6">
           <div className="text-center max-w-lg mx-auto space-y-1.5">
             <h3 className="text-lg font-bold">Cover Artwork Inspector</h3>
             <p className="text-xs text-muted-foreground">
@@ -907,12 +919,14 @@ export function CreateReleaseContent() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* STEP 3: Batch Audio Masters & Tracklist */}
       {currentStep === 3 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        <Card className="rounded-2xl border-border/70 shadow-xs">
+          <CardContent className="p-6 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-bold">Audio Masters & Tracklist</h3>
@@ -1125,12 +1139,14 @@ export function CreateReleaseContent() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* STEP 4: Distribution Deal & Review */}
       {currentStep === 4 && (
-        <div className="space-y-6 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+        <Card className="rounded-2xl border-border/70 shadow-xs">
+          <CardContent className="p-6 space-y-6">
           <div>
             <h3 className="text-lg font-bold">Review Release Dossier & Sign Deal</h3>
             <p className="text-xs text-muted-foreground">
@@ -1209,39 +1225,36 @@ export function CreateReleaseContent() {
               <span>Digital Distribution & Licensing Agreement</span>
             </h4>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-3 text-xs">
               <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={agreedRights}
-                  onChange={(e) => setAgreedRights(e.target.checked)}
-                  className="rounded border-border mt-0.5 accent-primary"
+                  onCheckedChange={(checked) => setAgreedRights(!!checked)}
+                  className="mt-0.5"
                 />
-                <span>
+                <span className="leading-snug">
                   I warrant that I own or control 100% of the worldwide sound recording and publishing rights for all tracks submitted.
                 </span>
               </label>
 
               <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={agreedLossless}
-                  onChange={(e) => setAgreedLossless(e.target.checked)}
-                  className="rounded border-border mt-0.5 accent-primary"
+                  onCheckedChange={(checked) => setAgreedLossless(!!checked)}
+                  className="mt-0.5"
                 />
-                <span>
+                <span className="leading-snug">
                   I confirm that all uploaded audio masters are genuine lossless files (≥ 44.1kHz) and free of uncredited copyrighted samples.
                 </span>
               </label>
 
               <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={agreedDspTerms}
-                  onChange={(e) => setAgreedDspTerms(e.target.checked)}
-                  className="rounded border-border mt-0.5 accent-primary"
+                  onCheckedChange={(checked) => setAgreedDspTerms(!!checked)}
+                  className="mt-0.5"
                 />
-                <span>
+                <span className="leading-snug">
                   I authorize Mother Company to distribute this release to Spotify, Apple Music, YouTube Music, TikTok, Amazon Music, and all global DSPs.
                 </span>
               </label>
@@ -1283,7 +1296,8 @@ export function CreateReleaseContent() {
               </Button>
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

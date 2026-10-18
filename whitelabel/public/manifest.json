@@ -16,7 +16,24 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
-  "categories": ["music", "entertainment", "business"],
+  "prefer_related_applications": false,
+  "categories": ["music", "entertainment", "business", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Backstage Music Portal on Desktop"
+    },
+    {
+      "src": "/screenshot-narrow.svg",
+      "sizes": "750x1334",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Backstage Music Portal Mobile Experience"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon-16x16.png",

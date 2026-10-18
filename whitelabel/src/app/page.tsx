@@ -45,6 +45,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
+import {
   Table,
   TableBody,
   TableCell,
@@ -140,15 +148,15 @@ export default async function DashboardPage() {
     <PortalLayoutWrapper>
       <div className="space-y-8 animate-in fade-in duration-500">
         {/* Hero Welcome Banner */}
-        <div
-          className="relative overflow-hidden rounded-2xl p-6 sm:p-8 border border-border/60 shadow-xl bg-card"
+        <Card
+          className="relative overflow-hidden rounded-2xl p-0 border border-border/60 shadow-xl bg-card"
           style={{
             background: tenant?.bannerUrl
               ? `linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.95) 100%), url(${tenant.bannerUrl}) center/cover no-repeat`
               : `linear-gradient(135deg, ${primaryColor}18 0%, rgba(0,0,0,0) 100%)`,
           }}
         >
-          <div className="relative z-10 max-w-3xl">
+          <CardContent className="relative z-10 max-w-3xl p-6 sm:p-8">
             <div className="flex items-center gap-2 mb-3">
               <Badge
                 variant="outline"
@@ -176,63 +184,65 @@ export default async function DashboardPage() {
                 tenant?.tagline ||
                 "Manage your music catalog, sound recording deliveries, streaming royalties, and team members seamlessly."}
             </p>
-          </div>
+          </CardContent>
 
           {/* Decorative background glow */}
           <div
             className="absolute -right-16 -bottom-16 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none"
             style={{ backgroundColor: primaryColor }}
           />
-        </div>
+        </Card>
 
         {/* Pinned Quick Actions Bar */}
-        <div className="p-3.5 sm:p-4 rounded-xl border border-border/70 bg-card/80 backdrop-blur-md shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <span>Quick Actions</span>
-          </div>
+        <Card className="border border-border/70 bg-card/80 backdrop-blur-md shadow-xs">
+          <CardContent className="p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Quick Actions</span>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link href="/releases/new">
-              <Button size="sm" className="text-xs font-semibold gap-1.5 shadow-sm">
-                <Plus className="h-3.5 w-3.5" />
-                <span>+ Create Release</span>
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link href="/releases/new">
+                <Button size="sm" className="text-xs font-semibold gap-1.5 shadow-sm">
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>+ Create Release</span>
+                </Button>
+              </Link>
 
-            <Link href="/channels">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold gap-1.5 border-rose-500/30 text-rose-500 hover:bg-rose-500/10 shadow-xs"
-              >
-                <Radio className="h-3.5 w-3.5" />
-                <span>Request VEVO Channel</span>
-              </Button>
-            </Link>
+              <Link href="/channels">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-semibold gap-1.5 border-rose-500/30 text-rose-500 hover:bg-rose-500/10 shadow-xs"
+                >
+                  <Radio className="h-3.5 w-3.5" />
+                  <span>Request VEVO Channel</span>
+                </Button>
+              </Link>
 
-            <Link href="/channels">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold gap-1.5 bg-background shadow-xs hover:border-primary/40"
-              >
-                <Scale className="h-3.5 w-3.5 text-primary" />
-                <span>Add Payee / Split</span>
-              </Button>
-            </Link>
+              <Link href="/channels">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-semibold gap-1.5 bg-background shadow-xs hover:border-primary/40"
+                >
+                  <Scale className="h-3.5 w-3.5 text-primary" />
+                  <span>Add Payee / Split</span>
+                </Button>
+              </Link>
 
-            <Link href="/reports">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold gap-1.5 bg-background shadow-xs hover:border-primary/40"
-              >
-                <FileBarChart className="h-3.5 w-3.5 text-primary" />
-                <span>Royalty Statements</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
+              <Link href="/reports">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-semibold gap-1.5 bg-background shadow-xs hover:border-primary/40"
+                >
+                  <FileBarChart className="h-3.5 w-3.5 text-primary" />
+                  <span>Royalty Statements</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Rich KPI Cards with Trend Indicators */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -427,63 +437,65 @@ export default async function DashboardPage() {
         </div>
 
         {/* Official VEVO & Channel Status Card */}
-        <div className="p-5 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 via-card to-card shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-500 shrink-0 mt-0.5">
-              <Radio className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-bold">
-                  Official VEVO & YouTube Channel Network
-                </h3>
-                {primaryVevo ? (
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-[10px]"
-                  >
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    APPROVED
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-500/30 text-amber-500 bg-amber-500/10 text-[10px]"
-                  >
-                    <Clock className="w-3 h-3 mr-1" />
-                    CHANNEL LINKED
-                  </Badge>
-                )}
+        <Card className="border border-rose-500/30 bg-gradient-to-r from-rose-500/10 via-card to-card shadow-xs">
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-500 shrink-0 mt-0.5">
+                <Radio className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                VEVO Handle:{" "}
-                <span className="font-mono font-semibold text-foreground">
-                  {primaryVevo?.channelName || `${user?.firstName || "Artist"}VEVO`}
-                </span>
-                {" • "}Direct monetization & VEVO banner branding enabled.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-bold">
+                    Official VEVO &amp; YouTube Channel Network
+                  </h3>
+                  {primaryVevo ? (
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10 text-[10px]"
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      APPROVED
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/30 text-amber-500 bg-amber-500/10 text-[10px]"
+                    >
+                      <Clock className="w-3 h-3 mr-1" />
+                      CHANNEL LINKED
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  VEVO Handle:{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {primaryVevo?.channelName || `${user?.firstName || "Artist"}VEVO`}
+                  </span>
+                  {" • "}Direct monetization &amp; VEVO banner branding enabled.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {primaryVevo?.channelUrl && (
-              <a
-                href={primaryVevo.channelUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-              >
-                <span>View on YouTube</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
-            <Link href="/channels">
-              <Button size="sm" variant="outline" className="text-xs border-rose-500/40 text-rose-500 hover:bg-rose-500/10">
-                <span>Manage Channels</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {primaryVevo?.channelUrl && (
+                <a
+                  href={primaryVevo.channelUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-accent transition-colors"
+                >
+                  <span>View on YouTube</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <Link href="/channels">
+                <Button size="sm" variant="outline" className="text-xs border-rose-500/40 text-rose-500 hover:bg-rose-500/10">
+                  <span>Manage Channels</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Releases Catalog Snapshot */}
         <div className="space-y-4">
@@ -491,7 +503,7 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-lg font-bold tracking-tight">Recent Releases</h2>
               <p className="text-xs text-muted-foreground">
-                Snapshot of latest musical works submitted to Mother Company & DSPs
+                Snapshot of latest musical works submitted to Mother Company &amp; DSPs
               </p>
             </div>
 
@@ -505,22 +517,33 @@ export default async function DashboardPage() {
           </div>
 
           {releases.length === 0 ? (
-            <div className="text-center py-12 px-4 border border-dashed border-border/80 rounded-2xl bg-card/40">
-              <Disc3 className="w-10 h-10 text-muted-foreground/50 mx-auto mb-2 animate-spin-slow" />
-              <h3 className="text-sm font-semibold">No releases yet</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
-                Launch your music to Spotify, Apple Music, and YouTube by creating your first release dossier.
-              </p>
-              <Link href="/releases/new">
-                <Button size="sm" className="gap-1.5 text-xs">
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create First Release</span>
-                </Button>
-              </Link>
-            </div>
+            <Card className="border-dashed border-border/80 bg-card/40">
+              <CardContent className="p-8">
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Disc3 className="w-6 h-6 text-muted-foreground/70 animate-spin-slow" />
+                    </EmptyMedia>
+                    <EmptyTitle>No releases yet</EmptyTitle>
+                    <EmptyDescription>
+                      Launch your music to Spotify, Apple Music, and YouTube by creating your first release dossier.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Link href="/releases/new">
+                      <Button size="sm" className="gap-1.5 text-xs">
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Create First Release</span>
+                      </Button>
+                    </Link>
+                  </EmptyContent>
+                </Empty>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="rounded-xl border border-border/70 overflow-hidden bg-card shadow-xs">
-              <Table>
+            <Card className="rounded-xl border border-border/70 overflow-hidden bg-card shadow-xs">
+              <CardContent className="p-0">
+                <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b border-border/50">
                     <TableHead className="w-[80px]">Cover</TableHead>
@@ -591,7 +614,8 @@ export default async function DashboardPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 

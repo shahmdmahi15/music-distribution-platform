@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  KeyRound,
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +29,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 function LoginForm() {
   const router = useRouter();
@@ -221,24 +225,26 @@ function LoginForm() {
           </form>
         ) : (
           <form onSubmit={handleVerifyMfa} className="space-y-4">
-            <div className="space-y-2 text-center">
+            <div className="space-y-3 text-center">
               <Label className="text-xs font-semibold text-foreground">
                 6-Digit Verification Code
               </Label>
-              <div className="relative max-w-xs mx-auto">
-                <KeyRound className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                <Input
-                  type="text"
+              <div className="flex justify-center">
+                <InputOTP
                   maxLength={6}
-                  required
-                  autoFocus
                   value={mfaCode}
-                  onChange={(e) =>
-                    setMfaCode(e.target.value.replace(/\D/g, ""))
-                  }
-                  placeholder="123456"
-                  className="pl-9 text-center font-mono text-lg tracking-[0.3em] h-11"
-                />
+                  onChange={(val) => setMfaCode(val)}
+                  autoFocus
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Security code expires in 10 minutes.

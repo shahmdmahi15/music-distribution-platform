@@ -35,6 +35,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyActions,
+} from "@/components/ui/empty";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
   FileText,
   Upload,
   Plus,
@@ -292,13 +308,13 @@ export function AdminReportsContent() {
       {/* TAB 1: HISTORICAL ROYALTY RUNS TABLE */}
       {activeTab === "ROYALTY_RUNS" && (
         <div className="space-y-4">
-          <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-border/50 flex items-center justify-between">
+          <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+            <CardHeader className="p-4 sm:p-5 border-b border-border/50 flex flex-row items-center justify-between">
               <div>
-                <h3 className="font-semibold text-sm">Automated Royalty Calculation Runs</h3>
-                <p className="text-xs text-muted-foreground">
+                <CardTitle className="font-semibold text-sm">Automated Royalty Calculation Runs</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground mt-0.5">
                   Batches of stream & download sales apportioned to WhiteLabel tenants with net margins.
-                </p>
+                </CardDescription>
               </div>
               <Button
                 size="sm"
@@ -309,26 +325,33 @@ export function AdminReportsContent() {
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Refresh</span>
               </Button>
-            </div>
+            </CardHeader>
 
-            {loading ? (
-              <div className="p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : royaltyRuns.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                <h4 className="text-base font-semibold">No royalty runs executed yet</h4>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
-                  Click &quot;Trigger Royalty Run&quot; to calculate payouts for a reporting month.
-                </p>
-                <Button size="sm" onClick={() => setShowRunModal(true)}>
-                  Trigger First Run
-                </Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : royaltyRuns.length === 0 ? (
+                <Empty className="py-16 px-4 border-0">
+                  <EmptyMedia>
+                    <BarChart3 className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+                  </EmptyMedia>
+                  <EmptyHeader>
+                    <EmptyTitle className="text-base font-semibold">No royalty runs executed yet</EmptyTitle>
+                    <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Click &quot;Trigger Royalty Run&quot; to calculate payouts for a reporting month.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyActions>
+                    <Button size="sm" onClick={() => setShowRunModal(true)}>
+                      Trigger First Run
+                    </Button>
+                  </EmptyActions>
+                </Empty>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Run Code</TableHead>
@@ -409,214 +432,237 @@ export function AdminReportsContent() {
                 </Table>
               </div>
             )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* TAB 2: UPLOAD DSP SALES REPORT */}
       {activeTab === "UPLOAD_DSP" && (
-        <div className="max-w-2xl bg-card p-6 rounded-2xl border border-border/60 shadow-xs space-y-6">
-          <div>
-            <h3 className="text-lg font-bold flex items-center gap-2">
+        <Card className="max-w-2xl rounded-2xl border-border/60 shadow-xs">
+          <CardHeader className="p-6 pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
               <Upload className="w-5 h-5 text-primary" />
               <span>Upload DSP Sales Report</span>
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               Import raw sales and streaming statements received directly from DSP partner portals (Spotify, Apple Music, YouTube Music).
-            </p>
-          </div>
+            </CardDescription>
+          </CardHeader>
 
-          <form onSubmit={handleSalesUploadSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Store Dropdown */}
+          <CardContent className="p-6 pt-2">
+            <form onSubmit={handleSalesUploadSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Store Dropdown */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">DSP Store / Source *</Label>
+                  <NativeSelect
+                    value={selectedStore}
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="w-full text-xs h-9"
+                  >
+                    <option value="Spotify">Spotify</option>
+                    <option value="Apple Music">Apple Music</option>
+                    <option value="YouTube Music">YouTube Music</option>
+                    <option value="Amazon Music">Amazon Music</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Deezer">Deezer</option>
+                  </NativeSelect>
+                </div>
+
+                {/* Reporting Period */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Reporting Period (YYYY-MM) *</Label>
+                  <Input
+                    value={salesReportingPeriod}
+                    onChange={(e) => setSalesReportingPeriod(e.target.value)}
+                    placeholder="e.g. 2026-09"
+                    required
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Optional WhiteLabel Filter */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">DSP Store / Source *</Label>
-                <select
-                  value={selectedStore}
-                  onChange={(e) => setSelectedStore(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                <Label className="text-xs">Attributed WhiteLabel Tenant (Optional)</Label>
+                <NativeSelect
+                  value={salesWlId}
+                  onChange={(e) => setSalesWlId(e.target.value)}
+                  className="w-full text-xs h-9"
                 >
-                  <option value="Spotify">Spotify</option>
-                  <option value="Apple Music">Apple Music</option>
-                  <option value="YouTube Music">YouTube Music</option>
-                  <option value="Amazon Music">Amazon Music</option>
-                  <option value="TikTok">TikTok</option>
-                  <option value="Deezer">Deezer</option>
-                </select>
+                  <option value="">All WhiteLabel Tenants (Global Multi-tenant Report)</option>
+                  {whiteLabels.map((wl) => (
+                    <option key={wl.id} value={wl.id}>
+                      {wl.name} ({wl.code})
+                    </option>
+                  ))}
+                </NativeSelect>
               </div>
 
-              {/* Reporting Period */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Reporting Period (YYYY-MM) *</Label>
-                <Input
-                  value={salesReportingPeriod}
-                  onChange={(e) => setSalesReportingPeriod(e.target.value)}
-                  placeholder="e.g. 2026-09"
-                  required
-                  className="text-xs"
-                />
+              {/* File Upload Zone */}
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs font-semibold">Sales File (CSV, TSV, or XLSX) *</Label>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors p-6 text-center">
+                  {salesFile ? (
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-500">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>{salesFile.name} ({(salesFile.size / 1024).toFixed(1)} KB)</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-muted-foreground/60 mb-2" />
+                      <span className="text-xs font-semibold">Choose DSP Sales Document</span>
+                      <span className="text-[10px] text-muted-foreground mt-0.5">
+                        Accepts Spotify TSV/CSV, Apple Financial XLSX, or YouTube Content ID CSV
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".csv,.tsv,.xlsx,.txt"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setSalesFile(f);
+                    }}
+                  />
+                </label>
               </div>
-            </div>
 
-            {/* Optional WhiteLabel Filter */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Attributed WhiteLabel Tenant (Optional)</Label>
-              <select
-                value={salesWlId}
-                onChange={(e) => setSalesWlId(e.target.value)}
-                className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              <Button
+                type="submit"
+                disabled={uploadingSales}
+                className="w-full gap-2 shadow-sm"
               >
-                <option value="">All WhiteLabel Tenants (Global Multi-tenant Report)</option>
-                {whiteLabels.map((wl) => (
-                  <option key={wl.id} value={wl.id}>
-                    {wl.name} ({wl.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* File Upload Zone */}
-            <div className="space-y-1.5 pt-1">
-              <Label className="text-xs font-semibold">Sales File (CSV, TSV, or XLSX) *</Label>
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors p-6 text-center">
-                {salesFile ? (
-                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-500">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>{salesFile.name} ({(salesFile.size / 1024).toFixed(1)} KB)</span>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 text-muted-foreground/60 mb-2" />
-                    <span className="text-xs font-semibold">Choose DSP Sales Document</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">
-                      Accepts Spotify TSV/CSV, Apple Financial XLSX, or YouTube Content ID CSV
-                    </span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept=".csv,.tsv,.xlsx,.txt"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setSalesFile(f);
-                  }}
-                />
-              </label>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={uploadingSales}
-              className="w-full gap-2 shadow-sm"
-            >
-              <Upload className="w-4 h-4" />
-              <span>{uploadingSales ? "Ingesting & Validating Sales Feed..." : "Ingest DSP Sales Report"}</span>
-            </Button>
-          </form>
-        </div>
+                <Upload className="w-4 h-4" />
+                <span>{uploadingSales ? "Ingesting & Validating Sales Feed..." : "Ingest DSP Sales Report"}</span>
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* TAB 3: PUBLISHED STATEMENTS */}
       {activeTab === "STATEMENTS" && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl border border-border/60 shadow-xs">
-            <select
-              value={selectedWhiteLabelId}
-              onChange={(e) => setSelectedWhiteLabelId(e.target.value)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring w-full sm:w-auto"
-            >
-              <option value="">All WhiteLabel Tenants</option>
-              {whiteLabels.map((wl) => (
-                <option key={wl.id} value={wl.id}>
-                  {wl.name} ({wl.code})
-                </option>
-              ))}
-            </select>
-
-            <form
-              onSubmit={handleSearchSubmit}
-              className="relative w-full sm:w-72 flex items-center"
-            >
-              <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search statement title, file..."
-                className="pl-9 text-xs h-9"
-              />
-            </form>
-          </div>
-
-          <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Period</TableHead>
-                  <TableHead>WhiteLabel Tenant</TableHead>
-                  <TableHead>Statement Title</TableHead>
-                  <TableHead>File</TableHead>
-                  <TableHead>Streams</TableHead>
-                  <TableHead>Royalties (BDT)</TableHead>
-                  <TableHead>Uploaded At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reports.map((rep) => (
-                  <TableRow key={rep.id}>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {rep.reportingPeriod}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-                        <Building2 className="w-3.5 h-3.5 text-primary" />
-                        <span>{rep.whiteLabel?.name || "Unknown Tenant"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium text-xs">
-                      {rep.title}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">
-                      {rep.fileName}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {rep.totalStreams ? Number(rep.totalStreams).toLocaleString() : "0"}
-                    </TableCell>
-                    <TableCell className="text-xs font-semibold text-emerald-500">
-                      {rep.totalRevenueBdt ? `৳${Number(rep.totalRevenueBdt).toLocaleString()}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(rep.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownloadStatement(rep.code, rep.fileName)}
-                          className="h-7 text-xs gap-1"
-                        >
-                          <Download className="w-3 h-3" />
-                          <span>Download</span>
-                        </Button>
-                        <button
-                          onClick={() => handleDeleteStatement(rep.code)}
-                          className="p-1.5 text-muted-foreground hover:text-destructive rounded-md transition-colors"
-                          title="Delete Statement"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+          <Card className="bg-card p-0 rounded-xl border-border/60 shadow-xs">
+            <CardContent className="p-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <NativeSelect
+                value={selectedWhiteLabelId}
+                onChange={(e) => setSelectedWhiteLabelId(e.target.value)}
+                className="text-xs h-9 w-full sm:w-auto"
+              >
+                <option value="">All WhiteLabel Tenants</option>
+                {whiteLabels.map((wl) => (
+                  <option key={wl.id} value={wl.id}>
+                    {wl.name} ({wl.code})
+                  </option>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+              </NativeSelect>
+
+              <form
+                onSubmit={handleSearchSubmit}
+                className="relative w-full sm:w-72 flex items-center"
+              >
+                <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search statement title, file..."
+                  className="pl-9 text-xs h-9"
+                />
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+            <CardContent className="p-0">
+              {reports.length === 0 ? (
+                <Empty className="py-16 px-4 border-0">
+                  <EmptyMedia>
+                    <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+                  </EmptyMedia>
+                  <EmptyHeader>
+                    <EmptyTitle className="text-base font-semibold">No published statements</EmptyTitle>
+                    <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      No WhiteLabel accounting statements have been published for this filter.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Period</TableHead>
+                        <TableHead>WhiteLabel Tenant</TableHead>
+                        <TableHead>Statement Title</TableHead>
+                        <TableHead>File</TableHead>
+                        <TableHead>Streams</TableHead>
+                        <TableHead>Royalties (BDT)</TableHead>
+                        <TableHead>Uploaded At</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reports.map((rep) => (
+                        <TableRow key={rep.id}>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {rep.reportingPeriod}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                              <Building2 className="w-3.5 h-3.5 text-primary" />
+                              <span>{rep.whiteLabel?.name || "Unknown Tenant"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium text-xs">
+                            {rep.title}
+                          </TableCell>
+                          <TableCell className="text-xs font-mono text-muted-foreground">
+                            {rep.fileName}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {rep.totalStreams ? Number(rep.totalStreams).toLocaleString() : "0"}
+                          </TableCell>
+                          <TableCell className="text-xs font-semibold text-emerald-500">
+                            {rep.totalRevenueBdt ? `৳${Number(rep.totalRevenueBdt).toLocaleString()}` : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(rep.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownloadStatement(rep.code, rep.fileName)}
+                                className="h-7 text-xs gap-1"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download</span>
+                              </Button>
+                              <button
+                                onClick={() => handleDeleteStatement(rep.code)}
+                                className="p-1.5 text-muted-foreground hover:text-destructive rounded-md transition-colors cursor-pointer"
+                                title="Delete Statement"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -668,24 +714,24 @@ export function AdminReportsContent() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">DSP Store</Label>
-                <select
+                <NativeSelect
                   value={runStore}
                   onChange={(e) => setRunStore(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full text-xs h-9"
                 >
                   <option value="ALL">All DSP Stores</option>
                   <option value="Spotify">Spotify</option>
                   <option value="Apple Music">Apple Music</option>
                   <option value="YouTube Music">YouTube Music</option>
-                </select>
+                </NativeSelect>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Target Tenant</Label>
-                <select
+                <NativeSelect
                   value={runWlId}
                   onChange={(e) => setRunWlId(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-2.5 py-1 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full text-xs h-9"
                 >
                   <option value="">All WhiteLabels</option>
                   {whiteLabels.map((wl) => (
@@ -693,7 +739,7 @@ export function AdminReportsContent() {
                       {wl.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
             </div>
 

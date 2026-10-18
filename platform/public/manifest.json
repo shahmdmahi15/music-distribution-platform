@@ -16,7 +16,24 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
-  "categories": ["music", "entertainment", "business", "productivity"],
+  "prefer_related_applications": false,
+  "categories": ["music", "entertainment", "business", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "RoyalMotionIT Distribution Console on Desktop"
+    },
+    {
+      "src": "/screenshot-narrow.svg",
+      "sizes": "750x1334",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "RoyalMotionIT Mobile Dashboard"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon-16x16.png",

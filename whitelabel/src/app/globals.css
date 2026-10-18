@@ -190,5 +190,22 @@
     app-region: no-drag;
     -webkit-app-region: no-drag;
   }
+
+  /* TV & 10-Foot Mode Navigation & High-Contrast Remote D-Pad Focus Rings */
+  @media (min-width: 2000px), (hover: none) and (min-width: 1280px) {
+    :focus-visible {
+      outline: 3px solid var(--primary) !important;
+      outline-offset: 3px !important;
+      box-shadow: 0 0 0 6px oklch(0.5 0.2 260 / 35%) !important;
+    }
+  }
+
+  /* TV Overscan Safe Margins */
+  .tv-safe-overscan {
+    padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(2rem, env(safe-area-inset-left, 0px));
+    padding-right: max(2rem, env(safe-area-inset-right, 0px));
+  }
 }
 

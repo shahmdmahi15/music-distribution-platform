@@ -39,12 +39,13 @@ const SERVER_SNAPSHOT: AdaptiveDeviceInfo = {
   isTv: false,
 };
 
-function getDeviceClass(width: number): DeviceClass {
+function getDeviceClass(width: number, ua = ""): DeviceClass {
+  const isTvAgent = /tv|smarttv|googletv|appletv|android tv|crkey|tizen|webos|hbbtv/i.test(ua);
+  if (isTvAgent || width > 2560) return "tv";
   if (width < 640) return "smartphone";
   if (width < 1024) return "tablet";
   if (width < 1440) return "notebook";
-  if (width <= 2560) return "desktop";
-  return "tv";
+  return "desktop";
 }
 
 let cachedSnapshot: AdaptiveDeviceInfo | null = null;
@@ -57,7 +58,8 @@ function getClientSnapshot(): AdaptiveDeviceInfo {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
   const orientation: DeviceOrientation = screenWidth >= screenHeight ? "landscape" : "portrait";
-  const deviceClass = getDeviceClass(screenWidth);
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const deviceClass = getDeviceClass(screenWidth, ua);
   const isTouch = Boolean(
     (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
       (typeof navigator !== "undefined" && "maxTouchPoints" in navigator && navigator.maxTouchPoints > 0)

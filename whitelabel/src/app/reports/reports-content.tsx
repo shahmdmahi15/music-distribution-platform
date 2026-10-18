@@ -10,6 +10,22 @@ import {
 import { getStatementsAction } from "@/actions/reports/whitelabel-reports.action";
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -304,214 +320,228 @@ export function ReportsContent() {
       {/* Dual-Currency Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Gross USD & BDT */}
-        <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground font-medium">Gross DSP Revenue</span>
-            <div className="text-2xl font-bold tracking-tight">
-              {currencyMode === "BDT" ? (
-                <span className="text-emerald-500">
-                  ৳{Math.round(((summary?.netUsd || 0) / 0.85) * EXCHANGE_RATE_BDT_PER_USD).toLocaleString()}
-                </span>
-              ) : currencyMode === "USD" ? (
-                <span>${(((summary?.netUsd || 0) / 0.85)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              ) : (
-                <div className="space-y-0.5">
-                  <div>${(((summary?.netUsd || 0) / 0.85)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  <div className="text-xs font-mono text-emerald-500 font-semibold">
-                    ≈ ৳{Math.round(((summary?.netUsd || 0) / 0.85) * EXCHANGE_RATE_BDT_PER_USD).toLocaleString()}
+        <Card className="border-border/60 shadow-xs flex items-center justify-between">
+          <CardContent className="p-5 flex items-center justify-between w-full">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Gross DSP Revenue</span>
+              <div className="text-2xl font-bold tracking-tight">
+                {currencyMode === "BDT" ? (
+                  <span className="text-emerald-500">
+                    ৳{Math.round(((summary?.netUsd || 0) / 0.85) * EXCHANGE_RATE_BDT_PER_USD).toLocaleString()}
+                  </span>
+                ) : currencyMode === "USD" ? (
+                  <span>${(((summary?.netUsd || 0) / 0.85)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                ) : (
+                  <div className="space-y-0.5">
+                    <div>${(((summary?.netUsd || 0) / 0.85)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className="text-xs font-mono text-emerald-500 font-semibold">
+                      ≈ ৳{Math.round(((summary?.netUsd || 0) / 0.85) * EXCHANGE_RATE_BDT_PER_USD).toLocaleString()}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground">Pre-distribution deductions</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">Pre-distribution deductions</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
-            <DollarSign className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
+              <DollarSign className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Net Artist Earnings (USD & BDT) */}
-        <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground font-medium">Net Artist Payout</span>
-            <div className="text-2xl font-bold tracking-tight">
-              {currencyMode === "BDT" ? (
-                <span className="text-emerald-500 font-bold">৳{(summary?.netBdt || 0).toLocaleString()}</span>
-              ) : currencyMode === "USD" ? (
-                <span className="text-foreground">${(summary?.netUsd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              ) : (
-                <div className="space-y-0.5">
-                  <div className="text-foreground">${(summary?.netUsd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  <div className="text-xs font-mono text-emerald-500 font-bold">
-                    ৳{(summary?.netBdt || 0).toLocaleString()}
+        <Card className="border-border/60 shadow-xs flex items-center justify-between">
+          <CardContent className="p-5 flex items-center justify-between w-full">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Net Artist Payout</span>
+              <div className="text-2xl font-bold tracking-tight">
+                {currencyMode === "BDT" ? (
+                  <span className="text-emerald-500 font-bold">৳{(summary?.netBdt || 0).toLocaleString()}</span>
+                ) : currencyMode === "USD" ? (
+                  <span className="text-foreground">${(summary?.netUsd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                ) : (
+                  <div className="space-y-0.5">
+                    <div className="text-foreground">${(summary?.netUsd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className="text-xs font-mono text-emerald-500 font-bold">
+                      ৳{(summary?.netBdt || 0).toLocaleString()}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Rate: 1 USD = {EXCHANGE_RATE_BDT_PER_USD.toFixed(2)} BDT</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>Rate: 1 USD = {EXCHANGE_RATE_BDT_PER_USD.toFixed(2)} BDT</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-lg">
+              ৳
             </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-lg">
-            ৳
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Total Streams */}
-        <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground font-medium">Total Streams</span>
-            <div className="text-2xl font-bold tracking-tight">
-              {Number(summary?.totalStreams || 0).toLocaleString()}
+        <Card className="border-border/60 shadow-xs flex items-center justify-between">
+          <CardContent className="p-5 flex items-center justify-between w-full">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Total Streams</span>
+              <div className="text-2xl font-bold tracking-tight">
+                {Number(summary?.totalStreams || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-muted-foreground">Spotify, Apple, YouTube, TikTok</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">Spotify, Apple, YouTube, TikTok</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Total Downloads */}
-        <div className="bg-card p-5 rounded-2xl border border-border/60 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground font-medium">Digital Downloads</span>
-            <div className="text-2xl font-bold tracking-tight">
-              {Number(summary?.totalDownloads || 0).toLocaleString()}
+        <Card className="border-border/60 shadow-xs flex items-center justify-between">
+          <CardContent className="p-5 flex items-center justify-between w-full">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Digital Downloads</span>
+              <div className="text-2xl font-bold tracking-tight">
+                {Number(summary?.totalDownloads || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-muted-foreground">iTunes, Amazon Digital, Qobuz</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">iTunes, Amazon Digital, Qobuz</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-            <Disc className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <Disc className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Stream vs Download Consumption Ratio Progress Bar */}
-      <div className="p-5 rounded-2xl border border-border/60 bg-card shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Percent className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">
-              Consumption Split Ratio: Streaming vs. Digital Downloads
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
-              <span className="text-muted-foreground">Streams:</span>
-              <span className="font-bold text-foreground">{consumptionStats.streamPercent}%</span>
-              <span className="text-muted-foreground text-[11px]">({consumptionStats.totalStreams.toLocaleString()})</span>
+      <Card className="border-border/60 shadow-xs">
+        <CardHeader className="p-5 pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Percent className="w-4 h-4 text-primary" />
+              <CardTitle className="text-xs font-semibold text-foreground">
+                Consumption Split Ratio: Streaming vs. Digital Downloads
+              </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
-              <span className="text-muted-foreground">Downloads:</span>
-              <span className="font-bold text-foreground">{consumptionStats.downloadPercent}%</span>
-              <span className="text-muted-foreground text-[11px]">({consumptionStats.totalDownloads.toLocaleString()})</span>
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
+                <span className="text-muted-foreground">Streams:</span>
+                <span className="font-bold text-foreground">{consumptionStats.streamPercent}%</span>
+                <span className="text-muted-foreground text-[11px]">({consumptionStats.totalStreams.toLocaleString()})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                <span className="text-muted-foreground">Downloads:</span>
+                <span className="font-bold text-foreground">{consumptionStats.downloadPercent}%</span>
+                <span className="text-muted-foreground text-[11px]">({consumptionStats.totalDownloads.toLocaleString()})</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Segmented Progress Bar */}
-        <div className="h-3 w-full bg-muted/60 rounded-full overflow-hidden flex shadow-inner">
-          <div
-            className="h-full bg-purple-500 transition-all duration-500"
-            style={{ width: `${consumptionStats.streamPercent}%` }}
-            title={`Streams: ${consumptionStats.streamPercent}%`}
-          />
-          <div
-            className="h-full bg-amber-500 transition-all duration-500"
-            style={{ width: `${consumptionStats.downloadPercent}%` }}
-            title={`Downloads: ${consumptionStats.downloadPercent}%`}
-          />
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="p-5 pt-1">
+          {/* Segmented Progress Bar */}
+          <div className="h-3 w-full bg-muted/60 rounded-full overflow-hidden flex shadow-inner">
+            <div
+              className="h-full bg-purple-500 transition-all duration-500"
+              style={{ width: `${consumptionStats.streamPercent}%` }}
+              title={`Streams: ${consumptionStats.streamPercent}%`}
+            />
+            <div
+              className="h-full bg-amber-500 transition-all duration-500"
+              style={{ width: `${consumptionStats.downloadPercent}%` }}
+              title={`Downloads: ${consumptionStats.downloadPercent}%`}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Historical Period Selector & Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-border/60 bg-card">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-xs font-semibold text-foreground">Filter Statements:</span>
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-          {/* Year selector */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-muted-foreground">Year:</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="ALL">All Years</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-            </select>
+      <Card className="border-border/60 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground">Filter Statements:</span>
           </div>
 
-          {/* Month selector */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-muted-foreground">Month:</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="ALL">All Months</option>
-              <option value="01">Jan (01)</option>
-              <option value="02">Feb (02)</option>
-              <option value="03">Mar (03)</option>
-              <option value="04">Apr (04)</option>
-              <option value="05">May (05)</option>
-              <option value="06">Jun (06)</option>
-              <option value="07">Jul (07)</option>
-              <option value="08">Aug (08)</option>
-              <option value="09">Sep (09)</option>
-              <option value="10">Oct (10)</option>
-              <option value="11">Nov (11)</option>
-              <option value="12">Dec (12)</option>
-            </select>
-          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+            {/* Year selector */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Year:</span>
+              <NativeSelect
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="h-8 text-xs w-[110px]"
+              >
+                <option value="ALL">All Years</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </NativeSelect>
+            </div>
 
-          {(selectedYear !== "ALL" || selectedMonth !== "ALL") && (
+            {/* Month selector */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Month:</span>
+              <NativeSelect
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="h-8 text-xs w-[120px]"
+              >
+                <option value="ALL">All Months</option>
+                <option value="01">Jan (01)</option>
+                <option value="02">Feb (02)</option>
+                <option value="03">Mar (03)</option>
+                <option value="04">Apr (04)</option>
+                <option value="05">May (05)</option>
+                <option value="06">Jun (06)</option>
+                <option value="07">Jul (07)</option>
+                <option value="08">Aug (08)</option>
+                <option value="09">Sep (09)</option>
+                <option value="10">Oct (10)</option>
+                <option value="11">Nov (11)</option>
+                <option value="12">Dec (12)</option>
+              </NativeSelect>
+            </div>
+
+            {(selectedYear !== "ALL" || selectedMonth !== "ALL") && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedYear("ALL");
+                  setSelectedMonth("ALL");
+                }}
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Reset Filters
+              </Button>
+            )}
+
             <Button
               size="sm"
-              variant="ghost"
-              onClick={() => {
-                setSelectedYear("ALL");
-                setSelectedMonth("ALL");
-              }}
-              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              variant="outline"
+              onClick={fetchStatements}
+              disabled={loading}
+              className="h-8 text-xs gap-1.5 ml-auto sm:ml-0"
             >
-              Reset Filters
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
             </Button>
-          )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={fetchStatements}
-            disabled={loading}
-            className="h-8 text-xs gap-1.5 ml-auto sm:ml-0"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </Button>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Statements Table */}
-      <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-border/50 flex items-center justify-between">
-          <h2 className="text-base font-semibold flex items-center gap-2">
+      <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 border-b border-border/50 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
             <span>Reconciled Accounting Statements ({filteredStatements.length})</span>
-          </h2>
-          <span className="text-xs text-muted-foreground">
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
             Exchange Rate: 1 USD = {EXCHANGE_RATE_BDT_PER_USD.toFixed(2)} BDT
-          </span>
-        </div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
 
         {loading ? (
           <div className="p-16 text-center">
@@ -519,13 +549,17 @@ export function ReportsContent() {
             <p className="text-xs text-muted-foreground mt-2">Loading accounting ledger...</p>
           </div>
         ) : filteredStatements.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-            <h3 className="text-base font-semibold">No Statements Found</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-              No statement runs match the selected historical year and month filters.
-            </p>
-          </div>
+          <Empty className="py-16 px-4">
+            <EmptyMedia>
+              <FileText className="w-12 h-12 text-muted-foreground/40" />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>No Statements Found</EmptyTitle>
+              <EmptyDescription>
+                No statement runs match the selected historical year and month filters.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -637,7 +671,8 @@ export function ReportsContent() {
             )}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

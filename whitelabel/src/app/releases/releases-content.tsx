@@ -18,6 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyActions,
+} from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -358,21 +367,27 @@ export function ReleasesContent() {
           ))}
         </div>
       ) : releases.length === 0 ? (
-        <div className="text-center py-16 px-4 border border-dashed border-border/80 rounded-2xl bg-card/30">
-          <Disc3 className="w-12 h-12 text-muted-foreground/60 mx-auto mb-3 animate-spin-slow" />
-          <h3 className="text-lg font-semibold">No releases found</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-6">
-            {search
-              ? "No releases matched your search query. Try searching with different keywords."
-              : "You haven't created any music releases in this catalog yet. Get started by uploading your first track!"}
-          </p>
-          <Link href="/releases/new">
-            <Button className="gap-2 font-semibold">
-              <Plus className="w-4 h-4" />
-              <span>Create First Release</span>
-            </Button>
-          </Link>
-        </div>
+        <Empty className="border border-dashed border-border/80 rounded-2xl bg-card/30 py-16 px-4">
+          <EmptyMedia>
+            <Disc3 className="w-12 h-12 text-muted-foreground/60 mx-auto animate-spin-slow" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-lg font-semibold">No releases found</EmptyTitle>
+            <EmptyDescription className="text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-2">
+              {search
+                ? "No releases matched your search query. Try searching with different keywords."
+                : "You haven't created any music releases in this catalog yet. Get started by uploading your first track!"}
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyActions>
+            <Link href="/releases/new">
+              <Button className="gap-2 font-semibold">
+                <Plus className="w-4 h-4" />
+                <span>Create First Release</span>
+              </Button>
+            </Link>
+          </EmptyActions>
+        </Empty>
       ) : viewMode === "grid" ? (
         /* VISUAL GRID CARDS VIEW */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -382,9 +397,9 @@ export function ReleasesContent() {
               isPlaying;
 
             return (
-              <div
+              <Card
                 key={rel.id}
-                className="group flex flex-col bg-card rounded-xl border border-border/60 hover:border-primary/50 transition-all duration-200 overflow-hidden shadow-xs hover:shadow-lg relative"
+                className="group flex flex-col rounded-xl border-border/60 hover:border-primary/50 transition-all duration-200 overflow-hidden shadow-xs hover:shadow-lg relative p-0 gap-0"
               >
                 {/* Artwork Box */}
                 <div className="relative aspect-square w-full bg-muted/40 overflow-hidden">
@@ -459,15 +474,16 @@ export function ReleasesContent() {
                     </Link>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
       ) : (
         /* DENSE DATA TABLE VIEW */
-        <div className="rounded-xl border border-border/70 overflow-hidden bg-card shadow-xs">
-          <Table>
-            <TableHeader>
+        <Card className="rounded-xl border-border/70 shadow-xs overflow-hidden p-0">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
               <TableRow className="border-b border-border/50 hover:bg-transparent">
                 <TableHead className="w-[60px]"></TableHead>
                 <TableHead>Release Title & Artist</TableHead>
@@ -560,7 +576,8 @@ export function ReleasesContent() {
               })}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Pagination Controls */}

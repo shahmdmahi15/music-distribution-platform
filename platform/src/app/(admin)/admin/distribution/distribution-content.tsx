@@ -38,6 +38,14 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -608,22 +616,27 @@ export function AdminDistributionContent() {
       </div>
 
       {/* Releases Table */}
-      <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : releases.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <Music className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-            <h3 className="text-base font-semibold">No releases found</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-              No WhiteLabel releases match your current search or status filter.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
+      <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : releases.length === 0 ? (
+            <Empty className="py-16 px-4 border-0">
+              <EmptyMedia>
+                <Music className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-base font-semibold">No releases found</EmptyTitle>
+                <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  No WhiteLabel releases match your current search or status filter.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">Cover</TableHead>
@@ -851,7 +864,8 @@ export function AdminDistributionContent() {
             </Pagination>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Release Dossier & Download Modal */}
       <Dialog

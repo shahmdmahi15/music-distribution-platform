@@ -26,6 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Radio,
   ExternalLink,
@@ -119,22 +128,24 @@ export function ClientChannelsContent() {
       </div>
 
       {/* Guidelines Card */}
-      <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 shrink-0">
-            <Radio className="w-5 h-5" />
+      <Card className="p-0 rounded-2xl bg-card border-border/70 shadow-xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 shrink-0">
+              <Radio className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                Official VEVO YouTube Channel Policy
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Channels must follow the standard <span className="font-mono text-foreground font-semibold">[ArtistName]VEVO</span> naming convention.
+                Artists must provide at least 1 upcoming high-definition music video (1080p/4K) and channel branding banner (2048x1152px).
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground">
-              Official VEVO YouTube Channel Policy
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Channels must follow the standard <span className="font-mono text-foreground font-semibold">[ArtistName]VEVO</span> naming convention.
-              Artists must provide at least 1 upcoming high-definition music video (1080p/4K) and channel branding banner (2048x1152px).
-            </p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
       {loading ? (
@@ -142,16 +153,21 @@ export function ClientChannelsContent() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : channels.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-card rounded-2xl border border-border/60">
-          <Radio className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="text-base font-semibold">No VEVO channel requests</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-            When artists under your WhiteLabel request official VEVO channels, they will appear here for your review and approval.
-          </p>
-        </div>
+        <Empty className="py-16 px-4 border rounded-2xl bg-card border-border/60">
+          <EmptyMedia>
+            <Radio className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-base font-semibold">No VEVO channel requests</EmptyTitle>
+            <EmptyDescription className="text-xs text-muted-foreground max-w-sm mx-auto">
+              When artists under your WhiteLabel request official VEVO channels, they will appear here for your review and approval.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
-        <div className="bg-card rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-          <Table>
+        <Card className="rounded-2xl border-border/60 shadow-xs overflow-hidden p-0">
+          <CardContent className="p-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Channel Name</TableHead>
@@ -266,7 +282,8 @@ export function ClientChannelsContent() {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Reject Modal */}
@@ -283,12 +300,12 @@ export function ClientChannelsContent() {
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
-            <textarea
+            <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g. Channel name does not meet VEVO guidelines or artist does not have planned music video release."
               rows={3}
-              className="w-full rounded-xl border border-border bg-background p-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full text-xs"
             />
           </div>
 

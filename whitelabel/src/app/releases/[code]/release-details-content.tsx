@@ -19,6 +19,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -400,7 +409,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       </div>
 
       {/* 5-Stage Distribution Lifecycle Stepper */}
-      <div className="bg-card p-5 rounded-2xl border border-border/70 shadow-xs space-y-3">
+      <Card className="rounded-2xl border-border/70 shadow-xs">
+        <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wider">
             Multi-Tier Distribution Pipeline
@@ -500,7 +510,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             );
           })}
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* ANS Upstream Review Audit Trail Box */}
       {(release.status === "REJECTED" ||
@@ -677,7 +688,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
       </div>
 
       {/* Tabs: Tracklist vs Synchronized Lyrics */}
-      <div className="space-y-4 bg-card p-6 rounded-2xl border border-border/70 shadow-xs">
+      <Card className="rounded-2xl border-border/70 shadow-xs">
+        <CardContent className="p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <div className="flex items-center gap-2">
             <button
@@ -842,7 +854,7 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold">Viewing lyrics for:</span>
-                <select
+                <NativeSelect
                   value={selectedTrackForLyrics?.code || ""}
                   onChange={(e) => {
                     const found = release.tracks?.find(
@@ -850,14 +862,14 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                     );
                     if (found) setSelectedTrackForLyrics(found);
                   }}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium"
+                  className="h-8 text-xs font-medium"
                 >
                   {release.tracks?.map((t) => (
                     <option key={t.id} value={t.code}>
                       Track #{t.trackNumber}: {t.title}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
 
               {selectedTrackForLyrics?.explicit && (
@@ -887,7 +899,8 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
             )}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Pre-Flight Quality Control & DDEX Specifications Accordion */}
       <Accordion defaultValue={["qc-specs"]} className="w-full rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
@@ -1168,22 +1181,21 @@ export function ReleaseDetailsContent({ code }: { code: string }) {
                     <Volume2 className="w-4 h-4" />
                   )}
                 </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setVolume(val);
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={[isMuted ? 0 : volume]}
+                  onValueChange={(val) => {
+                    const v = Array.isArray(val) ? val[0] : (val as number);
+                    setVolume(v);
                     if (audioRef.current) {
-                      audioRef.current.volume = val;
+                      audioRef.current.volume = v;
                       audioRef.current.muted = false;
                       setIsMuted(false);
                     }
                   }}
-                  className="w-20 h-1.5 accent-primary cursor-pointer"
+                  className="w-20"
                 />
               </div>
 

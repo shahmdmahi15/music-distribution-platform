@@ -35,9 +35,18 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty";
 
 export function SessionsContent() {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
@@ -214,9 +223,17 @@ export function SessionsContent() {
               <Spinner className="h-6 w-6 text-primary" />
             </div>
           ) : sessions.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-xs">
-              No active sessions detected.
-            </div>
+            <Empty className="py-12 px-4 border-0">
+              <EmptyMedia>
+                <Monitor className="h-8 w-8 text-muted-foreground/50" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-sm font-semibold">No active sessions detected</EmptyTitle>
+                <EmptyDescription className="text-xs text-muted-foreground">
+                  No other active device or browser sessions were found for your account.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>
@@ -322,18 +339,12 @@ export function SessionsContent() {
               <AlertTriangle className="w-5 h-5 text-destructive" />
               <span>Revoke All Other Device Sessions</span>
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              This will immediately sign out all <strong className="text-foreground">{otherSessionsCount}</strong> other active browsers and mobile devices. Your current session on this device will remain authenticated and active.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="py-2 space-y-2 text-xs text-muted-foreground">
-            <p>
-              This will immediately sign out all <strong className="text-foreground">{otherSessionsCount}</strong> other active browsers and mobile devices.
-            </p>
-            <p>
-              Your current session on this device will remain authenticated and active.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
             <Button
               type="button"
               variant="outline"
@@ -353,7 +364,7 @@ export function SessionsContent() {
               <Trash2 className="w-3.5 h-3.5" />
               <span>Confirm Revocation</span>
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

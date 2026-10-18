@@ -29,6 +29,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 interface ProfileContentProps {
   user: WhiteLabelUser;
@@ -211,7 +223,8 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Tenant-Branded Identity Card */}
         <div className="md:col-span-1 space-y-6">
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-5">
+          <Card className="rounded-2xl border-border bg-card shadow-xs">
+            <CardContent className="p-6 space-y-5">
             <div className="flex flex-col items-center text-center space-y-3">
               {/* Large Avatar */}
               <div
@@ -267,16 +280,19 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
                 </div>
               )}
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* WhiteLabel Portal Details */}
           {tenant && (
-            <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Building2 className="w-4 h-4 text-muted-foreground" />
-                <span>Tenant Portal Details</span>
-              </div>
-              <div className="text-xs space-y-2 text-muted-foreground">
+            <Card className="rounded-2xl border-border bg-card shadow-xs">
+              <CardHeader className="p-6 pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                  <span>Tenant Portal Details</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0 text-xs space-y-2 text-muted-foreground">
                 <div>
                   <span className="font-medium text-foreground">Label:</span> {tenant.name}
                 </div>
@@ -292,20 +308,22 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
                     {tenant.supportEmail}
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {/* Right Column: Edit Profile, Password & 2FA Management */}
         <div className="md:col-span-2 space-y-6">
           {/* Edit Profile Form */}
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <User className="w-4 h-4 text-primary" />
-              <span>Personal Information</span>
-            </div>
-
+          <Card className="rounded-2xl border-border bg-card shadow-xs">
+            <CardHeader className="p-6 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <User className="w-4 h-4 text-primary" />
+                <span>Personal Information</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 pt-2">
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -365,15 +383,18 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
                 </Button>
               </div>
             </form>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Change Password Card with Real-time Entropy Meter */}
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <Key className="w-4 h-4 text-primary" />
-              <span>Change Security Password</span>
-            </div>
-
+          <Card className="rounded-2xl border-border bg-card shadow-xs">
+            <CardHeader className="p-6 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <Key className="w-4 h-4 text-primary" />
+                <span>Change Security Password</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 pt-2">
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Current Password *</Label>
@@ -465,28 +486,32 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
                 </Button>
               </div>
             </form>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* 2FA/MFA Management Card with Setup Wizard */}
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <Shield className="w-4 h-4 text-primary" />
-                <span>Two-Factor Authentication (2FA)</span>
+          <Card className="rounded-2xl border-border bg-card shadow-xs">
+            <CardHeader className="p-6 pb-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                  <Shield className="w-4 h-4 text-primary" />
+                  <span>Two-Factor Authentication (2FA)</span>
+                </CardTitle>
+                {twoFactorActive ? (
+                  <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 gap-1 text-xs font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>2FA Active</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 gap-1 text-xs">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>2FA Disabled</span>
+                  </Badge>
+                )}
               </div>
-              {twoFactorActive ? (
-                <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 gap-1 text-xs font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>2FA Active</span>
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 gap-1 text-xs">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>2FA Disabled</span>
-                </Badge>
-              )}
-            </div>
+            </CardHeader>
 
+            <CardContent className="p-6 pt-2 space-y-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Protect your catalog, royalty withdrawals, and artist roster with time-based one-time password (TOTP) verification using Google Authenticator, 1Password, or Authy.
             </p>
@@ -597,19 +622,24 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
 
                   {/* Step 2: Enter 6-digit Code */}
                   <form onSubmit={handleVerify2fa} className="space-y-3">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <Label className="text-xs font-semibold">
                         Step 2: Enter 6-Digit Authenticator Code
                       </Label>
-                      <Input
-                        type="text"
+                      <InputOTP
                         maxLength={6}
                         value={twoFactorCode}
-                        onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ""))}
-                        placeholder="123456"
-                        required
-                        className="text-base font-mono tracking-widest text-center h-10 max-w-[200px]"
-                      />
+                        onChange={(val) => setTwoFactorCode(val)}
+                      >
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
                     </div>
 
                     {/* Step 3: Backup Recovery Codes Preview */}
@@ -673,7 +703,8 @@ export function ProfileContent({ user: initialUser, tenant }: ProfileContentProp
                 </div>
               </div>
             )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
